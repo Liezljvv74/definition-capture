@@ -3,23 +3,18 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { Modal } from "@/components/Modal";
+import { applyImport, parseBackup, type BackupContents, type ImportResult } from "@/lib/backup";
 import { downloadBackup, readFileAsText } from "@/lib/backupFile";
-import {
-  importEntries,
-  parseBackup,
-  type ImportMode,
-  type ImportResult,
-} from "@/lib/storage";
-import type { Entry } from "@/lib/types";
+import type { ImportMode } from "@/lib/browserStore";
 import { useGlossary } from "@/lib/useGlossary";
+import { usePhrases } from "@/lib/usePhrases";
 
 type Preview = {
   fileName: string;
-  entries: Entry[];
-  /** Rows in the file that were not readable as entries. */
-  unreadable: number;
-  /** How many of the file's terms already exist in the glossary. */
-  matching: number;
+  contents: BackupContents;
+  /** How many of the file's items already exist here, by name. */
+  matchingTerms: number;
+  matchingPhrases: number;
 };
 
 type ImportState =
@@ -31,10 +26,13 @@ type ImportState =
 
 export function BackupButtons() {
   const { entries } = useGlossary();
+  const { phrases } = usePhrases();
   const fileInput = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<ImportState>({ step: "idle" });
   const [mode, setMode] = useState<ImportMode>("skip");
   const [justExported, setJustExported] = useState(false);
+
+  const savedCount = entries.length + phrases.length;
 
   useEffect(() => {
     if (!justExported) return;
@@ -67,26 +65,23 @@ export function BackupButtons() {
       return;
     }
 
-    const existingTerms = new Set(entries.map((entry) => entry.term.toLocaleLowerCase()));
-    const matching = parsed.entries.filter((entry) =>
-      existingTerms.has(entry.term.toLocaleLowerCase()),
-    ).length;
+    const savedTerms = new Set(entries.map((entry) => entry.term.toLocaleLowerCase()));
+    const savedPhrases = new Set(phrases.map((phrase) => phrase.phrase.toLocaleLowerCase()));
 
     setMode("skip");
     setState({
       step: "preview",
       preview: {
         fileName: file.name,
-        entries: parsed.entries,
-        unreadable: parsed.unreadable,
-        matching,
+        contents: { entries: parsed.entries, phrases: parsed.phrases, unreadable: parsed.unreadable },
+        matchingTerms: parsed.entries.filter((entry) =>
+          savedTerms.has(entry.term.toLocaleLowerCase()),
+        ).length,
+        matchingPhrases: parsed.phrases.filter((phrase) =>
+          savedPhrases.has(phrase.phrase.toLocaleLowerCase()),
+        ).length,
       },
     });
-  }
-
-  function runImport(preview: Preview, chosen: ImportMode) {
-    const result = importEntries(preview.entries, chosen);
-    setState({ step: "done", result, mode: chosen });
   }
 
   const close = () => setState({ step: "idle" });
@@ -97,11 +92,11 @@ export function BackupButtons() {
         type="button"
         className="btn btn-secondary"
         onClick={handleExport}
-        disabled={entries.length === 0}
+        disabled={savedCount === 0}
         title={
-          entries.length === 0
-            ? "Add a term before exporting a backup"
-            : "Download all terms as a JSON backup"
+          savedCount === 0
+            ? "Save something before exporting a backup"
+            : "Download all terms and phrases as a JSON backup"
         }
       >
         {justExported ? "Exported ✓" : "Export"}
@@ -111,7 +106,7 @@ export function BackupButtons() {
         type="button"
         className="btn btn-secondary"
         onClick={() => fileInput.current?.click()}
-        title="Restore terms from a JSON backup"
+        title="Restore terms and phrases from a JSON backup"
       >
         Import
       </button>
@@ -141,24 +136,35 @@ export function BackupButtons() {
       {state.step === "preview" && (
         <ImportPreview
           preview={state.preview}
-          currentCount={entries.length}
+          savedTerms={entries.length}
+          savedPhrases={phrases.length}
           mode={mode}
           onModeChange={setMode}
           onCancel={close}
           onConfirm={() =>
             mode === "replace"
               ? setState({ step: "confirmReplace", preview: state.preview })
-              : runImport(state.preview, mode)
+              : setState({
+                  step: "done",
+                  result: applyImport(state.preview.contents, mode),
+                  mode,
+                })
           }
         />
       )}
 
       {state.step === "confirmReplace" && (
-        <Modal title="Replace the whole glossary?" onClose={close}>
+        <Modal title="Replace what you have saved?" onClose={close}>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            This deletes all {entries.length}{" "}
-            {entries.length === 1 ? "term" : "terms"} currently saved and restores the{" "}
-            {state.preview.entries.length} from the backup instead. It cannot be undone.
+            This deletes the {entries.length} {entries.length === 1 ? "term" : "terms"} you have
+            saved and restores the {state.preview.contents.entries.length} from the backup
+            instead.
+            {state.preview.contents.phrases.length > 0
+              ? ` Your ${phrases.length} saved ${
+                  phrases.length === 1 ? "phrase" : "phrases"
+                } are replaced by the ${state.preview.contents.phrases.length} in the file.`
+              : " This file carries no phrases, so your phrase list is left alone."}{" "}
+            It cannot be undone.
           </p>
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
@@ -171,9 +177,15 @@ export function BackupButtons() {
             <button
               type="button"
               className="btn btn-danger"
-              onClick={() => runImport(state.preview, "replace")}
+              onClick={() =>
+                setState({
+                  step: "done",
+                  result: applyImport(state.preview.contents, "replace"),
+                  mode: "replace",
+                })
+              }
             >
-              Yes, replace everything
+              Yes, replace
             </button>
           </div>
         </Modal>
@@ -181,24 +193,10 @@ export function BackupButtons() {
 
       {state.step === "done" && (
         <Modal title="Import finished" onClose={close}>
-          <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
-            <li>
-              <strong className="font-semibold">{state.result.added}</strong>{" "}
-              {state.mode === "replace" ? "terms restored" : "new terms added"}
-            </li>
-            {state.mode !== "replace" && (
-              <>
-                <li>
-                  <strong className="font-semibold">{state.result.updated}</strong> existing
-                  terms updated
-                </li>
-                <li>
-                  <strong className="font-semibold">{state.result.skipped}</strong> already in
-                  your glossary, left alone
-                </li>
-              </>
-            )}
-          </ul>
+          <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
+            <ResultBlock label="Terms" counts={state.result.terms} mode={state.mode} />
+            <ResultBlock label="Phrases" counts={state.result.phrases} mode={state.mode} />
+          </div>
           <div className="mt-5 flex justify-end">
             <button type="button" className="btn btn-primary" onClick={close}>
               Done
@@ -210,57 +208,102 @@ export function BackupButtons() {
   );
 }
 
+function ResultBlock({
+  label,
+  counts,
+  mode,
+}: {
+  label: string;
+  counts: { added: number; updated: number; skipped: number };
+  mode: ImportMode;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+        {label}
+      </p>
+      <ul className="mt-1 space-y-0.5">
+        <li>
+          <strong className="font-semibold">{counts.added}</strong>{" "}
+          {mode === "replace" ? "restored" : "added"}
+        </li>
+        {mode !== "replace" && (
+          <>
+            <li>
+              <strong className="font-semibold">{counts.updated}</strong> updated
+            </li>
+            <li>
+              <strong className="font-semibold">{counts.skipped}</strong> already saved, left
+              alone
+            </li>
+          </>
+        )}
+      </ul>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------- preview  */
 
 const MODE_OPTIONS: { value: ImportMode; label: string; hint: string }[] = [
   {
     value: "skip",
-    label: "Add only the terms I don't have",
-    hint: "Nothing already in your glossary is touched.",
+    label: "Add only what I don't have",
+    hint: "Nothing already saved is touched.",
   },
   {
     value: "update",
-    label: "Add new terms and update matching ones",
-    hint: "Definitions in the backup overwrite what you have.",
+    label: "Add new and update matching",
+    hint: "The backup overwrites what you have.",
   },
   {
     value: "replace",
-    label: "Replace my whole glossary with this backup",
-    hint: "Everything currently saved is deleted first.",
+    label: "Replace everything with this backup",
+    hint: "What is saved now is deleted first.",
   },
 ];
 
 function ImportPreview({
   preview,
-  currentCount,
+  savedTerms,
+  savedPhrases,
   mode,
   onModeChange,
   onCancel,
   onConfirm,
 }: {
   preview: Preview;
-  currentCount: number;
+  savedTerms: number;
+  savedPhrases: number;
   mode: ImportMode;
   onModeChange: (mode: ImportMode) => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const total = preview.entries.length;
-  const fresh = total - preview.matching;
+  const terms = preview.contents.entries.length;
+  const phrases = preview.contents.phrases.length;
 
   return (
     <Modal title="Import a backup" onClose={onCancel}>
       <div className="space-y-4">
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
           <p className="font-medium break-all">{preview.fileName}</p>
-          <p className="mt-1 text-slate-600 dark:text-slate-300">
-            {total} {total === 1 ? "term" : "terms"} in this file — {fresh} new to you,{" "}
-            {preview.matching} already in your glossary of {currentCount}.
-          </p>
-          {preview.unreadable > 0 && (
+          <ul className="mt-1 space-y-0.5 text-slate-600 dark:text-slate-300">
+            <li>
+              {terms} {terms === 1 ? "term" : "terms"} — {terms - preview.matchingTerms} new to
+              you, {preview.matchingTerms} of your {savedTerms} already saved.
+            </li>
+            <li>
+              {phrases} {phrases === 1 ? "phrase" : "phrases"} —{" "}
+              {phrases - preview.matchingPhrases} new to you, {preview.matchingPhrases} of your{" "}
+              {savedPhrases} already saved.
+            </li>
+          </ul>
+          {preview.contents.unreadable > 0 && (
             <p className="mt-1 text-amber-700 dark:text-amber-300">
-              {preview.unreadable} {preview.unreadable === 1 ? "row was" : "rows were"} not
-              readable and will be ignored.
+              {preview.contents.unreadable}{" "}
+              {preview.contents.unreadable === 1 ? "row was" : "rows were"} not readable and
+              will be ignored.
             </p>
           )}
         </div>
@@ -303,7 +346,7 @@ function ImportPreview({
             className={`btn ${mode === "replace" ? "btn-danger" : "btn-primary"}`}
             onClick={onConfirm}
           >
-            {mode === "replace" ? "Replace glossary…" : "Import"}
+            {mode === "replace" ? "Replace…" : "Import"}
           </button>
         </div>
       </div>

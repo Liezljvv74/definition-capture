@@ -6,11 +6,12 @@ import { useMemo, useState } from "react";
 import { AddTermDialog } from "@/components/AddTermDialog";
 import { BackupButtons } from "@/components/BackupButtons";
 import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
-import { buildTermIndex, RefText, type TermIndex } from "@/components/RefText";
+import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { sourceOrder } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Entry } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
+import { usePhrases } from "@/lib/usePhrases";
 
 type SortKey = "term" | "source" | "dateAdded";
 type SortDirection = "asc" | "desc";
@@ -37,6 +38,7 @@ function compare(a: Entry, b: Entry, key: SortKey): number {
 
 export default function GlossaryPage() {
   const { entries, loaded } = useGlossary();
+  const { phrases } = usePhrases();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [onlyNeedsDefinition, setOnlyNeedsDefinition] = useState(false);
@@ -62,7 +64,7 @@ export default function GlossaryPage() {
     });
   }, [entries, query, onlyNeedsDefinition, sort]);
 
-  const termIndex = useMemo(() => buildTermIndex(entries), [entries]);
+  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
   const isFiltered = query.trim() !== "" || onlyNeedsDefinition;
 
@@ -150,9 +152,9 @@ export default function GlossaryPage() {
                   entries={visible}
                   sort={sort}
                   onSort={toggleSort}
-                  termIndex={termIndex}
+                  linkIndex={linkIndex}
                 />
-                <EntryCards entries={visible} termIndex={termIndex} />
+                <EntryCards entries={visible} linkIndex={linkIndex} />
                 {isFiltered && (
                   <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                     Showing {visible.length} of {entries.length} terms.
@@ -175,12 +177,12 @@ function EntryTable({
   entries,
   sort,
   onSort,
-  termIndex,
+  linkIndex,
 }: {
   entries: Entry[];
   sort: Sort;
   onSort: (key: SortKey) => void;
-  termIndex: TermIndex;
+  linkIndex: LinkIndex;
 }) {
   return (
     <div className="card hidden overflow-hidden md:block">
@@ -246,7 +248,7 @@ function EntryTable({
               <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
                 {entry.ref ? (
                   <span className="line-clamp-2 break-words">
-                    <RefText value={entry.ref} termIndex={termIndex} />
+                    <RefText value={entry.ref} linkIndex={linkIndex} />
                   </span>
                 ) : (
                   <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
@@ -270,7 +272,7 @@ function EntryTable({
 
 /* ------------------------------------------------------------------ cards  */
 
-function EntryCards({ entries, termIndex }: { entries: Entry[]; termIndex: TermIndex }) {
+function EntryCards({ entries, linkIndex }: { entries: Entry[]; linkIndex: LinkIndex }) {
   return (
     <ul className="space-y-3 md:hidden">
       {entries.map((entry) => (
@@ -301,7 +303,7 @@ function EntryCards({ entries, termIndex }: { entries: Entry[]; termIndex: TermI
             {entry.ref && (
               <p className="mt-2 text-xs break-words text-slate-600 dark:text-slate-400">
                 <span className="font-medium text-slate-500 dark:text-slate-500">Ref: </span>
-                <RefText value={entry.ref} termIndex={termIndex} />
+                <RefText value={entry.ref} linkIndex={linkIndex} />
               </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-1.5">

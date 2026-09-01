@@ -6,13 +6,14 @@ import { Suspense, useMemo, useState } from "react";
 
 import { BackupButtons } from "@/components/BackupButtons";
 import { NeedsDefinitionBadge } from "@/components/Badges";
-import { buildTermIndex, RefText, type TermIndex } from "@/components/RefText";
+import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { EntryForm } from "@/components/EntryForm";
 import { SOURCES } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { deleteEntry, updateEntry } from "@/lib/storage";
 import { isSource, type Entry, type EntryInput } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
+import { usePhrases } from "@/lib/usePhrases";
 
 export default function TermDetailPage() {
   // `useSearchParams` needs a boundary to suspend against during prerender.
@@ -35,9 +36,10 @@ function TermDetail() {
   const params = useParams<{ id: string }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { entries, loaded } = useGlossary();
+  const { phrases } = usePhrases();
   const entry = entries.find((candidate) => candidate.id === id);
 
-  const termIndex = useMemo(() => buildTermIndex(entries), [entries]);
+  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
 
   // Selecting a term in the glossary links here with ?edit=1, so the form is
   // already open; the bare URL still opens the entry read-only.
@@ -65,7 +67,7 @@ function TermDetail() {
         ) : entry ? (
           <EntryDetail
             entry={entry}
-            termIndex={termIndex}
+            linkIndex={linkIndex}
             startInEditMode={startInEditMode}
           />
         ) : (
@@ -78,11 +80,11 @@ function TermDetail() {
 
 function EntryDetail({
   entry,
-  termIndex,
+  linkIndex,
   startInEditMode,
 }: {
   entry: Entry;
-  termIndex: TermIndex;
+  linkIndex: LinkIndex;
   startInEditMode: boolean;
 }) {
   const router = useRouter();
@@ -182,7 +184,7 @@ function EntryDetail({
           </dt>
           <dd className="mt-1.5 text-sm break-words text-slate-700 dark:text-slate-300">
             {entry.ref ? (
-              <RefText value={entry.ref} termIndex={termIndex} />
+              <RefText value={entry.ref} linkIndex={linkIndex} />
             ) : (
               <span className="text-slate-400 italic dark:text-slate-500">None</span>
             )}

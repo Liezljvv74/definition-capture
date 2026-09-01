@@ -4,7 +4,7 @@
  * `storage.ts` — this module only moves bytes in and out of the page.
  */
 
-import { buildBackup } from "@/lib/storage";
+import { buildBackup } from "@/lib/backup";
 
 export function backupFileName(date = new Date()): string {
   const stamp = [
@@ -33,7 +33,7 @@ export function downloadBackup(): { fileName: string; count: number } {
   // Give the browser a moment to start the download before releasing the blob.
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-  return { fileName, count: backup.entries.length };
+  return { fileName, count: backup.entries.length + backup.phrases.length };
 }
 
 export function readFileAsText(file: File): Promise<string> {

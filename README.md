@@ -14,14 +14,15 @@ Then open <http://localhost:3000>.
 
 ## Where the data lives
 
-Entries are persisted in the browser's **`localStorage`**, under the key
-`definition-capture.entries.v1`. The glossary is a small, single-user, plain-text list that
-only has to survive a full page reload, so localStorage gives exactly that with synchronous
-reads and zero setup.
+Both lists are persisted in the browser's **`localStorage`**, under
+`definition-capture.entries.v1` and `definition-capture.phrases.v1`. Each is a small,
+single-user, plain-text collection that only has to survive a full page reload, so
+localStorage gives exactly that with synchronous reads and zero setup.
 
-Every read and write goes through `src/lib/storage.ts` — nothing else in the app touches
-`localStorage` directly, so swapping in IndexedDB or a real API later means rewriting that one
-file. Because the data is per-browser, entries saved in Chrome will not show up in Firefox, and
+The two stores are built from one factory in `src/lib/browserStore.ts` — nothing else in the
+app touches `localStorage` directly, so swapping in IndexedDB or a real API later means
+rewriting that one file, and the lists cannot drift apart in how they load, save, or sync
+between tabs. Because the data is per-browser, entries saved in Chrome will not show up in Firefox, and
 a `/terms/…` link only opens on the device that created it.
 
 ## What an entry holds
@@ -49,8 +50,13 @@ read from that list.
   through Edit (in place; Date Added is preserved). Delete sits behind a confirm step. An
   unknown ID shows a readable "term not found" message rather than an error page.
 
-- **`/phrases`** — a placeholder page for multi-word expressions that do not fit a single
-  glossary term. The route and navigation exist; the capture flow is not built yet.
+- **`/phrases`** — the phrase list: a separate store that mirrors the glossary, for multi-word
+  expressions that do not fit a single term. Columns are **Phrase**, **Literal meaning**,
+  **Usage example**, and **Ref** — no dates, since phrases are looked up by wording rather
+  than by when they were captured. Search covers all four fields, the Phrase column sorts
+  A→Z / Z→A / back to newest-first, and only Phrase is required.
+- **`/phrases/[id]`** — one phrase per stable URL, with Edit and a confirmed Delete, the same
+  as a term.
 
 A thin nav bar at the top of every page switches between Glossary and Phrases.
 
@@ -71,22 +77,23 @@ field:
 
 | Write | Links to |
 | --- | --- |
-| `[[Closure]]` | The glossary entry named *Closure*, wherever you are reading from. A name that matches nothing is shown plainly rather than as a dead link. |
+| `[[Closure]]` | Whatever is saved under that name — a term **or** a phrase, since the two share one namespace. A name that matches nothing is shown plainly rather than as a dead link. |
 | `/terms/abc123`, `/` | A page inside this app. |
 | `https://example.com/docs` | Any web page — opens in a new tab. The scheme is hidden in the display so the column stays readable. |
 | `#definition` | A spot on the page you are already on. |
 
 Wrapping punctuation is handled, so `(https://example.com).` links only the URL. Ref is
-searchable along with Term and Definition, and it is included in backups.
+searchable along with the other fields on both lists, and it is included in backups.
 
 ## Backup: export and import
 
 Because entries live in one browser, **Export** and **Import** sit at the top right of every
 screen so you always have a way out.
 
-- **Export** downloads the whole glossary as `definition-capture-backup-YYYY-MM-DD.json`. It is
-  plain, readable JSON — `{ format, version, exportedAt, entries }` — safe to keep in a cloud
-  folder or commit somewhere. The button is disabled while the glossary is empty.
+- **Export** downloads **both lists** as `definition-capture-backup-YYYY-MM-DD.json` — one
+  file, nothing to remember separately. It is plain, readable JSON —
+  `{ format, version, exportedAt, entries, phrases }` — safe to keep in a cloud folder or
+  commit somewhere. The button is disabled while there is nothing saved.
 - **Import** reads a backup back in. It first shows you what is in the file — how many terms are
   new, how many you already have, and how many rows it could not read — then asks what to do:
 
@@ -96,11 +103,14 @@ screen so you always have a way out.
   | Add new terms and update matching ones | The backup's definitions overwrite yours. |
   | Replace my whole glossary | Everything saved is deleted first — behind a second confirm. |
 
-Matching uses the same case-insensitive term rule as the add form. Imported entries keep their
-original **Date Added**, which is the point of a backup, and IDs that would collide with an
-existing entry are quietly re-issued so nothing is overwritten by accident. A bare array of
-entries is accepted as well as a full backup file, and anything unreadable is reported rather
-than silently dropped.
+Terms match on the term, phrases on the phrase, both case-insensitively — the same rule the add
+forms use. Imported entries keep their original **Date Added**, which is the point of a backup,
+and IDs that would collide are quietly re-issued so nothing is overwritten by accident.
+
+Older backups still work: a version 1 file (terms only) imports fine, as does a bare array of
+entries. Restoring a terms-only backup with **Replace** deliberately leaves the phrase list
+alone rather than silently deleting it. Anything unreadable is counted and reported rather than
+silently dropped.
 
 ## Handy behaviors
 
@@ -118,23 +128,30 @@ src/
   app/
     page.tsx              glossary browser
     terms/[id]/page.tsx   entry detail, edit, delete
-    phrases/page.tsx      Phrases page (placeholder)
+    phrases/page.tsx      phrase list
+    phrases/[id]/page.tsx phrase detail, edit, delete
     layout.tsx            shell + metadata
     globals.css           Tailwind theme and shared control styles
   components/
-    AddTermDialog.tsx     add flow, including the duplicate prompt
+    AddPhraseDialog.tsx   add-phrase flow, including the duplicate prompt
+    AddTermDialog.tsx     add-term flow, including the duplicate prompt
     BackupButtons.tsx     export / import buttons and the import dialog
-    EntryForm.tsx         shared add/edit form
+    EntryForm.tsx         shared add/edit form for terms
+    PhraseForm.tsx        shared add/edit form for phrases
     MainNav.tsx           Glossary / Phrases nav bar
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
     RefText.tsx           renders a parsed Ref value
   lib/
+    browserStore.ts       the localStorage factory both stores are built on
     constants.ts          the editable dropdown lists
-    types.ts              Entry shape and validators
-    storage.ts            the only module that touches localStorage
+    types.ts              Entry and Phrase shapes plus validators
+    storage.ts            the glossary store
+    phraseStorage.ts      the phrase store
+    backup.ts             one backup file covering both lists
     backupFile.ts         download / file-read plumbing for backups
-    useGlossary.ts        React binding for the store
+    useGlossary.ts        React binding for the glossary store
+    usePhrases.ts         React binding for the phrase store
     parseTerm.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting

@@ -4,22 +4,32 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { parseRef } from "@/lib/parseRef";
-import type { Entry } from "@/lib/types";
+import type { Entry, Phrase } from "@/lib/types";
 
-/** Lower-cased term name → entry id, so `[[Term]]` can find its page. */
-export type TermIndex = Map<string, string>;
+/** Lower-cased name → the page it lives on, so `[[Name]]` can find it. */
+export type LinkIndex = Map<string, string>;
 
-export function buildTermIndex(entries: Entry[]): TermIndex {
-  return new Map(entries.map((entry) => [entry.term.toLocaleLowerCase(), entry.id]));
+/** Terms and phrases share one namespace, so a Ref can point at either list. */
+export function buildLinkIndex(entries: Entry[], phrases: Phrase[] = []): LinkIndex {
+  const index: LinkIndex = new Map();
+  for (const phrase of phrases) {
+    index.set(phrase.phrase.toLocaleLowerCase(), `/phrases/${phrase.id}`);
+  }
+  // Terms win a name clash: they are the more specific thing to link to.
+  for (const entry of entries) {
+    index.set(entry.term.toLocaleLowerCase(), `/terms/${entry.id}`);
+  }
+  return index;
 }
 
-const linkClass = "text-indigo-700 underline underline-offset-2 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200";
+const linkClass =
+  "text-indigo-700 underline underline-offset-2 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200";
 
 /**
  * Renders a Ref value: ordinary words as text, recognised references as links.
- * A `[[Term]]` that matches nothing is shown plainly rather than as a dead link.
+ * A `[[Name]]` that matches nothing is shown plainly rather than as a dead link.
  */
-export function RefText({ value, termIndex }: { value: string; termIndex: TermIndex }) {
+export function RefText({ value, linkIndex }: { value: string; linkIndex: LinkIndex }) {
   const tokens = useMemo(() => parseRef(value), [value]);
 
   return (
@@ -30,12 +40,12 @@ export function RefText({ value, termIndex }: { value: string; termIndex: TermIn
             return <span key={index}>{token.value}</span>;
 
           case "term": {
-            const id = termIndex.get(token.name.toLocaleLowerCase());
-            if (!id) {
+            const href = linkIndex.get(token.name.toLocaleLowerCase());
+            if (!href) {
               return (
                 <span
                   key={index}
-                  title="No term with this name in your glossary yet"
+                  title="Nothing with this name is saved yet"
                   className="text-slate-500 underline decoration-dotted underline-offset-2 dark:text-slate-400"
                 >
                   {token.name}
@@ -43,7 +53,7 @@ export function RefText({ value, termIndex }: { value: string; termIndex: TermIn
               );
             }
             return (
-              <Link key={index} href={`/terms/${id}`} className={linkClass}>
+              <Link key={index} href={href} className={linkClass}>
                 {token.name}
               </Link>
             );
