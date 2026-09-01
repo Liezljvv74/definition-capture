@@ -1,9 +1,18 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { Modal } from "@/components/Modal";
-import { applyImport, parseBackup, type BackupContents, type ImportResult } from "@/lib/backup";
+import {
+  applyImport,
+  leavesPhrasesAlone,
+  leavesTermsAlone,
+  parseBackup,
+  type BackupContents,
+  type BackupScope,
+  type ImportResult,
+} from "@/lib/backup";
 import {
   downloadExcelBackup,
   downloadJsonBackup,
@@ -40,10 +49,20 @@ export function BackupButtons() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<ImportState>({ step: "idle" });
   const [exportState, setExportState] = useState<ExportState>({ step: "idle" });
+  const [scope, setScope] = useState<BackupScope>("all");
   const [mode, setMode] = useState<ImportMode>("skip");
   const [justExported, setJustExported] = useState(false);
 
+  // Which list the page you are on is showing, for the "only this page" option.
+  const pathname = usePathname();
+  const activeList: Exclude<BackupScope, "all"> = pathname.startsWith("/phrases")
+    ? "phrases"
+    : "terms";
+  const activeLabel = activeList === "phrases" ? "Phrases" : "Glossary";
+
   const savedCount = entries.length + phrases.length;
+  const scopedCount =
+    scope === "terms" ? entries.length : scope === "phrases" ? phrases.length : savedCount;
 
   useEffect(() => {
     if (!justExported) return;
@@ -54,10 +73,10 @@ export function BackupButtons() {
   async function runExport(format: "json" | "xlsx") {
     setExportState({ step: "working" });
     try {
-      if (format === "json") downloadJsonBackup();
+      if (format === "json") downloadJsonBackup(scope);
       // The workbook is built asynchronously, so failures land here rather
       // than leaving the dialog open with nothing happening.
-      else await downloadExcelBackup();
+      else await downloadExcelBackup(scope);
       setExportState({ step: "idle" });
       setJustExported(true);
     } catch {
@@ -114,7 +133,10 @@ export function BackupButtons() {
       <button
         type="button"
         className="btn btn-secondary"
-        onClick={() => setExportState({ step: "choosing" })}
+        onClick={() => {
+          setScope("all");
+          setExportState({ step: "choosing" });
+        }}
         disabled={savedCount === 0}
         title={
           savedCount === 0
@@ -157,15 +179,40 @@ export function BackupButtons() {
               </div>
             </>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <fieldset>
+                <legend className="mb-1.5 text-sm font-medium">What to export</legend>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <ScopeChoice
+                    label="Everything"
+                    detail={`${savedCount} in both lists`}
+                    checked={scope === "all"}
+                    disabled={exportState.step === "working"}
+                    onSelect={() => setScope("all")}
+                  />
+                  <ScopeChoice
+                    label={`Only this page (${activeLabel})`}
+                    detail={`${
+                      activeList === "phrases" ? phrases.length : entries.length
+                    } ${activeList === "phrases" ? "phrases" : "terms"}`}
+                    checked={scope === activeList}
+                    disabled={exportState.step === "working"}
+                    onSelect={() => setScope(activeList)}
+                  />
+                </div>
+              </fieldset>
+
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                {savedCount} {savedCount === 1 ? "item" : "items"} across your terms and
-                phrases. Which format?
+                {scopedCount} {scopedCount === 1 ? "item" : "items"} selected. Which format?
               </p>
 
               <ExportChoice
                 title="Excel workbook (.xlsx)"
-                detail="Terms and Phrases on separate sheets. Best for reading, sorting, or printing outside the app."
+                detail={
+                  scope === "all"
+                    ? "Terms and Phrases on separate sheets. Best for reading, sorting, or printing outside the app."
+                    : `One sheet of ${scope}. Best for reading, sorting, or printing outside the app.`
+                }
                 disabled={exportState.step === "working"}
                 onClick={() => runExport("xlsx")}
               />
@@ -240,16 +287,22 @@ export function BackupButtons() {
       {state.step === "confirmReplace" && (
         <Modal title="Replace what you have saved?" onClose={close}>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            This deletes the {entries.length} {entries.length === 1 ? "term" : "terms"} you have
-            saved and restores the {state.preview.contents.entries.length} from the backup
-            instead.
-            {state.preview.contents.phrases.length > 0
-              ? ` Your ${phrases.length} saved ${
-                  phrases.length === 1 ? "phrase" : "phrases"
-                } are replaced by the ${state.preview.contents.phrases.length} in the file.`
-              : " This file carries no phrases, so your phrase list is left alone."}{" "}
-            It cannot be undone.
+            This cannot be undone.
           </p>
+          <ul className="mt-3 space-y-2 text-sm">
+            <ReplaceLine
+              label="Terms"
+              saved={entries.length}
+              incoming={state.preview.contents.entries.length}
+              untouched={leavesTermsAlone(state.preview.contents, "replace")}
+            />
+            <ReplaceLine
+              label="Phrases"
+              saved={phrases.length}
+              incoming={state.preview.contents.phrases.length}
+              untouched={leavesPhrasesAlone(state.preview.contents, "replace")}
+            />
+          </ul>
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
@@ -289,6 +342,70 @@ export function BackupButtons() {
         </Modal>
       )}
     </>
+  );
+}
+
+function ReplaceLine({
+  label,
+  saved,
+  incoming,
+  untouched,
+}: {
+  label: string;
+  saved: number;
+  incoming: number;
+  untouched: boolean;
+}) {
+  return (
+    <li className="flex flex-wrap gap-x-1.5">
+      <span className="font-medium">{label}:</span>
+      {untouched ? (
+        <span className="text-slate-600 dark:text-slate-300">
+          nothing in this file, so your {saved} {saved === 1 ? "one" : "saved"} stay as they are
+        </span>
+      ) : (
+        <span className="text-red-700 dark:text-red-300">
+          your {saved} deleted, replaced by {incoming} from the file
+        </span>
+      )}
+    </li>
+  );
+}
+
+function ScopeChoice({
+  label,
+  detail,
+  checked,
+  disabled,
+  onSelect,
+}: {
+  label: string;
+  detail: string;
+  checked: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <label
+      className={`flex flex-1 cursor-pointer items-start gap-2.5 rounded-lg border p-2.5 transition ${
+        checked
+          ? "border-indigo-500 bg-indigo-50/60 dark:border-indigo-400 dark:bg-indigo-500/10"
+          : "border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+      } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+    >
+      <input
+        type="radio"
+        name="export-scope"
+        className="mt-0.5 size-4 accent-indigo-600"
+        checked={checked}
+        disabled={disabled}
+        onChange={onSelect}
+      />
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="block text-xs text-slate-500 dark:text-slate-400">{detail}</span>
+      </span>
+    </label>
   );
 }
 

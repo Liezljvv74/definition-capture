@@ -91,15 +91,20 @@ searchable along with the other fields on both lists, and it is included in back
 Because entries live in one browser, **Export** and **Import** sit at the top right of every
 screen so you always have a way out.
 
-- **Export** asks which format you want, and either one covers **both lists** in a single file:
+- **Export** asks two things: how much, and in what format.
+
+  **How much** — *Everything* (both lists), or *Only this page*, which means the Glossary while
+  you are on `/` or a term, and Phrases while you are on `/phrases` or a phrase. The file name
+  records the choice: `definition-capture-backup-…`, `-terms-…`, or `-phrases-…`.
+
+  **What format** — either one covers whatever you chose above, in a single file:
 
   | Format | What you get |
   | --- | --- |
-  | **Excel workbook** (`.xlsx`) | Terms and Phrases on separate sheets, with bold headers and sensible column widths. For reading, sorting, or printing outside the app. |
+  | **Excel workbook** (`.xlsx`) | One sheet per exported list — Terms and Phrases when you export everything — with bold headers and sensible column widths. For reading, sorting, or printing outside the app. |
   | **JSON backup** (`.json`) | `{ format, version, exportedAt, entries, phrases }` — plain, readable, and **the only format Import can read back in**. |
 
-  Both save as `definition-capture-backup-YYYY-MM-DD`. The button is disabled while there is
-  nothing saved. The workbook is built in the browser by
+  The button is disabled while there is nothing saved. The workbook is built in the browser by
   [`write-excel-file`](https://www.npmjs.com/package/write-excel-file), the app's one runtime
   dependency beyond Next and React.
 - **Import** reads a backup back in. It first shows you what is in the file — how many terms are
@@ -116,9 +121,10 @@ forms use. Imported entries keep their original **Date Added**, which is the poi
 and IDs that would collide are quietly re-issued so nothing is overwritten by accident.
 
 Older backups still work: a version 1 file (terms only) imports fine, as does a bare array of
-entries. Restoring a terms-only backup with **Replace** deliberately leaves the phrase list
-alone rather than silently deleting it. Anything unreadable is counted and reported rather than
-silently dropped.
+entries. **Replace never wipes a list the file carries nothing for** — restoring a terms-only
+export leaves your phrases alone, and a phrases-only export leaves your terms alone. The
+confirmation spells out, per list, what will be deleted and what will be left as it is.
+Anything unreadable is counted and reported rather than silently dropped.
 
 ## Handy behaviors
 

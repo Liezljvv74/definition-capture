@@ -11,18 +11,24 @@
 
 import writeExcelFile, { type Row, type Sheet } from "write-excel-file/browser";
 
-import { buildBackup } from "@/lib/backup";
+import { buildBackup, type BackupScope } from "@/lib/backup";
 import { formatDate } from "@/lib/format";
 
 export type ExportFormat = "json" | "xlsx";
 
-export function backupFileName(format: ExportFormat, date = new Date()): string {
+/** The file name says what is inside, so scoped exports are told apart later. */
+export function backupFileName(
+  format: ExportFormat,
+  scope: BackupScope = "all",
+  date = new Date(),
+): string {
   const stamp = [
     date.getFullYear(),
     String(date.getMonth() + 1).padStart(2, "0"),
     String(date.getDate()).padStart(2, "0"),
   ].join("-");
-  return `definition-capture-backup-${stamp}.${format}`;
+  const what = scope === "all" ? "backup" : scope;
+  return `definition-capture-${what}-${stamp}.${format}`;
 }
 
 /** Hands a finished blob to the browser as a download. */
@@ -42,12 +48,12 @@ function saveBlob(blob: Blob, fileName: string): void {
 export type ExportSummary = { fileName: string; count: number };
 
 /** The complete backup — this is the file Import reads. */
-export function downloadJsonBackup(): ExportSummary {
-  const backup = buildBackup();
+export function downloadJsonBackup(scope: BackupScope = "all"): ExportSummary {
+  const backup = buildBackup(scope);
   const blob = new Blob([JSON.stringify(backup, null, 2)], {
     type: "application/json",
   });
-  const fileName = backupFileName("json");
+  const fileName = backupFileName("json", scope);
   saveBlob(blob, fileName);
   return { fileName, count: backup.entries.length + backup.phrases.length };
 }
@@ -56,9 +62,9 @@ function headerRow(labels: string[]): Row {
   return labels.map((value) => ({ value, type: String, fontWeight: "bold" as const }));
 }
 
-/** A workbook with one sheet per list, for reading outside the app. */
-export async function downloadExcelBackup(): Promise<ExportSummary> {
-  const backup = buildBackup();
+/** A workbook with one sheet per exported list, for reading outside the app. */
+export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<ExportSummary> {
+  const backup = buildBackup(scope);
 
   const terms: Sheet<Blob> = {
     sheet: "Terms",
@@ -89,8 +95,12 @@ export async function downloadExcelBackup(): Promise<ExportSummary> {
     ],
   };
 
-  const blob = await writeExcelFile([terms, phrases]).toBlob();
-  const fileName = backupFileName("xlsx");
+  // A workbook must have at least one sheet, so a scoped export drops the other.
+  const sheets: Sheet<Blob>[] =
+    scope === "terms" ? [terms] : scope === "phrases" ? [phrases] : [terms, phrases];
+
+  const blob = await writeExcelFile(sheets).toBlob();
+  const fileName = backupFileName("xlsx", scope);
   saveBlob(blob, fileName);
   return { fileName, count: backup.entries.length + backup.phrases.length };
 }

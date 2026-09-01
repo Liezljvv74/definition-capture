@@ -3,7 +3,7 @@
  * Export gives you everything — there is no second file to remember.
  */
 
-import type { ImportCounts, ImportMode } from "@/lib/browserStore";
+import { NO_IMPORT, type ImportCounts, type ImportMode } from "@/lib/browserStore";
 import { getPhrases, importPhrases, parsePhraseList } from "@/lib/phraseStorage";
 import { getEntries, importEntries, parseEntryList } from "@/lib/storage";
 import type { Entry, Phrase } from "@/lib/types";
@@ -20,13 +20,16 @@ export type Backup = {
   phrases: Phrase[];
 };
 
-export function buildBackup(): Backup {
+/** Which lists an export should carry. */
+export type BackupScope = "all" | "terms" | "phrases";
+
+export function buildBackup(scope: BackupScope = "all"): Backup {
   return {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    entries: getEntries(),
-    phrases: getPhrases(),
+    entries: scope === "phrases" ? [] : getEntries(),
+    phrases: scope === "terms" ? [] : getPhrases(),
   };
 }
 
@@ -105,17 +108,27 @@ export function parseBackup(text: string): BackupParse {
 
 export type ImportResult = { terms: ImportCounts; phrases: ImportCounts };
 
+/** True when Replace would wipe a list the file carries nothing for. */
+export function leavesTermsAlone(contents: BackupContents, mode: ImportMode): boolean {
+  return mode === "replace" && contents.entries.length === 0;
+}
+
+export function leavesPhrasesAlone(contents: BackupContents, mode: ImportMode): boolean {
+  return mode === "replace" && contents.phrases.length === 0;
+}
+
 /**
  * Applies a parsed backup to both lists with the same mode. "Replace" only
- * wipes a list the file actually carries, so restoring a terms-only backup
- * cannot silently delete every phrase.
+ * wipes a list the file actually carries, so restoring a single-list export —
+ * terms only, or phrases only — cannot silently delete the other list.
  */
 export function applyImport(contents: BackupContents, mode: ImportMode): ImportResult {
   return {
-    terms: importEntries(contents.entries, mode),
-    phrases:
-      mode === "replace" && contents.phrases.length === 0
-        ? { added: 0, updated: 0, skipped: 0 }
-        : importPhrases(contents.phrases, mode),
+    terms: leavesTermsAlone(contents, mode)
+      ? { ...NO_IMPORT }
+      : importEntries(contents.entries, mode),
+    phrases: leavesPhrasesAlone(contents, mode)
+      ? { ...NO_IMPORT }
+      : importPhrases(contents.phrases, mode),
   };
 }
