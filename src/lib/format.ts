@@ -15,12 +15,17 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+/**
+ * The short form shown throughout the app — e.g. "01 Sep 2026". No time, so the
+ * column stays narrow; the exact timestamp is still available as a tooltip via
+ * `formatDateTime`, and sorting always uses the full ISO string underneath.
+ */
 export function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "Unknown";
   return date.toLocaleDateString(undefined, {
-    year: "numeric",
+    day: "2-digit",
     month: "short",
-    day: "numeric",
+    year: "numeric",
   });
 }

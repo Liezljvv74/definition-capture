@@ -5,11 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { BackupButtons } from "@/components/BackupButtons";
-import { ModuleBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import { ModuleBadge, NeedsDefinitionBadge } from "@/components/Badges";
 import { EntryForm } from "@/components/EntryForm";
-import { formatDateTime } from "@/lib/format";
+import { SOURCES } from "@/lib/constants";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { deleteEntry, updateEntry } from "@/lib/storage";
-import type { Entry, EntryInput } from "@/lib/types";
+import { isSource, type Entry, type EntryInput } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
 
 export default function TermDetailPage() {
@@ -55,6 +56,17 @@ function EntryDetail({ entry }: { entry: Entry }) {
   function handleSave(input: EntryInput) {
     updateEntry(entry.id, input);
     setIsEditing(false);
+  }
+
+  /** The Source dropdown below saves straight away — no trip through Edit. */
+  function handleSourceChange(value: string) {
+    if (!isSource(value) || value === entry.source) return;
+    updateEntry(entry.id, {
+      term: entry.term,
+      definition: entry.definition,
+      moduleTag: entry.moduleTag,
+      source: value,
+    });
   }
 
   if (isEditing) {
@@ -109,11 +121,25 @@ function EntryDetail({ entry }: { entry: Entry }) {
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+          <dt
+            id="source-label"
+            className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400"
+          >
             Source
           </dt>
           <dd className="mt-1.5">
-            <SourceBadge source={entry.source} />
+            <select
+              aria-labelledby="source-label"
+              className="field !w-auto !py-1.5"
+              value={entry.source}
+              onChange={(event) => handleSourceChange(event.target.value)}
+            >
+              {SOURCES.map((source) => (
+                <option key={source} value={source}>
+                  {source}
+                </option>
+              ))}
+            </select>
           </dd>
         </div>
         <div>
@@ -121,10 +147,13 @@ function EntryDetail({ entry }: { entry: Entry }) {
             Date added
           </dt>
           <dd className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">
-            {formatDateTime(entry.dateAdded)}
+            <span title={formatDateTime(entry.dateAdded)}>{formatDate(entry.dateAdded)}</span>
             {entry.dateUpdated && (
-              <span className="block text-xs text-slate-500 dark:text-slate-400">
-                Edited {formatDateTime(entry.dateUpdated)}
+              <span
+                className="block text-xs text-slate-500 dark:text-slate-400"
+                title={formatDateTime(entry.dateUpdated)}
+              >
+                Edited {formatDate(entry.dateUpdated)}
               </span>
             )}
           </dd>

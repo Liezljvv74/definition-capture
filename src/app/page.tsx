@@ -5,30 +5,27 @@ import { useMemo, useState } from "react";
 
 import { AddTermDialog } from "@/components/AddTermDialog";
 import { BackupButtons } from "@/components/BackupButtons";
-import { ModuleBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
-import { MODULE_TAGS, moduleTagOrder, sourceOrder, type ModuleTag } from "@/lib/constants";
-import { formatDateTime } from "@/lib/format";
+import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import { MODULE_TAGS, sourceOrder, type ModuleTag } from "@/lib/constants";
+import { formatDate, formatDateTime } from "@/lib/format";
 import type { Entry } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
 
-type SortKey = "term" | "moduleTag" | "source" | "dateAdded";
+type SortKey = "term" | "source" | "dateAdded";
 type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
 
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
-  { key: "term", label: "Term", className: "w-[22%]" },
+  { key: "term", label: "Term", className: "w-[24%]" },
   { key: null, label: "Definition" },
-  { key: "moduleTag", label: "Module", className: "w-[11%]" },
-  { key: "source", label: "Source", className: "w-[10%]" },
-  { key: "dateAdded", label: "Date added", className: "w-[16%]" },
+  { key: "source", label: "Source", className: "w-[12%]" },
+  { key: "dateAdded", label: "Date added", className: "w-[14%]" },
 ];
 
 function compare(a: Entry, b: Entry, key: SortKey): number {
   switch (key) {
     case "term":
       return a.term.localeCompare(b.term, undefined, { sensitivity: "base" });
-    case "moduleTag":
-      return moduleTagOrder(a.moduleTag) - moduleTagOrder(b.moduleTag);
     case "source":
       return sourceOrder(a.source) - sourceOrder(b.source);
     case "dateAdded":
@@ -255,13 +252,13 @@ function EntryTable({
                 )}
               </td>
               <td className="px-4 py-3 align-top">
-                <ModuleBadge tag={entry.moduleTag} />
-              </td>
-              <td className="px-4 py-3 align-top">
                 <SourceBadge source={entry.source} />
               </td>
-              <td className="px-4 py-3 align-top text-slate-500 dark:text-slate-400">
-                {formatDateTime(entry.dateAdded)}
+              <td
+                className="px-4 py-3 align-top whitespace-nowrap text-slate-500 dark:text-slate-400"
+                title={formatDateTime(entry.dateAdded)}
+              >
+                {formatDate(entry.dateAdded)}
               </td>
             </tr>
           ))}
@@ -296,10 +293,12 @@ function EntryCards({ entries }: { entries: Entry[] }) {
               </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <ModuleBadge tag={entry.moduleTag} />
               <SourceBadge source={entry.source} />
-              <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">
-                {formatDateTime(entry.dateAdded)}
+              <span
+                className="ml-auto text-xs text-slate-500 dark:text-slate-400"
+                title={formatDateTime(entry.dateAdded)}
+              >
+                {formatDate(entry.dateAdded)}
               </span>
             </div>
           </Link>

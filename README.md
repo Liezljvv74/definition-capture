@@ -41,12 +41,18 @@ filter read from those two lists.
 ## Pages
 
 - **`/`** — the glossary browser. Search across terms and definitions, filter by module, show
-  only entries that still need a definition, and re-sort by Term, Module, Source, or Date
-  Added (newest first by default). A table on laptops, cards on phones. Rows that need a
-  definition are flagged in amber.
+  only entries that still need a definition, and re-sort by Term, Source, or Date Added
+  (newest first by default). A table on laptops, cards on phones. Rows that need a definition
+  are flagged in amber. Module is a filter rather than a column, to keep the list readable —
+  it is still shown in full on each entry's own page.
 - **`/terms/[id]`** — one entry per stable URL, safe to reload or paste into a fresh tab.
-  Offers Edit (in place; Date Added is preserved) and Delete behind a confirm step. An unknown
-  ID shows a readable "term not found" message rather than an error page.
+  **Source** is a dropdown here that saves the moment you change it; everything else goes
+  through Edit (in place; Date Added is preserved). Delete sits behind a confirm step. An
+  unknown ID shows a readable "term not found" message rather than an error page.
+
+Dates are shown short — `01 Sep 2026`, no clock time. Hovering shows the exact timestamp, and
+sorting always uses the full stored value, so two terms added on the same day still order
+correctly.
 
 ## Backup: export and import
 
