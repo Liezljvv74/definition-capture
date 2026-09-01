@@ -49,6 +49,11 @@ read from that list.
   through Edit (in place; Date Added is preserved). Delete sits behind a confirm step. An
   unknown ID shows a readable "term not found" message rather than an error page.
 
+- **`/phrases`** — a placeholder page for multi-word expressions that do not fit a single
+  glossary term. The route and navigation exist; the capture flow is not built yet.
+
+A thin nav bar at the top of every page switches between Glossary and Phrases.
+
 Selecting a term in the glossary links to `/terms/[id]?edit=1`, which opens that entry with the
 **Edit term** form already showing — the common case is arriving to fix or finish something.
 Saving or cancelling drops the `?edit=1` and leaves you on the read-only entry, and the bare
@@ -113,12 +118,14 @@ src/
   app/
     page.tsx              glossary browser
     terms/[id]/page.tsx   entry detail, edit, delete
+    phrases/page.tsx      Phrases page (placeholder)
     layout.tsx            shell + metadata
     globals.css           Tailwind theme and shared control styles
   components/
     AddTermDialog.tsx     add flow, including the duplicate prompt
     BackupButtons.tsx     export / import buttons and the import dialog
     EntryForm.tsx         shared add/edit form
+    MainNav.tsx           Glossary / Phrases nav bar
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
     RefText.tsx           renders a parsed Ref value
