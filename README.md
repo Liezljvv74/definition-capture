@@ -48,6 +48,29 @@ filter read from those two lists.
   Offers Edit (in place; Date Added is preserved) and Delete behind a confirm step. An unknown
   ID shows a readable "term not found" message rather than an error page.
 
+## Backup: export and import
+
+Because entries live in one browser, **Export** and **Import** sit at the top right of every
+screen so you always have a way out.
+
+- **Export** downloads the whole glossary as `definition-capture-backup-YYYY-MM-DD.json`. It is
+  plain, readable JSON — `{ format, version, exportedAt, entries }` — safe to keep in a cloud
+  folder or commit somewhere. The button is disabled while the glossary is empty.
+- **Import** reads a backup back in. It first shows you what is in the file — how many terms are
+  new, how many you already have, and how many rows it could not read — then asks what to do:
+
+  | Mode | Effect |
+  | --- | --- |
+  | Add only the terms I don't have | Default. New terms are added, existing ones untouched. |
+  | Add new terms and update matching ones | The backup's definitions overwrite yours. |
+  | Replace my whole glossary | Everything saved is deleted first — behind a second confirm. |
+
+Matching uses the same case-insensitive term rule as the add form. Imported entries keep their
+original **Date Added**, which is the point of a backup, and IDs that would collide with an
+existing entry are quietly re-issued so nothing is overwritten by accident. A bare array of
+entries is accepted as well as a full backup file, and anything unreadable is reported rather
+than silently dropped.
+
 ## Handy behaviors
 
 - **Paste-to-split.** Pasting `term: definition` or `term - definition` into the Term field
@@ -68,6 +91,7 @@ src/
     globals.css           Tailwind theme and shared control styles
   components/
     AddTermDialog.tsx     add flow, including the duplicate prompt
+    BackupButtons.tsx     export / import buttons and the import dialog
     EntryForm.tsx         shared add/edit form
     Modal.tsx             overlay panel
     Badges.tsx            module / source / needs-definition pills
@@ -75,6 +99,7 @@ src/
     constants.ts          the editable dropdown lists
     types.ts              Entry shape and validators
     storage.ts            the only module that touches localStorage
+    backupFile.ts         download / file-read plumbing for backups
     useGlossary.ts        React binding for the store
     parseTerm.ts          the paste-to-split rule
     format.ts             date formatting

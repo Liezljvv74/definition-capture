@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { BackupButtons } from "@/components/BackupButtons";
 import { ModuleBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { EntryForm } from "@/components/EntryForm";
 import { formatDateTime } from "@/lib/format";
@@ -20,13 +21,16 @@ export default function TermDetailPage() {
   return (
     <>
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link
             href="/"
             className="text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-300"
           >
             ← Back to glossary
           </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <BackupButtons />
+          </div>
         </div>
       </header>
 

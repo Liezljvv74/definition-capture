@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { AddTermDialog } from "@/components/AddTermDialog";
+import { BackupButtons } from "@/components/BackupButtons";
 import { ModuleBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { MODULE_TAGS, moduleTagOrder, sourceOrder, type ModuleTag } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
@@ -92,9 +93,12 @@ export default function GlossaryPage() {
                     }`}
             </p>
           </div>
-          <button type="button" className="btn btn-primary" onClick={() => setIsAdding(true)}>
-            <span aria-hidden="true">+</span> Add term
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <BackupButtons />
+            <button type="button" className="btn btn-primary" onClick={() => setIsAdding(true)}>
+              <span aria-hidden="true">+</span> Add term
+            </button>
+          </div>
         </div>
       </header>
 
