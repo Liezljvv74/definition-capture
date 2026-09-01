@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 
 import { BackupButtons } from "@/components/BackupButtons";
 import { NeedsDefinitionBadge } from "@/components/Badges";
@@ -15,12 +15,33 @@ import { isSource, type Entry, type EntryInput } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
 
 export default function TermDetailPage() {
+  // `useSearchParams` needs a boundary to suspend against during prerender.
+  return (
+    <Suspense fallback={<DetailSkeleton />}>
+      <TermDetail />
+    </Suspense>
+  );
+}
+
+function DetailSkeleton() {
+  return (
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+      <div className="card h-56 animate-pulse" aria-hidden="true" />
+    </main>
+  );
+}
+
+function TermDetail() {
   const params = useParams<{ id: string }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { entries, loaded } = useGlossary();
   const entry = entries.find((candidate) => candidate.id === id);
 
   const termIndex = useMemo(() => buildTermIndex(entries), [entries]);
+
+  // Selecting a term in the glossary links here with ?edit=1, so the form is
+  // already open; the bare URL still opens the entry read-only.
+  const startInEditMode = useSearchParams().get("edit") === "1";
 
   return (
     <>
@@ -42,7 +63,11 @@ export default function TermDetailPage() {
         {!loaded ? (
           <div className="card h-56 animate-pulse" aria-hidden="true" />
         ) : entry ? (
-          <EntryDetail entry={entry} termIndex={termIndex} />
+          <EntryDetail
+            entry={entry}
+            termIndex={termIndex}
+            startInEditMode={startInEditMode}
+          />
         ) : (
           <TermNotFound />
         )}
@@ -51,14 +76,28 @@ export default function TermDetailPage() {
   );
 }
 
-function EntryDetail({ entry, termIndex }: { entry: Entry; termIndex: TermIndex }) {
+function EntryDetail({
+  entry,
+  termIndex,
+  startInEditMode,
+}: {
+  entry: Entry;
+  termIndex: TermIndex;
+  startInEditMode: boolean;
+}) {
   const router = useRouter();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
+  /** Leaves the form and drops ?edit=1, so a reload shows the saved entry. */
+  function stopEditing() {
+    setIsEditing(false);
+    router.replace(`/terms/${entry.id}`, { scroll: false });
+  }
 
   function handleSave(input: EntryInput) {
     updateEntry(entry.id, input);
-    setIsEditing(false);
+    stopEditing();
   }
 
   /** The Source dropdown below saves straight away — no trip through Edit. */
@@ -85,7 +124,7 @@ function EntryDetail({ entry, termIndex }: { entry: Entry; termIndex: TermIndex 
           }}
           submitLabel="Save changes"
           onSubmit={handleSave}
-          onCancel={() => setIsEditing(false)}
+          onCancel={stopEditing}
           autoFocus
         />
       </div>

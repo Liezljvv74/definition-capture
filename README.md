@@ -49,6 +49,11 @@ read from that list.
   through Edit (in place; Date Added is preserved). Delete sits behind a confirm step. An
   unknown ID shows a readable "term not found" message rather than an error page.
 
+Selecting a term in the glossary links to `/terms/[id]?edit=1`, which opens that entry with the
+**Edit term** form already showing — the common case is arriving to fix or finish something.
+Saving or cancelling drops the `?edit=1` and leaves you on the read-only entry, and the bare
+`/terms/[id]` URL (what a `[[Term]]` reference points at) always opens read-only.
+
 Dates are shown short — `01 Sep 2026`, no clock time. Hovering shows the exact timestamp, and
 sorting always uses the full stored value, so two terms added on the same day still order
 correctly.

@@ -227,7 +227,7 @@ function EntryTable({
             >
               <td className="px-4 py-3 align-top">
                 <Link
-                  href={`/terms/${entry.id}`}
+                  href={`/terms/${entry.id}?edit=1`}
                   className="font-medium text-indigo-700 hover:underline dark:text-indigo-300"
                 >
                   {entry.term}
@@ -285,7 +285,7 @@ function EntryCards({ entries, termIndex }: { entries: Entry[]; termIndex: TermI
             <div className="flex items-start justify-between gap-3">
               <h2 className="font-semibold">
                 <Link
-                  href={`/terms/${entry.id}`}
+                  href={`/terms/${entry.id}?edit=1`}
                   className="text-indigo-700 hover:underline dark:text-indigo-300"
                 >
                   {entry.term}
