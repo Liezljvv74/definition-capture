@@ -30,6 +30,7 @@ a `/terms/…` link only opens on the device that created it.
 | --- | --- |
 | **Term** | Required, plain text. |
 | **Definition** | Optional — leave it blank and fill it in later. |
+| **Ref** | Optional free text that links itself — see below. |
 | **Source** | Dropdown (Manual / Google / Claude / ChatGPT), defaults to `Manual`. |
 | **Date Added** | Set once on creation, shown but never editable. |
 | **Needs Definition** | Derived automatically — true whenever the definition is blank. |
@@ -51,6 +52,22 @@ read from that list.
 Dates are shown short — `01 Sep 2026`, no clock time. Hovering shows the exact timestamp, and
 sorting always uses the full stored value, so two terms added on the same day still order
 correctly.
+
+## The Ref field
+
+Ref is free text, so a note like `Lecture 4, page 12` is perfectly valid. On top of that, four
+patterns are recognised and turned into links, and you can mix them with ordinary words in one
+field:
+
+| Write | Links to |
+| --- | --- |
+| `[[Closure]]` | The glossary entry named *Closure*, wherever you are reading from. A name that matches nothing is shown plainly rather than as a dead link. |
+| `/terms/abc123`, `/` | A page inside this app. |
+| `https://example.com/docs` | Any web page — opens in a new tab. The scheme is hidden in the display so the column stays readable. |
+| `#definition` | A spot on the page you are already on. |
+
+Wrapping punctuation is handled, so `(https://example.com).` links only the URL. Ref is
+searchable along with Term and Definition, and it is included in backups.
 
 ## Backup: export and import
 
@@ -99,6 +116,7 @@ src/
     EntryForm.tsx         shared add/edit form
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
+    RefText.tsx           renders a parsed Ref value
   lib/
     constants.ts          the editable dropdown lists
     types.ts              Entry shape and validators
@@ -106,6 +124,7 @@ src/
     backupFile.ts         download / file-read plumbing for backups
     useGlossary.ts        React binding for the store
     parseTerm.ts          the paste-to-split rule
+    parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting
 ```
 

@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { AddTermDialog } from "@/components/AddTermDialog";
 import { BackupButtons } from "@/components/BackupButtons";
 import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import { buildTermIndex, RefText, type TermIndex } from "@/components/RefText";
 import { sourceOrder } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Entry } from "@/lib/types";
@@ -16,10 +17,11 @@ type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
 
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
-  { key: "term", label: "Term", className: "w-[24%]" },
+  { key: "term", label: "Term", className: "w-[20%]" },
   { key: null, label: "Definition" },
-  { key: "source", label: "Source", className: "w-[12%]" },
-  { key: "dateAdded", label: "Date added", className: "w-[14%]" },
+  { key: "source", label: "Source", className: "w-[11%]" },
+  { key: null, label: "Ref", className: "w-[17%]" },
+  { key: "dateAdded", label: "Date added", className: "w-[13%]" },
 ];
 
 function compare(a: Entry, b: Entry, key: SortKey): number {
@@ -47,7 +49,8 @@ export default function GlossaryPage() {
       if (!needle) return true;
       return (
         entry.term.toLocaleLowerCase().includes(needle) ||
-        entry.definition.toLocaleLowerCase().includes(needle)
+        entry.definition.toLocaleLowerCase().includes(needle) ||
+        entry.ref.toLocaleLowerCase().includes(needle)
       );
     });
 
@@ -59,6 +62,7 @@ export default function GlossaryPage() {
     });
   }, [entries, query, onlyNeedsDefinition, sort]);
 
+  const termIndex = useMemo(() => buildTermIndex(entries), [entries]);
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
   const isFiltered = query.trim() !== "" || onlyNeedsDefinition;
 
@@ -142,8 +146,13 @@ export default function GlossaryPage() {
                 <p className="sr-only" aria-live="polite">
                   {visible.length} of {entries.length} terms shown
                 </p>
-                <EntryTable entries={visible} sort={sort} onSort={toggleSort} />
-                <EntryCards entries={visible} />
+                <EntryTable
+                  entries={visible}
+                  sort={sort}
+                  onSort={toggleSort}
+                  termIndex={termIndex}
+                />
+                <EntryCards entries={visible} termIndex={termIndex} />
                 {isFiltered && (
                   <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                     Showing {visible.length} of {entries.length} terms.
@@ -166,10 +175,12 @@ function EntryTable({
   entries,
   sort,
   onSort,
+  termIndex,
 }: {
   entries: Entry[];
   sort: Sort;
   onSort: (key: SortKey) => void;
+  termIndex: TermIndex;
 }) {
   return (
     <div className="card hidden overflow-hidden md:block">
@@ -232,6 +243,17 @@ function EntryTable({
               <td className="px-4 py-3 align-top">
                 <SourceBadge source={entry.source} />
               </td>
+              <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
+                {entry.ref ? (
+                  <span className="line-clamp-2 break-words">
+                    <RefText value={entry.ref} termIndex={termIndex} />
+                  </span>
+                ) : (
+                  <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
+                    —
+                  </span>
+                )}
+              </td>
               <td
                 className="px-4 py-3 align-top whitespace-nowrap text-slate-500 dark:text-slate-400"
                 title={formatDateTime(entry.dateAdded)}
@@ -248,26 +270,38 @@ function EntryTable({
 
 /* ------------------------------------------------------------------ cards  */
 
-function EntryCards({ entries }: { entries: Entry[] }) {
+function EntryCards({ entries, termIndex }: { entries: Entry[]; termIndex: TermIndex }) {
   return (
     <ul className="space-y-3 md:hidden">
       {entries.map((entry) => (
         <li key={entry.id}>
-          <Link
-            href={`/terms/${entry.id}`}
-            className={`card block p-4 transition hover:border-indigo-300 dark:hover:border-indigo-500/50 ${
+          {/* A plain card, not a link — the Ref field may contain its own links,
+              and an anchor cannot be nested inside another anchor. */}
+          <div
+            className={`card p-4 transition hover:border-indigo-300 dark:hover:border-indigo-500/50 ${
               entry.needsDefinition ? "border-l-4 border-l-amber-400" : ""
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <h2 className="font-semibold text-indigo-700 dark:text-indigo-300">
-                {entry.term}
+              <h2 className="font-semibold">
+                <Link
+                  href={`/terms/${entry.id}`}
+                  className="text-indigo-700 hover:underline dark:text-indigo-300"
+                >
+                  {entry.term}
+                </Link>
               </h2>
               {entry.needsDefinition && <NeedsDefinitionBadge />}
             </div>
             {entry.definition && (
               <p className="mt-1.5 line-clamp-3 text-sm text-slate-700 dark:text-slate-300">
                 {entry.definition}
+              </p>
+            )}
+            {entry.ref && (
+              <p className="mt-2 text-xs break-words text-slate-600 dark:text-slate-400">
+                <span className="font-medium text-slate-500 dark:text-slate-500">Ref: </span>
+                <RefText value={entry.ref} termIndex={termIndex} />
               </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -279,7 +313,7 @@ function EntryCards({ entries }: { entries: Entry[] }) {
                 {formatDate(entry.dateAdded)}
               </span>
             </div>
-          </Link>
+          </div>
         </li>
       ))}
     </ul>

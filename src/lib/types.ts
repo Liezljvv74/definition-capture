@@ -5,6 +5,8 @@ export type Entry = {
   id: string;
   term: string;
   definition: string;
+  /** Free-text reference; `parseRef` turns any links inside it into anchors. */
+  ref: string;
   source: Source;
   /** ISO timestamp, set once at creation and never changed by edits. */
   dateAdded: string;
@@ -18,12 +20,14 @@ export type Entry = {
 export type EntryInput = {
   term: string;
   definition: string;
+  ref: string;
   source: Source;
 };
 
 export const EMPTY_ENTRY_INPUT: EntryInput = {
   term: "",
   definition: "",
+  ref: "",
   source: DEFAULT_SOURCE,
 };
 

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { BackupButtons } from "@/components/BackupButtons";
 import { NeedsDefinitionBadge } from "@/components/Badges";
+import { buildTermIndex, RefText, type TermIndex } from "@/components/RefText";
 import { EntryForm } from "@/components/EntryForm";
 import { SOURCES } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -18,6 +19,8 @@ export default function TermDetailPage() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { entries, loaded } = useGlossary();
   const entry = entries.find((candidate) => candidate.id === id);
+
+  const termIndex = useMemo(() => buildTermIndex(entries), [entries]);
 
   return (
     <>
@@ -39,7 +42,7 @@ export default function TermDetailPage() {
         {!loaded ? (
           <div className="card h-56 animate-pulse" aria-hidden="true" />
         ) : entry ? (
-          <EntryDetail entry={entry} />
+          <EntryDetail entry={entry} termIndex={termIndex} />
         ) : (
           <TermNotFound />
         )}
@@ -48,7 +51,7 @@ export default function TermDetailPage() {
   );
 }
 
-function EntryDetail({ entry }: { entry: Entry }) {
+function EntryDetail({ entry, termIndex }: { entry: Entry; termIndex: TermIndex }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -64,6 +67,7 @@ function EntryDetail({ entry }: { entry: Entry }) {
     updateEntry(entry.id, {
       term: entry.term,
       definition: entry.definition,
+      ref: entry.ref,
       source: value,
     });
   }
@@ -76,6 +80,7 @@ function EntryDetail({ entry }: { entry: Entry }) {
           initialValue={{
             term: entry.term,
             definition: entry.definition,
+            ref: entry.ref,
             source: entry.source,
           }}
           submitLabel="Save changes"
@@ -109,7 +114,7 @@ function EntryDetail({ entry }: { entry: Entry }) {
         )}
       </div>
 
-      <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2 dark:border-slate-800">
+      <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-3 dark:border-slate-800">
         <div>
           <dt
             id="source-label"
@@ -130,6 +135,18 @@ function EntryDetail({ entry }: { entry: Entry }) {
                 </option>
               ))}
             </select>
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+            Ref
+          </dt>
+          <dd className="mt-1.5 text-sm break-words text-slate-700 dark:text-slate-300">
+            {entry.ref ? (
+              <RefText value={entry.ref} termIndex={termIndex} />
+            ) : (
+              <span className="text-slate-400 italic dark:text-slate-500">None</span>
+            )}
           </dd>
         </div>
         <div>

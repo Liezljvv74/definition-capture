@@ -49,6 +49,7 @@ function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
     id,
     term,
     definition,
+    ref: typeof value.ref === "string" ? value.ref : "",
     source: isSource(value.source) ? value.source : DEFAULT_SOURCE,
     dateAdded,
     dateUpdated: typeof value.dateUpdated === "string" ? value.dateUpdated : null,
@@ -134,6 +135,7 @@ function clean(input: EntryInput) {
   return {
     term: input.term.trim(),
     definition,
+    ref: input.ref.trim(),
     source: input.source,
     needsDefinition: needsDefinition(definition),
   };
@@ -306,6 +308,7 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportResult
         ...existing,
         term: candidate.term,
         definition: candidate.definition,
+        ref: candidate.ref,
         source: candidate.source,
         needsDefinition: candidate.needsDefinition,
         dateUpdated: now,

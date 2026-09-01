@@ -109,25 +109,48 @@ export function EntryForm({
         />
       </div>
 
-      <div className="sm:max-w-56">
-        <label htmlFor={`${ids}-source`} className="mb-1 block text-sm font-medium">
-          Source
-        </label>
-        <select
-          id={`${ids}-source`}
-          className="field"
-          value={value.source}
-          onChange={(event) => {
-            const next = event.target.value;
-            if (isSource(next)) setValue((current) => ({ ...current, source: next }));
-          }}
-        >
-          {SOURCES.map((source) => (
-            <option key={source} value={source}>
-              {source}
-            </option>
-          ))}
-        </select>
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,14rem)_1fr]">
+        <div>
+          <label htmlFor={`${ids}-source`} className="mb-1 block text-sm font-medium">
+            Source
+          </label>
+          <select
+            id={`${ids}-source`}
+            className="field"
+            value={value.source}
+            onChange={(event) => {
+              const next = event.target.value;
+              if (isSource(next)) setValue((current) => ({ ...current, source: next }));
+            }}
+          >
+            {SOURCES.map((source) => (
+              <option key={source} value={source}>
+                {source}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor={`${ids}-ref`} className="mb-1 block text-sm font-medium">
+            Ref
+          </label>
+          <input
+            id={`${ids}-ref`}
+            className="field"
+            value={value.ref}
+            autoComplete="off"
+            placeholder="Notes, a link, or [[Another Term]]"
+            onChange={(event) =>
+              setValue((current) => ({ ...current, ref: event.target.value }))
+            }
+            aria-describedby={`${ids}-ref-hint`}
+          />
+          <p id={`${ids}-ref-hint`} className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Free text. <code>[[Term]]</code> links to another entry, <code>/terms/abc123</code> to
+            a page here, and a full URL opens in a new tab.
+          </p>
+        </div>
       </div>
 
       {error && (
