@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+}
+
+/* Shared form control styling so every input, select, and textarea matches. */
+@utility field {
+  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+    text-slate-900 shadow-xs outline-none transition
+    placeholder:text-slate-400
+    focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30
+    dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100
+    dark:placeholder:text-slate-500 dark:focus:border-indigo-400
+    dark:focus:ring-indigo-400/30;
+}
+
+@utility btn {
+  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg
+    px-3.5 py-2 text-sm font-medium transition
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500
+    disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@utility btn-primary {
+  @apply bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700;
+}
+
+@utility btn-secondary {
+  @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100
+    dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+}
+
+@utility btn-danger {
+  @apply bg-red-600 text-white shadow-sm hover:bg-red-500 active:bg-red-700;
+}
+
+@utility card {
+  @apply rounded-xl border border-slate-200 bg-white shadow-sm
+    dark:border-slate-800 dark:bg-slate-900;
+}
