@@ -41,10 +41,11 @@ read from that list.
 
 ## Pages
 
-- **`/`** — the glossary browser. Search across terms and definitions, show only entries that
-  still need a definition, and re-sort by Term, Source, or Date Added (newest first by
-  default). A table on laptops, cards on phones. Rows that need a definition are flagged in
-  amber.
+- **`/`** — the glossary browser. Columns are Term, Definition, Source, and Ref. Search across
+  terms and definitions, show only entries that still need a definition, and re-sort by Term or
+  Source. A table on laptops, cards on phones. Rows that need a definition are flagged in amber.
+  Date Added is not a column — the list is ordered newest-first underneath, and the date itself
+  is shown on the entry's own page.
 - **`/terms/[id]`** — one entry per stable URL, safe to reload or paste into a fresh tab.
   **Source** is a dropdown here that saves the moment you change it; everything else goes
   through Edit (in place; Date Added is preserved). Delete sits behind a confirm step. An

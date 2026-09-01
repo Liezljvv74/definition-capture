@@ -8,7 +8,6 @@ import { BackupButtons } from "@/components/BackupButtons";
 import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { sourceOrder } from "@/lib/constants";
-import { formatDate, formatDateTime } from "@/lib/format";
 import type { Entry } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
 import { usePhrases } from "@/lib/usePhrases";
@@ -18,11 +17,10 @@ type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
 
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
-  { key: "term", label: "Term", className: "w-[20%]" },
+  { key: "term", label: "Term", className: "w-[22%]" },
   { key: null, label: "Definition" },
-  { key: "source", label: "Source", className: "w-[11%]" },
-  { key: null, label: "Ref", className: "w-[17%]" },
-  { key: "dateAdded", label: "Date added", className: "w-[13%]" },
+  { key: "source", label: "Source", className: "w-[12%]" },
+  { key: null, label: "Ref", className: "w-[20%]" },
 ];
 
 function compare(a: Entry, b: Entry, key: SortKey): number {
@@ -42,6 +40,8 @@ export default function GlossaryPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [onlyNeedsDefinition, setOnlyNeedsDefinition] = useState(false);
+  // Date added is no longer a column, but it is still the default order and
+  // the tie-breaker, so the newest terms stay at the top.
   const [sort, setSort] = useState<Sort>({ key: "dateAdded", direction: "desc" });
 
   const visible = useMemo(() => {
@@ -256,12 +256,6 @@ function EntryTable({
                   </span>
                 )}
               </td>
-              <td
-                className="px-4 py-3 align-top whitespace-nowrap text-slate-500 dark:text-slate-400"
-                title={formatDateTime(entry.dateAdded)}
-              >
-                {formatDate(entry.dateAdded)}
-              </td>
             </tr>
           ))}
         </tbody>
@@ -308,12 +302,6 @@ function EntryCards({ entries, linkIndex }: { entries: Entry[]; linkIndex: LinkI
             )}
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
               <SourceBadge source={entry.source} />
-              <span
-                className="ml-auto text-xs text-slate-500 dark:text-slate-400"
-                title={formatDateTime(entry.dateAdded)}
-              >
-                {formatDate(entry.dateAdded)}
-              </span>
             </div>
           </div>
         </li>
