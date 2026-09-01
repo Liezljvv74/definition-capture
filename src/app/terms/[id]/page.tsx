@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { BackupButtons } from "@/components/BackupButtons";
-import { ModuleBadge, NeedsDefinitionBadge } from "@/components/Badges";
+import { NeedsDefinitionBadge } from "@/components/Badges";
 import { EntryForm } from "@/components/EntryForm";
 import { SOURCES } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -64,7 +64,6 @@ function EntryDetail({ entry }: { entry: Entry }) {
     updateEntry(entry.id, {
       term: entry.term,
       definition: entry.definition,
-      moduleTag: entry.moduleTag,
       source: value,
     });
   }
@@ -77,7 +76,6 @@ function EntryDetail({ entry }: { entry: Entry }) {
           initialValue={{
             term: entry.term,
             definition: entry.definition,
-            moduleTag: entry.moduleTag,
             source: entry.source,
           }}
           submitLabel="Save changes"
@@ -111,15 +109,7 @@ function EntryDetail({ entry }: { entry: Entry }) {
         )}
       </div>
 
-      <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-3 dark:border-slate-800">
-        <div>
-          <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-            Module / Tag
-          </dt>
-          <dd className="mt-1.5">
-            <ModuleBadge tag={entry.moduleTag} />
-          </dd>
-        </div>
+      <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2 dark:border-slate-800">
         <div>
           <dt
             id="source-label"

@@ -30,21 +30,19 @@ a `/terms/…` link only opens on the device that created it.
 | --- | --- |
 | **Term** | Required, plain text. |
 | **Definition** | Optional — leave it blank and fill it in later. |
-| **Module / Tag** | Dropdown, defaults to `Unsorted`. |
 | **Source** | Dropdown (Manual / Google / Claude / ChatGPT), defaults to `Manual`. |
 | **Date Added** | Set once on creation, shown but never editable. |
 | **Needs Definition** | Derived automatically — true whenever the definition is blank. |
 
-To change the dropdown options, edit **`src/lib/constants.ts`**. Both forms and the module
-filter read from those two lists.
+To change the Source options, edit **`src/lib/constants.ts`** — the add and edit forms both
+read from that list.
 
 ## Pages
 
-- **`/`** — the glossary browser. Search across terms and definitions, filter by module, show
-  only entries that still need a definition, and re-sort by Term, Source, or Date Added
-  (newest first by default). A table on laptops, cards on phones. Rows that need a definition
-  are flagged in amber. Module is a filter rather than a column, to keep the list readable —
-  it is still shown in full on each entry's own page.
+- **`/`** — the glossary browser. Search across terms and definitions, show only entries that
+  still need a definition, and re-sort by Term, Source, or Date Added (newest first by
+  default). A table on laptops, cards on phones. Rows that need a definition are flagged in
+  amber.
 - **`/terms/[id]`** — one entry per stable URL, safe to reload or paste into a fresh tab.
   **Source** is a dropdown here that saves the moment you change it; everything else goes
   through Edit (in place; Date Added is preserved). Delete sits behind a confirm step. An
@@ -100,7 +98,7 @@ src/
     BackupButtons.tsx     export / import buttons and the import dialog
     EntryForm.tsx         shared add/edit form
     Modal.tsx             overlay panel
-    Badges.tsx            module / source / needs-definition pills
+    Badges.tsx            source / needs-definition pills
   lib/
     constants.ts          the editable dropdown lists
     types.ts              Entry shape and validators

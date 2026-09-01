@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { AddTermDialog } from "@/components/AddTermDialog";
 import { BackupButtons } from "@/components/BackupButtons";
 import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
-import { MODULE_TAGS, sourceOrder, type ModuleTag } from "@/lib/constants";
+import { sourceOrder } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Entry } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
@@ -37,14 +37,12 @@ export default function GlossaryPage() {
   const { entries, loaded } = useGlossary();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
-  const [moduleFilter, setModuleFilter] = useState<ModuleTag | "All">("All");
   const [onlyNeedsDefinition, setOnlyNeedsDefinition] = useState(false);
   const [sort, setSort] = useState<Sort>({ key: "dateAdded", direction: "desc" });
 
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
     const filtered = entries.filter((entry) => {
-      if (moduleFilter !== "All" && entry.moduleTag !== moduleFilter) return false;
       if (onlyNeedsDefinition && !entry.needsDefinition) return false;
       if (!needle) return true;
       return (
@@ -59,10 +57,10 @@ export default function GlossaryPage() {
       // Ties fall back to newest-first so the order is always stable.
       return b.dateAdded.localeCompare(a.dateAdded);
     });
-  }, [entries, query, moduleFilter, onlyNeedsDefinition, sort]);
+  }, [entries, query, onlyNeedsDefinition, sort]);
 
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
-  const isFiltered = query.trim() !== "" || moduleFilter !== "All" || onlyNeedsDefinition;
+  const isFiltered = query.trim() !== "" || onlyNeedsDefinition;
 
   function toggleSort(key: SortKey) {
     setSort((current) =>
@@ -121,25 +119,6 @@ export default function GlossaryPage() {
                 />
               </div>
 
-              <div className="sm:w-48">
-                <label htmlFor="module-filter" className="sr-only">
-                  Filter by module
-                </label>
-                <select
-                  id="module-filter"
-                  className="field"
-                  value={moduleFilter}
-                  onChange={(event) => setModuleFilter(event.target.value as ModuleTag | "All")}
-                >
-                  <option value="All">All modules</option>
-                  {MODULE_TAGS.map((tag) => (
-                    <option key={tag} value={tag}>
-                      {tag}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
                 <input
                   type="checkbox"
@@ -155,7 +134,6 @@ export default function GlossaryPage() {
               <NoMatches
                 onClear={() => {
                   setQuery("");
-                  setModuleFilter("All");
                   setOnlyNeedsDefinition(false);
                 }}
               />
@@ -334,7 +312,7 @@ function NoMatches({ onClear }: { onClear: () => void }) {
     <div className="card p-8 text-center">
       <h2 className="font-semibold">No terms match those filters</h2>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-        Try a different search, or widen the module filter.
+        Try a different search, or clear the filters below.
       </p>
       <button type="button" className="btn btn-secondary mt-4" onClick={onClear}>
         Clear filters

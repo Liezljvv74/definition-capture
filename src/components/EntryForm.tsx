@@ -2,9 +2,9 @@
 
 import { useId, useState, type ClipboardEvent, type FormEvent } from "react";
 
-import { MODULE_TAGS, SOURCES } from "@/lib/constants";
+import { SOURCES } from "@/lib/constants";
 import { splitTermAndDefinition } from "@/lib/parseTerm";
-import { EMPTY_ENTRY_INPUT, isModuleTag, isSource, type EntryInput } from "@/lib/types";
+import { EMPTY_ENTRY_INPUT, isSource, type EntryInput } from "@/lib/types";
 
 type EntryFormProps = {
   initialValue?: EntryInput;
@@ -109,48 +109,25 @@ export function EntryForm({
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor={`${ids}-module`} className="mb-1 block text-sm font-medium">
-            Module / Tag
-          </label>
-          <select
-            id={`${ids}-module`}
-            className="field"
-            value={value.moduleTag}
-            onChange={(event) => {
-              const next = event.target.value;
-              if (isModuleTag(next)) setValue((current) => ({ ...current, moduleTag: next }));
-            }}
-          >
-            {MODULE_TAGS.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor={`${ids}-source`} className="mb-1 block text-sm font-medium">
-            Source
-          </label>
-          <select
-            id={`${ids}-source`}
-            className="field"
-            value={value.source}
-            onChange={(event) => {
-              const next = event.target.value;
-              if (isSource(next)) setValue((current) => ({ ...current, source: next }));
-            }}
-          >
-            {SOURCES.map((source) => (
-              <option key={source} value={source}>
-                {source}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="sm:max-w-56">
+        <label htmlFor={`${ids}-source`} className="mb-1 block text-sm font-medium">
+          Source
+        </label>
+        <select
+          id={`${ids}-source`}
+          className="field"
+          value={value.source}
+          onChange={(event) => {
+            const next = event.target.value;
+            if (isSource(next)) setValue((current) => ({ ...current, source: next }));
+          }}
+        >
+          {SOURCES.map((source) => (
+            <option key={source} value={source}>
+              {source}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && (

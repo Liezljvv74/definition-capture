@@ -9,19 +9,8 @@
  * (or a real API) later means rewriting this file only — no component changes.
  */
 
-import {
-  DEFAULT_MODULE_TAG,
-  DEFAULT_SOURCE,
-  type ModuleTag,
-  type Source,
-} from "@/lib/constants";
-import {
-  isModuleTag,
-  isSource,
-  needsDefinition,
-  type Entry,
-  type EntryInput,
-} from "@/lib/types";
+import { DEFAULT_SOURCE, type Source } from "@/lib/constants";
+import { isSource, needsDefinition, type Entry, type EntryInput } from "@/lib/types";
 
 const STORAGE_KEY = "definition-capture.entries.v1";
 
@@ -60,7 +49,6 @@ function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
     id,
     term,
     definition,
-    moduleTag: isModuleTag(value.moduleTag) ? value.moduleTag : DEFAULT_MODULE_TAG,
     source: isSource(value.source) ? value.source : DEFAULT_SOURCE,
     dateAdded,
     dateUpdated: typeof value.dateUpdated === "string" ? value.dateUpdated : null,
@@ -146,7 +134,6 @@ function clean(input: EntryInput) {
   return {
     term: input.term.trim(),
     definition,
-    moduleTag: input.moduleTag,
     source: input.source,
     needsDefinition: needsDefinition(definition),
   };
@@ -319,7 +306,6 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportResult
         ...existing,
         term: candidate.term,
         definition: candidate.definition,
-        moduleTag: candidate.moduleTag,
         source: candidate.source,
         needsDefinition: candidate.needsDefinition,
         dateUpdated: now,
@@ -339,4 +325,4 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportResult
   return result;
 }
 
-export type { ModuleTag, Source };
+export type { Source };

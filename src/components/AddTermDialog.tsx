@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { EntryForm } from "@/components/EntryForm";
-import { ModuleBadge, SourceBadge } from "@/components/Badges";
+import { SourceBadge } from "@/components/Badges";
 import { Modal } from "@/components/Modal";
 import { formatDate } from "@/lib/format";
 import { createEntry, findByTerm, updateEntry } from "@/lib/storage";
@@ -48,10 +48,7 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
                 </span>
               )}
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              <ModuleBadge tag={existing.moduleTag} />
-              <SourceBadge source={existing.source} />
-            </div>
+            <SourceBadge source={existing.source} />
           </div>
 
           <div className="flex flex-col gap-2">
