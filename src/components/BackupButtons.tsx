@@ -4,7 +4,11 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { Modal } from "@/components/Modal";
 import { applyImport, parseBackup, type BackupContents, type ImportResult } from "@/lib/backup";
-import { downloadBackup, readFileAsText } from "@/lib/backupFile";
+import {
+  downloadExcelBackup,
+  downloadJsonBackup,
+  readFileAsText,
+} from "@/lib/backupFile";
 import type { ImportMode } from "@/lib/browserStore";
 import { useGlossary } from "@/lib/useGlossary";
 import { usePhrases } from "@/lib/usePhrases";
@@ -16,6 +20,12 @@ type Preview = {
   matchingTerms: number;
   matchingPhrases: number;
 };
+
+type ExportState =
+  | { step: "idle" }
+  | { step: "choosing" }
+  | { step: "working" }
+  | { step: "failed"; message: string };
 
 type ImportState =
   | { step: "idle" }
@@ -29,6 +39,7 @@ export function BackupButtons() {
   const { phrases } = usePhrases();
   const fileInput = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<ImportState>({ step: "idle" });
+  const [exportState, setExportState] = useState<ExportState>({ step: "idle" });
   const [mode, setMode] = useState<ImportMode>("skip");
   const [justExported, setJustExported] = useState(false);
 
@@ -40,9 +51,21 @@ export function BackupButtons() {
     return () => window.clearTimeout(timer);
   }, [justExported]);
 
-  function handleExport() {
-    downloadBackup();
-    setJustExported(true);
+  async function runExport(format: "json" | "xlsx") {
+    setExportState({ step: "working" });
+    try {
+      if (format === "json") downloadJsonBackup();
+      // The workbook is built asynchronously, so failures land here rather
+      // than leaving the dialog open with nothing happening.
+      else await downloadExcelBackup();
+      setExportState({ step: "idle" });
+      setJustExported(true);
+    } catch {
+      setExportState({
+        step: "failed",
+        message: "The export could not be created. Please try again.",
+      });
+    }
   }
 
   async function handleFileChosen(event: ChangeEvent<HTMLInputElement>) {
@@ -91,12 +114,12 @@ export function BackupButtons() {
       <button
         type="button"
         className="btn btn-secondary"
-        onClick={handleExport}
+        onClick={() => setExportState({ step: "choosing" })}
         disabled={savedCount === 0}
         title={
           savedCount === 0
-            ? "Save something before exporting a backup"
-            : "Download all terms and phrases as a JSON backup"
+            ? "Save something before exporting"
+            : "Download all terms and phrases as Excel or JSON"
         }
       >
         {justExported ? "Exported ✓" : "Export"}
@@ -110,6 +133,67 @@ export function BackupButtons() {
       >
         Import
       </button>
+
+      {exportState.step !== "idle" && (
+        <Modal
+          title="Export"
+          onClose={() =>
+            exportState.step === "working" ? undefined : setExportState({ step: "idle" })
+          }
+        >
+          {exportState.step === "failed" ? (
+            <>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                {exportState.message}
+              </p>
+              <div className="mt-5 flex justify-end">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setExportState({ step: "choosing" })}
+                >
+                  Back
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                {savedCount} {savedCount === 1 ? "item" : "items"} across your terms and
+                phrases. Which format?
+              </p>
+
+              <ExportChoice
+                title="Excel workbook (.xlsx)"
+                detail="Terms and Phrases on separate sheets. Best for reading, sorting, or printing outside the app."
+                disabled={exportState.step === "working"}
+                onClick={() => runExport("xlsx")}
+              />
+              <ExportChoice
+                title="JSON backup (.json)"
+                detail="The complete backup. This is the only format Import can read back in."
+                disabled={exportState.step === "working"}
+                onClick={() => runExport("json")}
+              />
+
+              {exportState.step === "working" && (
+                <p className="text-sm text-slate-500 dark:text-slate-400">Preparing…</p>
+              )}
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={exportState.step === "working"}
+                  onClick={() => setExportState({ step: "idle" })}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
 
       <input
         ref={fileInput}
@@ -205,6 +289,30 @@ export function BackupButtons() {
         </Modal>
       )}
     </>
+  );
+}
+
+function ExportChoice({
+  title,
+  detail,
+  disabled,
+  onClick,
+}: {
+  title: string;
+  detail: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="w-full cursor-pointer rounded-lg border border-slate-200 p-3 text-left transition hover:border-indigo-400 hover:bg-indigo-50/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:hover:border-indigo-500/60 dark:hover:bg-indigo-500/10"
+    >
+      <span className="block text-sm font-medium">{title}</span>
+      <span className="block text-xs text-slate-500 dark:text-slate-400">{detail}</span>
+    </button>
   );
 }
 

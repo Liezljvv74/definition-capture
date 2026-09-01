@@ -91,10 +91,17 @@ searchable along with the other fields on both lists, and it is included in back
 Because entries live in one browser, **Export** and **Import** sit at the top right of every
 screen so you always have a way out.
 
-- **Export** downloads **both lists** as `definition-capture-backup-YYYY-MM-DD.json` — one
-  file, nothing to remember separately. It is plain, readable JSON —
-  `{ format, version, exportedAt, entries, phrases }` — safe to keep in a cloud folder or
-  commit somewhere. The button is disabled while there is nothing saved.
+- **Export** asks which format you want, and either one covers **both lists** in a single file:
+
+  | Format | What you get |
+  | --- | --- |
+  | **Excel workbook** (`.xlsx`) | Terms and Phrases on separate sheets, with bold headers and sensible column widths. For reading, sorting, or printing outside the app. |
+  | **JSON backup** (`.json`) | `{ format, version, exportedAt, entries, phrases }` — plain, readable, and **the only format Import can read back in**. |
+
+  Both save as `definition-capture-backup-YYYY-MM-DD`. The button is disabled while there is
+  nothing saved. The workbook is built in the browser by
+  [`write-excel-file`](https://www.npmjs.com/package/write-excel-file), the app's one runtime
+  dependency beyond Next and React.
 - **Import** reads a backup back in. It first shows you what is in the file — how many terms are
   new, how many you already have, and how many rows it could not read — then asks what to do:
 
@@ -150,7 +157,7 @@ src/
     storage.ts            the glossary store
     phraseStorage.ts      the phrase store
     backup.ts             one backup file covering both lists
-    backupFile.ts         download / file-read plumbing for backups
+    backupFile.ts         download plumbing: builds the .xlsx and .json files
     useGlossary.ts        React binding for the glossary store
     usePhrases.ts         React binding for the phrase store
     parseTerm.ts          the paste-to-split rule

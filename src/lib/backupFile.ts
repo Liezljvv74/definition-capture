@@ -1,29 +1,34 @@
 /**
- * Browser file plumbing for backups: turning the glossary into a downloaded
+ * Browser file plumbing for exports: turning the two lists into a downloaded
  * file, and reading a chosen file back as text. All of the data rules live in
- * `storage.ts` — this module only moves bytes in and out of the page.
+ * the stores and in `backup.ts` — this module only moves bytes in and out of
+ * the page.
+ *
+ * Two formats, for two different jobs:
+ *   json   the complete backup, and the only one Import can read again
+ *   xlsx   a readable workbook for working with the lists outside the app
  */
 
-import { buildBackup } from "@/lib/backup";
+import writeExcelFile, { type Row, type Sheet } from "write-excel-file/browser";
 
-export function backupFileName(date = new Date()): string {
+import { buildBackup } from "@/lib/backup";
+import { formatDate } from "@/lib/format";
+
+export type ExportFormat = "json" | "xlsx";
+
+export function backupFileName(format: ExportFormat, date = new Date()): string {
   const stamp = [
     date.getFullYear(),
     String(date.getMonth() + 1).padStart(2, "0"),
     String(date.getDate()).padStart(2, "0"),
   ].join("-");
-  return `definition-capture-backup-${stamp}.json`;
+  return `definition-capture-backup-${stamp}.${format}`;
 }
 
-/** Writes the whole glossary to a JSON file and hands it to the browser. */
-export function downloadBackup(): { fileName: string; count: number } {
-  const backup = buildBackup();
-  const blob = new Blob([JSON.stringify(backup, null, 2)], {
-    type: "application/json",
-  });
+/** Hands a finished blob to the browser as a download. */
+function saveBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const fileName = backupFileName();
 
   link.href = url;
   link.download = fileName;
@@ -32,7 +37,61 @@ export function downloadBackup(): { fileName: string; count: number } {
   link.remove();
   // Give the browser a moment to start the download before releasing the blob.
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
+export type ExportSummary = { fileName: string; count: number };
+
+/** The complete backup — this is the file Import reads. */
+export function downloadJsonBackup(): ExportSummary {
+  const backup = buildBackup();
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {
+    type: "application/json",
+  });
+  const fileName = backupFileName("json");
+  saveBlob(blob, fileName);
+  return { fileName, count: backup.entries.length + backup.phrases.length };
+}
+
+function headerRow(labels: string[]): Row {
+  return labels.map((value) => ({ value, type: String, fontWeight: "bold" as const }));
+}
+
+/** A workbook with one sheet per list, for reading outside the app. */
+export async function downloadExcelBackup(): Promise<ExportSummary> {
+  const backup = buildBackup();
+
+  const terms: Sheet<Blob> = {
+    sheet: "Terms",
+    columns: [{ width: 26 }, { width: 60 }, { width: 12 }, { width: 30 }, { width: 16 }],
+    data: [
+      headerRow(["Term", "Definition", "Source", "Ref", "Date added"]),
+      ...backup.entries.map<Row>((entry) => [
+        { value: entry.term, type: String },
+        { value: entry.definition, type: String, wrap: true },
+        { value: entry.source, type: String },
+        { value: entry.ref, type: String },
+        { value: formatDate(entry.dateAdded), type: String },
+      ]),
+    ],
+  };
+
+  const phrases: Sheet<Blob> = {
+    sheet: "Phrases",
+    columns: [{ width: 30 }, { width: 45 }, { width: 45 }, { width: 30 }],
+    data: [
+      headerRow(["Phrase", "Literal meaning", "Usage example", "Ref"]),
+      ...backup.phrases.map<Row>((phrase) => [
+        { value: phrase.phrase, type: String },
+        { value: phrase.literalMeaning, type: String, wrap: true },
+        { value: phrase.usageExample, type: String, wrap: true },
+        { value: phrase.ref, type: String },
+      ]),
+    ],
+  };
+
+  const blob = await writeExcelFile([terms, phrases]).toBlob();
+  const fileName = backupFileName("xlsx");
+  saveBlob(blob, fileName);
   return { fileName, count: backup.entries.length + backup.phrases.length };
 }
 
