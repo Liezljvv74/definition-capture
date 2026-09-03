@@ -73,9 +73,19 @@ export function updatePhrase(id: string, input: PhraseInput): Phrase | null {
 }
 
 export function deletePhrase(id: string): void {
+  deletePhrases([id]);
+}
+
+/** The glossary's `deleteEntries` for phrases: many removals, one commit. */
+export function deletePhrases(ids: readonly string[]): number {
+  const doomed = new Set(ids);
+  if (doomed.size === 0) return 0;
+
   const phrases = store.items();
-  if (!phrases.some((phrase) => phrase.id === id)) return;
-  store.commit(phrases.filter((phrase) => phrase.id !== id));
+  const remaining = phrases.filter((phrase) => !doomed.has(phrase.id));
+  const removed = phrases.length - remaining.length;
+  if (removed > 0) store.commit(remaining);
+  return removed;
 }
 
 /* ----------------------------------------------------------------- queries */

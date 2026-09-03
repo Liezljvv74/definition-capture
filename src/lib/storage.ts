@@ -96,9 +96,23 @@ export function updateEntry(id: string, input: EntryInput): Entry | null {
 }
 
 export function deleteEntry(id: string): void {
+  deleteEntries([id]);
+}
+
+/**
+ * Removes every entry whose id is listed, in one commit — so a bulk delete is a
+ * single undo-less write and a single re-render, not one per row. Returns how
+ * many were actually removed; ids that are not in the glossary are ignored.
+ */
+export function deleteEntries(ids: readonly string[]): number {
+  const doomed = new Set(ids);
+  if (doomed.size === 0) return 0;
+
   const entries = store.items();
-  if (!entries.some((entry) => entry.id === id)) return;
-  store.commit(entries.filter((entry) => entry.id !== id));
+  const remaining = entries.filter((entry) => !doomed.has(entry.id));
+  const removed = entries.length - remaining.length;
+  if (removed > 0) store.commit(remaining);
+  return removed;
 }
 
 /* ----------------------------------------------------------------- queries */
