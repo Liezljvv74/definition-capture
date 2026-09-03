@@ -117,7 +117,11 @@ export default function GlossaryPage() {
                 : entries.length === 0
                   ? "Your personal glossary"
                   : `${entries.length} ${entries.length === 1 ? "term" : "terms"}${
-                      missingCount > 0 ? ` · ${missingCount} still need a definition` : ""
+                      missingCount > 0
+                        ? ` · ${missingCount} still ${
+                            missingCount === 1 ? "needs" : "need"
+                          } a definition`
+                        : ""
                     }`}
             </p>
           </div>
