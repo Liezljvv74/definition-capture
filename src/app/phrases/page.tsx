@@ -1,13 +1,22 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { AddPhraseDialog } from "@/components/AddPhraseDialog";
 import { BackupButtons } from "@/components/BackupButtons";
+import {
+  ConfirmDeleteDialog,
+  RowDeleteButton,
+  SelectAllCheckbox,
+  SelectionBar,
+  SelectRowCheckbox,
+} from "@/components/DeleteControls";
+import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { deletePhrases } from "@/lib/phraseStorage";
 import type { Phrase } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
+import { useListSelection, type ListSelection } from "@/lib/useListSelection";
 import { usePhrases } from "@/lib/usePhrases";
 
 /** null keeps the order phrases were added in, newest first. */
@@ -26,6 +35,10 @@ export default function PhrasesPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortDirection>(null);
+  /** The ids the confirmation dialog is currently asking about, or null. */
+  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
+  /** The phrase the edit dialog is open on, or null. */
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
 
@@ -45,6 +58,20 @@ export default function PhrasesPage() {
       return sort === "asc" ? result : -result;
     });
   }, [phrases, query, sort]);
+
+  const visibleIds = useMemo(() => visible.map((phrase) => phrase.id), [visible]);
+  const selection = useListSelection(visibleIds);
+
+  const editing = editingId
+    ? (phrases.find((phrase) => phrase.id === editingId) ?? null)
+    : null;
+
+  /** Names in on-screen order, so the dialog lists what the user is looking at. */
+  const pendingNames = useMemo(() => {
+    if (!pendingDelete) return [];
+    const doomed = new Set(pendingDelete);
+    return phrases.filter((phrase) => doomed.has(phrase.id)).map((phrase) => phrase.phrase);
+  }, [pendingDelete, phrases]);
 
   return (
     <>
@@ -97,6 +124,15 @@ export default function PhrasesPage() {
                 <p className="sr-only" aria-live="polite">
                   {visible.length} of {phrases.length} phrases shown
                 </p>
+                {selection.count > 0 && (
+                  <SelectionBar
+                    count={selection.count}
+                    noun="phrase"
+                    nounPlural="phrases"
+                    onDelete={() => setPendingDelete(selection.selectedIds)}
+                    onClear={selection.clear}
+                  />
+                )}
                 <PhraseTable
                   phrases={visible}
                   sort={sort}
@@ -106,8 +142,17 @@ export default function PhrasesPage() {
                     )
                   }
                   linkIndex={linkIndex}
+                  selection={selection}
+                  onEdit={setEditingId}
+                  onDelete={(id) => setPendingDelete([id])}
                 />
-                <PhraseCards phrases={visible} linkIndex={linkIndex} />
+                <PhraseCards
+                  phrases={visible}
+                  linkIndex={linkIndex}
+                  selection={selection}
+                  onEdit={setEditingId}
+                  onDelete={(id) => setPendingDelete([id])}
+                />
                 {query.trim() !== "" && (
                   <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                     Showing {visible.length} of {phrases.length} phrases.
@@ -120,6 +165,25 @@ export default function PhrasesPage() {
       </main>
 
       {isAdding && <AddPhraseDialog onClose={() => setIsAdding(false)} />}
+
+      {editing && (
+        <EditPhraseDialog phrase={editing} onClose={() => setEditingId(null)} />
+      )}
+
+      {pendingDelete && pendingNames.length > 0 && (
+        <ConfirmDeleteDialog
+          names={pendingNames}
+          noun="phrase"
+          nounPlural="phrases"
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            deletePhrases(pendingDelete);
+            setPendingDelete(null);
+            // Deleted ids leave the selection on their own, because the
+            // selection is always intersected with what is on screen.
+          }}
+        />
+      )}
     </>
   );
 }
@@ -131,17 +195,31 @@ function PhraseTable({
   sort,
   onToggleSort,
   linkIndex,
+  selection,
+  onEdit,
+  onDelete,
 }: {
   phrases: Phrase[];
   sort: SortDirection;
   onToggleSort: () => void;
   linkIndex: LinkIndex;
+  selection: ListSelection;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   return (
     <div className="card hidden overflow-hidden md:block">
       <table className="w-full table-fixed border-collapse text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 uppercase dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
           <tr>
+            <th scope="col" className="w-10 px-3 py-2.5">
+              <SelectAllCheckbox
+                checked={selection.allSelected}
+                indeterminate={selection.partiallySelected}
+                onChange={selection.toggleAll}
+                label="Select all phrases shown"
+              />
+            </th>
             {COLUMNS.map((column) => (
               <th
                 key={column.label}
@@ -178,47 +256,66 @@ function PhraseTable({
                 )}
               </th>
             ))}
+            <th scope="col" className="w-12 px-3 py-2.5">
+              <span className="sr-only">Delete</span>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-          {phrases.map((phrase) => (
-            <tr
-              key={phrase.id}
-              className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
-            >
-              <td className="px-4 py-3 align-top">
-                <Link
-                  href={`/phrases/${phrase.id}?edit=1`}
-                  className="font-medium text-indigo-700 hover:underline dark:text-indigo-300"
-                >
-                  {phrase.phrase}
-                </Link>
-              </td>
-              <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
-                {phrase.literalMeaning ? (
-                  <span className="line-clamp-3">{phrase.literalMeaning}</span>
-                ) : (
-                  <Dash />
-                )}
-              </td>
-              <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
-                {phrase.usageExample ? (
-                  <span className="line-clamp-3 italic">{phrase.usageExample}</span>
-                ) : (
-                  <Dash />
-                )}
-              </td>
-              <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
-                {phrase.ref ? (
-                  <span className="line-clamp-2 break-words">
-                    <RefText value={phrase.ref} linkIndex={linkIndex} />
-                  </span>
-                ) : (
-                  <Dash />
-                )}
-              </td>
-            </tr>
-          ))}
+          {phrases.map((phrase) => {
+            const selected = selection.isSelected(phrase.id);
+            return (
+              <tr
+                key={phrase.id}
+                className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                  selected ? "bg-indigo-50/80 dark:bg-indigo-500/10" : ""
+                }`}
+              >
+                <td className="px-3 py-3 align-top">
+                  <SelectRowCheckbox
+                    checked={selected}
+                    onChange={() => selection.toggle(phrase.id)}
+                    label={phrase.phrase}
+                  />
+                </td>
+                <td className="px-4 py-3 align-top">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(phrase.id)}
+                    className="cursor-pointer text-left font-medium text-indigo-700 hover:underline dark:text-indigo-300"
+                  >
+                    {phrase.phrase}
+                  </button>
+                </td>
+                <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
+                  {phrase.literalMeaning ? (
+                    <span className="line-clamp-3">{phrase.literalMeaning}</span>
+                  ) : (
+                    <Dash />
+                  )}
+                </td>
+                <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
+                  {phrase.usageExample ? (
+                    <span className="line-clamp-3 italic">{phrase.usageExample}</span>
+                  ) : (
+                    <Dash />
+                  )}
+                </td>
+                <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
+                  {phrase.ref ? (
+                    <span className="line-clamp-2 break-words">
+                      <RefText value={phrase.ref} linkIndex={linkIndex} />
+                    </span>
+                  ) : (
+                    <Dash />
+                  )}
+                </td>
+                <td className="px-3 py-3 align-top">
+                  <RowDeleteButton label={phrase.phrase} onClick={() => onDelete(phrase.id)} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -235,40 +332,86 @@ function Dash() {
 
 /* ------------------------------------------------------------------ cards  */
 
-function PhraseCards({ phrases, linkIndex }: { phrases: Phrase[]; linkIndex: LinkIndex }) {
+function PhraseCards({
+  phrases,
+  linkIndex,
+  selection,
+  onEdit,
+  onDelete,
+}: {
+  phrases: Phrase[];
+  linkIndex: LinkIndex;
+  selection: ListSelection;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
   return (
-    <ul className="space-y-3 md:hidden">
-      {phrases.map((phrase) => (
-        <li key={phrase.id}>
-          <div className="card p-4 transition hover:border-indigo-300 dark:hover:border-indigo-500/50">
-            <h2 className="font-semibold">
-              <Link
-                href={`/phrases/${phrase.id}?edit=1`}
-                className="text-indigo-700 hover:underline dark:text-indigo-300"
+    <div className="md:hidden">
+      <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
+        <SelectAllCheckbox
+          checked={selection.allSelected}
+          indeterminate={selection.partiallySelected}
+          onChange={selection.toggleAll}
+          label="Select all phrases shown"
+        />
+        Select all
+      </label>
+
+      <ul className="space-y-3">
+        {phrases.map((phrase) => {
+          const selected = selection.isSelected(phrase.id);
+          return (
+            <li key={phrase.id}>
+              <div
+                className={`card p-4 transition hover:border-indigo-300 dark:hover:border-indigo-500/50 ${
+                  selected ? "border-indigo-400 bg-indigo-50/60 dark:bg-indigo-500/10" : ""
+                }`}
               >
-                {phrase.phrase}
-              </Link>
-            </h2>
-            {phrase.literalMeaning && (
-              <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">
-                {phrase.literalMeaning}
-              </p>
-            )}
-            {phrase.usageExample && (
-              <p className="mt-1.5 text-sm text-slate-600 italic dark:text-slate-400">
-                “{phrase.usageExample}”
-              </p>
-            )}
-            {phrase.ref && (
-              <p className="mt-2 text-xs break-words text-slate-600 dark:text-slate-400">
-                <span className="font-medium text-slate-500 dark:text-slate-500">Ref: </span>
-                <RefText value={phrase.ref} linkIndex={linkIndex} />
-              </p>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
+                <div className="flex items-start gap-2.5">
+                  <span className="pt-1">
+                    <SelectRowCheckbox
+                      checked={selected}
+                      onChange={() => selection.toggle(phrase.id)}
+                      label={phrase.phrase}
+                    />
+                  </span>
+                  <h2 className="flex-1 font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => onEdit(phrase.id)}
+                      className="cursor-pointer text-left text-indigo-700 hover:underline dark:text-indigo-300"
+                    >
+                      {phrase.phrase}
+                    </button>
+                  </h2>
+                  <RowDeleteButton
+                    label={phrase.phrase}
+                    onClick={() => onDelete(phrase.id)}
+                    className="-mt-1 -mr-1"
+                  />
+                </div>
+                {phrase.literalMeaning && (
+                  <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">
+                    {phrase.literalMeaning}
+                  </p>
+                )}
+                {phrase.usageExample && (
+                  <p className="mt-1.5 text-sm text-slate-600 italic dark:text-slate-400">
+                    “{phrase.usageExample}”
+                  </p>
+                )}
+                {phrase.ref && (
+                  <p className="mt-2 text-xs break-words text-slate-600 dark:text-slate-400">
+                    <span className="font-medium text-slate-500 dark:text-slate-500">Ref: </span>
+                    <RefText value={phrase.ref} linkIndex={linkIndex} />
+                  </p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

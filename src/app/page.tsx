@@ -1,15 +1,24 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { AddTermDialog } from "@/components/AddTermDialog";
 import { BackupButtons } from "@/components/BackupButtons";
 import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import {
+  ConfirmDeleteDialog,
+  RowDeleteButton,
+  SelectAllCheckbox,
+  SelectionBar,
+  SelectRowCheckbox,
+} from "@/components/DeleteControls";
+import { EditTermDialog } from "@/components/EditTermDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { sourceOrder } from "@/lib/constants";
+import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
+import { useListSelection, type ListSelection } from "@/lib/useListSelection";
 import { usePhrases } from "@/lib/usePhrases";
 
 type SortKey = "term" | "source" | "dateAdded";
@@ -43,6 +52,10 @@ export default function GlossaryPage() {
   // Date added is no longer a column, but it is still the default order and
   // the tie-breaker, so the newest terms stay at the top.
   const [sort, setSort] = useState<Sort>({ key: "dateAdded", direction: "desc" });
+  /** The ids the confirmation dialog is currently asking about, or null. */
+  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
+  /** The entry the edit dialog is open on, or null. */
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -64,6 +77,9 @@ export default function GlossaryPage() {
     });
   }, [entries, query, onlyNeedsDefinition, sort]);
 
+  const visibleIds = useMemo(() => visible.map((entry) => entry.id), [visible]);
+  const selection = useListSelection(visibleIds);
+
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
   const isFiltered = query.trim() !== "" || onlyNeedsDefinition;
@@ -75,6 +91,17 @@ export default function GlossaryPage() {
         : { key, direction: key === "dateAdded" ? "desc" : "asc" },
     );
   }
+
+  const editing = editingId
+    ? (entries.find((entry) => entry.id === editingId) ?? null)
+    : null;
+
+  /** Names in on-screen order, so the dialog lists what the user is looking at. */
+  const pendingNames = useMemo(() => {
+    if (!pendingDelete) return [];
+    const doomed = new Set(pendingDelete);
+    return entries.filter((entry) => doomed.has(entry.id)).map((entry) => entry.term);
+  }, [pendingDelete, entries]);
 
   return (
     <>
@@ -148,13 +175,31 @@ export default function GlossaryPage() {
                 <p className="sr-only" aria-live="polite">
                   {visible.length} of {entries.length} terms shown
                 </p>
+                {selection.count > 0 && (
+                  <SelectionBar
+                    count={selection.count}
+                    noun="term"
+                    nounPlural="terms"
+                    onDelete={() => setPendingDelete(selection.selectedIds)}
+                    onClear={selection.clear}
+                  />
+                )}
                 <EntryTable
                   entries={visible}
                   sort={sort}
                   onSort={toggleSort}
                   linkIndex={linkIndex}
+                  selection={selection}
+                  onEdit={setEditingId}
+                  onDelete={(id) => setPendingDelete([id])}
                 />
-                <EntryCards entries={visible} linkIndex={linkIndex} />
+                <EntryCards
+                  entries={visible}
+                  linkIndex={linkIndex}
+                  selection={selection}
+                  onEdit={setEditingId}
+                  onDelete={(id) => setPendingDelete([id])}
+                />
                 {isFiltered && (
                   <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                     Showing {visible.length} of {entries.length} terms.
@@ -167,6 +212,23 @@ export default function GlossaryPage() {
       </main>
 
       {isAdding && <AddTermDialog onClose={() => setIsAdding(false)} />}
+
+      {editing && <EditTermDialog entry={editing} onClose={() => setEditingId(null)} />}
+
+      {pendingDelete && pendingNames.length > 0 && (
+        <ConfirmDeleteDialog
+          names={pendingNames}
+          noun="term"
+          nounPlural="terms"
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            deleteEntries(pendingDelete);
+            setPendingDelete(null);
+            // Deleted ids leave the selection on their own, because the
+            // selection is always intersected with what is on screen.
+          }}
+        />
+      )}
     </>
   );
 }
@@ -178,17 +240,31 @@ function EntryTable({
   sort,
   onSort,
   linkIndex,
+  selection,
+  onEdit,
+  onDelete,
 }: {
   entries: Entry[];
   sort: Sort;
   onSort: (key: SortKey) => void;
   linkIndex: LinkIndex;
+  selection: ListSelection;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   return (
     <div className="card hidden overflow-hidden md:block">
       <table className="w-full table-fixed border-collapse text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 uppercase dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
           <tr>
+            <th scope="col" className="w-10 px-3 py-2.5">
+              <SelectAllCheckbox
+                checked={selection.allSelected}
+                indeterminate={selection.partiallySelected}
+                onChange={selection.toggleAll}
+                label="Select all terms shown"
+              />
+            </th>
             {COLUMNS.map((column) => {
               const active = column.key !== null && sort.key === column.key;
               return (
@@ -217,47 +293,68 @@ function EntryTable({
                 </th>
               );
             })}
+            <th scope="col" className="w-12 px-3 py-2.5">
+              <span className="sr-only">Delete</span>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-          {entries.map((entry) => (
-            <tr
-              key={entry.id}
-              className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                entry.needsDefinition ? "bg-amber-50/70 dark:bg-amber-400/5" : ""
-              }`}
-            >
-              <td className="px-4 py-3 align-top">
-                <Link
-                  href={`/terms/${entry.id}?edit=1`}
-                  className="font-medium text-indigo-700 hover:underline dark:text-indigo-300"
-                >
-                  {entry.term}
-                </Link>
-              </td>
-              <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
-                {entry.needsDefinition ? (
-                  <NeedsDefinitionBadge />
-                ) : (
-                  <span className="line-clamp-3">{entry.definition}</span>
-                )}
-              </td>
-              <td className="px-4 py-3 align-top">
-                <SourceBadge source={entry.source} />
-              </td>
-              <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
-                {entry.ref ? (
-                  <span className="line-clamp-2 break-words">
-                    <RefText value={entry.ref} linkIndex={linkIndex} />
-                  </span>
-                ) : (
-                  <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
-                    —
-                  </span>
-                )}
-              </td>
-            </tr>
-          ))}
+          {entries.map((entry) => {
+            const selected = selection.isSelected(entry.id);
+            return (
+              <tr
+                key={entry.id}
+                className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                  selected
+                    ? "bg-indigo-50/80 dark:bg-indigo-500/10"
+                    : entry.needsDefinition
+                      ? "bg-amber-50/70 dark:bg-amber-400/5"
+                      : ""
+                }`}
+              >
+                <td className="px-3 py-3 align-top">
+                  <SelectRowCheckbox
+                    checked={selected}
+                    onChange={() => selection.toggle(entry.id)}
+                    label={entry.term}
+                  />
+                </td>
+                <td className="px-4 py-3 align-top">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(entry.id)}
+                    className="cursor-pointer text-left font-medium text-indigo-700 hover:underline dark:text-indigo-300"
+                  >
+                    {entry.term}
+                  </button>
+                </td>
+                <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
+                  {entry.needsDefinition ? (
+                    <NeedsDefinitionBadge />
+                  ) : (
+                    <span className="line-clamp-3">{entry.definition}</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 align-top">
+                  <SourceBadge source={entry.source} />
+                </td>
+                <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
+                  {entry.ref ? (
+                    <span className="line-clamp-2 break-words">
+                      <RefText value={entry.ref} linkIndex={linkIndex} />
+                    </span>
+                  ) : (
+                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
+                      —
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-3 align-top">
+                  <RowDeleteButton label={entry.term} onClick={() => onDelete(entry.id)} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -266,47 +363,87 @@ function EntryTable({
 
 /* ------------------------------------------------------------------ cards  */
 
-function EntryCards({ entries, linkIndex }: { entries: Entry[]; linkIndex: LinkIndex }) {
+function EntryCards({
+  entries,
+  linkIndex,
+  selection,
+  onEdit,
+  onDelete,
+}: {
+  entries: Entry[];
+  linkIndex: LinkIndex;
+  selection: ListSelection;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
   return (
-    <ul className="space-y-3 md:hidden">
-      {entries.map((entry) => (
-        <li key={entry.id}>
-          {/* A plain card, not a link — the Ref field may contain its own links,
-              and an anchor cannot be nested inside another anchor. */}
-          <div
-            className={`card p-4 transition hover:border-indigo-300 dark:hover:border-indigo-500/50 ${
-              entry.needsDefinition ? "border-l-4 border-l-amber-400" : ""
-            }`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="font-semibold">
-                <Link
-                  href={`/terms/${entry.id}?edit=1`}
-                  className="text-indigo-700 hover:underline dark:text-indigo-300"
-                >
-                  {entry.term}
-                </Link>
-              </h2>
-              {entry.needsDefinition && <NeedsDefinitionBadge />}
-            </div>
-            {entry.definition && (
-              <p className="mt-1.5 line-clamp-3 text-sm text-slate-700 dark:text-slate-300">
-                {entry.definition}
-              </p>
-            )}
-            {entry.ref && (
-              <p className="mt-2 text-xs break-words text-slate-600 dark:text-slate-400">
-                <span className="font-medium text-slate-500 dark:text-slate-500">Ref: </span>
-                <RefText value={entry.ref} linkIndex={linkIndex} />
-              </p>
-            )}
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <SourceBadge source={entry.source} />
-            </div>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="md:hidden">
+      <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
+        <SelectAllCheckbox
+          checked={selection.allSelected}
+          indeterminate={selection.partiallySelected}
+          onChange={selection.toggleAll}
+          label="Select all terms shown"
+        />
+        Select all
+      </label>
+
+      <ul className="space-y-3">
+        {entries.map((entry) => {
+          const selected = selection.isSelected(entry.id);
+          return (
+            <li key={entry.id}>
+              {/* A plain card, not a link — the Ref field may contain its own links,
+                  and an anchor cannot be nested inside another anchor. */}
+              <div
+                className={`card p-4 transition hover:border-indigo-300 dark:hover:border-indigo-500/50 ${
+                  selected ? "border-indigo-400 bg-indigo-50/60 dark:bg-indigo-500/10" : ""
+                } ${entry.needsDefinition ? "border-l-4 border-l-amber-400" : ""}`}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className="pt-1">
+                    <SelectRowCheckbox
+                      checked={selected}
+                      onChange={() => selection.toggle(entry.id)}
+                      label={entry.term}
+                    />
+                  </span>
+                  <h2 className="flex-1 font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => onEdit(entry.id)}
+                      className="cursor-pointer text-left text-indigo-700 hover:underline dark:text-indigo-300"
+                    >
+                      {entry.term}
+                    </button>
+                  </h2>
+                  {entry.needsDefinition && <NeedsDefinitionBadge />}
+                  <RowDeleteButton
+                    label={entry.term}
+                    onClick={() => onDelete(entry.id)}
+                    className="-mt-1 -mr-1"
+                  />
+                </div>
+                {entry.definition && (
+                  <p className="mt-1.5 line-clamp-3 text-sm text-slate-700 dark:text-slate-300">
+                    {entry.definition}
+                  </p>
+                )}
+                {entry.ref && (
+                  <p className="mt-2 text-xs break-words text-slate-600 dark:text-slate-400">
+                    <span className="font-medium text-slate-500 dark:text-slate-500">Ref: </span>
+                    <RefText value={entry.ref} linkIndex={linkIndex} />
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <SourceBadge source={entry.source} />
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

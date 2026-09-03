@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { EntryForm } from "@/components/EntryForm";
@@ -13,7 +12,6 @@ import type { Entry, EntryInput } from "@/lib/types";
 type DuplicatePrompt = { existing: Entry; input: EntryInput };
 
 export function AddTermDialog({ onClose }: { onClose: () => void }) {
-  const router = useRouter();
   const [duplicate, setDuplicate] = useState<DuplicatePrompt | null>(null);
 
   function handleSubmit(input: EntryInput) {
@@ -58,7 +56,6 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
               onClick={() => {
                 updateEntry(existing.id, input);
                 onClose();
-                router.push(`/terms/${existing.id}`);
               }}
             >
               Update the existing entry

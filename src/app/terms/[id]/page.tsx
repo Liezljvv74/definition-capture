@@ -1,38 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
 import { BackupButtons } from "@/components/BackupButtons";
-import { NeedsDefinitionBadge } from "@/components/Badges";
+import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import { EditTermDialog } from "@/components/EditTermDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
-import { EntryForm } from "@/components/EntryForm";
-import { SOURCES } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { deleteEntry, updateEntry } from "@/lib/storage";
-import { isSource, type Entry, type EntryInput } from "@/lib/types";
+import type { Entry } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
 import { usePhrases } from "@/lib/usePhrases";
 
+/**
+ * Where a `[[Term]]` reference lands.
+ *
+ * This page reads; it does not manage. Adding, editing, and deleting all happen
+ * on the glossary list, so there is no second screen for changing one field —
+ * Source included, which is edited in the same form as everything else.
+ */
 export default function TermDetailPage() {
-  // `useSearchParams` needs a boundary to suspend against during prerender.
-  return (
-    <Suspense fallback={<DetailSkeleton />}>
-      <TermDetail />
-    </Suspense>
-  );
-}
-
-function DetailSkeleton() {
-  return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
-      <div className="card h-56 animate-pulse" aria-hidden="true" />
-    </main>
-  );
-}
-
-function TermDetail() {
   const params = useParams<{ id: string }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { entries, loaded } = useGlossary();
@@ -40,10 +28,6 @@ function TermDetail() {
   const entry = entries.find((candidate) => candidate.id === id);
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
-
-  // Selecting a term in the glossary links here with ?edit=1, so the form is
-  // already open; the bare URL still opens the entry read-only.
-  const startInEditMode = useSearchParams().get("edit") === "1";
 
   return (
     <>
@@ -65,11 +49,7 @@ function TermDetail() {
         {!loaded ? (
           <div className="card h-56 animate-pulse" aria-hidden="true" />
         ) : entry ? (
-          <EntryDetail
-            entry={entry}
-            linkIndex={linkIndex}
-            startInEditMode={startInEditMode}
-          />
+          <EntryDetail entry={entry} linkIndex={linkIndex} />
         ) : (
           <TermNotFound />
         )}
@@ -78,181 +58,90 @@ function TermDetail() {
   );
 }
 
-function EntryDetail({
-  entry,
-  linkIndex,
-  startInEditMode,
-}: {
-  entry: Entry;
-  linkIndex: LinkIndex;
-  startInEditMode: boolean;
-}) {
+function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex }) {
   const router = useRouter();
-  const [isEditing, setIsEditing] = useState(startInEditMode);
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-
-  /** Leaves the form and drops ?edit=1, so a reload shows the saved entry. */
-  function stopEditing() {
-    setIsEditing(false);
-    router.replace(`/terms/${entry.id}`, { scroll: false });
-  }
-
-  function handleSave(input: EntryInput) {
-    updateEntry(entry.id, input);
-    stopEditing();
-  }
-
-  /** The Source dropdown below saves straight away — no trip through Edit. */
-  function handleSourceChange(value: string) {
-    if (!isSource(value) || value === entry.source) return;
-    updateEntry(entry.id, {
-      term: entry.term,
-      definition: entry.definition,
-      ref: entry.ref,
-      source: value,
-    });
-  }
-
-  if (isEditing) {
-    return (
-      <div className="card p-5 sm:p-6">
-        <h1 className="mb-4 text-lg font-semibold">Edit term</h1>
-        <EntryForm
-          initialValue={{
-            term: entry.term,
-            definition: entry.definition,
-            ref: entry.ref,
-            source: entry.source,
-          }}
-          submitLabel="Save changes"
-          onSubmit={handleSave}
-          onCancel={stopEditing}
-          autoFocus
-        />
-      </div>
-    );
-  }
+  const [isEditing, setIsEditing] = useState(false);
 
   return (
-    <article className="card p-5 sm:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{entry.term}</h1>
-        {entry.needsDefinition && <NeedsDefinitionBadge />}
-      </div>
-
-      <div className="mt-4">
-        <h2 className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-          Definition
-        </h2>
-        {entry.definition ? (
-          <p className="mt-1.5 whitespace-pre-wrap text-slate-800 dark:text-slate-200">
-            {entry.definition}
-          </p>
-        ) : (
-          <p className="mt-1.5 text-slate-500 italic dark:text-slate-400">
-            No definition yet — use Edit to fill it in.
-          </p>
-        )}
-      </div>
-
-      <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-3 dark:border-slate-800">
-        <div>
-          <dt
-            id="source-label"
-            className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400"
-          >
-            Source
-          </dt>
-          <dd className="mt-1.5">
-            <select
-              aria-labelledby="source-label"
-              className="field !w-auto !py-1.5"
-              value={entry.source}
-              onChange={(event) => handleSourceChange(event.target.value)}
-            >
-              {SOURCES.map((source) => (
-                <option key={source} value={source}>
-                  {source}
-                </option>
-              ))}
-            </select>
-          </dd>
+    <>
+      <article className="card p-5 sm:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">{entry.term}</h1>
+          {entry.needsDefinition && <NeedsDefinitionBadge />}
         </div>
-        <div>
-          <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-            Ref
-          </dt>
-          <dd className="mt-1.5 text-sm break-words text-slate-700 dark:text-slate-300">
-            {entry.ref ? (
-              <RefText value={entry.ref} linkIndex={linkIndex} />
-            ) : (
-              <span className="text-slate-400 italic dark:text-slate-500">None</span>
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-            Date added
-          </dt>
-          <dd className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">
-            <span title={formatDateTime(entry.dateAdded)}>{formatDate(entry.dateAdded)}</span>
-            {entry.dateUpdated && (
-              <span
-                className="block text-xs text-slate-500 dark:text-slate-400"
-                title={formatDateTime(entry.dateUpdated)}
-              >
-                Edited {formatDate(entry.dateUpdated)}
-              </span>
-            )}
-          </dd>
-        </div>
-      </dl>
 
-      <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
-        {isConfirmingDelete ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-500/30 dark:bg-red-500/10">
-            <p className="text-sm font-medium text-red-800 dark:text-red-200">
-              Delete “{entry.term}” permanently?
+        <div className="mt-4">
+          <h2 className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+            Definition
+          </h2>
+          {entry.definition ? (
+            <p className="mt-1.5 whitespace-pre-wrap text-slate-800 dark:text-slate-200">
+              {entry.definition}
             </p>
-            <p className="mt-1 text-sm text-red-700 dark:text-red-300">
-              This removes the entry from your glossary and cannot be undone.
+          ) : (
+            <p className="mt-1.5 text-slate-500 italic dark:text-slate-400">
+              No definition yet — use Edit to fill it in.
             </p>
-            <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setIsConfirmingDelete(false)}
-              >
-                Keep it
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => {
-                  deleteEntry(entry.id);
-                  router.push("/");
-                }}
-              >
-                Yes, delete
-              </button>
-            </div>
+          )}
+        </div>
+
+        <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-3 dark:border-slate-800">
+          <div>
+            <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+              Source
+            </dt>
+            {/* Shown, not edited — Source is a field on the edit form like any other. */}
+            <dd className="mt-1.5">
+              <SourceBadge source={entry.source} />
+            </dd>
           </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn btn-primary" onClick={() => setIsEditing(true)}>
-              Edit
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setIsConfirmingDelete(true)}
-            >
-              Delete
-            </button>
+          <div>
+            <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+              Ref
+            </dt>
+            <dd className="mt-1.5 text-sm break-words text-slate-700 dark:text-slate-300">
+              {entry.ref ? (
+                <RefText value={entry.ref} linkIndex={linkIndex} />
+              ) : (
+                <span className="text-slate-400 italic dark:text-slate-500">None</span>
+              )}
+            </dd>
           </div>
-        )}
-      </div>
-    </article>
+          <div>
+            <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+              Date added
+            </dt>
+            <dd className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">
+              <span title={formatDateTime(entry.dateAdded)}>{formatDate(entry.dateAdded)}</span>
+              {entry.dateUpdated && (
+                <span
+                  className="block text-xs text-slate-500 dark:text-slate-400"
+                  title={formatDateTime(entry.dateUpdated)}
+                >
+                  Edited {formatDate(entry.dateUpdated)}
+                </span>
+              )}
+            </dd>
+          </div>
+        </dl>
+
+        {/* Editing is offered here so a cross-link that lands on a typo can fix
+            it on the spot. Deleting is not — the glossary list owns that. */}
+        <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+          <button type="button" className="btn btn-primary" onClick={() => setIsEditing(true)}>
+            Edit
+          </button>
+        </div>
+      </article>
+
+      {isEditing && (
+        <EditTermDialog
+          entry={entry}
+          onClose={() => setIsEditing(false)}
+          onSaved={() => router.push("/")}
+        />
+      )}
+    </>
   );
 }
 

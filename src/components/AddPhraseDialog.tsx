@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Modal } from "@/components/Modal";
@@ -11,7 +10,6 @@ import type { Phrase, PhraseInput } from "@/lib/types";
 type DuplicatePrompt = { existing: Phrase; input: PhraseInput };
 
 export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
-  const router = useRouter();
   const [duplicate, setDuplicate] = useState<DuplicatePrompt | null>(null);
 
   function handleSubmit(input: PhraseInput) {
@@ -55,7 +53,6 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
               onClick={() => {
                 updatePhrase(existing.id, input);
                 onClose();
-                router.push(`/phrases/${existing.id}`);
               }}
             >
               Update the existing phrase
