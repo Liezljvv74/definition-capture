@@ -159,7 +159,7 @@ export function EntryForm({
               <code className={hintCode}>[[Term]]</code> links to another entry.
             </p>
             <p>
-              <code className={hintCode}>/terms/abc123</code> to a page here.
+              <code className={hintCode}>/term?id=abc123</code> to a page here.
             </p>
             <p>A full URL opens in a new tab.</p>
           </div>

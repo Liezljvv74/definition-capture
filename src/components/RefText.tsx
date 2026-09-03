@@ -13,11 +13,11 @@ export type LinkIndex = Map<string, string>;
 export function buildLinkIndex(entries: Entry[], phrases: Phrase[] = []): LinkIndex {
   const index: LinkIndex = new Map();
   for (const phrase of phrases) {
-    index.set(phrase.phrase.toLocaleLowerCase(), `/phrases/${phrase.id}`);
+    index.set(phrase.phrase.toLocaleLowerCase(), `/phrase?id=${phrase.id}`);
   }
   // Terms win a name clash: they are the more specific thing to link to.
   for (const entry of entries) {
-    index.set(entry.term.toLocaleLowerCase(), `/terms/${entry.id}`);
+    index.set(entry.term.toLocaleLowerCase(), `/term?id=${entry.id}`);
   }
   return index;
 }

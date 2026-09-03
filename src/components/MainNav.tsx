@@ -19,11 +19,11 @@ export function MainNav() {
     >
       <ul className="mx-auto flex max-w-6xl gap-1 px-4 sm:px-6">
         {LINKS.map((link) => {
-          // "/" only matches itself; a term page still counts as the glossary.
+          // A single term or phrase page counts as its list for highlighting.
           const active =
             link.href === "/"
-              ? pathname === "/" || pathname.startsWith("/terms")
-              : pathname === link.href || pathname.startsWith(`${link.href}/`);
+              ? pathname === "/" || pathname.startsWith("/term")
+              : pathname.startsWith("/phrase");
 
           return (
             <li key={link.href}>

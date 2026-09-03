@@ -3,7 +3,7 @@
  * links. Nothing is required — plain notes stay plain.
  *
  *   [[Closure]]                 → the glossary entry called "Closure"
- *   /terms/abc123, /            → a page inside this app
+ *   /term?id=abc123, /          → a page inside this app
  *   https://example.com/docs    → any web page, opened in a new tab
  *   #definition                 → a spot on the page you are already on
  *

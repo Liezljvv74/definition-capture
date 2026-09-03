@@ -114,7 +114,7 @@ export function PhraseForm({
             <code className={hintCode}>[[Name]]</code> links to a term or another phrase.
           </p>
           <p>
-            <code className={hintCode}>/terms/abc123</code> to a page here.
+            <code className={hintCode}>/term?id=abc123</code> to a page here.
           </p>
           <p>A full URL opens in a new tab.</p>
         </div>

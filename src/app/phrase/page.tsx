@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 
 import { BackupButtons } from "@/components/BackupButtons";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
@@ -12,16 +12,35 @@ import { useGlossary } from "@/lib/useGlossary";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
- * Where a `[[Phrase]]` reference lands.
+ * Where a `[[Phrase]]` reference lands, addressed as `/phrase?id=abc123`.
  *
- * This page is deliberately thin. Phrases carry no dates and no source, so it
- * has nothing to show that the list does not already show — its one real job is
- * to be a destination for cross-links, spelling out text the list has to clamp.
- * Adding, editing, and deleting all happen on the list itself.
+ * Query parameter rather than path segment for the same reason as `/term`: the
+ * app is exported as static HTML, and ids that only exist in a visitor's browser
+ * cannot be pre-rendered. The singular path also keeps this clear of `/phrases`,
+ * which is the list.
+ *
+ * Deliberately thin — phrases carry no dates and no source, so this page has
+ * nothing the list does not already show beyond untruncated text.
  */
 export default function PhraseDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  // `useSearchParams` needs a boundary to suspend against during prerender.
+  return (
+    <Suspense fallback={<DetailSkeleton />}>
+      <PhraseDetail />
+    </Suspense>
+  );
+}
+
+function DetailSkeleton() {
+  return (
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+      <div className="card h-56 animate-pulse" aria-hidden="true" />
+    </main>
+  );
+}
+
+function PhraseDetail() {
+  const id = useSearchParams().get("id") ?? "";
   const { phrases, loaded } = usePhrases();
   const { entries } = useGlossary();
   const phrase = phrases.find((candidate) => candidate.id === id);
