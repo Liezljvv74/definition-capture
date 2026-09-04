@@ -79,6 +79,14 @@ works everywhere.
 A thin nav bar at the top of every page carries the Captured logo in the top left corner — it
 links home — and switches between Glossary and Phrases.
 
+The same logo sits behind the app as a backdrop, shaded 70%: the artwork is laid over the page
+colour at 30% strength, which is the same thing as covering it with 70% of that colour but in
+one layer instead of two. It is fixed rather than scrolling, so a long list slides over a still
+backdrop, and the cards and headers above it stay opaque so every table row keeps full
+contrast — the logo shows through the page margins. `--logo-shade` in the `PageBackground`
+component in `src/app/layout.tsx` is the only number to change: raise it to fade the logo
+further, lower it to bring the artwork forward.
+
 Dates are shown short — `01 Sep 2026`, no clock time. Hovering shows the exact timestamp, and
 sorting always uses the full stored value, so two terms added on the same day still order
 correctly.
@@ -189,7 +197,7 @@ src/
     phrases/page.tsx      phrase list, the same shape as the glossary
     term/page.tsx         one term by ?id=, read-only plus Edit
     phrase/page.tsx       one phrase by ?id=, read-only plus Edit
-    layout.tsx            shell + metadata
+    layout.tsx            shell, metadata, and the shaded logo backdrop
     globals.css           Tailwind theme and shared control styles
   components/
     AddTermDialog.tsx     add-term flow, including the duplicate prompt
@@ -223,6 +231,7 @@ assets/
   captured-logo.png       the full-size logo artwork, not served
 public/
   captured-logo.png       the 256px copy the nav bar loads
+  captured-logo-bg.png    the 1000px copy the backdrop loads
 ```
 
 `assets/` holds source art that is not served; `public/` holds what the browser downloads, so
