@@ -132,7 +132,8 @@ screen so you always have a way out.
 - **Export** asks two things: how much, and in what format.
 
   **How much** — *Everything* (both lists), or *Only this page*, which means Phrases while you
-  are on `/phrases` and the Glossary everywhere else. The file name records the choice:
+  are on the phrase list or a single phrase, and the Glossary everywhere else. The file name
+  records the choice:
   `definition-capture-backup-…`, `-terms-…`, or `-phrases-…`.
 
   **What format** — either one covers whatever you chose above, in a single file:

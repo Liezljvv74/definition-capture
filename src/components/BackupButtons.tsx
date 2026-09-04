@@ -54,8 +54,12 @@ export function BackupButtons() {
   const [justExported, setJustExported] = useState(false);
 
   // Which list the page you are on is showing, for the "only this page" option.
+  // `/phrase` (one phrase) counts as the phrase list just as `/phrases` does,
+  // which is why this matches the singular prefix — the same test MainNav uses
+  // to decide which tab to highlight. Everything else (`/`, `/term`) is the
+  // glossary.
   const pathname = usePathname();
-  const activeList: Exclude<BackupScope, "all"> = pathname.startsWith("/phrases")
+  const activeList: Exclude<BackupScope, "all"> = pathname.startsWith("/phrase")
     ? "phrases"
     : "terms";
   const activeLabel = activeList === "phrases" ? "Phrases" : "Glossary";
