@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 
 import { BackupButtons } from "@/components/BackupButtons";
 import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
@@ -14,15 +14,36 @@ import { useGlossary } from "@/lib/useGlossary";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
- * Where a `[[Term]]` reference lands.
+ * Where a `[[Term]]` reference lands, addressed as `/term?id=abc123`.
+ *
+ * The id is a query parameter rather than a path segment on purpose: this app is
+ * exported as static HTML for GitHub Pages, and a path-based `/terms/[id]` route
+ * cannot be exported because the ids only exist in each visitor's browser, so
+ * there is nothing to pre-render at build time. One static page that reads the
+ * id at runtime works everywhere.
  *
  * This page reads; it does not manage. Adding, editing, and deleting all happen
- * on the glossary list, so there is no second screen for changing one field —
- * Source included, which is edited in the same form as everything else.
+ * on the glossary list.
  */
 export default function TermDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  // `useSearchParams` needs a boundary to suspend against during prerender.
+  return (
+    <Suspense fallback={<DetailSkeleton />}>
+      <TermDetail />
+    </Suspense>
+  );
+}
+
+function DetailSkeleton() {
+  return (
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+      <div className="card h-56 animate-pulse" aria-hidden="true" />
+    </main>
+  );
+}
+
+function TermDetail() {
+  const id = useSearchParams().get("id") ?? "";
   const { entries, loaded } = useGlossary();
   const { phrases } = usePhrases();
   const entry = entries.find((candidate) => candidate.id === id);
