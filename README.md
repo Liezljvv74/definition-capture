@@ -5,12 +5,23 @@ Everything lives in your browser — no server, no database, no accounts.
 
 ## Running it
 
+Double-click **`start-app.cmd`**. It installs dependencies the first time, starts the dev
+server, and opens the browser for you. Keep the window open while you use the app; closing it
+stops the server. If the app is already running it just opens the browser again.
+
+Or from a terminal:
+
 ```bash
 npm install     # first time only
 npm run dev
 ```
 
 Then open <http://localhost:3001>.
+
+The port is fixed at 3001 on purpose. `localStorage` is keyed to the exact origin, so starting
+on any other port would open the app with an empty list. The dev server also accepts requests
+from `192.168.0.11`, which lets a phone on the same router load it — that address is
+DHCP-assigned, so re-check it in `next.config.ts` if the router reassigns.
 
 ## Where the data lives
 
@@ -22,8 +33,8 @@ localStorage gives exactly that with synchronous reads and zero setup.
 The two stores are built from one factory in `src/lib/browserStore.ts` — nothing else in the
 app touches `localStorage` directly, so swapping in IndexedDB or a real API later means
 rewriting that one file, and the lists cannot drift apart in how they load, save, or sync
-between tabs. Because the data is per-browser, entries saved in Chrome will not show up in Firefox, and
-a `/terms/…` link only opens on the device that created it.
+between tabs. Because the data is per-browser, entries saved in Chrome will not show up in
+Firefox, and a `/term?id=…` link only opens on the device that created it.
 
 ## What an entry holds
 
@@ -33,7 +44,8 @@ a `/terms/…` link only opens on the device that created it.
 | **Definition** | Optional — leave it blank and fill it in later. |
 | **Ref** | Optional free text that links itself — see below. |
 | **Source** | Dropdown (Manual / Google / Claude / ChatGPT), defaults to `Manual`. |
-| **Date Added** | Set once on creation, shown but never editable. |
+| **Date Added** | Set once on creation, never editable. |
+| **Date Updated** | Set on every save, shown on the term's own page as "Edited …". Null until the first edit. |
 | **Needs Definition** | Derived automatically — true whenever the definition is blank. |
 
 To change the Source options, edit **`src/lib/constants.ts`** — the add and edit forms both
@@ -41,46 +53,64 @@ read from that list.
 
 ## Pages
 
-- **`/`** — the glossary browser. Columns are Term, Definition, Source, and Ref. Search across
-  terms and definitions, show only entries that still need a definition, and re-sort by Term or
-  Source. A table on laptops, cards on phones. Rows that need a definition are flagged in amber.
-  Date Added is not a column — the list is ordered newest-first underneath, and the date itself
-  is shown on the entry's own page.
-- **`/terms/[id]`** — one entry per stable URL, safe to reload or paste into a fresh tab.
-  **Source** is a dropdown here that saves the moment you change it; everything else goes
-  through Edit (in place; Date Added is preserved). Delete sits behind a confirm step. An
-  unknown ID shows a readable "term not found" message rather than an error page.
-
+- **`/`** — the glossary browser, and the page that owns adding, editing, and deleting terms.
+  Columns are Term, Definition, Source, and Ref. Search covers terms, definitions, and refs;
+  a "Needs definition" checkbox narrows to unfinished entries; the Term and Source headers
+  re-sort. A table on laptops, cards on phones. Rows that need a definition are flagged in
+  amber. Date Added is not a column — the list is ordered newest-first underneath, and the
+  date itself is shown on the entry's own page.
 - **`/phrases`** — the phrase list: a separate store that mirrors the glossary, for multi-word
   expressions that do not fit a single term. Columns are **Phrase**, **Literal meaning**,
   **Usage example**, and **Ref** — no dates, since phrases are looked up by wording rather
-  than by when they were captured. Search covers all four fields, the Phrase column sorts
+  than by when they were captured. Search covers all four fields, the Phrase header cycles
   A→Z / Z→A / back to newest-first, and only Phrase is required.
-- **`/phrases/[id]`** — one phrase per stable URL, with Edit and a confirmed Delete, the same
-  as a term.
+- **`/term?id=…`** and **`/phrase?id=…`** — one item per stable URL, safe to reload or paste
+  into a fresh tab. This is where a `[[Name]]` reference lands. Both pages read: they show the
+  full untruncated text plus, for a term, its Source badge and dates, and offer **Edit** so a
+  cross-link onto a typo can be fixed on the spot. Saving from here returns you to the list.
+  Deleting is not offered — the lists own that. An unknown ID shows a readable "not found"
+  message rather than an error page.
 
-A thin nav bar at the top of every page switches between Glossary and Phrases.
+The id is a query parameter rather than a path segment because the app is exported as static
+HTML (see Deploying): the ids only exist in each visitor's browser, so a `/terms/[id]` route
+would have nothing to pre-render at build time. One static page that reads the id at runtime
+works everywhere.
 
-Selecting a term in the glossary links to `/terms/[id]?edit=1`, which opens that entry with the
-**Edit term** form already showing — the common case is arriving to fix or finish something.
-Saving or cancelling drops the `?edit=1` and leaves you on the read-only entry, and the bare
-`/terms/[id]` URL (what a `[[Term]]` reference points at) always opens read-only.
+A thin nav bar at the top of every page carries the Captured logo in the top left corner — it
+links home — and switches between Glossary and Phrases.
 
 Dates are shown short — `01 Sep 2026`, no clock time. Hovering shows the exact timestamp, and
 sorting always uses the full stored value, so two terms added on the same day still order
 correctly.
 
+## Adding, editing, and deleting
+
+Everything happens on the list pages, in a dialog, without navigating away.
+
+- **Add** — the **Add term** / **Add phrase** button at the top right.
+- **Edit** — select the term or phrase itself in the list. Every editable field lives in that
+  one form, Source included; Date Added is preserved. Renaming onto a name another entry
+  already uses is refused rather than leaving two identical entries.
+- **Delete one** — the trash button at the end of the row, behind a confirmation.
+- **Delete several** — tick the checkboxes (or the select-all box in the header), then use
+  **Delete selected** in the bar that appears. The confirmation names what is about to go, up
+  to six of them, then "…and N more".
+
+Selection is always intersected with what is on screen, so a row you filter away leaves the
+selection on its own — "Delete selected" can only ever delete rows you can actually see.
+
 ## The Ref field
 
-Ref is free text, so a note like `Lecture 4, page 12` is perfectly valid. On top of that, four
+Ref is free text, so a note like `Lecture 4, page 12` is perfectly valid. On top of that, five
 patterns are recognised and turned into links, and you can mix them with ordinary words in one
 field:
 
 | Write | Links to |
 | --- | --- |
-| `[[Closure]]` | Whatever is saved under that name — a term **or** a phrase, since the two share one namespace. A name that matches nothing is shown plainly rather than as a dead link. |
-| `/terms/abc123`, `/` | A page inside this app. |
+| `[[Closure]]` | Whatever is saved under that name — a term **or** a phrase, since the two share one namespace. Terms win a name clash. A name that matches nothing is shown plainly rather than as a dead link. |
+| `/term?id=abc123`, `/` | A page inside this app. |
 | `https://example.com/docs` | Any web page — opens in a new tab. The scheme is hidden in the display so the column stays readable. |
+| `www.example.com` | The same, with `https://` assumed. |
 | `#definition` | A spot on the page you are already on. |
 
 Wrapping punctuation is handled, so `(https://example.com).` links only the URL. Ref is
@@ -93,9 +123,9 @@ screen so you always have a way out.
 
 - **Export** asks two things: how much, and in what format.
 
-  **How much** — *Everything* (both lists), or *Only this page*, which means the Glossary while
-  you are on `/` or a term, and Phrases while you are on `/phrases` or a phrase. The file name
-  records the choice: `definition-capture-backup-…`, `-terms-…`, or `-phrases-…`.
+  **How much** — *Everything* (both lists), or *Only this page*, which means Phrases while you
+  are on `/phrases` and the Glossary everywhere else. The file name records the choice:
+  `definition-capture-backup-…`, `-terms-…`, or `-phrases-…`.
 
   **What format** — either one covers whatever you chose above, in a single file:
 
@@ -107,14 +137,15 @@ screen so you always have a way out.
   The button is disabled while there is nothing saved. The workbook is built in the browser by
   [`write-excel-file`](https://www.npmjs.com/package/write-excel-file), the app's one runtime
   dependency beyond Next and React.
-- **Import** reads a backup back in. It first shows you what is in the file — how many terms are
-  new, how many you already have, and how many rows it could not read — then asks what to do:
+- **Import** reads a backup back in. It first shows you what is in the file — how many items
+  are new, how many you already have, and how many rows it could not read — then asks what to
+  do:
 
   | Mode | Effect |
   | --- | --- |
-  | Add only the terms I don't have | Default. New terms are added, existing ones untouched. |
-  | Add new terms and update matching ones | The backup's definitions overwrite yours. |
-  | Replace my whole glossary | Everything saved is deleted first — behind a second confirm. |
+  | Add only what I don't have | Default. New items are added, existing ones untouched. |
+  | Add new and update matching | The backup overwrites what you have. |
+  | Replace everything with this backup | What is saved now is deleted first — behind a second confirm. |
 
 Terms match on the term, phrases on the phrase, both case-insensitively — the same rule the add
 forms use. Imported entries keep their original **Date Added**, which is the point of a backup,
@@ -135,21 +166,38 @@ Anything unreadable is counted and reported rather than silently dropped.
   update the existing entry or keep both — it never duplicates silently.
 - **Two tabs stay in sync.** Adding an entry in one tab updates any other open tab.
 
+## Deploying
+
+The app is a static export — `output: "export"` in `next.config.ts` — because everything is
+client-side already, so there is nothing for a Node server to do. `npm run build` writes plain
+HTML, CSS, and JS into `out/`, which is committed so the built site is always in the project.
+
+`.github/workflows/deploy.yml` publishes to GitHub Pages on every push to `main`, and can be
+re-run by hand from the Actions tab. That build sets `GITHUB_PAGES=true`, which switches on the
+`/definition-capture` basePath — a project site is served from
+`https://<user>.github.io/<repo>/`, not the domain root, and without it every stylesheet and
+script would 404. Local builds leave the variable unset and keep serving from `/`.
+
+A deployed copy is still per-browser: it is the same app, with its own empty localStorage.
+
 ## Layout of the code
 
 ```
 src/
   app/
-    page.tsx              glossary browser
-    terms/[id]/page.tsx   entry detail, edit, delete
-    phrases/page.tsx      phrase list
-    phrases/[id]/page.tsx phrase detail, edit, delete
+    page.tsx              glossary browser: add, edit, delete, search, sort
+    phrases/page.tsx      phrase list, the same shape as the glossary
+    term/page.tsx         one term by ?id=, read-only plus Edit
+    phrase/page.tsx       one phrase by ?id=, read-only plus Edit
     layout.tsx            shell + metadata
     globals.css           Tailwind theme and shared control styles
   components/
-    AddPhraseDialog.tsx   add-phrase flow, including the duplicate prompt
     AddTermDialog.tsx     add-term flow, including the duplicate prompt
-    BackupButtons.tsx     export / import buttons and the import dialog
+    AddPhraseDialog.tsx   add-phrase flow, including the duplicate prompt
+    EditTermDialog.tsx    edit-term flow, including the rename clash
+    EditPhraseDialog.tsx  edit-phrase flow
+    DeleteControls.tsx    checkboxes, selection bar, and the delete confirmation
+    BackupButtons.tsx     export / import buttons and their dialogs
     EntryForm.tsx         shared add/edit form for terms
     PhraseForm.tsx        shared add/edit form for phrases
     MainNav.tsx           Glossary / Phrases nav bar
@@ -166,9 +214,20 @@ src/
     backupFile.ts         download plumbing: builds the .xlsx and .json files
     useGlossary.ts        React binding for the glossary store
     usePhrases.ts         React binding for the phrase store
+    useListSelection.ts   row selection shared by both list pages
     parseTerm.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting
+    assetPath.ts          prefixes public/ URLs with the basePath
+assets/
+  captured-logo.png       the full-size logo artwork, not served
+public/
+  captured-logo.png       the 256px copy the nav bar loads
 ```
+
+`assets/` holds source art that is not served; `public/` holds what the browser downloads, so
+the logo is kept there at the size it is actually shown rather than at full resolution. Because
+`next/image` does not rewrite an image `src` for the basePath and a static export has no
+optimiser behind it, the nav uses a plain `<img>` whose URL goes through `asset()`.
 
 Built with Next.js (App Router), TypeScript, and Tailwind CSS.

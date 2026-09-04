@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { asset } from "@/lib/assetPath";
+
 const LINKS = [
   { href: "/", label: "Glossary" },
   { href: "/phrases", label: "Phrases" },
@@ -17,7 +19,25 @@ export function MainNav() {
       aria-label="Main"
       className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
     >
-      <ul className="mx-auto flex max-w-6xl gap-1 px-4 sm:px-6">
+      <ul className="mx-auto flex max-w-6xl items-center gap-1 px-4 sm:px-6">
+        <li className="mr-2 shrink-0 sm:mr-3">
+          <Link
+            href="/"
+            aria-label="Definition Capture — home"
+            className="-ml-1 block rounded-md p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            {/* A plain <img>, not next/image: the app is a static export with no
+                optimiser behind it, so there is nothing to optimise. Width and
+                height are set to reserve the space before the file loads. */}
+            <img
+              src={asset("/captured-logo.png")}
+              alt=""
+              width={36}
+              height={36}
+              className="size-8 sm:size-9"
+            />
+          </Link>
+        </li>
         {LINKS.map((link) => {
           // A single term or phrase page counts as its list for highlighting.
           const active =

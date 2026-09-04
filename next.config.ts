@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
   // Applied only for the Pages build so local URLs stay at `/`.
   basePath: isGitHubPages ? "/definition-capture" : "",
 
+  // Next rewrites `<Link href>` for the basePath but not an image `src`, so the
+  // same value is handed to the browser for `asset()` in src/lib/assetPath.ts
+  // to prefix files served out of `public/`. Derived from the line above so the
+  // two can never disagree.
+  env: {
+    NEXT_PUBLIC_BASE_PATH: isGitHubPages ? "/definition-capture" : "",
+  },
+
   // Emit `phrases/index.html` rather than `phrases.html`, which is what a static
   // host resolves cleanly without any rewrite rules of its own.
   trailingSlash: true,
