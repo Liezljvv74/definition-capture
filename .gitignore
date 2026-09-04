@@ -39,8 +39,10 @@ build/
 tmp/
 
 # Next.js
+# out/ is deliberately NOT ignored: the built static site is committed so the
+# HTML is visible in the project and on GitHub. Rebuild with `npm run build`
+# and commit the result whenever the source changes.
 /.next/
-/out/
 next-env.d.ts
 *.tsbuildinfo
 /coverage
