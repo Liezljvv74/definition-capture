@@ -181,10 +181,15 @@ client-side already, so there is nothing for a Node server to do. `npm run build
 HTML, CSS, and JS into `out/`, which is committed so the built site is always in the project.
 
 `.github/workflows/deploy.yml` publishes to GitHub Pages on every push to `main`, and can be
-re-run by hand from the Actions tab. That build sets `GITHUB_PAGES=true`, which switches on the
-`/definition-capture` basePath — a project site is served from
-`https://<user>.github.io/<repo>/`, not the domain root, and without it every stylesheet and
-script would 404. Local builds leave the variable unset and keep serving from `/`.
+re-run by hand from the Actions tab. The live site is
+<https://liezljvv74.github.io/definition-capture/>.
+
+That build sets `GITHUB_PAGES=true`, which switches on the `/definition-capture` basePath — a
+project site is served from `https://<user>.github.io/<repo>/`, not the domain root, and
+without it every stylesheet and script would 404. The same flag fills in
+`NEXT_PUBLIC_BASE_PATH`, which is what `asset()` reads to prefix the two logo files, since Next
+rewrites a `<Link href>` for the basePath but not an image or `background-image` URL. Local
+builds leave the flag unset and keep serving from `/`.
 
 A deployed copy is still per-browser: it is the same app, with its own empty localStorage.
 
