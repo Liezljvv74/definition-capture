@@ -235,6 +235,7 @@ src/
     assetPath.ts          prefixes public/ URLs with the basePath
 assets/
   captured-logo.png       the full-size logo artwork, not served
+  app-screenshot.jpg      the screenshot the README ends with
 public/
   captured-logo.png       the 256px copy the nav bar loads
   captured-logo-bg.png    the 1000px copy the backdrop loads
@@ -246,3 +247,9 @@ the logo is kept there at the size it is actually shown rather than at full reso
 optimiser behind it, the nav uses a plain `<img>` whose URL goes through `asset()`.
 
 Built with Next.js (App Router), TypeScript, and Tailwind CSS.
+
+## What it looks like
+
+![The glossary with the Captured logo in the nav bar, Export, Import and Add term at the top right, and the shaded logo backdrop showing around the empty-glossary card](assets/app-screenshot.jpg)
+
+An empty glossary on first run — the state the app opens in before anything is saved.
