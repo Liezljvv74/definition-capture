@@ -1,6 +1,7 @@
 # Sprint 1 project reflections — Definition Capture
 
-Turing College GitHub repository URL:  https://liezljvv74.github.io/definition-capture/
+Turing College GitHub repository URL:  https://github.com/TuringCollegeSubmissions/lfouri-AFA.BAI.1.8
+Live site:  https://liezljvv74.github.io/definition-capture/
 
 REFLECTION.md
 1.	What I built and how I scoped it down
@@ -21,6 +22,8 @@ I am not sure yet.  I will probably keep the structure created by npx.  I am not
 
 Handed in
 •	Turing College GitHub repository URL  
+https://github.com/TuringCollegeSubmissions/lfouri-AFA.BAI.1.8
+•	Live site  
 https://liezljvv74.github.io/definition-capture/
 •	README.md  – Included as part of app documentation
 •	CLAUDE.md  – Included as part of app documentation
