@@ -29,6 +29,8 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
     onClose();
   }
 
+  // Saved once, for the same reasons as a term: the unique index refuses a
+  // second, and a `[[Name]]` link resolves to exactly one phrase.
   if (duplicate) {
     const { existing, input } = duplicate;
     return (
@@ -36,7 +38,7 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
         <div className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-slate-300">
             You already saved <strong className="font-semibold">{existing.phrase}</strong>. Do
-            you want to update that one, or keep both?
+            you want to update it?
           </p>
 
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
@@ -62,16 +64,6 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
               }}
             >
               Update the existing phrase
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                createPhrase(input);
-                onClose();
-              }}
-            >
-              Save as a separate new phrase
             </button>
             <button
               type="button"

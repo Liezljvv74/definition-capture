@@ -31,6 +31,11 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
     onClose();
   }
 
+  // A term is saved once. The unique index on (user_id, lower(term)) refuses
+  // a second one outright, and `[[Name]]` links, this duplicate check, and
+  // import matching all resolve a name to exactly one entry — so there is no
+  // “keep both” on offer here. Offering it meant drawing a row optimistically
+  // and watching the database take it away again.
   if (duplicate) {
     const { existing, input } = duplicate;
     return (
@@ -38,7 +43,7 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
         <div className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-slate-300">
             You already saved <strong className="font-semibold">{existing.term}</strong>. Do you
-            want to update that entry, or keep both?
+            want to update it?
           </p>
 
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
@@ -65,16 +70,6 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
               }}
             >
               Update the existing entry
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                createEntry(input);
-                onClose();
-              }}
-            >
-              Save as a separate new entry
             </button>
             <button
               type="button"

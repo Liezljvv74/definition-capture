@@ -258,8 +258,11 @@ Anything unreadable is counted and reported rather than silently dropped.
 - **Paste-to-split.** Pasting `term: definition` or `term - definition` into the Term field
   splits it across both fields. It only fills Definition when that field is still empty, and
   leaves URLs and long sentences alone.
-- **Duplicate check.** Saving a term that already exists (case-insensitively) asks whether to
-  update the existing entry or keep both — it never duplicates silently.
+- **Duplicate check.** A term is saved once. Saving one that already exists
+  (case-insensitively) offers to update it, or to go back and change the wording — there
+  is no “keep both”, because there cannot be: the unique index on `(user_id, lower(term))`
+  refuses a second, and `[[Name]]` links, the duplicate check itself, and import matching
+  all resolve a name to exactly one entry. Phrases work the same way.
 - **Tabs catch up when you look at them.** Switching to another tab, or back to the window,
   re-reads both lists from the database, so a term added elsewhere is there when you look.
   It is not live sync — a second tab sitting visible next to the first will not update until
