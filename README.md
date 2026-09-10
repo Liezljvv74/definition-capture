@@ -132,11 +132,15 @@ HTML (see Deploying): the ids only exist in each visitor's browser, so a `/terms
 would have nothing to pre-render at build time. One static page that reads the id at runtime
 works everywhere.
 
-A thin nav bar at the top of every page carries the Captured logo in the top left corner —
-it links home — and switches between Home, Terms, Phrases, Verbs, and Grammar. Each tab
-decides for itself which paths light it up, so a `/term?id=…` page keeps Terms lit while
-Home stays lit only on `/` itself. Five tabs, an address, Settings and Sign out do not fit
-across a phone, so the bar scrolls sideways rather than wrapping into two rows.
+A thin nav bar at the top of every page carries the Captured logo in the top left corner
+and switches between Terms, Phrases, Verbs, and Grammar. There is no Home tab — the logo
+is the way home, and two controls for one destination is one too many. Each tab decides
+for itself which paths light it up, so a `/term?id=…` page keeps Terms lit.
+
+At the right-hand end are the signed-in name and a gear that opens Settings. Signing out
+is in Settings rather than up here: it is rare and feels destructive, and one click from
+a nav bar is closer than it wants to be. On a narrow screen the bar scrolls sideways
+rather than wrapping into two rows.
 
 The same logo sits behind the app as a backdrop, shaded 70%: the artwork is laid over the page
 colour at 30% strength, which is the same thing as covering it with 70% of that colour but in
@@ -386,7 +390,7 @@ src/
     PhraseForm.tsx        shared add/edit form for phrases
     MainNav.tsx           Terms / Phrases nav bar, plus the account control
     SignInGate.tsx        the magic-link screen, and what stands in for the app
-    AccountMenu.tsx       display name or address, Settings, and Sign out
+    AccountMenu.tsx       display name or address, and a gear to Settings
     ImportLocalPrompt.tsx offers a pre-account localStorage list to the account
     StoreErrorBanner.tsx  says so when a save did not reach the database
     NameListEditor.tsx    add / remove / reorder a list of names in Settings

@@ -9,11 +9,12 @@ import { asset } from "@/lib/assetPath";
 /**
  * Each tab says for itself which paths light it up, rather than the nav
  * knowing every page. A detail page counts as its list: `/term?id=…` keeps
- * Terms lit, which is why these are prefixes and not equality — except Home,
- * which is only ever itself.
+ * Terms lit, which is why these are prefixes and not equality.
+ *
+ * There is no Home tab: the logo to the left of these is the way home, and
+ * two controls for one destination is one too many.
  */
 const LINKS = [
-  { href: "/", label: "Home", isActive: (path: string) => path === "/" },
   { href: "/terms", label: "Terms", isActive: (path: string) => path.startsWith("/term") },
   {
     href: "/phrases",
