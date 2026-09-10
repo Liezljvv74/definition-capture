@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { signInLinkError } from "@/lib/authLinkError";
 import { sendMagicLink } from "@/lib/session";
@@ -31,25 +31,55 @@ export function SignInGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Supabase will not send a second link to the same address inside a minute,
+ * and refuses with a rate-limit error rather than quietly ignoring it. The
+ * button waits that minute out instead of letting the reader spend a
+ * request on a refusal.
+ */
+const RESEND_SECONDS = 60;
+
+/** Supabase phrases both its limits the same way; the reader needs the why. */
+function explainFailure(message: string): string {
+  if (!/rate limit/i.test(message)) return message;
+  return (
+    "The email sender will not send another link to this address yet — one a " +
+    "minute, and only a few an hour. Check your inbox first: a link sent " +
+    "earlier may still be waiting, and it works for an hour."
+  );
+}
+
 function SignInScreen() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+  /** Seconds until another link may be asked for. */
+  const [cooldown, setCooldown] = useState(0);
   // Seeded from the URL: arriving here from a link that failed should say
   // so, rather than looking like an ordinary first visit.
   const [error, setError] = useState<string | null>(() => signInLinkError());
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setTimeout(() => setCooldown((left) => left - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || cooldown > 0) return;
 
     setState("sending");
     setError(null);
     const { error: failure } = await sendMagicLink(email);
     if (failure) {
-      setError(failure);
+      setError(explainFailure(failure));
       setState("idle");
+      // A refusal is still a request as far as the limit is concerned, so
+      // hold the button either way rather than inviting another one.
+      if (/rate limit/i.test(failure)) setCooldown(RESEND_SECONDS);
       return;
     }
+    setCooldown(RESEND_SECONDS);
     setState("sent");
   }
 
@@ -117,9 +147,13 @@ function SignInScreen() {
             <button
               type="submit"
               className="btn btn-primary w-full"
-              disabled={state === "sending"}
+              disabled={state === "sending" || cooldown > 0}
             >
-              {state === "sending" ? "Sending…" : "Email me a sign-in link"}
+              {state === "sending"
+                ? "Sending…"
+                : cooldown > 0
+                  ? `Another link in ${cooldown}s`
+                  : "Email me a sign-in link"}
             </button>
           </form>
         )}
