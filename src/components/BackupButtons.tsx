@@ -18,7 +18,7 @@ import {
   downloadJsonBackup,
   readFileAsText,
 } from "@/lib/backupFile";
-import type { ImportMode } from "@/lib/browserStore";
+import type { ImportMode } from "@/lib/types";
 import { useGlossary } from "@/lib/useGlossary";
 import { usePhrases } from "@/lib/usePhrases";
 

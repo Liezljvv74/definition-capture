@@ -3,10 +3,15 @@
  * Export gives you everything — there is no second file to remember.
  */
 
-import { NO_IMPORT, type ImportCounts, type ImportMode } from "@/lib/browserStore";
 import { getPhrases, importPhrases, parsePhraseList } from "@/lib/phraseStorage";
 import { getEntries, importEntries, parseEntryList } from "@/lib/storage";
-import type { Entry, Phrase } from "@/lib/types";
+import {
+  NO_IMPORT,
+  type Entry,
+  type ImportCounts,
+  type ImportMode,
+  type Phrase,
+} from "@/lib/types";
 
 export const BACKUP_FORMAT = "definition-capture-backup";
 /** 1 was terms only; 2 adds the phrase list. Version 1 files still import. */

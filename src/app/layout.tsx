@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
+import { ImportLocalPrompt } from "@/components/ImportLocalPrompt";
 import { MainNav } from "@/components/MainNav";
+import { SignInGate } from "@/components/SignInGate";
+import { StoreErrorBanner } from "@/components/StoreErrorBanner";
 import { asset } from "@/lib/assetPath";
 
 import "./globals.css";
@@ -16,7 +19,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <PageBackground />
         <MainNav />
-        {children}
+        {/* Every page reads a per-account table, so nothing below the nav is
+            worth rendering until we know who is asking. The gate keeps
+            `children` server-rendered — it only decides whether to show it. */}
+        <SignInGate>
+          <StoreErrorBanner />
+          <ImportLocalPrompt />
+          {children}
+        </SignInGate>
       </body>
     </html>
   );

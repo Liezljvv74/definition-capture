@@ -34,8 +34,17 @@ jobs:
         # GITHUB_PAGES switches on the /definition-capture basePath in
         # next.config.ts. Without it the site would look for its assets at the
         # domain root and render unstyled.
+        #
+        # The two Supabase values are repository *variables*, not secrets:
+        # both are compiled into the browser bundle and are meant to be
+        # public, so hiding them here would only make them harder to check.
+        # Set them under Settings → Secrets and variables → Actions →
+        # Variables. Without them the site builds fine but every visitor sees
+        # the "no Supabase credentials" notice instead of a sign-in form.
         env:
           GITHUB_PAGES: "true"
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
         run: npm run build
 
       - uses: actions/configure-pages@v5

@@ -1,13 +1,12 @@
 # Definition Capture
 
-A small, local-only personal glossary for saving terms and concepts worth remembering.
-Everything lives in your browser — no server, no database, no accounts.
+A small personal glossary for saving terms and concepts worth remembering. You sign in with
+an emailed link, and your terms and phrases are private to your account.
 
 ## Running it
 
 Double-click **`start-app.cmd`**. It installs dependencies the first time, starts the dev
-server, and opens the browser for you. Keep the window open while you use the app; closing it
-stops the server. If the app is already running it just opens the browser again.
+server, and opens the browser for you. Keep the window open while you use the app; closing it stops the server. If the app is already running it just opens the browser again.
 
 Or from a terminal:
 
@@ -18,23 +17,50 @@ npm run dev
 
 Then open <http://localhost:3001>.
 
-The port is fixed at 3001 on purpose. `localStorage` is keyed to the exact origin, so starting
-on any other port would open the app with an empty list. The dev server also accepts requests
-from `192.168.0.11`, which lets a phone on the same router load it — that address is
-DHCP-assigned, so re-check it in `next.config.ts` if the router reassigns.
+Either way you need a `.env.local` first — copy `.env.example` and fill in the two Supabase
+values. See [Setting up Supabase](#setting-up-supabase). Without them the app still builds and
+runs, but says so instead of showing a sign-in form.
+
+The port is fixed at 3001 on purpose: the sign-in link has to come back to an origin Supabase
+has been told to accept, and `http://localhost:3001` is the one registered. Starting on another
+port would bounce every magic link. The dev server also accepts requests from `192.168.0.11`,
+which lets a phone on the same router load it — that address is DHCP-assigned, so re-check it
+in `next.config.ts` if the router reassigns.
 
 ## Where the data lives
 
-Both lists are persisted in the browser's **`localStorage`**, under
-`definition-capture.entries.v1` and `definition-capture.phrases.v1`. Each is a small,
-single-user, plain-text collection that only has to survive a full page reload, so
-localStorage gives exactly that with synchronous reads and zero setup.
+Both lists live in **Supabase** — Postgres tables `entries` and `phrases`, one private set of
+rows per signed-in account. Sign in on any browser or device and the same glossary is there,
+and a `/term?id=…` link opens anywhere you are signed in.
 
-The two stores are built from one factory in `src/lib/browserStore.ts` — nothing else in the
-app touches `localStorage` directly, so swapping in IndexedDB or a real API later means
-rewriting that one file, and the lists cannot drift apart in how they load, save, or sync
-between tabs. Because the data is per-browser, entries saved in Chrome will not show up in
-Firefox, and a `/term?id=…` link only opens on the device that created it.
+Every query runs in the browser. The app is a static export with no server process behind it,
+so the only credential in play is the publishable key, which is compiled into the JavaScript
+bundle and readable by anyone who views source. That is what that key is for — but it means
+**row level security is the only thing separating one account's glossary from another's.**
+The policies in `supabase/migrations/` are load-bearing, not decoration; every table has RLS
+enabled and four policies that check `auth.uid() = user_id`.
+
+The two stores are built from one factory in `src/lib/remoteStore.ts` — nothing else in the
+app talks to Supabase directly, so the lists cannot drift apart in how they load, save, or
+report a failure. It keeps the shape the old `localStorage` store had: the whole list is
+fetched once into memory and read synchronously, and a write updates the screen immediately
+and goes to the database in the background. That is why adding a term still feels instant,
+and why the forms never had to learn that saving became a network call.
+
+The price of writing optimistically is that a failure lands after the edit is already drawn.
+When that happens the store reloads the list so the screen shows what is really stored, and
+`StoreErrorBanner` says what went wrong — losing a write silently would be worse than a
+banner.
+
+### The glossary you had before accounts
+
+Earlier versions kept everything in `localStorage` under `definition-capture.entries.v1` and
+`definition-capture.phrases.v1`. If a browser still holds those keys, signing in offers to
+copy them into the account. The offer is two steps on purpose: the copy runs first, and the
+old keys are only removed once you have looked at your list and pressed the second button —
+deleting the only copy of that data on the strength of a request whose outcome nobody has
+seen yet would be careless. `src/lib/legacyLocal.ts` is the read-only reader for those keys,
+and it is the only place left that touches them.
 
 ## What an entry holds
 
@@ -126,8 +152,8 @@ searchable along with the other fields on both lists, and it is included in back
 
 ## Backup: export and import
 
-Because entries live in one browser, **Export** and **Import** sit at the top right of every
-screen so you always have a way out.
+**Export** and **Import** sit at the top right of every screen, so there is always a copy you
+hold yourself and a way out of the app entirely.
 
 - **Export** asks two things: how much, and in what format.
 
@@ -173,7 +199,39 @@ Anything unreadable is counted and reported rather than silently dropped.
   leaves URLs and long sentences alone.
 - **Duplicate check.** Saving a term that already exists (case-insensitively) asks whether to
   update the existing entry or keep both — it never duplicates silently.
-- **Two tabs stay in sync.** Adding an entry in one tab updates any other open tab.
+- **Tabs catch up when you look at them.** Switching to another tab, or back to the window,
+  re-reads both lists from the database, so a term added elsewhere is there when you look.
+  It is not live sync — a second tab sitting visible next to the first will not update until
+  it is focused. The `localStorage` version got true cross-tab updates free from the
+  `storage` event; a database has no equivalent, and Supabase Realtime would mean enabling
+  replication for a payoff this app does not really need.
+
+## Setting up Supabase
+
+One project holds both tables. From a clean checkout:
+
+```bash
+npx supabase login                              # opens a browser; needs a real terminal
+npx supabase link --project-ref <your-ref>      # the ref is in the dashboard URL
+npx supabase db push                            # applies supabase/migrations/
+```
+
+Then, in the dashboard:
+
+- **Project Settings → API** — copy the project URL and the publishable key into `.env.local`.
+- **Authentication → URL Configuration → Redirect URLs** — add both
+  `http://localhost:3001/` and `https://liezljvv74.github.io/definition-capture/`. A magic
+  link that comes back to an unlisted URL is silently redirected to the site root, which
+  looks exactly like a broken link.
+
+Sign-in is a one-time emailed link, so there is no password anywhere in the app and no
+sign-up step — Supabase creates the account on the first link it sends. The built-in email
+sender is rate-limited to a handful of messages an hour, which is fine while building; a real
+SMTP provider goes in **Authentication → Emails** when that starts to bite.
+
+`npx supabase migration new <name>` starts a new migration; `npx supabase db push` applies it.
+Nothing here needs Docker — that is only for running a full Supabase stack locally, which this
+project does not do.
 
 ## Deploying
 
@@ -192,7 +250,15 @@ without it every stylesheet and script would 404. The same flag fills in
 rewrites a `<Link href>` for the basePath but not an image or `background-image` URL. Local
 builds leave the flag unset and keep serving from `/`.
 
-A deployed copy is still per-browser: it is the same app, with its own empty localStorage.
+The workflow also passes `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` into the build, read from repository **variables**
+rather than secrets — both end up in the browser bundle and are meant to be public, so
+hiding them in the CI config would only make them harder to check. Set them under Settings →
+Secrets and variables → Actions → Variables. Without them the deploy still succeeds, but
+every visitor gets the "no Supabase credentials" notice instead of a sign-in form.
+
+A deployed copy is the same glossary: sign in there and your terms are the ones you saved
+locally, because both talk to the same Supabase project.
 
 ## Layout of the code
 
@@ -214,12 +280,19 @@ src/
     BackupButtons.tsx     export / import buttons and their dialogs
     EntryForm.tsx         shared add/edit form for terms
     PhraseForm.tsx        shared add/edit form for phrases
-    MainNav.tsx           Glossary / Phrases nav bar
+    MainNav.tsx           Glossary / Phrases nav bar, plus the account control
+    SignInGate.tsx        the magic-link screen, and what stands in for the app
+    AccountMenu.tsx       signed-in address and Sign out, shown in the nav
+    ImportLocalPrompt.tsx offers a pre-account localStorage glossary to the account
+    StoreErrorBanner.tsx  says so when a save did not reach the database
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
     RefText.tsx           renders a parsed Ref value
   lib/
-    browserStore.ts       the localStorage factory both stores are built on
+    remoteStore.ts        the Supabase factory both stores are built on
+    supabaseClient.ts     the one client, built lazily so `next build` can prerender
+    session.ts            who is signed in, as an external store
+    legacyLocal.ts        read-only access to the pre-account localStorage keys
     constants.ts          the editable dropdown lists
     types.ts              Entry and Phrase shapes plus validators
     storage.ts            the glossary store
@@ -228,6 +301,7 @@ src/
     backupFile.ts         download plumbing: builds the .xlsx and .json files
     useGlossary.ts        React binding for the glossary store
     usePhrases.ts         React binding for the phrase store
+    useSession.ts         React binding for the session store
     useListSelection.ts   row selection shared by both list pages
     parseTerm.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
@@ -239,6 +313,9 @@ assets/
 public/
   captured-logo.png       the 256px copy the nav bar loads
   captured-logo-bg.png    the 1000px copy the backdrop loads
+supabase/
+  config.toml             CLI project config
+  migrations/             the tables, indexes, and row level security policies
 ```
 
 `assets/` holds source art that is not served; `public/` holds what the browser downloads, so
@@ -246,7 +323,7 @@ the logo is kept there at the size it is actually shown rather than at full reso
 `next/image` does not rewrite an image `src` for the basePath and a static export has no
 optimiser behind it, the nav uses a plain `<img>` whose URL goes through `asset()`.
 
-Built with Next.js (App Router), TypeScript, and Tailwind CSS.
+Built with Next.js (App Router), TypeScript, Tailwind CSS, and Supabase.
 
 ## What it looks like
 

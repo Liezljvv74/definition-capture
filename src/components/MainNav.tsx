@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { AccountMenu } from "@/components/AccountMenu";
 import { asset } from "@/lib/assetPath";
 
 const LINKS = [
@@ -61,6 +62,7 @@ export function MainNav() {
             </li>
           );
         })}
+        <AccountMenu />
       </ul>
     </nav>
   );

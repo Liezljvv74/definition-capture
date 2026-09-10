@@ -61,6 +61,21 @@ export const EMPTY_PHRASE_INPUT: PhraseInput = {
   ref: "",
 };
 
+/* ------------------------------------------------------------------ import */
+
+/** How an imported list should meet the list already saved. */
+export type ImportMode =
+  /** Add items that are new; leave existing ones untouched. */
+  | "skip"
+  /** Add new items and overwrite matching ones from the backup. */
+  | "update"
+  /** Throw away what is saved and restore the backup wholesale. */
+  | "replace";
+
+export type ImportCounts = { added: number; updated: number; skipped: number };
+
+export const NO_IMPORT: ImportCounts = { added: 0, updated: 0, skipped: 0 };
+
 /* --------------------------------------------------------------- helpers   */
 
 export function isSource(value: unknown): value is Source {

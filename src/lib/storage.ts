@@ -1,30 +1,35 @@
 /**
- * The glossary store. All reads and writes go through `browserStore`, so no
- * component ever touches `localStorage` directly.
+ * The glossary store. All reads and writes go through `remoteStore`, so no
+ * component ever talks to Supabase directly.
+ *
+ * Every function below keeps the signature it had when this was a localStorage
+ * store — `createEntry` still hands back the finished `Entry` there and then.
+ * That is what let the switch to a database stay inside this file and
+ * `remoteStore.ts`: the forms and dialogs never learned that saving became a
+ * network call. See `remoteStore.ts` for how an optimistic write reports a
+ * failure it can no longer block on.
  */
 
-import {
-  createBrowserStore,
-  createId,
-  NO_IMPORT,
-  type ImportCounts,
-  type ImportMode,
-} from "@/lib/browserStore";
+import { createId, createRemoteStore } from "@/lib/remoteStore";
 import { DEFAULT_SOURCE } from "@/lib/constants";
 import {
   isSource,
   needsDefinition,
+  NO_IMPORT,
   readString,
   type Entry,
   type EntryInput,
+  type ImportCounts,
+  type ImportMode,
 } from "@/lib/types";
-
-const STORAGE_KEY = "definition-capture.entries.v1";
 
 /**
  * Turns unknown JSON into an Entry, or null if it is unusable.
  * `allowMissingId` is for imported backups, where a hand-written or older file
  * may have no id yet — the caller assigns one.
+ *
+ * This reads the camelCase shape a backup file uses. Database rows arrive in
+ * snake_case and go through `fromRow` instead.
  */
 export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -49,11 +54,45 @@ export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
   };
 }
 
-const store = createBrowserStore<Entry>(STORAGE_KEY, (raw) => parseEntry(raw));
+const store = createRemoteStore<Entry>({
+  table: "entries",
+  orderBy: "date_added",
+  idOf: (entry) => entry.id,
+
+  fromRow(row) {
+    const id = readString(row.id);
+    const term = readString(row.term).trim();
+    if (!id || !term) return null;
+
+    const definition = readString(row.definition);
+    return {
+      id,
+      term,
+      definition,
+      ref: readString(row.ref),
+      source: isSource(row.source) ? row.source : DEFAULT_SOURCE,
+      dateAdded: readString(row.date_added),
+      dateUpdated: typeof row.date_updated === "string" ? row.date_updated : null,
+      // Never trusted from storage — recomputed from the text, same as before.
+      needsDefinition: needsDefinition(definition),
+    };
+  },
+
+  toRow: (entry) => ({
+    id: entry.id,
+    term: entry.term,
+    definition: entry.definition,
+    ref: entry.ref,
+    source: entry.source,
+    date_added: entry.dateAdded,
+    date_updated: entry.dateUpdated,
+  }),
+});
 
 export const subscribe = store.subscribe;
 export const getSnapshot = store.getSnapshot;
 export const getServerSnapshot = store.getServerSnapshot;
+export const clearError = store.clearError;
 
 /* --------------------------------------------------------------- mutations */
 
@@ -69,21 +108,19 @@ function clean(input: EntryInput) {
 }
 
 export function createEntry(input: EntryInput): Entry {
-  const entries = store.items();
   const entry: Entry = {
-    id: createId(new Set(entries.map((existing) => existing.id))),
+    id: createId(),
     ...clean(input),
     dateAdded: new Date().toISOString(),
     dateUpdated: null,
   };
-  store.commit([entry, ...entries]);
+  store.insert(entry);
   return entry;
 }
 
 /** Updates in place. `dateAdded` deliberately keeps its original value. */
 export function updateEntry(id: string, input: EntryInput): Entry | null {
-  const entries = store.items();
-  const existing = entries.find((entry) => entry.id === id);
+  const existing = store.items().find((entry) => entry.id === id);
   if (!existing) return null;
 
   const updated: Entry = {
@@ -91,7 +128,7 @@ export function updateEntry(id: string, input: EntryInput): Entry | null {
     ...clean(input),
     dateUpdated: new Date().toISOString(),
   };
-  store.commit(entries.map((entry) => (entry.id === id ? updated : entry)));
+  store.update(updated);
   return updated;
 }
 
@@ -100,19 +137,17 @@ export function deleteEntry(id: string): void {
 }
 
 /**
- * Removes every entry whose id is listed, in one commit — so a bulk delete is a
- * single undo-less write and a single re-render, not one per row. Returns how
- * many were actually removed; ids that are not in the glossary are ignored.
+ * Removes every entry whose id is listed, in one write — so a bulk delete is a
+ * single round trip and a single re-render, not one per row. Returns how many
+ * were actually removed; ids that are not in the glossary are ignored.
  */
 export function deleteEntries(ids: readonly string[]): number {
-  const doomed = new Set(ids);
-  if (doomed.size === 0) return 0;
+  const present = new Set(store.items().map((entry) => entry.id));
+  const doomed = [...new Set(ids)].filter((id) => present.has(id));
+  if (doomed.length === 0) return 0;
 
-  const entries = store.items();
-  const remaining = entries.filter((entry) => !doomed.has(entry.id));
-  const removed = entries.length - remaining.length;
-  if (removed > 0) store.commit(remaining);
-  return removed;
+  store.remove(doomed);
+  return doomed.length;
 }
 
 /* ----------------------------------------------------------------- queries */
@@ -144,6 +179,16 @@ function newestFirst(entries: Entry[]): Entry[] {
 }
 
 /**
+ * Ids in a backup are whatever the exporting version used — the localStorage
+ * store minted short random strings, which the `uuid` primary key will not
+ * accept. Anything that is not a usable id is replaced with a fresh one.
+ */
+function usableId(id: string, taken: Set<string>): string {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  return isUuid && !taken.has(id) ? id : createId();
+}
+
+/**
  * Merges imported entries into the glossary. Existing entries are matched by
  * term, case-insensitively — the same rule the add form uses. Imported entries
  * keep their original `dateAdded`, which is the point of a backup.
@@ -154,51 +199,53 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts
   if (mode === "replace") {
     const taken = new Set<string>();
     const restored = incoming.map((entry) => {
-      const id = entry.id && !taken.has(entry.id) ? entry.id : createId(taken);
+      const id = usableId(entry.id, taken);
       taken.add(id);
       return { ...entry, id };
     });
     result.added = restored.length;
-    store.commit(newestFirst(restored));
+    store.replaceAll(newestFirst(restored));
     return result;
   }
 
-  const next = [...store.items()];
-  const indexByTerm = new Map(
-    next.map((entry, index) => [entry.term.toLocaleLowerCase(), index]),
+  const byTerm = new Map(
+    store.items().map((entry) => [entry.term.toLocaleLowerCase(), entry]),
   );
-  const taken = new Set(next.map((entry) => entry.id));
+  const taken = new Set(store.items().map((entry) => entry.id));
   const now = new Date().toISOString();
+  const added: Entry[] = [];
 
   for (const candidate of incoming) {
-    const key = candidate.term.toLocaleLowerCase();
-    const existingIndex = indexByTerm.get(key);
+    const existing = byTerm.get(candidate.term.toLocaleLowerCase());
 
-    if (existingIndex !== undefined) {
+    if (existing) {
       if (mode === "skip") {
         result.skipped += 1;
         continue;
       }
-      next[existingIndex] = {
-        ...next[existingIndex],
+      store.update({
+        ...existing,
         term: candidate.term,
         definition: candidate.definition,
         ref: candidate.ref,
         source: candidate.source,
         needsDefinition: candidate.needsDefinition,
         dateUpdated: now,
-      };
+      });
       result.updated += 1;
       continue;
     }
 
-    const id = candidate.id && !taken.has(candidate.id) ? candidate.id : createId(taken);
+    const id = usableId(candidate.id, taken);
     taken.add(id);
-    next.push({ ...candidate, id });
-    indexByTerm.set(key, next.length - 1);
+    const entry = { ...candidate, id };
+    added.push(entry);
+    byTerm.set(candidate.term.toLocaleLowerCase(), entry);
     result.added += 1;
   }
 
-  if (result.added > 0 || result.updated > 0) store.commit(newestFirst(next));
+  // Every new entry in one insert; the updates above each went on their own,
+  // because they touch rows that already exist.
+  store.insertMany(newestFirst(added));
   return result;
 }
