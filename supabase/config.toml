@@ -155,11 +155,28 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+#
+# This and `additional_redirect_urls` below mirror what is set on the hosted
+# project. They are the exact strings `authRedirectUrl()` builds in
+# `src/lib/supabaseClient.ts`: the dev server is pinned to port 3001, and the
+# deployed site sits under the /definition-capture base path. A magic link
+# whose redirect is not listed here bounces to the site root instead of
+# signing anyone in.
+#
+# WARNING: most of the rest of this file is still the stock `supabase init`
+# template, and it does NOT match the hosted project — running
+# `supabase config push` from this directory would turn off email
+# confirmations and TOTP MFA, shorten the OTP, and loosen the email rate
+# limit. Run `supabase config diff` first, and push a minimal config that
+# declares only the properties you actually mean to change.
+site_url = "https://liezljvv74.github.io/definition-capture/"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = [
+  "https://liezljvv74.github.io/definition-capture/",
+  "http://localhost:3001/",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
