@@ -21,6 +21,7 @@ import { useTerms } from "@/lib/useTerms";
 import { useListSelection, type ListSelection } from "@/lib/useListSelection";
 import { compareNames, compareText } from "@/lib/sortName";
 import { usePhrases } from "@/lib/usePhrases";
+import { useSettings } from "@/lib/useSettings";
 
 type SortKey = "term" | "definition" | "source" | "dateAdded";
 type SortDirection = "asc" | "desc";
@@ -34,7 +35,12 @@ const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
   { key: null, label: "Ref", className: "w-[20%]" },
 ];
 
-function compare(a: Entry, b: Entry, key: SortKey): number {
+function compare(
+  a: Entry,
+  b: Entry,
+  key: SortKey,
+  sources: readonly string[],
+): number {
   switch (key) {
     case "term":
       return compareNames(a.term, b.term);
@@ -44,7 +50,7 @@ function compare(a: Entry, b: Entry, key: SortKey): number {
       // you would go looking for it.
       return compareText(a.definition, b.definition);
     case "source":
-      return sourceOrder(a.source) - sourceOrder(b.source);
+      return sourceOrder(a.source, sources) - sourceOrder(b.source, sources);
     case "dateAdded":
       return a.dateAdded.localeCompare(b.dateAdded);
   }
@@ -52,6 +58,7 @@ function compare(a: Entry, b: Entry, key: SortKey): number {
 
 export default function TermsPage() {
   const { entries, loaded } = useTerms();
+  const { settings } = useSettings();
   const { phrases } = usePhrases();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
@@ -105,12 +112,12 @@ export default function TermsPage() {
     });
 
     return [...filtered].sort((a, b) => {
-      const result = compare(a, b, sort.key);
+      const result = compare(a, b, sort.key, settings.sources);
       if (result !== 0) return sort.direction === "asc" ? result : -result;
       // Ties fall back to newest-first so the order is always stable.
       return b.dateAdded.localeCompare(a.dateAdded);
     });
-  }, [entries, query, onlyNeedsDefinition, category, sort]);
+  }, [entries, query, onlyNeedsDefinition, category, sort, settings.sources]);
 
   const visibleIds = useMemo(() => visible.map((entry) => entry.id), [visible]);
   const selection = useListSelection(visibleIds);

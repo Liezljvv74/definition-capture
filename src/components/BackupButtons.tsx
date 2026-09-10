@@ -16,8 +16,14 @@ import {
 import {
   downloadExcelBackup,
   downloadJsonBackup,
+  type ExportSummary,
   readFileAsText,
 } from "@/lib/backupFile";
+import {
+  chooseExportFolder,
+  clearExportFolder,
+  ExportFolderError,
+} from "@/lib/exportFolder";
 import type { ImportMode } from "@/lib/types";
 import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
@@ -34,7 +40,9 @@ type ExportState =
   | { step: "idle" }
   | { step: "choosing" }
   | { step: "working" }
-  | { step: "failed"; message: string };
+  | { step: "failed"; message: string }
+  /** The chosen folder let us down. Keeps the format so it can be retried. */
+  | { step: "folderFailed"; message: string; format: "json" | "xlsx" };
 
 type ImportState =
   | { step: "idle" }
@@ -51,7 +59,8 @@ export function BackupButtons() {
   const [exportState, setExportState] = useState<ExportState>({ step: "idle" });
   const [scope, setScope] = useState<BackupScope>("all");
   const [mode, setMode] = useState<ImportMode>("skip");
-  const [justExported, setJustExported] = useState(false);
+  /** The last finished export, for the button’s brief "Exported" state. */
+  const [justExported, setJustExported] = useState<ExportSummary | null>(null);
 
   // Which list the page you are on is showing, for the "only this page" option.
   // `/phrase` (one phrase) counts as the phrase list just as `/phrases` does,
@@ -70,25 +79,57 @@ export function BackupButtons() {
 
   useEffect(() => {
     if (!justExported) return;
-    const timer = window.setTimeout(() => setJustExported(false), 2000);
+    const timer = window.setTimeout(() => setJustExported(null), 2000);
     return () => window.clearTimeout(timer);
   }, [justExported]);
 
   async function runExport(format: "json" | "xlsx") {
     setExportState({ step: "working" });
     try {
-      if (format === "json") downloadJsonBackup(scope);
-      // The workbook is built asynchronously, so failures land here rather
-      // than leaving the dialog open with nothing happening.
-      else await downloadExcelBackup(scope);
+      // Both formats are built and written asynchronously, so a failure
+      // lands here rather than leaving the dialog open with nothing
+      // happening.
+      const summary =
+        format === "json"
+          ? await downloadJsonBackup(scope)
+          : await downloadExcelBackup(scope);
       setExportState({ step: "idle" });
-      setJustExported(true);
-    } catch {
+      setJustExported(summary);
+    } catch (cause) {
+      // A folder problem is worth its own screen: the file is fine, it is
+      // the destination that is not, and that is something the reader can
+      // fix without leaving the dialog.
+      if (cause instanceof ExportFolderError) {
+        setExportState({ step: "folderFailed", message: cause.message, format });
+        return;
+      }
       setExportState({
         step: "failed",
         message: "The export could not be created. Please try again.",
       });
     }
+  }
+
+  /** Pick a new folder from the failure screen, then finish the export. */
+  async function retryInNewFolder(format: "json" | "xlsx") {
+    try {
+      if (await chooseExportFolder()) await runExport(format);
+    } catch (cause) {
+      setExportState({
+        step: "folderFailed",
+        message:
+          cause instanceof ExportFolderError
+            ? cause.message
+            : "That folder could not be opened. Please try another.",
+        format,
+      });
+    }
+  }
+
+  /** Give up on the folder for this export and let the browser take it. */
+  async function retryInDownloads(format: "json" | "xlsx") {
+    await clearExportFolder();
+    await runExport(format);
   }
 
   async function handleFileChosen(event: ChangeEvent<HTMLInputElement>) {
@@ -167,7 +208,41 @@ export function BackupButtons() {
             exportState.step === "working" ? undefined : setExportState({ step: "idle" })
           }
         >
-          {exportState.step === "failed" ? (
+          {exportState.step === "folderFailed" ? (
+            <>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                {exportState.message}
+              </p>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                Nothing was saved. Choose another folder and the export will
+                finish there, or send this one to your browser&rsquo;s download
+                folder.
+              </p>
+              <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setExportState({ step: "idle" })}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => void retryInDownloads(exportState.format)}
+                >
+                  Use the download folder
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void retryInNewFolder(exportState.format)}
+                >
+                  Choose another folder
+                </button>
+              </div>
+            </>
+          ) : exportState.step === "failed" ? (
             <>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 {exportState.message}

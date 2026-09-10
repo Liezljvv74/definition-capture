@@ -29,8 +29,9 @@ in `next.config.ts` if the router reassigns.
 
 ## Where the data lives
 
-Both lists live in **Supabase** — Postgres tables `terms` and `phrases`, one private set of
-rows per signed-in account. Sign in on any browser or device and the same list is there,
+Both lists live in **Supabase** — Postgres tables `terms` and `phrases`, plus a
+`user_settings` row per account for what Settings manages. One private set of
+rows per signed-in account: sign in on any browser or device and the same list is there,
 and a `/term?id=…` link opens anywhere you are signed in.
 
 Every query runs in the browser. The app is a static export with no server process behind it,
@@ -70,15 +71,20 @@ and it is the only place left that touches them.
 | **Definition** | Optional — leave it blank and fill it in later. |
 | **Ref** | Optional free text that links itself — see below. |
 | **Category** | Up to three groups the term belongs to, e.g. Nature or Office. Optional. |
-| **Source** | Dropdown (Manual / Google / Claude / ChatGPT), defaults to `Manual`. |
+| **Source** | Dropdown of your own list, `Manual` / `Google` / `Claude` / `ChatGPT` to begin with. |
 | **Date Added** | Set once on creation, never editable. |
 | **Date Updated** | Set on every save, shown on the term's own page as "Edited …". Null until the first edit. |
 | **Needs Definition** | Derived automatically — true whenever the definition is blank. |
 
-To change the Source or Category options, edit **`src/lib/constants.ts`** — the add and
-edit forms both read from those lists. A category already saved on a term survives being
-taken off the list: it keeps showing, stays filterable, and is still offered while you
-edit that term, it is simply no longer suggested for new ones.
+The Source and Category options are yours to edit, under **Settings**. Both lists are
+kept per account in `public.user_settings`, so they follow you between devices; the
+arrays in **`src/lib/constants.ts`** are only what an account starts with before it has
+changed anything.
+
+Taking a name off either list never reaches back into what is already saved. A term
+filed under a removed category keeps it — it still shows, still filters, and is still
+offered while you edit that term — and a term whose source has been removed keeps that
+too. What changes is only what is suggested for new ones.
 
 ## Pages
 
@@ -104,6 +110,18 @@ edit that term, it is simply no longer suggested for new ones.
   cross-link onto a typo can be fixed on the spot. Saving from here returns you to the list.
   Deleting is not offered — the lists own that. An unknown ID shows a readable "not found"
   message rather than an error page.
+
+- **`/settings`** — reached from the account menu at the right of the nav rather than
+  from the tabs, which belong to the two lists. Four sections: **Profile** (the address
+  you signed in with, an optional display name shown in the nav in its place, and Sign
+  out), **Categories** and **Sources** (add, remove, and reorder the lists the term form
+  offers — source order is the order the Source column sorts by, so it is kept rather
+  than alphabetised), and **Export folder** (see Backup below). The first three are per
+  account; the folder is per browser.
+
+  Each section is rolled up to its name and what it is currently set to, with a pencil
+  to open the controls. The two list sections show their name alone: spelling eight
+  categories across a row meant to be skimmed would defeat the point of folding it up.
 
 The id is a query parameter rather than a path segment because the app is exported as static
 HTML (see Deploying): the ids only exist in each visitor's browser, so a `/terms/[id]` route
@@ -162,6 +180,18 @@ searchable along with the other fields on both lists, and it is included in back
 
 **Export** and **Import** sit at the top right of every screen, so there is always a copy you
 hold yourself and a way out of the app entirely.
+
+By default an export goes wherever the browser puts downloads. **Settings → Export
+folder** lets you pick a folder instead, and both formats then write straight into it
+under the same file names. The choice is remembered per browser rather than per account:
+a folder is granted to one browser on one machine as a handle that cannot be written down
+as text, so it lives in IndexedDB and cannot follow you to another device. Only Chromium
+browsers can offer it at all — elsewhere the Settings page says so and exports keep going
+to the download folder.
+
+A folder that has been moved, deleted, or had its permission withdrawn stops the export
+rather than silently redirecting it: the dialog says what went wrong and offers to pick
+another folder, or to use the download folder for this one.
 
 - **Export** asks two things: how much, and in what format.
 
@@ -296,6 +326,7 @@ src/
   app/
     page.tsx              Terms page: add, edit, delete, search, sort
     phrases/page.tsx      phrase list, the same shape as Terms
+    settings/page.tsx     profile, the two lists, and the export folder
     term/page.tsx         one term by ?id=, read-only plus Edit
     phrase/page.tsx       one phrase by ?id=, read-only plus Edit
     layout.tsx            shell, metadata, and the shaded logo backdrop
@@ -311,9 +342,10 @@ src/
     PhraseForm.tsx        shared add/edit form for phrases
     MainNav.tsx           Terms / Phrases nav bar, plus the account control
     SignInGate.tsx        the magic-link screen, and what stands in for the app
-    AccountMenu.tsx       signed-in address and Sign out, shown in the nav
+    AccountMenu.tsx       display name or address, Settings, and Sign out
     ImportLocalPrompt.tsx offers a pre-account localStorage list to the account
     StoreErrorBanner.tsx  says so when a save did not reach the database
+    NameListEditor.tsx    add / remove / reorder a list of names in Settings
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
     RefText.tsx           renders a parsed Ref value
@@ -322,12 +354,16 @@ src/
     supabaseClient.ts     the one client, built lazily so `next build` can prerender
     session.ts            who is signed in, as an external store
     legacyLocal.ts        read-only access to the pre-account localStorage keys
-    constants.ts          the editable dropdown lists
+    constants.ts          what a new account's lists start out as
     types.ts              Entry and Phrase shapes plus validators
     storage.ts            the term store
     phraseStorage.ts      the phrase store
     backup.ts             one backup file covering both lists
+    settings.ts           the account's display name and editable lists
+    useSettings.ts        React binding for the settings row
     backupFile.ts         download plumbing: builds the .xlsx and .json files
+    exportFolder.ts       the chosen export folder, held in IndexedDB
+    useExportFolder.ts    React binding for the export folder
     useTerms.ts           React binding for the term store
     usePhrases.ts         React binding for the phrase store
     useSession.ts         React binding for the session store
@@ -336,6 +372,8 @@ src/
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting
     assetPath.ts          prefixes public/ URLs with the basePath
+  types/
+    file-system-access.d.ts  the folder picker, which lib.dom does not describe
 assets/
   captured-logo.png       the full-size logo artwork, not served
   app-screenshot.jpg      the screenshot the README ends with

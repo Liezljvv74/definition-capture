@@ -11,12 +11,11 @@
  */
 
 import { createId, createRemoteStore } from "@/lib/remoteStore";
-import { DEFAULT_SOURCE } from "@/lib/constants";
 import {
-  isSource,
   needsDefinition,
   NO_IMPORT,
   readCategories,
+  readSource,
   readString,
   type Entry,
   type EntryInput,
@@ -49,7 +48,7 @@ export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
     definition,
     ref: readString(value.ref),
     categories: readCategories(value.categories),
-    source: isSource(value.source) ? value.source : DEFAULT_SOURCE,
+    source: readSource(value.source),
     dateAdded: readString(value.dateAdded) || new Date().toISOString(),
     dateUpdated: typeof value.dateUpdated === "string" ? value.dateUpdated : null,
     needsDefinition: needsDefinition(definition),
@@ -73,7 +72,7 @@ const store = createRemoteStore<Entry>({
       definition,
       ref: readString(row.ref),
       categories: readCategories(row.categories),
-      source: isSource(row.source) ? row.source : DEFAULT_SOURCE,
+      source: readSource(row.source),
       dateAdded: readString(row.date_added),
       dateUpdated: typeof row.date_updated === "string" ? row.date_updated : null,
       // Never trusted from storage — recomputed from the text, same as before.

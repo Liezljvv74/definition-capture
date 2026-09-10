@@ -1,4 +1,4 @@
-import { DEFAULT_SOURCE, MAX_CATEGORIES, SOURCES, type Source } from "@/lib/constants";
+import { DEFAULT_SOURCE, MAX_CATEGORIES, type Source } from "@/lib/constants";
 
 /* ----------------------------------------------------------- term entries  */
 
@@ -82,8 +82,13 @@ export const NO_IMPORT: ImportCounts = { added: 0, updated: 0, skipped: 0 };
 
 /* --------------------------------------------------------------- helpers   */
 
-export function isSource(value: unknown): value is Source {
-  return typeof value === "string" && (SOURCES as readonly string[]).includes(value);
+/**
+ * A source off unknown JSON. Sources are the reader's own list now, so
+ * anything non-blank is a real source; only a missing or empty one falls
+ * back to the default.
+ */
+export function readSource(value: unknown): Source {
+  return readString(value).trim() || DEFAULT_SOURCE;
 }
 
 /** "Needs definition" is never trusted from storage — it is recomputed from the text. */
@@ -97,13 +102,12 @@ export function readString(value: unknown): string {
 }
 
 /**
- * Categories from anywhere untrusted — a database row, a backup file, a form.
- * Trimmed, blanks dropped, duplicates removed case-insensitively (the first
- * spelling wins), and capped, so the same three rules hold whichever door the
- * data came through. Not a `Category` union: a name saved before the list in
- * `constants.ts` was edited is still a real category on that term.
+ * A list of names from anywhere untrusted — a database row, a backup file, a
+ * form. Trimmed, blanks dropped, duplicates removed case-insensitively (the
+ * first spelling wins), and capped, so the same rules hold whichever door the
+ * data came through.
  */
-export function readCategories(value: unknown): string[] {
+export function readNameList(value: unknown, limit: number): string[] {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
   const names: string[] = [];
@@ -114,7 +118,16 @@ export function readCategories(value: unknown): string[] {
     if (seen.has(key)) continue;
     seen.add(key);
     names.push(name);
-    if (names.length === MAX_CATEGORIES) break;
+    if (names.length === limit) break;
   }
   return names;
+}
+
+/**
+ * The categories on one term. Never a union of the configured names: a
+ * category saved before the list was edited is still a real category on that
+ * term, and dropping it silently would lose data.
+ */
+export function readCategories(value: unknown): string[] {
+  return readNameList(value, MAX_CATEGORIES);
 }

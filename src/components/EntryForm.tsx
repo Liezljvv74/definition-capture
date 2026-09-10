@@ -3,9 +3,10 @@
 import { useId, useMemo, useState, type ClipboardEvent, type FormEvent } from "react";
 
 import { RefField } from "@/components/RefField";
-import { CATEGORIES, MAX_CATEGORIES, SOURCES } from "@/lib/constants";
+import { MAX_CATEGORIES } from "@/lib/constants";
 import { splitTermAndDefinition } from "@/lib/parseTerm";
-import { EMPTY_ENTRY_INPUT, isSource, type EntryInput } from "@/lib/types";
+import { EMPTY_ENTRY_INPUT, type EntryInput } from "@/lib/types";
+import { useSettings } from "@/lib/useSettings";
 
 type EntryFormProps = {
   initialValue?: EntryInput;
@@ -25,6 +26,7 @@ export function EntryForm({
   autoSplit = false,
   autoFocus = false,
 }: EntryFormProps) {
+  const { settings } = useSettings();
   const [value, setValue] = useState<EntryInput>(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [didSplit, setDidSplit] = useState(false);
@@ -60,10 +62,22 @@ export function EntryForm({
    * because the list in `constants.ts` has moved on since it was filed.
    */
   const categoryOptions = useMemo(() => {
-    const standing = CATEGORIES as readonly string[];
+    const standing = settings.categories;
     const extras = initialValue.categories.filter((name) => !standing.includes(name));
     return [...standing, ...extras];
-  }, [initialValue]);
+  }, [initialValue, settings.categories]);
+
+  /**
+   * Same rule for sources: the configured list, plus this entry's own
+   * source if it has since been taken off. Saving a term must not quietly
+   * relabel where it came from.
+   */
+  const sourceOptions = useMemo(() => {
+    const standing = settings.sources;
+    return standing.includes(initialValue.source)
+      ? standing
+      : [...standing, initialValue.source];
+  }, [initialValue.source, settings.sources]);
 
   function toggleCategory(name: string) {
     setValue((current) => {
@@ -181,10 +195,10 @@ export function EntryForm({
             value={value.source}
             onChange={(event) => {
               const next = event.target.value;
-              if (isSource(next)) setValue((current) => ({ ...current, source: next }));
+              if (next) setValue((current) => ({ ...current, source: next }));
             }}
           >
-            {SOURCES.map((source) => (
+            {sourceOptions.map((source) => (
               <option key={source} value={source}>
                 {source}
               </option>

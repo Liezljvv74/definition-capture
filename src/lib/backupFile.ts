@@ -12,6 +12,7 @@
 import writeExcelFile, { type Row, type Sheet } from "write-excel-file/browser";
 
 import { buildBackup, type BackupScope } from "@/lib/backup";
+import { saveToExportFolder } from "@/lib/exportFolder";
 import { formatDate } from "@/lib/format";
 
 export type ExportFormat = "json" | "xlsx";
@@ -32,7 +33,7 @@ export function backupFileName(
 }
 
 /** Hands a finished blob to the browser as a download. */
-function saveBlob(blob: Blob, fileName: string): void {
+function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
@@ -45,17 +46,40 @@ function saveBlob(blob: Blob, fileName: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export type ExportSummary = { fileName: string; count: number };
+/**
+ * Puts the finished file where Settings says it goes: the chosen folder when
+ * there is one, the browser's download folder otherwise. Answers with the
+ * folder's name, or null when it went to the browser.
+ *
+ * A folder that is configured but unusable throws out of here rather than
+ * quietly falling back — someone who has pointed their backups at a folder
+ * should be told when they did not land there, not left to find out later.
+ */
+async function deliver(blob: Blob, fileName: string): Promise<string | null> {
+  const folder = await saveToExportFolder(blob, fileName);
+  if (folder !== null) return folder;
+  downloadBlob(blob, fileName);
+  return null;
+}
+
+export type ExportSummary = {
+  fileName: string;
+  count: number;
+  /** The folder it was written to, or null for the browser's downloads. */
+  folder: string | null;
+};
 
 /** The complete backup — this is the file Import reads. */
-export function downloadJsonBackup(scope: BackupScope = "all"): ExportSummary {
+export async function downloadJsonBackup(
+  scope: BackupScope = "all",
+): Promise<ExportSummary> {
   const backup = buildBackup(scope);
   const blob = new Blob([JSON.stringify(backup, null, 2)], {
     type: "application/json",
   });
   const fileName = backupFileName("json", scope);
-  saveBlob(blob, fileName);
-  return { fileName, count: backup.entries.length + backup.phrases.length };
+  const folder = await deliver(blob, fileName);
+  return { fileName, folder, count: backup.entries.length + backup.phrases.length };
 }
 
 function headerRow(labels: string[]): Row {
@@ -111,8 +135,8 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
 
   const blob = await writeExcelFile(sheets).toBlob();
   const fileName = backupFileName("xlsx", scope);
-  saveBlob(blob, fileName);
-  return { fileName, count: backup.entries.length + backup.phrases.length };
+  const folder = await deliver(blob, fileName);
+  return { fileName, folder, count: backup.entries.length + backup.phrases.length };
 }
 
 export function readFileAsText(file: File): Promise<string> {
