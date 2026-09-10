@@ -7,10 +7,6 @@ import { CATEGORIES, MAX_CATEGORIES, SOURCES } from "@/lib/constants";
 import { splitTermAndDefinition } from "@/lib/parseTerm";
 import { EMPTY_ENTRY_INPUT, isSource, type EntryInput } from "@/lib/types";
 
-/** Inline code style for the Ref hint lines. */
-const hintCode =
-  "rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.7rem] text-slate-700 dark:bg-slate-800 dark:text-slate-300";
-
 type EntryFormProps = {
   initialValue?: EntryInput;
   submitLabel: string;
@@ -205,26 +201,11 @@ export function EntryForm({
             value={value.ref}
             placeholder="Notes, a link, or [[Another Term]]"
             onChange={(ref) => setValue((current) => ({ ...current, ref }))}
-            describedBy={`${ids}-ref-hint`}
             // A term referring to itself is a link back to the page you are
             // already on. Both names are excluded so a rename mid-edit cannot
             // make the old one selectable again.
             exclude={[initialValue.term, value.term]}
           />
-          <div
-            id={`${ids}-ref-hint`}
-            className="mt-1 space-y-0.5 text-xs text-slate-500 dark:text-slate-400"
-          >
-            <p>Free text.</p>
-            <p>
-              <code className={hintCode}>[[Term]]</code> links to another entry — type a
-              name to pick one.
-            </p>
-            <p>
-              <code className={hintCode}>/term?id=abc123</code> to a page here.
-            </p>
-            <p>A full URL opens in a new tab.</p>
-          </div>
         </div>
       </div>
 

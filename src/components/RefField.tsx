@@ -40,7 +40,6 @@ type RefFieldProps = {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  describedBy?: string;
   /** Names the form must not offer — normally whatever it is editing. */
   exclude?: readonly string[];
 };
@@ -50,7 +49,6 @@ export function RefField({
   value,
   onChange,
   placeholder,
-  describedBy,
   exclude,
 }: RefFieldProps) {
   const { entries } = useTerms();
@@ -167,7 +165,6 @@ export function RefField({
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={isOpen ? `${listId}-${activeIndex}` : undefined}
-        aria-describedby={describedBy}
         onChange={(event) => {
           const next = event.target.value;
           setQuery(activeRefQuery(next, event.target.selectionStart ?? next.length));
