@@ -10,7 +10,7 @@ import { EditTermDialog } from "@/components/EditTermDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Entry } from "@/lib/types";
-import { useGlossary } from "@/lib/useGlossary";
+import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
@@ -23,7 +23,7 @@ import { usePhrases } from "@/lib/usePhrases";
  * id at runtime works everywhere.
  *
  * This page reads; it does not manage. Adding, editing, and deleting all happen
- * on the glossary list.
+ * on the term list.
  */
 export default function TermDetailPage() {
   // `useSearchParams` needs a boundary to suspend against during prerender.
@@ -44,7 +44,7 @@ function DetailSkeleton() {
 
 function TermDetail() {
   const id = useSearchParams().get("id") ?? "";
-  const { entries, loaded } = useGlossary();
+  const { entries, loaded } = useTerms();
   const { phrases } = usePhrases();
   const entry = entries.find((candidate) => candidate.id === id);
 
@@ -147,7 +147,7 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
         </dl>
 
         {/* Editing is offered here so a cross-link that lands on a typo can fix
-            it on the spot. Deleting is not — the glossary list owns that. */}
+            it on the spot. Deleting is not — the term list owns that. */}
         <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
           <button type="button" className="btn btn-primary" onClick={() => setIsEditing(true)}>
             Edit

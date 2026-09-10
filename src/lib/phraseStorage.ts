@@ -1,5 +1,5 @@
 /**
- * The phrase store — the glossary's sibling, built on the same plumbing.
+ * The phrase store — the term list's sibling, built on the same plumbing.
  *
  * Phrases carry no dates: they are looked up by wording, not by when they were
  * captured, so the list keeps the order they were added in (newest first) and
@@ -101,7 +101,7 @@ export function deletePhrase(id: string): void {
   deletePhrases([id]);
 }
 
-/** The glossary's `deleteEntries` for phrases: many removals, one write. */
+/** The term list's `deleteEntries` for phrases: many removals, one write. */
 export function deletePhrases(ids: readonly string[]): number {
   const present = new Set(store.items().map((phrase) => phrase.id));
   const doomed = [...new Set(ids)].filter((id) => present.has(id));
@@ -147,7 +147,7 @@ function usableId(id: string, taken: Set<string>): string {
   return isUuid && !taken.has(id) ? id : createId();
 }
 
-/** Matches on the phrase text, mirroring how the glossary matches on terms. */
+/** Matches on the phrase text, mirroring how the term list matches on terms. */
 export function importPhrases(incoming: Phrase[], mode: ImportMode): ImportCounts {
   const result: ImportCounts = { ...NO_IMPORT };
 

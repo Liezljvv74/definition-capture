@@ -7,7 +7,7 @@
  * JavaScript bundle and readable by anyone who views source. That is what it is
  * designed for — the row level security policies in
  * `supabase/migrations/*_create_glossary.sql` are what actually keep one
- * account's glossary away from another's.
+ * account's terms away from another's.
  *
  * The client is built lazily rather than at module scope. `next build`
  * prerenders Client Components in Node, where `window` and `localStorage` do

@@ -7,7 +7,7 @@ import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { useSession } from "@/lib/useSession";
 
 /**
- * Stands in front of the whole app: the glossary now lives in a per-reader
+ * Stands in front of the whole app: the term list now lives in a per-reader
  * Supabase table, so there is nothing to show anyone who is not signed in.
  *
  * Sign-in is a one-time emailed link. Supabase creates the account on the

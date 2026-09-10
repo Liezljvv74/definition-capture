@@ -59,7 +59,7 @@ export function parseBackup(text: string): BackupParse {
     return { ok: false, error: "That file is not valid JSON, so it cannot be read." };
   }
 
-  // A bare array is treated as a list of glossary entries, which is what a
+  // A bare array is treated as a list of terms, which is what a
   // hand-written file or a very early export looks like.
   const bare = asArray(raw);
   if (bare) {

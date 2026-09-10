@@ -1,8 +1,8 @@
 import { DEFAULT_SOURCE, SOURCES, type Source } from "@/lib/constants";
 
-/* ------------------------------------------------------- glossary entries  */
+/* ----------------------------------------------------------- term entries  */
 
-/** A single glossary entry as it is stored and displayed. */
+/** A single term entry as it is stored and displayed. */
 export type Entry = {
   id: string;
   term: string;

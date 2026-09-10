@@ -8,12 +8,12 @@ import { findByTerm, updateEntry } from "@/lib/storage";
 import type { Entry, EntryInput } from "@/lib/types";
 
 /**
- * Edits a glossary entry without leaving the list — the counterpart to
+ * Edits a term without leaving the list — the counterpart to
  * `AddTermDialog`, and the twin of `EditPhraseDialog`.
  *
  * Every editable field lives in this one form, Source included. There is no
  * second screen for changing a single attribute, and saving drops you straight
- * back on the glossary.
+ * back on the term list.
  */
 export function EditTermDialog({
   entry,

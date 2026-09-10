@@ -17,7 +17,7 @@ import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { sourceOrder } from "@/lib/constants";
 import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
-import { useGlossary } from "@/lib/useGlossary";
+import { useTerms } from "@/lib/useTerms";
 import { useListSelection, type ListSelection } from "@/lib/useListSelection";
 import { usePhrases } from "@/lib/usePhrases";
 
@@ -43,8 +43,8 @@ function compare(a: Entry, b: Entry, key: SortKey): number {
   }
 }
 
-export default function GlossaryPage() {
-  const { entries, loaded } = useGlossary();
+export default function TermsPage() {
+  const { entries, loaded } = useTerms();
   const { phrases } = usePhrases();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
@@ -138,7 +138,7 @@ export default function GlossaryPage() {
         {!loaded ? (
           <div className="card h-64 animate-pulse" aria-hidden="true" />
         ) : entries.length === 0 ? (
-          <EmptyGlossary onAdd={() => setIsAdding(true)} />
+          <EmptyTerms onAdd={() => setIsAdding(true)} />
         ) : (
           <>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -453,7 +453,7 @@ function EntryCards({
 
 /* ------------------------------------------------------------- empty states */
 
-function EmptyGlossary({ onAdd }: { onAdd: () => void }) {
+function EmptyTerms({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="card mx-auto max-w-xl p-8 text-center">
       <div aria-hidden="true" className="mb-3 text-4xl">

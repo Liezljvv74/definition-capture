@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 /**
- * Row selection for a list page, shared by the glossary and the phrase list so
+ * Row selection for a list page, shared by the term list and the phrase list so
  * every list in the app selects and deletes the same way.
  *
  * The hook is handed the ids that are on screen right now (already searched,

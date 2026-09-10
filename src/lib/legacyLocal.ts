@@ -1,5 +1,5 @@
 /**
- * The glossary as it was stored before there were accounts.
+ * The term list as it was stored before there were accounts.
  *
  * Every list now lives in Supabase, one private copy per signed-in reader (see
  * `remoteStore.ts`). But anything captured before that change is still sitting

@@ -10,11 +10,11 @@ import {
 } from "@/lib/legacyLocal";
 import { importPhrases, parsePhrase } from "@/lib/phraseStorage";
 import { importEntries, parseEntry } from "@/lib/storage";
-import { useGlossary } from "@/lib/useGlossary";
+import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
- * Offers the pre-account glossary — the one still sitting in this browser's
+ * Offers the pre-account term list — the one still sitting in this browser's
  * `localStorage` — to the signed-in account.
  *
  * Deliberately two steps. The copy is one write, and dropping the old keys is
@@ -37,12 +37,12 @@ export function ImportLocalPrompt() {
   const [step, setStep] = useState<"offer" | "copied" | "gone">("offer");
   const [copied, setCopied] = useState({ terms: 0, phrases: 0, skipped: 0 });
 
-  const glossary = useGlossary();
+  const terms = useTerms();
   const phraseList = usePhrases();
   // Both lists have to be fetched before importing: the "already have this
   // one" check runs against them, and a duplicate term would be rejected by
   // the database's unique index rather than quietly merged.
-  const ready = glossary.loaded && phraseList.loaded;
+  const ready = terms.loaded && phraseList.loaded;
 
   const total = legacy.entries.length + legacy.phrases.length;
   if (total === 0 || step === "gone") return null;

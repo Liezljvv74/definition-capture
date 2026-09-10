@@ -1,5 +1,5 @@
 /**
- * The glossary store. All reads and writes go through `remoteStore`, so no
+ * The term store. All reads and writes go through `remoteStore`, so no
  * component ever talks to Supabase directly.
  *
  * Every function below keeps the signature it had when this was a localStorage
@@ -139,7 +139,7 @@ export function deleteEntry(id: string): void {
 /**
  * Removes every entry whose id is listed, in one write — so a bulk delete is a
  * single round trip and a single re-render, not one per row. Returns how many
- * were actually removed; ids that are not in the glossary are ignored.
+ * were actually removed; ids that are not in the term list are ignored.
  */
 export function deleteEntries(ids: readonly string[]): number {
   const present = new Set(store.items().map((entry) => entry.id));
@@ -189,7 +189,7 @@ function usableId(id: string, taken: Set<string>): string {
 }
 
 /**
- * Merges imported entries into the glossary. Existing entries are matched by
+ * Merges imported entries into the term list. Existing entries are matched by
  * term, case-insensitively — the same rule the add form uses. Imported entries
  * keep their original `dateAdded`, which is the point of a backup.
  */

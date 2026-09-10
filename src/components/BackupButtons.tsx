@@ -19,7 +19,7 @@ import {
   readFileAsText,
 } from "@/lib/backupFile";
 import type { ImportMode } from "@/lib/types";
-import { useGlossary } from "@/lib/useGlossary";
+import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
 
 type Preview = {
@@ -44,7 +44,7 @@ type ImportState =
   | { step: "done"; result: ImportResult; mode: ImportMode };
 
 export function BackupButtons() {
-  const { entries } = useGlossary();
+  const { entries } = useTerms();
   const { phrases } = usePhrases();
   const fileInput = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<ImportState>({ step: "idle" });
@@ -57,7 +57,7 @@ export function BackupButtons() {
   // `/phrase` (one phrase) counts as the phrase list just as `/phrases` does,
   // which is why this matches the singular prefix — the same test MainNav uses
   // to decide which tab to highlight. Everything else (`/`, `/term`) is the
-  // glossary.
+  // term list.
   const pathname = usePathname();
   const activeList: Exclude<BackupScope, "all"> = pathname.startsWith("/phrase")
     ? "phrases"

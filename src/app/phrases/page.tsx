@@ -15,7 +15,7 @@ import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { deletePhrases } from "@/lib/phraseStorage";
 import type { Phrase } from "@/lib/types";
-import { useGlossary } from "@/lib/useGlossary";
+import { useTerms } from "@/lib/useTerms";
 import { useListSelection, type ListSelection } from "@/lib/useListSelection";
 import { usePhrases } from "@/lib/usePhrases";
 
@@ -31,7 +31,7 @@ const COLUMNS: { label: string; sortable?: boolean; className?: string }[] = [
 
 export default function PhrasesPage() {
   const { phrases, loaded } = usePhrases();
-  const { entries } = useGlossary();
+  const { entries } = useTerms();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortDirection>(null);

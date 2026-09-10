@@ -5,7 +5,7 @@ import { useSession } from "@/lib/useSession";
 
 /**
  * Sits at the right-hand end of the main nav so the signed-in address is
- * always visible — with two accounts and one browser, knowing whose glossary
+ * always visible — with two accounts and one browser, knowing whose terms
  * is on screen matters more than saving the space.
  *
  * Renders nothing while the session is still loading or when nobody is signed

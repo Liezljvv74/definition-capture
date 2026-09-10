@@ -2,7 +2,7 @@
  * The Ref field is free text that quietly turns recognisable references into
  * links. Nothing is required — plain notes stay plain.
  *
- *   [[Closure]]                 → the glossary entry called "Closure"
+ *   [[Closure]]                 → the term called "Closure"
  *   /term?id=abc123, /          → a page inside this app
  *   https://example.com/docs    → any web page, opened in a new tab
  *   #definition                 → a spot on the page you are already on
@@ -12,7 +12,7 @@
 
 export type RefToken =
   | { kind: "text"; value: string }
-  /** A glossary term by name; resolved to an id at render time. */
+  /** A term by name; resolved to an id at render time. */
   | { kind: "term"; name: string }
   | { kind: "url"; href: string; label: string }
   | { kind: "internal"; href: string; label: string }

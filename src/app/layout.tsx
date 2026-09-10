@@ -40,7 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
  * `--logo-shade` is the only number to change: raise it to fade the logo
  * further, lower it to bring the artwork forward.
  *
- * Fixed rather than scrolling, so a long glossary slides over a still
+ * Fixed rather than scrolling, so a long term list slides over a still
  * backdrop instead of dragging a picture up the screen, and behind everything
  * (`-z-10`) with pointer events off so it can never intercept a click. The
  * cards and headers above it are opaque, which keeps every table row at full

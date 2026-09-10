@@ -2,7 +2,7 @@
 
 import { clearError as clearPhraseError } from "@/lib/phraseStorage";
 import { clearError as clearEntryError } from "@/lib/storage";
-import { useGlossary } from "@/lib/useGlossary";
+import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
@@ -16,7 +16,7 @@ import { usePhrases } from "@/lib/usePhrases";
  * was one of the things undone.
  */
 export function StoreErrorBanner() {
-  const { error: entryError } = useGlossary();
+  const { error: entryError } = useTerms();
   const { error: phraseError } = usePhrases();
 
   const message = entryError ?? phraseError;
