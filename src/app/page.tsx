@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { AddTermDialog } from "@/components/AddTermDialog";
 import { BackupButtons } from "@/components/BackupButtons";
-import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import { CategoryBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import {
   ConfirmDeleteDialog,
   RowDeleteButton,
@@ -19,15 +19,17 @@ import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
 import { useTerms } from "@/lib/useTerms";
 import { useListSelection, type ListSelection } from "@/lib/useListSelection";
+import { compareNames, compareText } from "@/lib/sortName";
 import { usePhrases } from "@/lib/usePhrases";
 
-type SortKey = "term" | "source" | "dateAdded";
+type SortKey = "term" | "definition" | "source" | "dateAdded";
 type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
 
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
   { key: "term", label: "Term", className: "w-[22%]" },
-  { key: null, label: "Definition" },
+  { key: "definition", label: "Definition" },
+  { key: null, label: "Category", className: "w-[14%]" },
   { key: "source", label: "Source", className: "w-[12%]" },
   { key: null, label: "Ref", className: "w-[20%]" },
 ];
@@ -35,7 +37,12 @@ const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
 function compare(a: Entry, b: Entry, key: SortKey): number {
   switch (key) {
     case "term":
-      return a.term.localeCompare(b.term, undefined, { sensitivity: "base" });
+      return compareNames(a.term, b.term);
+    case "definition":
+      // No article convention here, and a term still waiting for its
+      // definition sorts to the top of the ascending list, which is where
+      // you would go looking for it.
+      return compareText(a.definition, b.definition);
     case "source":
       return sourceOrder(a.source) - sourceOrder(b.source);
     case "dateAdded":
@@ -49,18 +56,46 @@ export default function TermsPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [onlyNeedsDefinition, setOnlyNeedsDefinition] = useState(false);
-  // Date added is no longer a column, but it is still the default order and
-  // the tie-breaker, so the newest terms stay at the top.
-  const [sort, setSort] = useState<Sort>({ key: "dateAdded", direction: "desc" });
+  /** Empty means every category; otherwise the one being shown. */
+  const [category, setCategory] = useState("");
+  // Alphabetical by term, ignoring a leading der/die/das so the German
+  // nouns file under their own first letter. Date added is no longer a
+  // column and is now only the tie-breaker.
+  const [sort, setSort] = useState<Sort>({ key: "term", direction: "asc" });
   /** The ids the confirmation dialog is currently asking about, or null. */
   const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
   /** The entry the edit dialog is open on, or null. */
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  /**
+   * Only categories actually in use, so choosing one always shows
+   * something. Built from the saved terms rather than from the standing
+   * list, which means a name left over from an older list still filters.
+   */
+  const categoryOptions = useMemo(() => {
+    const byKey = new Map<string, string>();
+    for (const entry of entries) {
+      for (const name of entry.categories) {
+        const key = name.toLocaleLowerCase();
+        if (!byKey.has(key)) byKey.set(key, name);
+      }
+    }
+    // A category chosen and then emptied of terms stays listed, so the
+    // dropdown never shows a blank while the list explains itself.
+    if (category && !byKey.has(category.toLocaleLowerCase())) {
+      byKey.set(category.toLocaleLowerCase(), category);
+    }
+    return [...byKey.values()].sort(compareText);
+  }, [entries, category]);
+
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
+    const wanted = category.toLocaleLowerCase();
     const filtered = entries.filter((entry) => {
       if (onlyNeedsDefinition && !entry.needsDefinition) return false;
+      if (wanted && !entry.categories.some((name) => name.toLocaleLowerCase() === wanted)) {
+        return false;
+      }
       if (!needle) return true;
       return (
         entry.term.toLocaleLowerCase().includes(needle) ||
@@ -75,14 +110,14 @@ export default function TermsPage() {
       // Ties fall back to newest-first so the order is always stable.
       return b.dateAdded.localeCompare(a.dateAdded);
     });
-  }, [entries, query, onlyNeedsDefinition, sort]);
+  }, [entries, query, onlyNeedsDefinition, category, sort]);
 
   const visibleIds = useMemo(() => visible.map((entry) => entry.id), [visible]);
   const selection = useListSelection(visibleIds);
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
-  const isFiltered = query.trim() !== "" || onlyNeedsDefinition;
+  const isFiltered = query.trim() !== "" || onlyNeedsDefinition || category !== "";
 
   function toggleSort(key: SortKey) {
     setSort((current) =>
@@ -108,9 +143,7 @@ export default function TermsPage() {
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              Definition Capture
-            </h1>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Terms</h1>
             <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
               {!loaded
                 ? "Loading your terms…"
@@ -156,6 +189,29 @@ export default function TermsPage() {
                 />
               </div>
 
+              {/* Width sits on the wrapper, not the select: `field` already sets
+                  w-full, and two utilities of equal weight would be a coin toss. */}
+              {categoryOptions.length > 0 && (
+                <div className="shrink-0 sm:w-44">
+                  <label htmlFor="category" className="sr-only">
+                    Filter by category
+                  </label>
+                  <select
+                    id="category"
+                    className="field"
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                  >
+                    <option value="">All categories</option>
+                    {categoryOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
                 <input
                   type="checkbox"
@@ -172,6 +228,7 @@ export default function TermsPage() {
                 onClear={() => {
                   setQuery("");
                   setOnlyNeedsDefinition(false);
+                  setCategory("");
                 }}
               />
             ) : (
@@ -192,6 +249,7 @@ export default function TermsPage() {
                   entries={visible}
                   sort={sort}
                   onSort={toggleSort}
+                  onSelectCategory={setCategory}
                   linkIndex={linkIndex}
                   selection={selection}
                   onEdit={setEditingId}
@@ -199,6 +257,7 @@ export default function TermsPage() {
                 />
                 <EntryCards
                   entries={visible}
+                  onSelectCategory={setCategory}
                   linkIndex={linkIndex}
                   selection={selection}
                   onEdit={setEditingId}
@@ -243,6 +302,7 @@ function EntryTable({
   entries,
   sort,
   onSort,
+  onSelectCategory,
   linkIndex,
   selection,
   onEdit,
@@ -251,6 +311,7 @@ function EntryTable({
   entries: Entry[];
   sort: Sort;
   onSort: (key: SortKey) => void;
+  onSelectCategory: (name: string) => void;
   linkIndex: LinkIndex;
   selection: ListSelection;
   onEdit: (id: string) => void;
@@ -340,6 +401,19 @@ function EntryTable({
                   )}
                 </td>
                 <td className="px-4 py-3 align-top">
+                  {entry.categories.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {entry.categories.map((name) => (
+                        <CategoryBadge key={name} name={name} onSelect={onSelectCategory} />
+                      ))}
+                    </div>
+                  ) : (
+                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
+                      —
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 align-top">
                   <SourceBadge source={entry.source} />
                 </td>
                 <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
@@ -369,12 +443,14 @@ function EntryTable({
 
 function EntryCards({
   entries,
+  onSelectCategory,
   linkIndex,
   selection,
   onEdit,
   onDelete,
 }: {
   entries: Entry[];
+  onSelectCategory: (name: string) => void;
   linkIndex: LinkIndex;
   selection: ListSelection;
   onEdit: (id: string) => void;
@@ -441,6 +517,9 @@ function EntryCards({
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
                   <SourceBadge source={entry.source} />
+                  {entry.categories.map((name) => (
+                    <CategoryBadge key={name} name={name} onSelect={onSelectCategory} />
+                  ))}
                 </div>
               </div>
             </li>

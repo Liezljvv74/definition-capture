@@ -1,4 +1,4 @@
-import { DEFAULT_SOURCE, SOURCES, type Source } from "@/lib/constants";
+import { DEFAULT_SOURCE, MAX_CATEGORIES, SOURCES, type Source } from "@/lib/constants";
 
 /* ----------------------------------------------------------- term entries  */
 
@@ -9,6 +9,8 @@ export type Entry = {
   definition: string;
   /** Free-text reference; `parseRef` turns any links inside it into anchors. */
   ref: string;
+  /** Up to `MAX_CATEGORIES` group names; empty when the term is unfiled. */
+  categories: string[];
   source: Source;
   /** ISO timestamp, set once at creation and never changed by edits. */
   dateAdded: string;
@@ -23,6 +25,7 @@ export type EntryInput = {
   term: string;
   definition: string;
   ref: string;
+  categories: string[];
   source: Source;
 };
 
@@ -30,6 +33,7 @@ export const EMPTY_ENTRY_INPUT: EntryInput = {
   term: "",
   definition: "",
   ref: "",
+  categories: [],
   source: DEFAULT_SOURCE,
 };
 
@@ -90,4 +94,27 @@ export function needsDefinition(definition: string): boolean {
 /** Reads a string field off unknown JSON, falling back to empty. */
 export function readString(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+/**
+ * Categories from anywhere untrusted — a database row, a backup file, a form.
+ * Trimmed, blanks dropped, duplicates removed case-insensitively (the first
+ * spelling wins), and capped, so the same three rules hold whichever door the
+ * data came through. Not a `Category` union: a name saved before the list in
+ * `constants.ts` was edited is still a real category on that term.
+ */
+export function readCategories(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const item of value) {
+    const name = readString(item).trim();
+    if (!name) continue;
+    const key = name.toLocaleLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+    if (names.length === MAX_CATEGORIES) break;
+  }
+  return names;
 }

@@ -14,17 +14,19 @@ import {
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { deletePhrases } from "@/lib/phraseStorage";
+import { compareText } from "@/lib/sortName";
 import type { Phrase } from "@/lib/types";
 import { useTerms } from "@/lib/useTerms";
 import { useListSelection, type ListSelection } from "@/lib/useListSelection";
 import { usePhrases } from "@/lib/usePhrases";
 
+type PhraseSortKey = "phrase" | "literalMeaning";
 /** null keeps the order phrases were added in, newest first. */
-type SortDirection = "asc" | "desc" | null;
+type PhraseSort = { key: PhraseSortKey; direction: "asc" | "desc" } | null;
 
-const COLUMNS: { label: string; sortable?: boolean; className?: string }[] = [
-  { label: "Phrase", sortable: true, className: "w-[24%]" },
-  { label: "Literal Meaning" },
+const COLUMNS: { key?: PhraseSortKey; label: string; className?: string }[] = [
+  { key: "phrase", label: "Phrase", className: "w-[24%]" },
+  { key: "literalMeaning", label: "Literal Meaning" },
   { label: "Usage Example" },
   { label: "Ref", className: "w-[18%]" },
 ];
@@ -34,7 +36,7 @@ export default function PhrasesPage() {
   const { entries } = useTerms();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortDirection>(null);
+  const [sort, setSort] = useState<PhraseSort>(null);
   /** The ids the confirmation dialog is currently asking about, or null. */
   const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
   /** The phrase the edit dialog is open on, or null. */
@@ -54,8 +56,14 @@ export default function PhrasesPage() {
 
     if (!sort) return filtered;
     return [...filtered].sort((a, b) => {
-      const result = a.phrase.localeCompare(b.phrase, undefined, { sensitivity: "base" });
-      return sort === "asc" ? result : -result;
+      const result =
+        sort.key === "phrase"
+          ? compareText(a.phrase, b.phrase)
+          : compareText(a.literalMeaning, b.literalMeaning);
+      if (result !== 0) return sort.direction === "asc" ? result : -result;
+      // Phrases with nothing written yet would otherwise shuffle about, so
+      // ties keep the newest-first order the list has underneath.
+      return 0;
     });
   }, [phrases, query, sort]);
 
@@ -136,9 +144,13 @@ export default function PhrasesPage() {
                 <PhraseTable
                   phrases={visible}
                   sort={sort}
-                  onToggleSort={() =>
+                  onToggleSort={(key) =>
                     setSort((current) =>
-                      current === null ? "asc" : current === "asc" ? "desc" : null,
+                      current === null || current.key !== key
+                        ? { key, direction: "asc" }
+                        : current.direction === "asc"
+                          ? { key, direction: "desc" }
+                          : null,
                     )
                   }
                   linkIndex={linkIndex}
@@ -200,8 +212,8 @@ function PhraseTable({
   onDelete,
 }: {
   phrases: Phrase[];
-  sort: SortDirection;
-  onToggleSort: () => void;
+  sort: PhraseSort;
+  onToggleSort: (key: PhraseSortKey) => void;
   linkIndex: LinkIndex;
   selection: ListSelection;
   onEdit: (id: string) => void;
@@ -220,42 +232,48 @@ function PhraseTable({
                 label="Select all phrases shown"
               />
             </th>
-            {COLUMNS.map((column) => (
-              <th
-                key={column.label}
-                scope="col"
-                className={`px-4 py-2.5 font-semibold ${column.className ?? ""}`}
-                aria-sort={
-                  column.sortable && sort
-                    ? sort === "asc"
-                      ? "ascending"
-                      : "descending"
-                    : "none"
-                }
-              >
-                {column.sortable ? (
-                  <button
-                    type="button"
-                    onClick={onToggleSort}
-                    title={
-                      sort === null
-                        ? "Sort A to Z"
-                        : sort === "asc"
-                          ? "Sort Z to A"
-                          : "Back to newest first"
-                    }
-                    className="inline-flex cursor-pointer items-center gap-1 hover:text-slate-900 dark:hover:text-slate-100"
-                  >
-                    {column.label}
-                    <span aria-hidden="true" className={sort ? "" : "opacity-30"}>
-                      {sort === "asc" ? "▲" : "▼"}
-                    </span>
-                  </button>
-                ) : (
-                  column.label
-                )}
-              </th>
-            ))}
+            {COLUMNS.map((column) => {
+              const key = column.key;
+              // Only the column actually being sorted shows a direction; the
+              // others keep their faded arrow and their "Sort A to Z" offer.
+              const direction = key && sort?.key === key ? sort.direction : null;
+              return (
+                <th
+                  key={column.label}
+                  scope="col"
+                  className={`px-4 py-2.5 font-semibold ${column.className ?? ""}`}
+                  aria-sort={
+                    direction === null
+                      ? "none"
+                      : direction === "asc"
+                        ? "ascending"
+                        : "descending"
+                  }
+                >
+                  {key ? (
+                    <button
+                      type="button"
+                      onClick={() => onToggleSort(key)}
+                      title={
+                        direction === null
+                          ? "Sort A to Z"
+                          : direction === "asc"
+                            ? "Sort Z to A"
+                            : "Back to newest first"
+                      }
+                      className="inline-flex cursor-pointer items-center gap-1 hover:text-slate-900 dark:hover:text-slate-100"
+                    >
+                      {column.label}
+                      <span aria-hidden="true" className={direction ? "" : "opacity-30"}>
+                        {direction === "asc" ? "▲" : "▼"}
+                      </span>
+                    </button>
+                  ) : (
+                    column.label
+                  )}
+                </th>
+              );
+            })}
             <th scope="col" className="w-12 px-3 py-2.5">
               <span className="sr-only">Delete</span>
             </th>

@@ -68,12 +68,22 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
 
   const terms: Sheet<Blob> = {
     sheet: "Terms",
-    columns: [{ width: 26 }, { width: 60 }, { width: 12 }, { width: 30 }, { width: 16 }],
+    columns: [
+      { width: 26 },
+      { width: 60 },
+      { width: 24 },
+      { width: 12 },
+      { width: 30 },
+      { width: 16 },
+    ],
     data: [
-      headerRow(["Term", "Definition", "Source", "Ref", "Date added"]),
+      headerRow(["Term", "Definition", "Category", "Source", "Ref", "Date added"]),
       ...backup.entries.map<Row>((entry) => [
         { value: entry.term, type: String },
         { value: entry.definition, type: String, wrap: true },
+        // A spreadsheet cell cannot hold a list, so the three names are
+        // joined the way a reader would write them.
+        { value: entry.categories.join(", "), type: String },
         { value: entry.source, type: String },
         { value: entry.ref, type: String },
         { value: formatDate(entry.dateAdded), type: String },

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
 import { BackupButtons } from "@/components/BackupButtons";
-import { NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import { CategoryBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { EditTermDialog } from "@/components/EditTermDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -106,7 +106,7 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
           )}
         </div>
 
-        <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-3 dark:border-slate-800">
+        <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-800">
           <div>
             <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
               Source
@@ -114,6 +114,18 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
             {/* Shown, not edited — Source is a field on the edit form like any other. */}
             <dd className="mt-1.5">
               <SourceBadge source={entry.source} />
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+              Category
+            </dt>
+            <dd className="mt-1.5 flex flex-wrap gap-1">
+              {entry.categories.length > 0 ? (
+                entry.categories.map((name) => <CategoryBadge key={name} name={name} />)
+              ) : (
+                <span className="text-sm text-slate-400 italic dark:text-slate-500">None</span>
+              )}
             </dd>
           </div>
           <div>

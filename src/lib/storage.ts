@@ -16,6 +16,7 @@ import {
   isSource,
   needsDefinition,
   NO_IMPORT,
+  readCategories,
   readString,
   type Entry,
   type EntryInput,
@@ -47,6 +48,7 @@ export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
     term,
     definition,
     ref: readString(value.ref),
+    categories: readCategories(value.categories),
     source: isSource(value.source) ? value.source : DEFAULT_SOURCE,
     dateAdded: readString(value.dateAdded) || new Date().toISOString(),
     dateUpdated: typeof value.dateUpdated === "string" ? value.dateUpdated : null,
@@ -70,6 +72,7 @@ const store = createRemoteStore<Entry>({
       term,
       definition,
       ref: readString(row.ref),
+      categories: readCategories(row.categories),
       source: isSource(row.source) ? row.source : DEFAULT_SOURCE,
       dateAdded: readString(row.date_added),
       dateUpdated: typeof row.date_updated === "string" ? row.date_updated : null,
@@ -83,6 +86,7 @@ const store = createRemoteStore<Entry>({
     term: entry.term,
     definition: entry.definition,
     ref: entry.ref,
+    categories: entry.categories,
     source: entry.source,
     date_added: entry.dateAdded,
     date_updated: entry.dateUpdated,
@@ -102,6 +106,9 @@ function clean(input: EntryInput) {
     term: input.term.trim(),
     definition,
     ref: input.ref.trim(),
+    // Trimmed, de-duplicated and capped here as well as in the form, so a
+    // value arriving from an import obeys the same rule as a typed one.
+    categories: readCategories(input.categories),
     source: input.source,
     needsDefinition: needsDefinition(definition),
   };

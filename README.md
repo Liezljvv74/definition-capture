@@ -69,27 +69,35 @@ and it is the only place left that touches them.
 | **Term** | Required, plain text. |
 | **Definition** | Optional — leave it blank and fill it in later. |
 | **Ref** | Optional free text that links itself — see below. |
+| **Category** | Up to three groups the term belongs to, e.g. Nature or Office. Optional. |
 | **Source** | Dropdown (Manual / Google / Claude / ChatGPT), defaults to `Manual`. |
 | **Date Added** | Set once on creation, never editable. |
 | **Date Updated** | Set on every save, shown on the term's own page as "Edited …". Null until the first edit. |
 | **Needs Definition** | Derived automatically — true whenever the definition is blank. |
 
-To change the Source options, edit **`src/lib/constants.ts`** — the add and edit forms both
-read from that list.
+To change the Source or Category options, edit **`src/lib/constants.ts`** — the add and
+edit forms both read from those lists. A category already saved on a term survives being
+taken off the list: it keeps showing, stays filterable, and is still offered while you
+edit that term, it is simply no longer suggested for new ones.
 
 ## Pages
 
 - **`/`** — the **Terms** page, which owns adding, editing, and deleting terms.
-  Columns are Term, Definition, Source, and Ref. Search covers terms, definitions, and refs;
-  a "Needs definition" checkbox narrows to unfinished entries; the Term and Source headers
-  re-sort. A table on laptops, cards on phones. Rows that need a definition are flagged in
-  amber. Date Added is not a column — the list is ordered newest-first underneath, and the
-  date itself is shown on the entry's own page.
+  Columns are Term, Definition, Category, Source, and Ref. Search covers terms,
+  definitions, and refs; a category dropdown narrows the list to one group, and clicking
+  a category pill on any row does the same thing without leaving the list; a "Needs
+  definition" checkbox narrows to unfinished entries; the Term, Definition and Source
+  headers re-sort. A table on laptops, cards on phones. Rows that need a
+  definition are flagged in amber. Date Added is not a column — the list is alphabetical
+  by term, and a leading `der`, `die`, or `das` is skipped when comparing, so a term
+  filed under its article sorts by the word that follows instead. Date added survives
+  as the tie-breaker, and the date itself is shown on the entry's own page.
 - **`/phrases`** — the phrase list: a separate store that mirrors Terms, for multi-word
   expressions that do not fit a single term. Columns are **Phrase**, **Literal Meaning**,
   **Usage Example**, and **Ref** — no dates, since phrases are looked up by wording rather
-  than by when they were captured. Search covers all four fields, the Phrase header cycles
-  A→Z / Z→A / back to newest-first, and only Phrase is required.
+  than by when they were captured. Search covers all four fields, the Phrase and Literal
+  Meaning headers each cycle A→Z / Z→A / back to newest-first, and only Phrase is
+  required.
 - **`/term?id=…`** and **`/phrase?id=…`** — one item per stable URL, safe to reload or paste
   into a fresh tab. This is where a `[[Name]]` reference lands. Both pages read: they show the
   full untruncated text plus, for a term, its Source badge and dates, and offer **Edit** so a

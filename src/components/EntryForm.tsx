@@ -1,9 +1,9 @@
 "use client";
 
-import { useId, useState, type ClipboardEvent, type FormEvent } from "react";
+import { useId, useMemo, useState, type ClipboardEvent, type FormEvent } from "react";
 
 import { RefField } from "@/components/RefField";
-import { SOURCES } from "@/lib/constants";
+import { CATEGORIES, MAX_CATEGORIES, SOURCES } from "@/lib/constants";
 import { splitTermAndDefinition } from "@/lib/parseTerm";
 import { EMPTY_ENTRY_INPUT, isSource, type EntryInput } from "@/lib/types";
 
@@ -56,6 +56,27 @@ export function EntryForm({
       input.selectionStart === 0 && input.selectionEnd === input.value.length;
     if (!replacesAll) return;
     if (tryAutoSplit(pasted)) event.preventDefault();
+  }
+
+  /**
+   * The standing list, plus any name this entry already carries that is no
+   * longer offered — editing a term must not quietly strip a category just
+   * because the list in `constants.ts` has moved on since it was filed.
+   */
+  const categoryOptions = useMemo(() => {
+    const standing = CATEGORIES as readonly string[];
+    const extras = initialValue.categories.filter((name) => !standing.includes(name));
+    return [...standing, ...extras];
+  }, [initialValue]);
+
+  function toggleCategory(name: string) {
+    setValue((current) => {
+      if (current.categories.includes(name)) {
+        return { ...current, categories: current.categories.filter((c) => c !== name) };
+      }
+      if (current.categories.length >= MAX_CATEGORIES) return current;
+      return { ...current, categories: [...current.categories, name] };
+    });
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -113,6 +134,45 @@ export function EntryForm({
           }
         />
       </div>
+
+      <fieldset>
+        <legend className="mb-1.5 block text-sm font-medium">Category</legend>
+        <div className="flex flex-wrap gap-1.5">
+          {categoryOptions.map((name) => {
+            const checked = value.categories.includes(name);
+            // At the cap the unchosen ones go quiet rather than vanishing, so
+            // the list does not jump about while you are picking.
+            const blocked = !checked && value.categories.length >= MAX_CATEGORIES;
+            return (
+              <label
+                key={name}
+                className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium transition select-none ${
+                  checked
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-500/40 dark:bg-indigo-500/15 dark:text-indigo-300"
+                    : "border-slate-300 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                } ${
+                  blocked
+                    ? "cursor-not-allowed opacity-40"
+                    : "cursor-pointer hover:border-indigo-400"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={checked}
+                  disabled={blocked}
+                  onChange={() => toggleCategory(name)}
+                />
+                {name}
+              </label>
+            );
+          })}
+        </div>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Groups terms that belong together. Up to {MAX_CATEGORIES}
+          {value.categories.length > 0 && ` — ${value.categories.length} chosen`}.
+        </p>
+      </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-[minmax(0,14rem)_1fr]">
         <div>

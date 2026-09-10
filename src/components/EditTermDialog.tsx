@@ -66,6 +66,7 @@ export function EditTermDialog({
           term: entry.term,
           definition: entry.definition,
           ref: entry.ref,
+          categories: entry.categories,
           source: entry.source,
         }}
         submitLabel="Save changes"
