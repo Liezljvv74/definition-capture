@@ -181,7 +181,19 @@ Creating one goes straight to the table. The Edit screen only links to
 `/verbs?new=<verb>`; the Verbs page does the work and the reader lands on the thing they
 asked for, rather than on a confirmation telling them where to go next.
 
-The first table asks who verbs conjugate for — `ich`, `du`, `er/sie/es`, and so on, one per
+Making one asks which tense it is for — present, past, future, or whatever the language
+and the reader call them. The answer is remembered, so the first table types it and every
+table after picks it from a dropdown, with “Another tense…” for a new one. The tense is
+shown in bold beside the **Conjugation** column heading, and lives on the table rather
+than on each row, since every row in a table shares it. Tables made before the question
+existed have no tense and show none: nothing invents an answer on their behalf. The list
+is editable under **Settings → Verb tenses**.
+
+One table per verb, so a verb carries one tense. Separate present and past tables for the
+same verb would mean matching on verb *and* tense rather than verb alone — a different
+shape, not a bigger version of this one.
+
+The first table also asks who verbs conjugate for — `ich`, `du`, `er/sie/es`, and so on, one per
 line — and it asks **on the Verbs page**, not in the term dialog: a question about verbs in
 general does not belong inside a dialog about one word. That answer is kept in Settings and
 used for every table after it, so it is asked once. Nothing sensible could be shipped as a
@@ -421,7 +433,7 @@ src/
     terms/page.tsx        Terms page: add, edit, delete, search, sort
     phrases/page.tsx      phrase list, the same shape as Terms
     grammar/page.tsx      a heading for now
-    settings/page.tsx     profile, the lists, verb persons, and the export folder
+    settings/page.tsx     profile, the lists, verb persons and tenses, exports
     verbs/page.tsx        the conjugation tables, one rolled-up card each
     term/page.tsx         one term by ?id=, read-only plus Edit
     phrase/page.tsx       one phrase by ?id=, read-only plus Edit

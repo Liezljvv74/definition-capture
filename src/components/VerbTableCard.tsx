@@ -54,7 +54,7 @@ export function VerbTableCard({
         // Rolled up, a verb is just its name, so the row is only as wide
         // as it needs to be — an eighth of a wide screen. Opened, it has
         // a table in it and takes the room that needs.
-        open ? "w-full max-w-2xl" : "w-full sm:w-1/2 lg:w-[12.5%] lg:min-w-44"
+        open ? "w-full max-w-xs" : "w-full sm:w-1/2 lg:w-[12.5%] lg:min-w-44"
       }`}
     >
       {/* The rolled-up row is the whole verb list, so it stays a single
@@ -78,22 +78,31 @@ export function VerbTableCard({
         </span>
       </button>
 
-      <div id={bodyId} hidden={!open} className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
-        <table className="w-full table-fixed border-collapse text-left text-sm">
-          <thead className="border-b border-slate-200 text-xs tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
+      <div id={bodyId} hidden={!open} className="mt-2 border-t border-slate-200 pt-2 dark:border-slate-800">
+        <table className="w-full table-fixed border-collapse text-left text-xs">
+          <thead className="border-b border-slate-200 text-[0.65rem] tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
             <tr>
-              <th scope="col" className="w-[28%] px-2 py-2 font-semibold">
+              <th scope="col" className="w-[34%] px-1 py-1 font-semibold">
                 Person
               </th>
-              <th scope="col" className="px-2 py-2 font-semibold">
-                Conjugation
+              <th scope="col" className="px-1 py-1 text-left font-semibold">
+                {/* The tense is the heading now. “Conjugation” stays for
+                    screen readers, which otherwise meet a column with no
+                    name at all — and none on a table made before tenses
+                    were asked for. */}
+                <span className="sr-only">Conjugation</span>
+                {table.tense && (
+                  <strong className="font-bold text-slate-700 dark:text-slate-200">
+                    {table.tense}
+                  </strong>
+                )}
               </th>
-              <th scope="col" className="w-16 px-2 py-2 font-semibold">
+              <th scope="col" className="w-8 px-1 py-1 font-semibold">
                 <span className="sr-only">Notes</span>
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+          <tbody>
             {rows.map((row, index) => (
               <RowFields
                 key={index}
@@ -113,7 +122,7 @@ export function VerbTableCard({
           </p>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           {confirmingRemove ? (
             <span className="flex items-center gap-2 text-sm">
               <span className="text-slate-600 dark:text-slate-300">
@@ -137,7 +146,7 @@ export function VerbTableCard({
           ) : (
             <button
               type="button"
-              className="cursor-pointer text-xs font-medium text-red-700 hover:underline dark:text-red-400"
+              className="cursor-pointer text-[0.7rem] font-medium text-red-700 hover:underline dark:text-red-400"
               onClick={() => setConfirmingRemove(true)}
             >
               Delete this table
@@ -145,10 +154,10 @@ export function VerbTableCard({
           )}
 
           <span className="flex gap-2">
-            <button type="button" className="btn btn-secondary" onClick={cancel}>
+            <button type="button" className="btn btn-secondary !px-2 !py-0.5 text-xs" onClick={cancel}>
               Cancel
             </button>
-            <button type="button" className="btn btn-primary" onClick={save}>
+            <button type="button" className="btn btn-primary !px-2 !py-0.5 text-xs" onClick={save}>
               Save
             </button>
           </span>
@@ -194,26 +203,26 @@ function RowFields({
   return (
     <>
       <tr>
-        <td className="px-2 py-2 align-top font-medium">{row.person}</td>
-        <td className="px-2 py-2 align-top">
+        <td className="px-1 py-0.5 align-middle font-medium">{row.person}</td>
+        <td className="px-1 py-0.5 align-middle">
           <label htmlFor={`${ids}-conj`} className="sr-only">
             {`Conjugation for ${row.person}`}
           </label>
           <input
             id={`${ids}-conj`}
-            className="field"
+            className="field !px-1.5 !py-0.5 text-xs"
             value={row.conjugation}
             onChange={(event) => onChange({ conjugation: event.target.value })}
           />
         </td>
-        <td className="px-2 py-2 align-top">
+        <td className="px-1 py-0.5 align-middle">
           <button
             type="button"
             onClick={onToggleNotes}
             aria-expanded={notesShowing}
             aria-label={`${written ? "Edit" : "Add"} notes for ${row.person}`}
             title={written ? row.notes : "Add a note"}
-            className={`cursor-pointer rounded-md p-1.5 transition hover:bg-slate-100 dark:hover:bg-slate-800 ${
+            className={`cursor-pointer rounded p-0.5 transition hover:bg-slate-100 dark:hover:bg-slate-800 ${
               written
                 ? "text-indigo-700 dark:text-indigo-300"
                 : "text-slate-400 dark:text-slate-500"
@@ -226,20 +235,18 @@ function RowFields({
       {notesShowing && (
         <tr>
           <td />
-          <td colSpan={2} className="px-2 pb-3">
+          <td colSpan={2} className="px-1 pb-1.5">
             <label htmlFor={`${ids}-notes`} className="sr-only">
               {`Notes for ${row.person}`}
             </label>
             <textarea
               id={`${ids}-notes`}
-              className="field min-h-16 resize-y"
-              placeholder={`Anything worth remembering about ${row.person}.`}
+              rows={2}
+              className="field !px-1.5 !py-1 min-h-0 resize-y text-xs"
+              placeholder={`Note for ${row.person}`}
               value={row.notes}
               onChange={(event) => onChange({ notes: event.target.value })}
             />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Saved with the table.
-            </p>
           </td>
         </tr>
       )}

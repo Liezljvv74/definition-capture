@@ -105,6 +105,16 @@ export default function SettingsPage() {
           />
         </SettingSection>
 
+        <SettingSection title="Verb tenses">
+          <NameListEditor
+            legend="Verb tenses"
+            description="Offered when a conjugation table is made. A tense typed there is added here automatically; the order is the order the dropdown shows."
+            names={settings.verbTenses}
+            onChange={(verbTenses) => saveSettings({ verbTenses })}
+            placeholder="e.g. Present"
+          />
+        </SettingSection>
+
         <PairDeviceSection />
 
         <ExportFolderSection />

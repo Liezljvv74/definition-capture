@@ -82,6 +82,11 @@ export type VerbRow = {
 export type VerbTable = {
   id: string;
   verb: string;
+  /**
+   * Present, past, future — whatever the reader calls them. Empty on a
+   * table made before the question was asked; nothing invents an answer.
+   */
+  tense: string;
   rows: VerbRow[];
   createdAt: string;
 };

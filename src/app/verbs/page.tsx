@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useId, useMemo, useState } from "react";
+import { Suspense, useId, useMemo, useState } from "react";
 
 import { VerbTableCard } from "@/components/VerbTableCard";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
@@ -18,11 +18,9 @@ import { createVerbTable } from "@/lib/verbTables";
  * page reads as a list of verbs rather than a wall of conjugations.
  *
  * Tables are made from a term's Edit screen, which sends the reader here with
- * `?new=<verb>`. Everything then happens on this page: the persons question
- * if it has not been answered, then the table, open and ready. The Edit
- * screen deliberately does none of it — a question about verbs in general
- * does not belong in a dialog about one word, and neither does being told
- * where to go next.
+ * `?new=<verb>`. Everything then happens on this page — the tense, and the
+ * persons if they have never been given — because a question about verbs in
+ * general does not belong in a dialog about one word.
  */
 export default function VerbsPage() {
   // `useSearchParams` needs a boundary to suspend against during prerender.
@@ -47,35 +45,18 @@ function VerbsShell({ children }: { children?: React.ReactNode }) {
 }
 
 function VerbList() {
-  const router = useRouter();
   const params = useSearchParams();
   const { tables, loaded } = useVerbTables();
-  const { settings, loaded: settingsLoaded } = useSettings();
+  const { loaded: settingsLoaded } = useSettings();
+  const [query, setQuery] = useState("");
 
-  /** A verb arriving from the Edit term screen, to be made if it is new. */
+  /** A verb arriving from the Edit term screen, still to be made. */
   const pending = (params.get("new") ?? "").trim();
   /** Either the verb just made, or one a link asked to open. */
   const wanted = (params.get("verb") ?? pending).trim().toLocaleLowerCase();
 
   const has = (verb: string) =>
     tables.some((table) => table.verb.toLocaleLowerCase() === verb.toLocaleLowerCase());
-
-  const [query, setQuery] = useState("");
-
-  const needsPersons = settings.verbPersons.length === 0;
-  const makeNow = pending !== "" && loaded && settingsLoaded && !has(pending) && !needsPersons;
-
-  useEffect(() => {
-    if (!makeNow) return;
-    // Writing to a store, not to this component's state — which is what an
-    // effect is for. `createVerbTable` returns any existing table instead of
-    // inserting, so a re-run cannot produce a second one.
-    createVerbTable(pending, settings.verbPersons);
-    // `?new=` has done its job. Swapping it for `?verb=` leaves the address
-    // describing what is on screen, so a reload opens the table rather than
-    // re-running a creation that is already done.
-    router.replace(`/verbs?verb=${encodeURIComponent(pending)}`);
-  }, [makeNow, pending, settings.verbPersons, router]);
 
   /** Alphabetical, and narrowed by the search box. */
   const visible = useMemo(() => {
@@ -87,11 +68,11 @@ function VerbList() {
 
   if (!loaded || !settingsLoaded) return <VerbsShell />;
 
-  // The first table, and nobody has said who verbs conjugate for yet.
-  if (pending !== "" && !has(pending) && needsPersons) {
+  // A verb on its way in: ask what is needed, then make it.
+  if (pending !== "" && !has(pending)) {
     return (
       <VerbsShell>
-        <AskPersons verb={pending} />
+        <NewTableForm verb={pending} />
       </VerbsShell>
     );
   }
@@ -159,7 +140,7 @@ function VerbList() {
       </div>
 
       {visible.length === 0 && (
-        <p className="py-6 text-center text-sm text-slate-600 dark:text-slate-300">
+        <p className="py-6 text-sm text-slate-600 dark:text-slate-300">
           No verb matches “{query.trim()}”.{" "}
           <button
             type="button"
@@ -174,52 +155,117 @@ function VerbList() {
   );
 }
 
-/**
- * Asked once, before the first table exists. There is no default list to
- * ship: the language being studied is not the app's to assume.
- */
-function AskPersons({ verb }: { verb: string }) {
-  const field = useId();
-  const [typed, setTyped] = useState("");
+/** The dropdown value meaning "none of these, let me type one". */
+const ANOTHER = " another";
 
-  function save() {
-    // One per line is the quickest way to type six of them; the same reader
-    // rules as everywhere else trim, drop blanks, and de-duplicate.
-    const persons = readNameList(typed.split("\n"), MAX_LIST_LENGTH);
-    if (persons.length === 0) return;
-    saveSettings({ verbPersons: persons });
-    // The table follows immediately, so the answer and the thing it was for
-    // land together.
-    createVerbTable(verb, persons);
+/**
+ * Everything a new table needs, asked in one place: the tense always, and
+ * the persons the first time. Both answers are kept, so the second table is
+ * a dropdown and the third is barely a pause.
+ */
+function NewTableForm({ verb }: { verb: string }) {
+  const router = useRouter();
+  const ids = useId();
+  const { settings } = useSettings();
+
+  const knownTenses = settings.verbTenses;
+  const needsPersons = settings.verbPersons.length === 0;
+
+  const [choice, setChoice] = useState(knownTenses[0] ?? ANOTHER);
+  const [typedTense, setTypedTense] = useState("");
+  const [typedPersons, setTypedPersons] = useState("");
+
+  const tense = (choice === ANOTHER ? typedTense : choice).trim();
+  const persons = needsPersons
+    ? readNameList(typedPersons.split("\n"), MAX_LIST_LENGTH)
+    : settings.verbPersons;
+  const ready = tense !== "" && persons.length > 0;
+
+  function make() {
+    if (!ready) return;
+
+    // A tense typed once is offered from then on. One already on the list
+    // stays where it is: the order is the reader's.
+    const known = knownTenses.some(
+      (candidate) => candidate.toLocaleLowerCase() === tense.toLocaleLowerCase(),
+    );
+    const tenses = known ? knownTenses : [...knownTenses, tense];
+
+    saveSettings(
+      needsPersons ? { verbTenses: tenses, verbPersons: persons } : { verbTenses: tenses },
+    );
+    createVerbTable(verb, persons, tense);
+    // The address should describe what is on screen, not the act that got
+    // there, so a reload opens the table rather than offering to make it.
+    router.replace(`/verbs?verb=${encodeURIComponent(verb)}`);
   }
 
   return (
-    <div className="card mx-auto max-w-xl p-5 sm:p-6">
-      <h2 className="text-base font-semibold">
-        Before the first table: who does a verb conjugate for?
-      </h2>
-      <label htmlFor={field} className="mt-1.5 block text-sm text-slate-600 dark:text-slate-300">
-        One per line, in the order the rows should appear. This is asked once
-        and used for every table after it — you can change it later under
-        Settings.
-      </label>
-      <textarea
-        id={field}
-        autoFocus
-        rows={6}
-        className="field mt-2 resize-y font-mono text-sm"
-        placeholder={"ich\ndu\ner/sie/es\nwir\nihr\nSie/sie"}
-        value={typed}
-        onChange={(event) => setTyped(event.target.value)}
-      />
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={typed.trim() === ""}
-          onClick={save}
-        >
-          Save and make the table for {verb}
+    <div className="card mx-auto max-w-md p-5">
+      <h2 className="text-base font-semibold">A conjugation table for {verb}</h2>
+
+      <div className="mt-4">
+        <label htmlFor={`${ids}-tense`} className="mb-1 block text-sm font-medium">
+          Which tense is it for?
+        </label>
+
+        {knownTenses.length > 0 && (
+          <select
+            id={`${ids}-tense`}
+            className="field"
+            value={choice}
+            onChange={(event) => setChoice(event.target.value)}
+          >
+            {knownTenses.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+            <option value={ANOTHER}>Another tense…</option>
+          </select>
+        )}
+
+        {(knownTenses.length === 0 || choice === ANOTHER) && (
+          <input
+            id={knownTenses.length === 0 ? `${ids}-tense` : `${ids}-new-tense`}
+            autoFocus
+            className={`field ${knownTenses.length > 0 ? "mt-2" : ""}`}
+            placeholder="e.g. Present"
+            aria-label="A new tense"
+            value={typedTense}
+            onChange={(event) => setTypedTense(event.target.value)}
+          />
+        )}
+
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Kept for next time, so you pick it from a list rather than typing it
+          again.
+        </p>
+      </div>
+
+      {needsPersons && (
+        <div className="mt-4">
+          <label htmlFor={`${ids}-persons`} className="mb-1 block text-sm font-medium">
+            Who does a verb conjugate for?
+          </label>
+          <textarea
+            id={`${ids}-persons`}
+            rows={6}
+            className="field resize-y font-mono text-sm"
+            placeholder={"ich\ndu\ner/sie/es\nwir\nihr\nSie/sie"}
+            value={typedPersons}
+            onChange={(event) => setTypedPersons(event.target.value)}
+          />
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            One per line, in the order the rows should appear. Asked once and
+            used for every table after this; editable later under Settings.
+          </p>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button type="button" className="btn btn-primary" disabled={!ready} onClick={make}>
+          Make the table
         </button>
         <Link href="/terms" className="btn btn-secondary">
           Cancel

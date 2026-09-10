@@ -32,6 +32,8 @@ export type Settings = {
    * table ask before it is made.
    */
   verbPersons: string[];
+  /** Tenses offered when making a table; grows as new ones are typed. */
+  verbTenses: string[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -41,6 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // Deliberately empty: there is no sensible default set of persons, and
   // emptiness is the signal to ask.
   verbPersons: [],
+  verbTenses: [],
 };
 
 export type SettingsSnapshot = {
@@ -88,6 +91,7 @@ function fromRow(row: Record<string, unknown> | null): Settings {
     sources: sources.length > 0 ? sources : [...DEFAULT_SOURCES],
     // No fallback here: empty is a real answer, meaning not asked yet.
     verbPersons: readNameList(row.verb_persons, MAX_LIST_LENGTH),
+    verbTenses: readNameList(row.verb_tenses, MAX_LIST_LENGTH),
   };
 }
 
@@ -206,6 +210,10 @@ export function saveSettings(change: Partial<Settings>): void {
       change.verbPersons ?? snapshot.settings.verbPersons,
       MAX_LIST_LENGTH,
     ),
+    verbTenses: readNameList(
+      change.verbTenses ?? snapshot.settings.verbTenses,
+      MAX_LIST_LENGTH,
+    ),
   };
 
   // The form guards against this too, but the database refuses an empty
@@ -226,6 +234,7 @@ export function saveSettings(change: Partial<Settings>): void {
         categories: next.categories,
         sources: next.sources,
         verb_persons: next.verbPersons,
+        verb_tenses: next.verbTenses,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },

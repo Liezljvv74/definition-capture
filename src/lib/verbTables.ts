@@ -31,6 +31,7 @@ const store = createRemoteStore<VerbTable>({
     return {
       id,
       verb,
+      tense: readString(row.tense).trim(),
       rows: readVerbRows(row.rows),
       createdAt: readString(row.created_at),
     };
@@ -39,6 +40,7 @@ const store = createRemoteStore<VerbTable>({
   toRow: (table) => ({
     id: table.id,
     verb: table.verb,
+    tense: table.tense,
     rows: table.rows,
     created_at: table.createdAt,
     updated_at: new Date().toISOString(),
@@ -72,13 +74,18 @@ export function findVerbTable(verb: string): VerbTable | undefined {
  * existing one untouched if there already is one, so a double click cannot
  * produce a duplicate the unique index would refuse anyway.
  */
-export function createVerbTable(verb: string, persons: readonly string[]): VerbTable {
+export function createVerbTable(
+  verb: string,
+  persons: readonly string[],
+  tense: string,
+): VerbTable {
   const existing = findVerbTable(verb);
   if (existing) return existing;
 
   const table: VerbTable = {
     id: createId(),
     verb: verb.trim(),
+    tense: tense.trim(),
     rows: persons.map((person) => ({ person, conjugation: "", notes: "" })),
     createdAt: new Date().toISOString(),
   };
