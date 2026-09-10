@@ -1,6 +1,6 @@
 # Definition Capture
 
-A small personal glossary for saving terms and concepts worth remembering. You sign in with
+A small personal list of terms and concepts worth remembering. You sign in with
 an emailed link, and your terms and phrases are private to your account.
 
 ## Running it
@@ -29,14 +29,14 @@ in `next.config.ts` if the router reassigns.
 
 ## Where the data lives
 
-Both lists live in **Supabase** — Postgres tables `entries` and `phrases`, one private set of
-rows per signed-in account. Sign in on any browser or device and the same glossary is there,
+Both lists live in **Supabase** — Postgres tables `terms` and `phrases`, one private set of
+rows per signed-in account. Sign in on any browser or device and the same list is there,
 and a `/term?id=…` link opens anywhere you are signed in.
 
 Every query runs in the browser. The app is a static export with no server process behind it,
 so the only credential in play is the publishable key, which is compiled into the JavaScript
 bundle and readable by anyone who views source. That is what that key is for — but it means
-**row level security is the only thing separating one account's glossary from another's.**
+**row level security is the only thing separating one account's terms from another's.**
 The policies in `supabase/migrations/` are load-bearing, not decoration; every table has RLS
 enabled and four policies that check `auth.uid() = user_id`.
 
@@ -52,7 +52,7 @@ When that happens the store reloads the list so the screen shows what is really 
 `StoreErrorBanner` says what went wrong — losing a write silently would be worse than a
 banner.
 
-### The glossary you had before accounts
+### The list you had before accounts
 
 Earlier versions kept everything in `localStorage` under `definition-capture.entries.v1` and
 `definition-capture.phrases.v1`. If a browser still holds those keys, signing in offers to
@@ -62,7 +62,7 @@ deleting the only copy of that data on the strength of a request whose outcome n
 seen yet would be careless. `src/lib/legacyLocal.ts` is the read-only reader for those keys,
 and it is the only place left that touches them.
 
-## What an entry holds
+## What a term holds
 
 | Field | Notes |
 | --- | --- |
@@ -79,15 +79,15 @@ read from that list.
 
 ## Pages
 
-- **`/`** — the glossary browser, and the page that owns adding, editing, and deleting terms.
+- **`/`** — the **Terms** page, which owns adding, editing, and deleting terms.
   Columns are Term, Definition, Source, and Ref. Search covers terms, definitions, and refs;
   a "Needs definition" checkbox narrows to unfinished entries; the Term and Source headers
   re-sort. A table on laptops, cards on phones. Rows that need a definition are flagged in
   amber. Date Added is not a column — the list is ordered newest-first underneath, and the
   date itself is shown on the entry's own page.
-- **`/phrases`** — the phrase list: a separate store that mirrors the glossary, for multi-word
-  expressions that do not fit a single term. Columns are **Phrase**, **Literal meaning**,
-  **Usage example**, and **Ref** — no dates, since phrases are looked up by wording rather
+- **`/phrases`** — the phrase list: a separate store that mirrors Terms, for multi-word
+  expressions that do not fit a single term. Columns are **Phrase**, **Literal Meaning**,
+  **Usage Example**, and **Ref** — no dates, since phrases are looked up by wording rather
   than by when they were captured. Search covers all four fields, the Phrase header cycles
   A→Z / Z→A / back to newest-first, and only Phrase is required.
 - **`/term?id=…`** and **`/phrase?id=…`** — one item per stable URL, safe to reload or paste
@@ -103,7 +103,7 @@ would have nothing to pre-render at build time. One static page that reads the i
 works everywhere.
 
 A thin nav bar at the top of every page carries the Captured logo in the top left corner — it
-links home — and switches between Glossary and Phrases.
+links home — and switches between Terms and Phrases.
 
 The same logo sits behind the app as a backdrop, shaded 70%: the artwork is laid over the page
 colour at 30% strength, which is the same thing as covering it with 70% of that colour but in
@@ -158,7 +158,7 @@ hold yourself and a way out of the app entirely.
 - **Export** asks two things: how much, and in what format.
 
   **How much** — *Everything* (both lists), or *Only this page*, which means Phrases while you
-  are on the phrase list or a single phrase, and the Glossary everywhere else. The file name
+  are on the phrase list or a single phrase, and Terms everywhere else. The file name
   records the choice:
   `definition-capture-backup-…`, `-terms-…`, or `-phrases-…`.
 
@@ -229,19 +229,40 @@ sign-up step — Supabase creates the account on the first link it sends. The bu
 sender is rate-limited to a handful of messages an hour, which is fine while building; a real
 SMTP provider goes in **Authentication → Emails** when that starts to bite.
 
-`npx supabase migration new <name>` starts a new migration; `npx supabase db push` applies it.
-Nothing here needs Docker — that is only for running a full Supabase stack locally, which this
-project does not do.
+`npx supabase migration new <name>` starts a new migration and `npx supabase db push` applies
+it. `npx supabase db query -f query.sql --linked` runs a one-off query against the hosted
+database, which is the quickest way to check what is really in there. All three go over the
+network and need nothing installed locally.
+
+`db pull`, `db dump`, and `db diff` are the exceptions: each builds a throwaway shadow
+database in a container to diff against, so on a machine with neither Docker Desktop nor
+Podman they stop with `docker: command not found`. Nothing in the normal workflow here needs
+them — write the migration by hand and push it.
+
+`npx supabase login` opens a browser and then waits for a keypress, so it only works in a real
+terminal; inside an editor or agent shell it exits with `Cannot use automatic login flow
+inside non-TTY environments`. Log in once in a terminal and every other tool picks up the
+stored credentials.
 
 ## Deploying
 
 The app is a static export — `output: "export"` in `next.config.ts` — because everything is
 client-side already, so there is nothing for a Node server to do. `npm run build` writes plain
-HTML, CSS, and JS into `out/`, which is committed so the built site is always in the project.
+HTML, CSS, and JS into `out/`, which is committed so a built copy always travels with the
+source. It is only a snapshot — it refreshes when someone runs the build and commits it,
+while the deploy always builds from scratch, so the two can differ.
 
 `.github/workflows/deploy.yml` publishes to GitHub Pages on every push to `main`, and can be
 re-run by hand from the Actions tab. The live site is
 <https://liezljvv74.github.io/definition-capture/>.
+
+**Pages has to be set to build from GitHub Actions** for that workflow's output to be what
+visitors actually get: Settings → Pages → Build and deployment → Source → GitHub Actions.
+While the source is set to a branch instead, GitHub runs its own "pages build and deployment"
+job alongside ours, which renders this README with Jekyll and publishes *that* to the same
+URL. Both jobs report success, they race on every push, and the site ends up showing whichever
+finished last — a README where the app should be. Changing the source stops the Jekyll job
+from running at all.
 
 That build sets `GITHUB_PAGES=true`, which switches on the `/definition-capture` basePath — a
 project site is served from `https://<user>.github.io/<repo>/`, not the domain root, and
@@ -257,7 +278,7 @@ hiding them in the CI config would only make them harder to check. Set them unde
 Secrets and variables → Actions → Variables. Without them the deploy still succeeds, but
 every visitor gets the "no Supabase credentials" notice instead of a sign-in form.
 
-A deployed copy is the same glossary: sign in there and your terms are the ones you saved
+A deployed copy is the same list: sign in there and your terms are the ones you saved
 locally, because both talk to the same Supabase project.
 
 ## Layout of the code
@@ -265,8 +286,8 @@ locally, because both talk to the same Supabase project.
 ```
 src/
   app/
-    page.tsx              glossary browser: add, edit, delete, search, sort
-    phrases/page.tsx      phrase list, the same shape as the glossary
+    page.tsx              Terms page: add, edit, delete, search, sort
+    phrases/page.tsx      phrase list, the same shape as Terms
     term/page.tsx         one term by ?id=, read-only plus Edit
     phrase/page.tsx       one phrase by ?id=, read-only plus Edit
     layout.tsx            shell, metadata, and the shaded logo backdrop
@@ -280,10 +301,10 @@ src/
     BackupButtons.tsx     export / import buttons and their dialogs
     EntryForm.tsx         shared add/edit form for terms
     PhraseForm.tsx        shared add/edit form for phrases
-    MainNav.tsx           Glossary / Phrases nav bar, plus the account control
+    MainNav.tsx           Terms / Phrases nav bar, plus the account control
     SignInGate.tsx        the magic-link screen, and what stands in for the app
     AccountMenu.tsx       signed-in address and Sign out, shown in the nav
-    ImportLocalPrompt.tsx offers a pre-account localStorage glossary to the account
+    ImportLocalPrompt.tsx offers a pre-account localStorage list to the account
     StoreErrorBanner.tsx  says so when a save did not reach the database
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
@@ -295,11 +316,11 @@ src/
     legacyLocal.ts        read-only access to the pre-account localStorage keys
     constants.ts          the editable dropdown lists
     types.ts              Entry and Phrase shapes plus validators
-    storage.ts            the glossary store
+    storage.ts            the term store
     phraseStorage.ts      the phrase store
     backup.ts             one backup file covering both lists
     backupFile.ts         download plumbing: builds the .xlsx and .json files
-    useGlossary.ts        React binding for the glossary store
+    useTerms.ts           React binding for the term store
     usePhrases.ts         React binding for the phrase store
     useSession.ts         React binding for the session store
     useListSelection.ts   row selection shared by both list pages
@@ -327,6 +348,8 @@ Built with Next.js (App Router), TypeScript, Tailwind CSS, and Supabase.
 
 ## What it looks like
 
-![The glossary with the Captured logo in the nav bar, Export, Import and Add term at the top right, and the shaded logo backdrop showing around the empty-glossary card](assets/app-screenshot.jpg)
+![The term list with the Captured logo in the nav bar, Export, Import and Add term at the top right, and the shaded logo backdrop showing around the empty-list card](assets/app-screenshot.jpg)
 
-An empty glossary on first run — the state the app opens in before anything is saved.
+An empty list on first run — the state the app opens in before anything is saved. The
+screenshot predates the rename, so the nav in it still reads "Glossary" and the column
+headings are still in capitals.
