@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useId, useMemo, useState } from "react";
+import { Suspense, useEffect, useId, useMemo, useState } from "react";
 
 import { VerbTableCard } from "@/components/VerbTableCard";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
@@ -58,6 +58,13 @@ function VerbList() {
    * without an effect writing state on arrival.
    */
   const [chosen, setChosen] = useState<string | null | undefined>(undefined);
+  /** True once the open table has been edited and not yet saved. */
+  const [dirty, setDirty] = useState(false);
+  /**
+   * Where the reader asked to go while unsaved work stood in the way: a
+   * table id, or null for closing outright. Undefined when nothing waits.
+   */
+  const [waiting, setWaiting] = useState<string | null | undefined>(undefined);
 
   /** A verb arriving from the Edit term screen, still to be made. */
   const pending = (params.get("new") ?? "").trim();
@@ -76,11 +83,47 @@ function VerbList() {
   }, [tables, query]);
 
   /**
+   * A reload or a closed tab loses a draft the same way closing a card
+   * does, and the browser is the only thing that can ask about it first.
+   */
+  useEffect(() => {
+    if (!dirty) return;
+    const ask = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", ask);
+    return () => window.removeEventListener("beforeunload", ask);
+  }, [dirty]);
+
+  /**
    * Nothing is open until something asks: a link naming a verb, or a click.
    * One at a time, so opening a table rolls up whichever was open before.
    */
   const targeted = tables.find((table) => table.verb.toLocaleLowerCase() === wanted);
   const openId = chosen === undefined ? (targeted?.id ?? null) : chosen;
+
+  /**
+   * Opening a card remounts it from what is stored, so whatever was being
+   * typed in the one that was open is gone. Once a table has been edited
+   * that stops being something to do quietly: the card is asked first.
+   */
+  function requestOpen(id: string | null) {
+    // Only worth asking about while the card that holds the work is on
+    // screen to be asked: a search that filters it away, or a table deleted
+    // from another device, would otherwise leave the page unable to open
+    // anything and nothing visible to say why.
+    if (dirty && visible.some((table) => table.id === openId)) {
+      setWaiting(id);
+      return;
+    }
+    setDirty(false);
+    setChosen(id);
+  }
+
+  /** Saved, discarded or deleted: nothing is owed, so go where was asked. */
+  function settle() {
+    setChosen(waiting === undefined ? null : waiting);
+    setWaiting(undefined);
+    setDirty(false);
+  }
 
   if (!loaded || !settingsLoaded) return <VerbsShell />;
 
@@ -165,12 +208,16 @@ function VerbList() {
             <VerbTableCard
               // Whether it is open is part of the key, so opening a card
               // mounts it fresh from what is stored and closing one throws
-              // its draft away — the same as Cancel, which is what closing
-              // has always meant here.
+              // its draft away — which is why an edited card is asked
+              // about before either happens.
               key={`${table.id}:${isOpen}`}
               table={table}
               open={isOpen}
-              onToggle={() => setChosen(isOpen ? null : table.id)}
+              asking={isOpen && waiting !== undefined}
+              onToggle={() => requestOpen(isOpen ? null : table.id)}
+              onEdited={() => setDirty(true)}
+              onKeep={() => setWaiting(undefined)}
+              onFinish={settle}
             />
           );
         })}

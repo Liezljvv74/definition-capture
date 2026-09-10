@@ -23,16 +23,33 @@ import { deleteVerbTable, saveVerbTable } from "@/lib/verbTables";
  * at a time, and a card cannot know that another has been opened. The page
  * also remounts a card as it opens, which is what makes the draft below
  * start from what is stored rather than from an abandoned edit.
+ *
+ * Because closing throws the draft away, the page holds a card back once
+ * it has been edited and hands it `asking` — the moment to offer to save
+ * instead. The offer is made here rather than on the page so that it
+ * appears beside the work it is about, whichever card was clicked.
  */
 export function VerbTableCard({
   table,
   open,
+  asking,
   onToggle,
+  onEdited,
+  onKeep,
+  onFinish,
 }: {
   table: VerbTable;
   open: boolean;
-  /** Asks the page to open this table, or to close it. */
+  /** True while the page is waiting to hear what to do with unsaved work. */
+  asking: boolean;
+  /** Asks the page to open this table, or to close it. May be held back. */
   onToggle: () => void;
+  /** The draft has changed; from here on, closing it is guarded. */
+  onEdited: () => void;
+  /** Nothing to decide after all — stay open and carry on. */
+  onKeep: () => void;
+  /** Saved, discarded or deleted: the page may close it and move on. */
+  onFinish: () => void;
 }) {
   const bodyId = useId();
   const { settings } = useSettings();
@@ -51,6 +68,7 @@ export function VerbTableCard({
   const full = tenses.length >= MAX_TENSES;
 
   function editCell(rowAt: number, columnAt: number, value: string) {
+    onEdited();
     setRows((current) =>
       current.map((row, at) =>
         at === rowAt
@@ -66,11 +84,13 @@ export function VerbTableCard({
   }
 
   function editNotes(rowAt: number, notes: string) {
+    onEdited();
     setRows((current) => current.map((row, at) => (at === rowAt ? { ...row, notes } : row)));
   }
 
   /** Inserts a column at `at`, and the empty cell it needs in every row. */
   function addTense(name: string, at: number) {
+    onEdited();
     setTenses((current) => current.toSpliced(at, 0, name));
     setRows((current) =>
       current.map((row) => ({
@@ -88,14 +108,15 @@ export function VerbTableCard({
   }
 
   function cancel() {
-    // The draft is dropped by the remount on the way back in; this only
-    // has to put the card away.
+    // The draft is dropped by the remount on the way back in, so this
+    // only has to put the card away — and the page stops it on the way
+    // out if there is anything to lose.
     onToggle();
   }
 
   function save() {
     saveVerbTable(table.id, tenses, rows);
-    onToggle();
+    onFinish();
   }
 
   return (
@@ -210,6 +231,39 @@ export function VerbTableCard({
           </p>
         )}
 
+        {asking && (
+          <div
+            role="alert"
+            className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-400/10 dark:text-amber-200"
+          >
+            <span>
+              <strong className="font-semibold">{table.verb}</strong> has changes that are
+              not saved.
+            </span>
+            <button
+              type="button"
+              className="btn btn-primary !px-2 !py-0.5 text-xs"
+              onClick={save}
+            >
+              Save them
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger !px-2 !py-0.5 text-xs"
+              onClick={onFinish}
+            >
+              Discard them
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary !px-2 !py-0.5 text-xs"
+              onClick={onKeep}
+            >
+              Keep editing
+            </button>
+          </div>
+        )}
+
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           {confirmingRemove ? (
             <span className="flex items-center gap-2 text-xs">
@@ -219,7 +273,10 @@ export function VerbTableCard({
               <button
                 type="button"
                 className="btn btn-danger !px-2 !py-0.5 text-xs"
-                onClick={() => deleteVerbTable(table.id)}
+                onClick={() => {
+                  deleteVerbTable(table.id);
+                  onFinish();
+                }}
               >
                 Delete
               </button>
