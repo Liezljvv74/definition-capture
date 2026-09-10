@@ -47,3 +47,10 @@ next-env.d.ts
 *.tsbuildinfo
 /coverage
 .vercel
+
+# Agent skills
+# `.agents/skills/` and skills-lock.json are committed so the skills travel
+# with the project. `.claude/skills/` only holds symlinks into `.agents/`, and
+# they store absolute paths from the machine that ran `npx skills add`, so
+# committing them would bake one person's home directory into the repo.
+/.claude/
