@@ -65,8 +65,9 @@ export function BackupButtons() {
   // Which list the page you are on is showing, for the "only this page" option.
   // `/phrase` (one phrase) counts as the phrase list just as `/phrases` does,
   // which is why this matches the singular prefix — the same test MainNav uses
-  // to decide which tab to highlight. Everything else (`/`, `/term`) is the
-  // term list.
+  // to decide which tab to highlight. Everything else means the term list, and
+  // these buttons only appear on the four pages where that is true: the two
+  // lists and the two detail pages.
   const pathname = usePathname();
   const activeList: Exclude<BackupScope, "all"> = pathname.startsWith("/phrase")
     ? "phrases"

@@ -371,7 +371,7 @@ function ExportFolderSection() {
       <p className="text-sm text-slate-600 dark:text-slate-300">
         Where{" "}
         <Link
-          href="/"
+          href="/terms"
           className="text-indigo-700 underline underline-offset-2 dark:text-indigo-300"
         >
           Export

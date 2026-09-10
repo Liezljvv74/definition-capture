@@ -6,9 +6,26 @@ import { usePathname } from "next/navigation";
 import { AccountMenu } from "@/components/AccountMenu";
 import { asset } from "@/lib/assetPath";
 
+/**
+ * Each tab says for itself which paths light it up, rather than the nav
+ * knowing every page. A detail page counts as its list: `/term?id=…` keeps
+ * Terms lit, which is why these are prefixes and not equality — except Home,
+ * which is only ever itself.
+ */
 const LINKS = [
-  { href: "/", label: "Terms" },
-  { href: "/phrases", label: "Phrases" },
+  { href: "/", label: "Home", isActive: (path: string) => path === "/" },
+  { href: "/terms", label: "Terms", isActive: (path: string) => path.startsWith("/term") },
+  {
+    href: "/phrases",
+    label: "Phrases",
+    isActive: (path: string) => path.startsWith("/phrase"),
+  },
+  { href: "/verbs", label: "Verbs", isActive: (path: string) => path.startsWith("/verbs") },
+  {
+    href: "/grammar",
+    label: "Grammar",
+    isActive: (path: string) => path.startsWith("/grammar"),
+  },
 ] as const;
 
 /** Thin app-wide bar so every page is one click from the others. */
@@ -20,7 +37,7 @@ export function MainNav() {
       aria-label="Main"
       className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
     >
-      <ul className="mx-auto flex max-w-6xl items-center gap-1 px-4 sm:px-6">
+      <ul className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 sm:px-6">
         <li className="mr-2 shrink-0 sm:mr-3">
           <Link
             href="/"
@@ -40,14 +57,10 @@ export function MainNav() {
           </Link>
         </li>
         {LINKS.map((link) => {
-          // A single term or phrase page counts as its list for highlighting.
-          const active =
-            link.href === "/"
-              ? pathname === "/" || pathname.startsWith("/term")
-              : pathname.startsWith("/phrase");
+          const active = link.isActive(pathname);
 
           return (
-            <li key={link.href}>
+            <li key={link.href} className="shrink-0">
               <Link
                 href={link.href}
                 aria-current={active ? "page" : undefined}

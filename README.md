@@ -88,7 +88,8 @@ too. What changes is only what is suggested for new ones.
 
 ## Pages
 
-- **`/`** — the **Terms** page, which owns adding, editing, and deleting terms.
+- **`/`** — the landing page. A heading and nothing on it yet.
+- **`/terms`** — the **Terms** page, which owns adding, editing, and deleting terms.
   Columns are Term, Definition, Category, Source, and Ref. Search covers terms,
   definitions, and refs; a category dropdown narrows the list to one group, and clicking
   a category pill on any row does the same thing without leaving the list; a "Needs
@@ -111,6 +112,9 @@ too. What changes is only what is suggested for new ones.
   Deleting is not offered — the lists own that. An unknown ID shows a readable "not found"
   message rather than an error page.
 
+- **`/verbs`** and **`/grammar`** — headings and nothing else yet, waiting to be filled
+  in. They are ordinary server components: nothing on them needs the browser, so they
+  are prerendered like every other route.
 - **`/settings`** — reached from the account menu at the right of the nav rather than
   from the tabs, which belong to the two lists. Four sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
@@ -128,8 +132,11 @@ HTML (see Deploying): the ids only exist in each visitor's browser, so a `/terms
 would have nothing to pre-render at build time. One static page that reads the id at runtime
 works everywhere.
 
-A thin nav bar at the top of every page carries the Captured logo in the top left corner — it
-links home — and switches between Terms and Phrases.
+A thin nav bar at the top of every page carries the Captured logo in the top left corner —
+it links home — and switches between Home, Terms, Phrases, Verbs, and Grammar. Each tab
+decides for itself which paths light it up, so a `/term?id=…` page keeps Terms lit while
+Home stays lit only on `/` itself. Five tabs, an address, Settings and Sign out do not fit
+across a phone, so the bar scrolls sideways rather than wrapping into two rows.
 
 The same logo sits behind the app as a backdrop, shaded 70%: the artwork is laid over the page
 colour at 30% strength, which is the same thing as covering it with 70% of that colour but in
@@ -358,8 +365,11 @@ locally, because both talk to the same Supabase project.
 ```
 src/
   app/
-    page.tsx              Terms page: add, edit, delete, search, sort
+    page.tsx              the landing page, a heading for now
+    terms/page.tsx        Terms page: add, edit, delete, search, sort
     phrases/page.tsx      phrase list, the same shape as Terms
+    verbs/page.tsx        a heading for now
+    grammar/page.tsx      a heading for now
     settings/page.tsx     profile, the two lists, and the export folder
     term/page.tsx         one term by ?id=, read-only plus Edit
     phrase/page.tsx       one phrase by ?id=, read-only plus Edit

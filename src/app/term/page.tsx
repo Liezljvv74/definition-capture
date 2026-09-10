@@ -55,7 +55,7 @@ function TermDetail() {
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link
-            href="/"
+            href="/terms"
             className="text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-300"
           >
             ← Back to Terms
@@ -171,7 +171,7 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
         <EditTermDialog
           entry={entry}
           onClose={() => setIsEditing(false)}
-          onSaved={() => router.push("/")}
+          onSaved={() => router.push("/terms")}
         />
       )}
     </>
@@ -189,7 +189,7 @@ function TermNotFound() {
         There is no entry with that ID in your term list. It may have been deleted, or the link
         may be from a different browser — entries are saved on this device only.
       </p>
-      <Link href="/" className="btn btn-primary mt-5">
+      <Link href="/terms" className="btn btn-primary mt-5">
         Back to Terms
       </Link>
     </div>
