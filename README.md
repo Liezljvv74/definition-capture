@@ -172,10 +172,16 @@ correctly.
 
 ## Conjugation tables
 
-A verb's conjugation lives on the Verbs page, and is started from the verb itself:
-**Edit** the term and use **Conjugation table**. If that verb already has one, the same
-place shows an icon that opens it instead — so the Edit screen answers "does this word have
-a table yet?" either way.
+A verb's conjugation lives on the Verbs page. There are two ways in. From a term:
+**Edit** it and use **Conjugation table** — and if that verb already has one, the same
+place shows an icon that opens it instead, so the Edit screen answers "does this word have
+a table yet?" either way. Or from the Verbs page itself: **+ Add a verb** asks for the
+word along with the tense.
+
+A verb added that way is put on the **Terms** page too, if it is not already there — as a
+bare term waiting for its definition. A table and its term are matched by name, so a table
+with no term behind it would be a dead end, and inventing one is cheaper than explaining
+why the link goes nowhere. A verb that is already saved is left exactly as it is.
 
 Creating one goes straight to the table. The Edit screen only links to
 `/verbs?new=<verb>`; the Verbs page does the work and the reader lands on the thing they

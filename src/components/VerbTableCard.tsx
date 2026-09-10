@@ -18,19 +18,24 @@ import { deleteVerbTable, saveVerbTable } from "@/lib/verbTables";
  * Everything is a draft until Save, which is what lets Cancel mean
  * something. Saving folds the table away again: filling one in is a task
  * with an end, and the page is a list of verbs.
+ *
+ * Whether it is open belongs to the page, not here: only one table is open
+ * at a time, and a card cannot know that another has been opened. The page
+ * also remounts a card as it opens, which is what makes the draft below
+ * start from what is stored rather than from an abandoned edit.
  */
 export function VerbTableCard({
   table,
-  startOpen = false,
+  open,
+  onToggle,
 }: {
   table: VerbTable;
-  /** Opened by the Verbs page when a link named this verb. */
-  startOpen?: boolean;
+  open: boolean;
+  /** Asks the page to open this table, or to close it. */
+  onToggle: () => void;
 }) {
   const bodyId = useId();
   const { settings } = useSettings();
-
-  const [open, setOpen] = useState(startOpen);
   const [tenses, setTenses] = useState<string[]>(table.tenses);
   const [rows, setRows] = useState<VerbRow[]>(table.rows);
   /** Which row has its notes showing, by index. */
@@ -83,20 +88,14 @@ export function VerbTableCard({
   }
 
   function cancel() {
-    setTenses(table.tenses);
-    setRows(table.rows);
-    setNotesOpen(null);
-    setAdding(null);
-    setConfirmingRemove(false);
-    setOpen(false);
+    // The draft is dropped by the remount on the way back in; this only
+    // has to put the card away.
+    onToggle();
   }
 
   function save() {
     saveVerbTable(table.id, tenses, rows);
-    setNotesOpen(null);
-    setAdding(null);
-    setConfirmingRemove(false);
-    setOpen(false);
+    onToggle();
   }
 
   return (
@@ -115,7 +114,7 @@ export function VerbTableCard({
         type="button"
         aria-expanded={open}
         aria-controls={bodyId}
-        onClick={() => (open ? cancel() : setOpen(true))}
+        onClick={onToggle}
         className="flex w-full cursor-pointer items-center justify-between gap-3 rounded text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
       >
         <span className="truncate text-sm font-medium">{table.verb}</span>

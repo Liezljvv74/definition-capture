@@ -7,8 +7,9 @@ import { Suspense, useId, useMemo, useState } from "react";
 import { VerbTableCard } from "@/components/VerbTableCard";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
 import { saveSettings } from "@/lib/settings";
+import { createEntry, findByTerm } from "@/lib/storage";
 import { compareText } from "@/lib/sortName";
-import { readNameList } from "@/lib/types";
+import { EMPTY_ENTRY_INPUT, readNameList } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
 import { useVerbTables } from "@/lib/useVerbTables";
 import { createVerbTable } from "@/lib/verbTables";
@@ -49,6 +50,14 @@ function VerbList() {
   const { tables, loaded } = useVerbTables();
   const { loaded: settingsLoaded } = useSettings();
   const [query, setQuery] = useState("");
+  /** True while a verb is being added from this page rather than a term. */
+  const [adding, setAdding] = useState(false);
+  /**
+   * The one table that is open, if any. Undefined until the reader opens or
+   * closes something, which is what lets a link decide the first one
+   * without an effect writing state on arrival.
+   */
+  const [chosen, setChosen] = useState<string | null | undefined>(undefined);
 
   /** A verb arriving from the Edit term screen, still to be made. */
   const pending = (params.get("new") ?? "").trim();
@@ -66,13 +75,28 @@ function VerbList() {
       .sort((a, b) => compareText(a.verb, b.verb));
   }, [tables, query]);
 
+  /**
+   * Nothing is open until something asks: a link naming a verb, or a click.
+   * One at a time, so opening a table rolls up whichever was open before.
+   */
+  const targeted = tables.find((table) => table.verb.toLocaleLowerCase() === wanted);
+  const openId = chosen === undefined ? (targeted?.id ?? null) : chosen;
+
   if (!loaded || !settingsLoaded) return <VerbsShell />;
 
-  // A verb on its way in: ask what is needed, then make it.
+  // A verb on its way in — from a term, or typed here.
   if (pending !== "" && !has(pending)) {
     return (
       <VerbsShell>
         <NewTableForm verb={pending} />
+      </VerbsShell>
+    );
+  }
+
+  if (adding) {
+    return (
+      <VerbsShell>
+        <NewTableForm verb="" onCancel={() => setAdding(false)} />
       </VerbsShell>
     );
   }
@@ -95,6 +119,9 @@ function VerbList() {
             </Link>
             , choose Edit, and use <strong className="font-semibold">Conjugation table</strong>.
           </p>
+          <button type="button" className="btn btn-primary mt-5" onClick={() => setAdding(true)}>
+            + Add a verb
+          </button>
         </div>
       </VerbsShell>
     );
@@ -102,18 +129,27 @@ function VerbList() {
 
   return (
     <VerbsShell>
-      <div className="mb-3 w-full sm:w-1/2 lg:w-[12.5%] lg:min-w-44">
-        <label htmlFor="verb-search" className="sr-only">
-          Search verbs
-        </label>
-        <input
-          id="verb-search"
-          type="search"
-          className="field"
-          placeholder="Search verbs…"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="w-full sm:w-1/2 lg:w-[12.5%] lg:min-w-44">
+          <label htmlFor="verb-search" className="sr-only">
+            Search verbs
+          </label>
+          <input
+            id="verb-search"
+            type="search"
+            className="field"
+            placeholder="Search verbs…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn btn-secondary shrink-0"
+          onClick={() => setAdding(true)}
+        >
+          + Add a verb
+        </button>
       </div>
 
       <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
@@ -124,16 +160,17 @@ function VerbList() {
 
       <div className="space-y-1.5">
         {visible.map((table) => {
-          const targeted = table.verb.toLocaleLowerCase() === wanted;
+          const isOpen = table.id === openId;
           return (
             <VerbTableCard
-              // The target is part of the key so that arriving at a verb
-              // while already on this page remounts its card open. Without
-              // it, `startOpen` is only ever read on the first mount and a
-              // card already on screen would stay shut.
-              key={`${table.id}:${targeted}`}
+              // Whether it is open is part of the key, so opening a card
+              // mounts it fresh from what is stored and closing one throws
+              // its draft away — the same as Cancel, which is what closing
+              // has always meant here.
+              key={`${table.id}:${isOpen}`}
               table={table}
-              startOpen={targeted}
+              open={isOpen}
+              onToggle={() => setChosen(isOpen ? null : table.id)}
             />
           );
         })}
@@ -163,10 +200,19 @@ const ANOTHER = " another";
  * the persons the first time. Both answers are kept, so the second table is
  * a dropdown and the third is barely a pause.
  */
-function NewTableForm({ verb }: { verb: string }) {
+function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void }) {
   const router = useRouter();
   const ids = useId();
   const { settings } = useSettings();
+  const { tables } = useVerbTables();
+
+  /** Empty when the verb is being typed here rather than opened from a term. */
+  const [typedVerb, setTypedVerb] = useState("");
+  const name = (verb || typedVerb).trim();
+  const asksForVerb = verb === "";
+  const alreadyHasTable = tables.some(
+    (table) => table.verb.toLocaleLowerCase() === name.toLocaleLowerCase(),
+  );
 
   const knownTenses = settings.verbTenses;
   const needsPersons = settings.verbPersons.length === 0;
@@ -179,7 +225,7 @@ function NewTableForm({ verb }: { verb: string }) {
   const persons = needsPersons
     ? readNameList(typedPersons.split("\n"), MAX_LIST_LENGTH)
     : settings.verbPersons;
-  const ready = tense !== "" && persons.length > 0;
+  const ready = name !== "" && !alreadyHasTable && tense !== "" && persons.length > 0;
 
   function make() {
     if (!ready) return;
@@ -194,15 +240,46 @@ function NewTableForm({ verb }: { verb: string }) {
     saveSettings(
       needsPersons ? { verbTenses: tenses, verbPersons: persons } : { verbTenses: tenses },
     );
-    createVerbTable(verb, persons, tense);
+
+    // A verb typed here may not be in the term list at all. Add it, empty,
+    // rather than leaving a conjugation table for a word the glossary has
+    // never heard of — the two are matched by name, and a table with no
+    // term behind it is a dead end. A verb that is already there is left
+    // exactly as it is.
+    if (!findByTerm(name)) createEntry({ ...EMPTY_ENTRY_INPUT, term: name });
+
+    createVerbTable(name, persons, tense);
     // The address should describe what is on screen, not the act that got
     // there, so a reload opens the table rather than offering to make it.
-    router.replace(`/verbs?verb=${encodeURIComponent(verb)}`);
+    router.replace(`/verbs?verb=${encodeURIComponent(name)}`);
   }
 
   return (
     <div className="card mx-auto max-w-md p-5">
-      <h2 className="text-base font-semibold">A conjugation table for {verb}</h2>
+      <h2 className="text-base font-semibold">
+        {asksForVerb ? "A conjugation table for a new verb" : `A conjugation table for ${verb}`}
+      </h2>
+
+      {asksForVerb && (
+        <div className="mt-4">
+          <label htmlFor={`${ids}-verb`} className="mb-1 block text-sm font-medium">
+            Which verb?
+          </label>
+          <input
+            id={`${ids}-verb`}
+            autoFocus
+            className="field"
+            placeholder="e.g. lernen"
+            value={typedVerb}
+            onChange={(event) => setTypedVerb(event.target.value)}
+          />
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {alreadyHasTable
+              ? `${name} already has a table.`
+              : "Added to Terms as well, if it is not saved there already."}
+          </p>
+        </div>
+      )}
 
       <div className="mt-4">
         <label htmlFor={`${ids}-tense`} className="mb-1 block text-sm font-medium">
@@ -267,9 +344,15 @@ function NewTableForm({ verb }: { verb: string }) {
         <button type="button" className="btn btn-primary" disabled={!ready} onClick={make}>
           Make the table
         </button>
-        <Link href="/terms" className="btn btn-secondary">
-          Cancel
-        </Link>
+        {onCancel ? (
+          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+            Cancel
+          </button>
+        ) : (
+          <Link href="/terms" className="btn btn-secondary">
+            Cancel
+          </Link>
+        )}
       </div>
     </div>
   );
