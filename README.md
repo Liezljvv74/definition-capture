@@ -263,9 +263,31 @@ Then, in the dashboard:
   looks exactly like a broken link.
 
 Sign-in is a one-time emailed link, so there is no password anywhere in the app and no
-sign-up step — Supabase creates the account on the first link it sends. The built-in email
-sender is rate-limited to a handful of messages an hour, which is fine while building; a real
-SMTP provider goes in **Authentication → Emails** when that starts to bite.
+sign-up step — Supabase creates the account on the first link it sends.
+
+The client asks for the **implicit** flow rather than PKCE, and that is load-bearing.
+PKCE leaves a `code_verifier` in the localStorage of the browser that asked for the link
+and needs it back to complete the exchange, so a link opened anywhere else — a second
+device, or the mail app's own in-app browser — fails silently and lands on the sign-in
+form again. Implicit returns the tokens in the URL fragment instead, which needs nothing
+from the requesting browser; the fragment is never sent to a server and auth-js strips it
+from the address bar as soon as it has read it. PKCE would be the better choice if there
+were a server to do the exchange, and there is not.
+
+A link that has expired or already been used comes back with an error in the URL rather
+than a session. `src/lib/authLinkError.ts` reads it before anything else can clear it and
+the sign-in screen says so, because the alternative — an unexplained form — invites
+asking for another link, and there are not many to spare.
+
+The built-in email sender is rate limited twice over: a few messages an hour in total,
+and no more than one a minute to the same address. `email rate limit exceeded` means one
+of those, not a broken configuration. A real SMTP provider under **Authentication →
+Emails** lifts both, and is what to do before anyone else uses this.
+
+> Do not run `supabase config push` against this project to change those limits. The
+> local `config.toml` is largely defaults and differs from the hosted project in about a
+> dozen places — `supabase config diff` lists them — so a push would also switch off
+> email confirmations and MFA. Change auth settings in the dashboard.
 
 `npx supabase migration new <name>` starts a new migration and `npx supabase db push` applies
 it. `npx supabase db query -f query.sql --linked` runs a one-off query against the hosted
@@ -353,6 +375,7 @@ src/
     remoteStore.ts        the Supabase factory both stores are built on
     supabaseClient.ts     the one client, built lazily so `next build` can prerender
     session.ts            who is signed in, as an external store
+    authLinkError.ts      why a sign-in link did not sign you in
     legacyLocal.ts        read-only access to the pre-account localStorage keys
     constants.ts          what a new account's lists start out as
     types.ts              Entry and Phrase shapes plus validators

@@ -44,10 +44,26 @@ export function getSupabase(): SupabaseClient | null {
       // Keep the session across reloads and refresh it in the background.
       persistSession: true,
       autoRefreshToken: true,
-      // The magic link lands back on the site with a `?code=` parameter; this
-      // is what exchanges it for a session. There is no server to do it for us.
+      // The magic link lands back on the site carrying its own credentials;
+      // this is what turns them into a session. There is no server to do it.
       detectSessionInUrl: true,
-      flowType: "pkce",
+
+      // Implicit rather than PKCE, and deliberately so. PKCE keeps a
+      // `code_verifier` in the localStorage of the browser that asked for
+      // the link, and the exchange needs it back. That is fine when the
+      // link is opened where it was requested, and broken everywhere else:
+      // open it on a second device, or in the mail app’s own in-app
+      // browser, and there is no verifier to be found, so the sign-in
+      // silently fails and the gate asks for an address again. Asking for
+      // another link only spends another of the few emails an hour the
+      // built-in sender allows.
+      //
+      // Implicit needs nothing from the requesting browser: the tokens come
+      // back in the URL fragment, which is never sent to a server, and
+      // auth-js strips them from the address bar as soon as it has them.
+      // PKCE is the better choice when a server can do the exchange — this
+      // app is a static export and has none.
+      flowType: "implicit",
     },
   });
   return client;

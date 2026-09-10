@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { signInLinkError } from "@/lib/authLinkError";
 import { sendMagicLink } from "@/lib/session";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { useSession } from "@/lib/useSession";
@@ -33,7 +34,9 @@ export function SignInGate({ children }: { children: React.ReactNode }) {
 function SignInScreen() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
-  const [error, setError] = useState<string | null>(null);
+  // Seeded from the URL: arriving here from a link that failed should say
+  // so, rather than looking like an ordinary first visit.
+  const [error, setError] = useState<string | null>(() => signInLinkError());
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -67,11 +70,12 @@ function SignInScreen() {
           <div className="mt-3 space-y-3 text-sm">
             <p>
               A sign-in link is on its way to{" "}
-              <strong className="font-semibold">{email.trim()}</strong>. Open it in this
-              browser and you will land back here, signed in.
+              <strong className="font-semibold">{email.trim()}</strong>. Open it on any
+              device and you will land in your list, signed in.
             </p>
             <p className="text-slate-600 dark:text-slate-400">
-              The link works once and expires after an hour.
+              The link works once and expires after an hour. Only a few can be sent an
+              hour, so give the first one a minute to arrive before asking for another.
             </p>
             <button
               type="button"
