@@ -2,6 +2,7 @@
 
 import { useId, useState, type ClipboardEvent, type FormEvent } from "react";
 
+import { RefField } from "@/components/RefField";
 import { SOURCES } from "@/lib/constants";
 import { splitTermAndDefinition } from "@/lib/parseTerm";
 import { EMPTY_ENTRY_INPUT, isSource, type EntryInput } from "@/lib/types";
@@ -139,16 +140,16 @@ export function EntryForm({
           <label htmlFor={`${ids}-ref`} className="mb-1 block text-sm font-medium">
             Ref
           </label>
-          <input
+          <RefField
             id={`${ids}-ref`}
-            className="field"
             value={value.ref}
-            autoComplete="off"
             placeholder="Notes, a link, or [[Another Term]]"
-            onChange={(event) =>
-              setValue((current) => ({ ...current, ref: event.target.value }))
-            }
-            aria-describedby={`${ids}-ref-hint`}
+            onChange={(ref) => setValue((current) => ({ ...current, ref }))}
+            describedBy={`${ids}-ref-hint`}
+            // A term referring to itself is a link back to the page you are
+            // already on. Both names are excluded so a rename mid-edit cannot
+            // make the old one selectable again.
+            exclude={[initialValue.term, value.term]}
           />
           <div
             id={`${ids}-ref-hint`}
@@ -156,7 +157,8 @@ export function EntryForm({
           >
             <p>Free text.</p>
             <p>
-              <code className={hintCode}>[[Term]]</code> links to another entry.
+              <code className={hintCode}>[[Term]]</code> links to another entry — type a
+              name to pick one.
             </p>
             <p>
               <code className={hintCode}>/term?id=abc123</code> to a page here.

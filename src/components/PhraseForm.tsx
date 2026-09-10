@@ -2,6 +2,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 
+import { RefField } from "@/components/RefField";
 import { EMPTY_PHRASE_INPUT, type PhraseInput } from "@/lib/types";
 
 /** Inline code style for the Ref hint lines. */
@@ -96,14 +97,14 @@ export function PhraseForm({
         <label htmlFor={`${ids}-ref`} className="mb-1 block text-sm font-medium">
           Ref
         </label>
-        <input
+        <RefField
           id={`${ids}-ref`}
-          className="field"
           value={value.ref}
-          autoComplete="off"
           placeholder="Notes, a link, or [[Another Entry]]"
-          onChange={(event) => setValue((current) => ({ ...current, ref: event.target.value }))}
-          aria-describedby={`${ids}-ref-hint`}
+          onChange={(ref) => setValue((current) => ({ ...current, ref }))}
+          describedBy={`${ids}-ref-hint`}
+          // The phrase being edited cannot usefully refer to itself.
+          exclude={[initialValue.phrase, value.phrase]}
         />
         <div
           id={`${ids}-ref-hint`}
@@ -111,7 +112,8 @@ export function PhraseForm({
         >
           <p>Free text.</p>
           <p>
-            <code className={hintCode}>[[Name]]</code> links to a term or another phrase.
+            <code className={hintCode}>[[Name]]</code> links to a term or another phrase —
+            type a name to pick one.
           </p>
           <p>
             <code className={hintCode}>/term?id=abc123</code> to a page here.
