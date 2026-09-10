@@ -89,6 +89,10 @@ too. What changes is only what is suggested for new ones.
 ## Pages
 
 - **`/`** — the landing page. A heading and nothing on it yet.
+- **`/terms`** and **`/phrases`** together make up **Glossary**, one section with two
+  views. The grouping lives entirely in the nav — see below — so both keep their own
+  addresses, neither list knows about the other, and nothing about how they store or
+  read their rows changed.
 - **`/terms`** — the **Terms** page, which owns adding, editing, and deleting terms.
   Columns are Term, Definition, Category, Source, and Ref. Search covers terms,
   definitions, and refs; a category dropdown narrows the list to one group, and clicking
@@ -133,9 +137,17 @@ would have nothing to pre-render at build time. One static page that reads the i
 works everywhere.
 
 A thin nav bar at the top of every page carries the Captured logo in the top left corner
-and switches between Terms, Phrases, Verbs, and Grammar. There is no Home tab — the logo
-is the way home, and two controls for one destination is one too many. Each tab decides
-for itself which paths light it up, so a `/term?id=…` page keeps Terms lit.
+and switches between Glossary, Verbs, and Grammar. There is no Home tab — the logo is the
+way home, and two controls for one destination is one too many. Each tab decides for
+itself which paths light it up, so a `/term?id=…` or `/phrase?id=…` page keeps Glossary
+lit.
+
+Glossary is the two lists under one tab, and that tab opens a menu rather than going
+anywhere: it stands for two pages, so navigating on click would mean quietly preferring
+one of them. Terms and Phrases are the two items, the one you are on is marked, and the
+menu closes on Escape — putting focus back on the tab — on a click outside, and on
+choosing. The bar deliberately has no horizontal overflow: a scroll on one axis makes
+the other one scroll too, which would clip the menu.
 
 At the right-hand end are the signed-in name and a gear that opens Settings. Signing out
 is in Settings rather than up here: it is rare and feels destructive, and one click from
@@ -388,7 +400,7 @@ src/
     BackupButtons.tsx     export / import buttons and their dialogs
     EntryForm.tsx         shared add/edit form for terms
     PhraseForm.tsx        shared add/edit form for phrases
-    MainNav.tsx           Terms / Phrases nav bar, plus the account control
+    MainNav.tsx           the nav bar, including the Glossary dropdown
     SignInGate.tsx        the magic-link screen, and what stands in for the app
     AccountMenu.tsx       display name or address, and a gear to Settings
     ImportLocalPrompt.tsx offers a pre-account localStorage list to the account
