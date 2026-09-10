@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
 import { MAX_CATEGORIES } from "@/lib/constants";
@@ -11,6 +11,11 @@ import {
   ExportFolderError,
   supportsExportFolder,
 } from "@/lib/exportFolder";
+import {
+  createPairingCode,
+  PAIRING_MINUTES,
+  type PairingCode,
+} from "@/lib/pairing";
 import { signOut } from "@/lib/session";
 import { clearError, saveSettings } from "@/lib/settings";
 import { useExportFolder } from "@/lib/useExportFolder";
@@ -89,6 +94,8 @@ export default function SettingsPage() {
             placeholder="e.g. Textbook"
           />
         </SettingSection>
+
+        <PairDeviceSection />
 
         <ExportFolderSection />
       </div>
@@ -227,6 +234,95 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
           Sign out
         </button>
       </div>
+    </SettingSection>
+  );
+}
+
+/* ------------------------------------------------------------- pairing */
+
+/**
+ * Shows a code another device can sign in with. Useful in its own right, and
+ * the way out of the email sender's rate limit: nothing here sends mail.
+ */
+function PairDeviceSection() {
+  const [code, setCode] = useState<PairingCode | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  // The clock, ticked by an interval, so the countdown is derived at render
+  // rather than being a second piece of state to keep in step.
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!code) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [code]);
+
+  const secondsLeft = code ? Math.max(0, Math.ceil((code.expiresAt - now) / 1000)) : 0;
+  const live = code !== null && secondsLeft > 0;
+
+  async function show() {
+    setBusy(true);
+    setError(null);
+    const { code: fresh, error: failure } = await createPairingCode();
+    setNow(Date.now());
+    setCode(fresh);
+    setError(failure);
+    setBusy(false);
+  }
+
+  return (
+    <SettingSection title="Pair a device" summary="Sign in elsewhere without email">
+      <p className="text-sm text-slate-600 dark:text-slate-300">
+        Shows a code you can type into this app on another device to sign it
+        in. The code lasts {PAIRING_MINUTES} minutes, works once, and is never
+        stored anywhere you could read it back — so if you lose sight of it,
+        make another.
+      </p>
+
+      {error && (
+        <p
+          role="alert"
+          className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+        >
+          {error}
+        </p>
+      )}
+
+      {live && (
+        <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-center dark:border-indigo-900 dark:bg-indigo-950/40">
+          <p className="font-mono text-2xl font-semibold tracking-[0.2em] break-all">
+            {code.display}
+          </p>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+            Expires in {Math.floor(secondsLeft / 60)}:
+            {String(secondsLeft % 60).padStart(2, "0")}
+          </p>
+        </div>
+      )}
+
+      {code && !live && (
+        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+          That code has expired. Make another when the other device is ready.
+        </p>
+      )}
+
+      <div className="mt-4">
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={busy}
+          onClick={() => void show()}
+        >
+          {code ? "Show a new code" : "Show a pairing code"}
+        </button>
+      </div>
+
+      <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+        On the other device, open the app and choose &ldquo;I have a pairing
+        code&rdquo; on the sign-in screen. It is signed in with its own
+        session, which you can sign out separately.
+      </p>
     </SettingSection>
   );
 }

@@ -279,6 +279,18 @@ than a session. `src/lib/authLinkError.ts` reads it before anything else can cle
 the sign-in screen says so, because the alternative — an unexplained form — invites
 asking for another link, and there are not many to spare.
 
+A second device does not have to wait for an email at all. On a device that is already
+signed in, **Settings → Pair a device** shows a ten-character code; the other device
+chooses “I have a pairing code” on the sign-in screen and types it in. The code lasts
+five minutes and works once.
+
+What travels between the devices is a claim ticket, not a session. Handing over an
+access and refresh token would make the copy equivalent to the account, with no way to
+take it back; instead the `pair` Edge Function — the only thing holding the service role,
+and the only thing that can read `device_pairings` — mints the second device a session of
+its own, which can be signed out on its own. The table stores a sha-256 of the code and
+has no select policy at all, so the code exists only on the screen showing it.
+
 The built-in email sender is rate limited twice over: a few messages an hour in total,
 and no more than one a minute to the same address. `email rate limit exceeded` means one
 of those, not a broken configuration. A real SMTP provider under **Authentication →
@@ -376,6 +388,7 @@ src/
     supabaseClient.ts     the one client, built lazily so `next build` can prerender
     session.ts            who is signed in, as an external store
     authLinkError.ts      why a sign-in link did not sign you in
+    pairing.ts            codes that sign a second device in without email
     legacyLocal.ts        read-only access to the pre-account localStorage keys
     constants.ts          what a new account's lists start out as
     types.ts              Entry and Phrase shapes plus validators
@@ -405,6 +418,7 @@ public/
   captured-logo-bg.png    the 1000px copy the backdrop loads
 supabase/
   config.toml             CLI project config
+  functions/pair/         redeems a pairing code for a session (service role)
   migrations/             the tables, indexes, and row level security policies
 ```
 

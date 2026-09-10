@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { signInLinkError } from "@/lib/authLinkError";
+import { redeemPairingCode } from "@/lib/pairing";
 import { sendMagicLink } from "@/lib/session";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { useSession } from "@/lib/useSession";
@@ -54,6 +55,8 @@ function SignInScreen() {
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   /** Seconds until another link may be asked for. */
   const [cooldown, setCooldown] = useState(0);
+  /** The email route, or a code from a device that is already signed in. */
+  const [route, setRoute] = useState<"email" | "code">("email");
   // Seeded from the URL: arriving here from a link that failed should say
   // so, rather than looking like an ordinary first visit.
   const [error, setError] = useState<string | null>(() => signInLinkError());
@@ -96,6 +99,8 @@ function SignInScreen() {
             to sign in to. Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
             <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> and build again.
           </p>
+        ) : route === "code" ? (
+          <PairingCodeForm onUseEmail={() => setRoute("email")} />
         ) : state === "sent" ? (
           <div className="mt-3 space-y-3 text-sm">
             <p>
@@ -155,9 +160,92 @@ function SignInScreen() {
                   ? `Another link in ${cooldown}s`
                   : "Email me a sign-in link"}
             </button>
+
+            {/* The way round the sender’s limits, and quicker besides, for
+                anyone holding a device that is already signed in. */}
+            <p className="text-center text-sm">
+              <button
+                type="button"
+                onClick={() => setRoute("code")}
+                className="cursor-pointer text-indigo-700 underline underline-offset-2 dark:text-indigo-300"
+              >
+                I have a pairing code
+              </button>
+            </p>
           </form>
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * Signs this device in from a code shown by one that already is. Nothing here
+ * sends an email, so the sender's limits do not apply.
+ */
+function PairingCodeForm({ onUseEmail }: { onUseEmail: () => void }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!code.trim() || busy) return;
+
+    setBusy(true);
+    setError(null);
+    const { error: failure } = await redeemPairingCode(code);
+    // On success the session store notices and this whole screen goes away,
+    // so there is nothing to do but report a failure.
+    if (failure) {
+      setError(failure);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+      <p className="text-sm text-slate-600 dark:text-slate-400">
+        On a device that is already signed in, open Settings and choose
+        <strong className="font-semibold"> Pair a device</strong>. Type the
+        code it shows here.
+      </p>
+
+      <div>
+        <label htmlFor="pairing-code" className="mb-1.5 block text-sm font-medium">
+          Pairing code
+        </label>
+        <input
+          id="pairing-code"
+          autoComplete="one-time-code"
+          autoCapitalize="characters"
+          spellCheck={false}
+          className="field text-center font-mono text-lg tracking-[0.2em] uppercase"
+          placeholder="ABCDE-FGHJK"
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
+        />
+      </div>
+
+      {error && (
+        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+          {error}
+        </p>
+      )}
+
+      <button type="submit" className="btn btn-primary w-full" disabled={busy}>
+        {busy ? "Signing in…" : "Sign in with this code"}
+      </button>
+
+      <p className="text-center text-sm">
+        <button
+          type="button"
+          onClick={onUseEmail}
+          className="cursor-pointer text-indigo-700 underline underline-offset-2 dark:text-indigo-300"
+        >
+          Email me a link instead
+        </button>
+      </p>
+    </form>
   );
 }

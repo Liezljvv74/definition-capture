@@ -30,5 +30,10 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    // Deno, not Node: these run on Supabase’s edge runtime and are
+    // typechecked by `deno check`, not by the app’s compiler.
+    "supabase/functions"
+  ]
 }
