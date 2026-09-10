@@ -28,7 +28,7 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
   if (duplicate) {
     const { existing, input } = duplicate;
     return (
-      <Modal title="That term is already in your glossary" onClose={onClose}>
+      <Modal title="That term is already saved" onClose={onClose}>
         <div className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-slate-300">
             You already saved <strong className="font-semibold">{existing.term}</strong>. Do you

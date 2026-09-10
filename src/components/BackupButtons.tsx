@@ -62,7 +62,7 @@ export function BackupButtons() {
   const activeList: Exclude<BackupScope, "all"> = pathname.startsWith("/phrase")
     ? "phrases"
     : "terms";
-  const activeLabel = activeList === "phrases" ? "Phrases" : "Glossary";
+  const activeLabel = activeList === "phrases" ? "Phrases" : "Terms";
 
   const savedCount = entries.length + phrases.length;
   const scopedCount =

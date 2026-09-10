@@ -425,7 +425,7 @@ function EmptyPhrases({ onAdd }: { onAdd: () => void }) {
       </div>
       <h2 className="text-lg font-semibold">No phrases yet</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
-        Phrases are the multi-word expressions that do not fit a single glossary term — idioms,
+        Phrases are the multi-word expressions that do not fit a single term — idioms,
         set phrases, turns of speech. Save the wording now and fill in what it means and how it
         is used whenever you like.
       </p>

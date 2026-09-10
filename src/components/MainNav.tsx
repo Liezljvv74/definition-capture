@@ -7,7 +7,7 @@ import { AccountMenu } from "@/components/AccountMenu";
 import { asset } from "@/lib/assetPath";
 
 const LINKS = [
-  { href: "/", label: "Glossary" },
+  { href: "/", label: "Terms" },
   { href: "/phrases", label: "Phrases" },
 ] as const;
 

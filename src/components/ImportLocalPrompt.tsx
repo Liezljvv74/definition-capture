@@ -72,7 +72,7 @@ export function ImportLocalPrompt() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p>
               This browser still holds {describe(legacy.entries.length, legacy.phrases.length)}{" "}
-              saved before you had an account. Copy them into your glossary?
+              saved before you had an account. Copy them into your term list?
             </p>
             <div className="flex shrink-0 gap-2">
               <button

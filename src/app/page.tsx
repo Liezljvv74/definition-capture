@@ -113,9 +113,9 @@ export default function GlossaryPage() {
             </h1>
             <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
               {!loaded
-                ? "Loading your glossary…"
+                ? "Loading your terms…"
                 : entries.length === 0
-                  ? "Your personal glossary"
+                  ? "Your personal term list"
                   : `${entries.length} ${entries.length === 1 ? "term" : "terms"}${
                       missingCount > 0
                         ? ` · ${missingCount} still ${
@@ -459,7 +459,7 @@ function EmptyGlossary({ onAdd }: { onAdd: () => void }) {
       <div aria-hidden="true" className="mb-3 text-4xl">
         📖
       </div>
-      <h2 className="text-lg font-semibold">Your glossary is empty</h2>
+      <h2 className="text-lg font-semibold">No terms yet</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
         Definition Capture is a place to park the words and concepts you meet while studying, so
         you can search and review them later. Save a term now and write the definition whenever

@@ -58,7 +58,7 @@ function TermDetail() {
             href="/"
             className="text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-300"
           >
-            ← Back to glossary
+            ← Back to Terms
           </Link>
           <div className="flex flex-wrap items-center gap-2">
             <BackupButtons />
@@ -174,11 +174,11 @@ function TermNotFound() {
       </div>
       <h1 className="text-lg font-semibold">Term not found</h1>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-        There is no entry with that ID in your glossary. It may have been deleted, or the link
+        There is no entry with that ID in your term list. It may have been deleted, or the link
         may be from a different browser — entries are saved on this device only.
       </p>
       <Link href="/" className="btn btn-primary mt-5">
-        Back to glossary
+        Back to Terms
       </Link>
     </div>
   );
