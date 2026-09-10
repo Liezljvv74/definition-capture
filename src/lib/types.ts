@@ -71,7 +71,8 @@ export const EMPTY_PHRASE_INPUT: PhraseInput = {
 export type VerbRow = {
   /** ich, du, er/sie/es … — from the list configured in Settings. */
   person: string;
-  conjugation: string;
+  /** One per tense: `conjugations[i]` belongs to the table's `tenses[i]`. */
+  conjugations: string[];
   notes: string;
 };
 
@@ -83,10 +84,11 @@ export type VerbTable = {
   id: string;
   verb: string;
   /**
-   * Present, past, future — whatever the reader calls them. Empty on a
-   * table made before the question was asked; nothing invents an answer.
+   * One per column, in display order — present, past, future, whatever
+   * the reader calls them. A table made before the question was asked has
+   * a single empty one, and nothing invents an answer for it.
    */
-  tense: string;
+  tenses: string[];
   rows: VerbRow[];
   createdAt: string;
 };
@@ -94,11 +96,24 @@ export type VerbTable = {
 /** How many rows one table may hold, matching the check on the table. */
 export const MAX_VERB_ROWS = 30;
 
+/** How many tense columns fit before a table stops being readable. */
+export const MAX_TENSES = 12;
+
+/**
+ * The tense columns off a row. Blanks are kept, unlike every other list
+ * reader here: a table made before tenses were asked for has one column
+ * with no name, and dropping it would take its conjugations with it.
+ */
+export function readTenses(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, MAX_TENSES).map((item) => readString(item).trim());
+}
+
 /**
  * Rows off a jsonb column, or off a backup. Anything unreadable is skipped
  * rather than throwing: a table with one odd row should still open.
  */
-export function readVerbRows(value: unknown): VerbRow[] {
+export function readVerbRows(value: unknown, tenseCount: number): VerbRow[] {
   if (!Array.isArray(value)) return [];
   const rows: VerbRow[] = [];
   for (const item of value) {
@@ -106,9 +121,17 @@ export function readVerbRows(value: unknown): VerbRow[] {
     const row = item as Record<string, unknown>;
     const person = readString(row.person).trim();
     if (!person) continue;
+
+    const stored = Array.isArray(row.conjugations)
+      ? row.conjugations.map((entry) => readString(entry))
+      : // A row written before tenses were columns had one conjugation.
+        [readString(row.conjugation)];
+
     rows.push({
       person,
-      conjugation: readString(row.conjugation),
+      // Padded and trimmed to the columns that exist, so a row can never
+      // fall out of step with the headings above it.
+      conjugations: Array.from({ length: tenseCount }, (_, at) => stored[at] ?? ""),
       notes: readString(row.notes),
     });
     if (rows.length === MAX_VERB_ROWS) break;

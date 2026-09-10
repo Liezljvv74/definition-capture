@@ -182,16 +182,26 @@ Creating one goes straight to the table. The Edit screen only links to
 asked for, rather than on a confirmation telling them where to go next.
 
 Making one asks which tense it is for — present, past, future, or whatever the language
-and the reader call them. The answer is remembered, so the first table types it and every
-table after picks it from a dropdown, with “Another tense…” for a new one. The tense is
-shown in bold beside the **Conjugation** column heading, and lives on the table rather
-than on each row, since every row in a table shares it. Tables made before the question
-existed have no tense and show none: nothing invents an answer on their behalf. The list
-is editable under **Settings → Verb tenses**.
+and the reader call them. The answer is remembered, so the first is typed and every one
+after picks from a dropdown, with “Another tense…” for a new one. Tenses are editable
+under **Settings → Verb tenses**.
 
-One table per verb, so a verb carries one tense. Separate present and past tables for the
-same verb would mean matching on verb *and* tense rather than verb alone — a different
-shape, not a bigger version of this one.
+A table holds a column per tense, and the tense is the column heading, in bold — there is
+no visible “Conjugation” label, only a hidden one for screen readers, which would
+otherwise meet a column with no name. A **+** sits at each end of the tense columns: the
+left one inserts a column before the first, the right one after the last, each asking
+what tense it is for before it appears.
+
+`tenses[i]` heads the column that every row's `conjugations[i]` fills, so the two are
+edited and saved together — a heading without its column, or the reverse, is not a state
+worth being able to reach. Parallel arrays rather than a map keyed by tense name, because
+columns are inserted to the left and to the right: order is the point, and a map has
+none. Rows are padded or trimmed to the columns that exist when they are read, so a row
+cannot fall out of step with the headings above it.
+
+A table made before tenses were asked for keeps its one column with an empty heading.
+Nothing invents a tense on its behalf, which is also why the tense list is the one list
+here that keeps a blank entry.
 
 The first table also asks who verbs conjugate for — `ich`, `du`, `er/sie/es`, and so on, one per
 line — and it asks **on the Verbs page**, not in the term dialog: a question about verbs in

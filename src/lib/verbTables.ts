@@ -13,6 +13,7 @@
 import { createId, createRemoteStore } from "@/lib/remoteStore";
 import {
   readString,
+  readTenses,
   readVerbRows,
   type VerbRow,
   type VerbTable,
@@ -28,11 +29,12 @@ const store = createRemoteStore<VerbTable>({
     const verb = readString(row.verb).trim();
     if (!id || !verb) return null;
 
+    const tenses = readTenses(row.tenses);
     return {
       id,
       verb,
-      tense: readString(row.tense).trim(),
-      rows: readVerbRows(row.rows),
+      tenses,
+      rows: readVerbRows(row.rows, tenses.length),
       createdAt: readString(row.created_at),
     };
   },
@@ -40,7 +42,7 @@ const store = createRemoteStore<VerbTable>({
   toRow: (table) => ({
     id: table.id,
     verb: table.verb,
-    tense: table.tense,
+    tenses: table.tenses,
     rows: table.rows,
     created_at: table.createdAt,
     updated_at: new Date().toISOString(),
@@ -85,19 +87,23 @@ export function createVerbTable(
   const table: VerbTable = {
     id: createId(),
     verb: verb.trim(),
-    tense: tense.trim(),
-    rows: persons.map((person) => ({ person, conjugation: "", notes: "" })),
+    tenses: [tense.trim()],
+    rows: persons.map((person) => ({ person, conjugations: [""], notes: "" })),
     createdAt: new Date().toISOString(),
   };
   store.insert(table);
   return table;
 }
 
-/** Saves the filled-in rows. The persons themselves are settings, not data. */
-export function saveVerbRows(id: string, rows: VerbRow[]): void {
+/**
+ * Saves the columns and what has been written into them. Both together,
+ * because a tense and its conjugations are the same edit: saving one
+ * without the other would leave the headings and the rows disagreeing.
+ */
+export function saveVerbTable(id: string, tenses: string[], rows: VerbRow[]): void {
   const existing = store.items().find((table) => table.id === id);
   if (!existing) return;
-  store.update({ ...existing, rows });
+  store.update({ ...existing, tenses, rows });
 }
 
 export function deleteVerbTable(id: string): void {
