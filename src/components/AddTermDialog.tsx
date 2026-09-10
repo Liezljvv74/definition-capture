@@ -7,17 +7,23 @@ import { SourceBadge } from "@/components/Badges";
 import { Modal } from "@/components/Modal";
 import { formatDate } from "@/lib/format";
 import { createEntry, findByTerm, updateEntry } from "@/lib/storage";
-import type { Entry, EntryInput } from "@/lib/types";
+import { EMPTY_ENTRY_INPUT, type Entry, type EntryInput } from "@/lib/types";
 
 type DuplicatePrompt = { existing: Entry; input: EntryInput };
 
 export function AddTermDialog({ onClose }: { onClose: () => void }) {
   const [duplicate, setDuplicate] = useState<DuplicatePrompt | null>(null);
+  // The prompt below replaces the form rather than sitting on top of it, so
+  // the form unmounts and its state goes with it. Holding the draft here
+  // means “Back to editing” returns the words that were typed, not a blank
+  // form — which is what it used to do.
+  const [draft, setDraft] = useState<EntryInput>(EMPTY_ENTRY_INPUT);
 
   function handleSubmit(input: EntryInput) {
     const existing = findByTerm(input.term);
     if (existing) {
       // Never silently duplicate — ask what the user meant.
+      setDraft(input);
       setDuplicate({ existing, input });
       return;
     }
@@ -85,7 +91,14 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Add a term" onClose={onClose}>
-      <EntryForm submitLabel="Save term" onSubmit={handleSubmit} onCancel={onClose} autoSplit autoFocus />
+      <EntryForm
+        initialValue={draft}
+        submitLabel="Save term"
+        onSubmit={handleSubmit}
+        onCancel={onClose}
+        autoSplit
+        autoFocus
+      />
     </Modal>
   );
 }

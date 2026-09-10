@@ -41,7 +41,10 @@ function classify(word: string): RefToken | null {
   if (/^www\.\S+\.\S+$/i.test(word)) {
     return { kind: "url", href: `https://${word}`, label: word };
   }
-  if (/^\/\S*$/.test(word)) {
+  // One slash, not two: `//evil.com` is protocol-relative and leaves the
+  // site, but would otherwise read as an internal path and be rendered as a
+  // same-tab link with no `rel="noopener"`.
+  if (/^\/(?!\/)\S*$/.test(word)) {
     return { kind: "internal", href: word, label: word };
   }
   if (/^#[^\s#]+$/.test(word)) {

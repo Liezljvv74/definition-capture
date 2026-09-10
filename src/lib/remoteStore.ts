@@ -52,6 +52,9 @@ export type RemoteStore<T> = {
 
 type Row = Record<string, unknown>;
 
+/** How long after a read another catch-up read is considered pointless. */
+const REFRESH_GAP_MS = 2000;
+
 export type RemoteStoreConfig<T> = {
   table: string;
   /** Column the list is sorted by, newest first. */
@@ -71,6 +74,9 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
   let started = false;
   /** The user the cache belongs to, so a sign-out or account switch clears it. */
   let cachedFor: string | null = null;
+  /** Guards against overlapping and pointlessly repeated refreshes. */
+  let loading = false;
+  let lastLoadedAt = 0;
 
   function publish(next: StoreSnapshot<T>): void {
     snapshot = next;
@@ -89,30 +95,55 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
     const supabase = getSupabase();
     if (!supabase) return;
 
-    const { data, error } = await supabase
-      .from(config.table)
-      .select("*")
-      .order(config.orderBy, { ascending: false });
+    loading = true;
+    try {
+      const { data, error } = await supabase
+        .from(config.table)
+        .select("*")
+        .order(config.orderBy, { ascending: false });
 
-    // A sign-out or account switch while the request was in flight: the rows
-    // that just arrived belong to the wrong reader, so drop them.
-    if (currentUserId() !== userId) return;
+      // A sign-out or account switch while the request was in flight: the rows
+      // that just arrived belong to the wrong reader, so drop them.
+      if (currentUserId() !== userId) return;
 
-    if (error) {
-      publish({ items: [], loaded: true, error: readError(error) });
-      return;
+      if (error) {
+        // Keep the rows already in hand. A failed read is not evidence the
+        // list is empty, and emptying it here showed the “nothing saved yet”
+        // screen to anyone with a full list whenever a refresh went wrong.
+        publish({ items: snapshot.items, loaded: true, error: readError(error) });
+        return;
+      }
+
+      const items = (data ?? [])
+        .map((row) => config.fromRow(row as Row))
+        .filter((item): item is T => item !== null);
+      lastLoadedAt = Date.now();
+      // `snapshot.error` rather than null: a write that failed is still a
+      // write that failed, and this read is the reload that put the truth back
+      // on screen. Clearing it here made the banner vanish a moment after it
+      // appeared — the silent failure this whole design exists to avoid. Only
+      // `clearError`, behind the banner’s Dismiss button, takes it away.
+      publish({ items, loaded: true, error: snapshot.error });
+    } finally {
+      loading = false;
     }
-
-    const items = (data ?? [])
-      .map((row) => config.fromRow(row as Row))
-      .filter((item): item is T => item !== null);
-    publish({ items, loaded: true, error: null });
   }
 
   /** Re-reads the list after a failed write, so the screen matches the database. */
   function reload(): void {
     const userId = currentUserId();
     if (userId) void load(userId);
+  }
+
+  /**
+   * The catch-up read for coming back to the tab. Unlike `reload`, this one
+   * is allowed to decline: `visibilitychange` and `focus` both fire on the
+   * same return, and with a store per list that was six identical round
+   * trips for one alt-tab.
+   */
+  function refresh(): void {
+    if (loading || Date.now() - lastLoadedAt < REFRESH_GAP_MS) return;
+    reload();
   }
 
   function syncToSession(): void {
@@ -165,9 +196,9 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
         // second tab sitting visible alongside the first will not update until
         // it is focused.
         window.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") reload();
+          if (document.visibilityState === "visible") refresh();
         });
-        window.addEventListener("focus", reload);
+        window.addEventListener("focus", refresh);
       }
 
       return () => {

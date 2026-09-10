@@ -44,9 +44,14 @@ export type SettingsSnapshot = {
 
 const EMPTY: SettingsSnapshot = { settings: DEFAULT_SETTINGS, loaded: false, error: null };
 
+/** How long after a read another catch-up read is considered pointless. */
+const REFRESH_GAP_MS = 2000;
+
 let snapshot: SettingsSnapshot = EMPTY;
 let started = false;
 let cachedFor: string | null = null;
+let loading = false;
+let lastLoadedAt = 0;
 const listeners = new Set<() => void>();
 
 function publish(next: SettingsSnapshot): void {
@@ -79,29 +84,45 @@ async function load(userId: string): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) return;
 
-  const { data, error } = await supabase
-    .from("user_settings")
-    .select("*")
-    .maybeSingle();
+  loading = true;
+  try {
+    const { data, error } = await supabase
+      .from("user_settings")
+      .select("*")
+      .maybeSingle();
 
-  // A sign-out or account switch while the request was in flight.
-  if (currentUserId() !== userId) return;
+    // A sign-out or account switch while the request was in flight.
+    if (currentUserId() !== userId) return;
 
-  if (error) {
-    publish({ settings: DEFAULT_SETTINGS, loaded: true, error: readError(error) });
-    return;
+    if (error) {
+      // Hold on to the settings already in hand rather than snapping the
+      // form back to defaults because one read failed.
+      publish({ settings: snapshot.settings, loaded: true, error: readError(error) });
+      return;
+    }
+
+    lastLoadedAt = Date.now();
+    publish({
+      settings: fromRow((data as Record<string, unknown> | null) ?? null),
+      loaded: true,
+      // A failed save stays on screen until it is dismissed; a later read
+      // succeeding is not the same as the save having worked.
+      error: snapshot.error,
+    });
+  } finally {
+    loading = false;
   }
-
-  publish({
-    settings: fromRow((data as Record<string, unknown> | null) ?? null),
-    loaded: true,
-    error: null,
-  });
 }
 
 function reload(): void {
   const userId = currentUserId();
   if (userId) void load(userId);
+}
+
+/** The catch-up read for returning to the tab; see `remoteStore.ts`. */
+function refresh(): void {
+  if (loading || Date.now() - lastLoadedAt < REFRESH_GAP_MS) return;
+  reload();
 }
 
 function syncToSession(): void {
@@ -125,9 +146,9 @@ export function subscribe(listener: () => void): () => void {
     subscribeToSession(syncToSession);
     syncToSession();
     window.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") reload();
+      if (document.visibilityState === "visible") refresh();
     });
-    window.addEventListener("focus", reload);
+    window.addEventListener("focus", refresh);
   }
 
   return () => {

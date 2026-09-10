@@ -441,7 +441,8 @@ function ReplaceLine({
       <span className="font-medium">{label}:</span>
       {untouched ? (
         <span className="text-slate-600 dark:text-slate-300">
-          nothing in this file, so your {saved} {saved === 1 ? "one" : "saved"} stay as they are
+          nothing in this file, so your {saved} saved{" "}
+          {saved === 1 ? "item stays" : "items stay"} as they are
         </span>
       ) : (
         <span className="text-red-700 dark:text-red-300">

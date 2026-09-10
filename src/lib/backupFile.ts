@@ -9,7 +9,11 @@
  *   xlsx   a readable workbook for working with the lists outside the app
  */
 
-import writeExcelFile, { type Row, type Sheet } from "write-excel-file/browser";
+// Types only — erased at compile time, so this import costs the bundle
+// nothing. The library itself is fetched on demand in `downloadExcelBackup`:
+// it is ~30 KB gzipped, it is the fifth largest chunk in the build, and it
+// is needed only when someone actually asks for a workbook.
+import type { Row, Sheet } from "write-excel-file/browser";
 
 import { buildBackup, type BackupScope } from "@/lib/backup";
 import { saveToExportFolder } from "@/lib/exportFolder";
@@ -88,6 +92,7 @@ function headerRow(labels: string[]): Row {
 
 /** A workbook with one sheet per exported list, for reading outside the app. */
 export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<ExportSummary> {
+  const { default: writeExcelFile } = await import("write-excel-file/browser");
   const backup = buildBackup(scope);
 
   const terms: Sheet<Blob> = {

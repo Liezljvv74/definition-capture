@@ -29,11 +29,22 @@ export function EditPhraseDialog({
 }) {
   /** Set when the new wording collides with a *different* saved phrase. */
   const [clash, setClash] = useState<Phrase | null>(null);
+  // The clash screen replaces the form rather than sitting on top of it, so
+  // the form unmounts and its state goes with it. Holding the draft here
+  // means “Back to editing” returns the rename in progress, rather than
+  // reverting to what is saved — which is what it used to do.
+  const [draft, setDraft] = useState<PhraseInput>({
+    phrase: phrase.phrase,
+    literalMeaning: phrase.literalMeaning,
+    usageExample: phrase.usageExample,
+    ref: phrase.ref,
+  });
 
   function handleSubmit(input: PhraseInput) {
     const existing = findByPhrase(input.phrase, phrase.id);
     if (existing) {
       // Renaming onto another phrase would leave two identical entries.
+      setDraft(input);
       setClash(existing);
       return;
     }
@@ -60,12 +71,7 @@ export function EditPhraseDialog({
   return (
     <Modal title="Edit phrase" onClose={onClose}>
       <PhraseForm
-        initialValue={{
-          phrase: phrase.phrase,
-          literalMeaning: phrase.literalMeaning,
-          usageExample: phrase.usageExample,
-          ref: phrase.ref,
-        }}
+        initialValue={draft}
         submitLabel="Save changes"
         onSubmit={handleSubmit}
         onCancel={onClose}

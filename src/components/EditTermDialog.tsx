@@ -31,11 +31,23 @@ export function EditTermDialog({
 }) {
   /** Set when the new wording collides with a *different* saved term. */
   const [clash, setClash] = useState<Entry | null>(null);
+  // The clash screen replaces the form rather than sitting on top of it, so
+  // the form unmounts and its state goes with it. Holding the draft here
+  // means “Back to editing” returns the rename in progress, rather than
+  // reverting to what is saved — which is what it used to do.
+  const [draft, setDraft] = useState<EntryInput>({
+    term: entry.term,
+    definition: entry.definition,
+    ref: entry.ref,
+    categories: entry.categories,
+    source: entry.source,
+  });
 
   function handleSubmit(input: EntryInput) {
     const existing = findByTerm(input.term, entry.id);
     if (existing) {
       // Renaming onto another term would leave two identical entries.
+      setDraft(input);
       setClash(existing);
       return;
     }
@@ -62,13 +74,7 @@ export function EditTermDialog({
   return (
     <Modal title="Edit term" onClose={onClose}>
       <EntryForm
-        initialValue={{
-          term: entry.term,
-          definition: entry.definition,
-          ref: entry.ref,
-          categories: entry.categories,
-          source: entry.source,
-        }}
+        initialValue={draft}
         submitLabel="Save changes"
         onSubmit={handleSubmit}
         onCancel={onClose}

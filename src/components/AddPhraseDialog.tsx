@@ -5,17 +5,23 @@ import { useState } from "react";
 import { Modal } from "@/components/Modal";
 import { PhraseForm } from "@/components/PhraseForm";
 import { createPhrase, findByPhrase, updatePhrase } from "@/lib/phraseStorage";
-import type { Phrase, PhraseInput } from "@/lib/types";
+import { EMPTY_PHRASE_INPUT, type Phrase, type PhraseInput } from "@/lib/types";
 
 type DuplicatePrompt = { existing: Phrase; input: PhraseInput };
 
 export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
   const [duplicate, setDuplicate] = useState<DuplicatePrompt | null>(null);
+  // The prompt below replaces the form rather than sitting on top of it, so
+  // the form unmounts and its state goes with it. Holding the draft here
+  // means “Back to editing” returns the words that were typed, not a blank
+  // form — which is what it used to do.
+  const [draft, setDraft] = useState<PhraseInput>(EMPTY_PHRASE_INPUT);
 
   function handleSubmit(input: PhraseInput) {
     const existing = findByPhrase(input.phrase);
     if (existing) {
       // Never silently duplicate — ask what the user meant.
+      setDraft(input);
       setDuplicate({ existing, input });
       return;
     }
@@ -82,7 +88,13 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Add a phrase" onClose={onClose}>
-      <PhraseForm submitLabel="Save phrase" onSubmit={handleSubmit} onCancel={onClose} autoFocus />
+      <PhraseForm
+        initialValue={draft}
+        submitLabel="Save phrase"
+        onSubmit={handleSubmit}
+        onCancel={onClose}
+        autoFocus
+      />
     </Modal>
   );
 }

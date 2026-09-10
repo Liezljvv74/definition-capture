@@ -234,6 +234,10 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts
         term: candidate.term,
         definition: candidate.definition,
         ref: candidate.ref,
+        // Categories are part of the entry the backup is restoring. Leaving
+        // them out kept whatever was already there and silently threw the
+        // backup’s away, which is not what "update" promises.
+        categories: candidate.categories,
         source: candidate.source,
         needsDefinition: candidate.needsDefinition,
         dateUpdated: now,
