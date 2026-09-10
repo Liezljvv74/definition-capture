@@ -259,7 +259,7 @@ function EntryTable({
   return (
     <div className="card hidden overflow-hidden md:block">
       <table className="w-full table-fixed border-collapse text-left text-sm">
-        <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 uppercase dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
+        <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
           <tr>
             <th scope="col" className="w-10 px-3 py-2.5">
               <SelectAllCheckbox

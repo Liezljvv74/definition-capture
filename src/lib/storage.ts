@@ -55,7 +55,7 @@ export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
 }
 
 const store = createRemoteStore<Entry>({
-  table: "entries",
+  table: "terms",
   orderBy: "date_added",
   idOf: (entry) => entry.id,
 
