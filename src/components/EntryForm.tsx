@@ -6,6 +6,7 @@ import { RefField } from "@/components/RefField";
 import { MAX_CATEGORIES } from "@/lib/constants";
 import { splitTermAndDefinition } from "@/lib/parseTerm";
 import { EMPTY_ENTRY_INPUT, type EntryInput } from "@/lib/types";
+import { VerbTableControl } from "@/components/VerbTableControl";
 import { useSettings } from "@/lib/useSettings";
 
 type EntryFormProps = {
@@ -16,6 +17,12 @@ type EntryFormProps = {
   /** Only the "add" form splits pasted "term: definition" text. */
   autoSplit?: boolean;
   autoFocus?: boolean;
+  /**
+   * The saved term this form is editing. Only an entry that exists can
+   * have a conjugation table hung off it, so the add form passes nothing
+   * and the control does not appear there.
+   */
+  verbTableFor?: string;
 };
 
 export function EntryForm({
@@ -25,6 +32,7 @@ export function EntryForm({
   onCancel,
   autoSplit = false,
   autoFocus = false,
+  verbTableFor,
 }: EntryFormProps) {
   const { settings } = useSettings();
   const [value, setValue] = useState<EntryInput>(initialValue);
@@ -222,6 +230,8 @@ export function EntryForm({
           />
         </div>
       </div>
+
+      {verbTableFor && <VerbTableControl verb={verbTableFor} />}
 
       {error && (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">

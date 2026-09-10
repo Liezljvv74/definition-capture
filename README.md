@@ -116,9 +116,13 @@ too. What changes is only what is suggested for new ones.
   Deleting is not offered — the lists own that. An unknown ID shows a readable "not found"
   message rather than an error page.
 
-- **`/verbs`** and **`/grammar`** — headings and nothing else yet, waiting to be filled
-  in. They are ordinary server components: nothing on them needs the browser, so they
-  are prerendered like every other route.
+- **`/verbs`** — the conjugation tables, one per verb, each rolled up to its verb until
+  you open it. Tables are made from a term's Edit screen rather than here, which is what
+  keeps a table's name and its term the same word: the two are matched by name, the way
+  `[[Name]]` links resolve. `?verb=arbeiten` opens that table; `?new=arbeiten` makes it
+  first — asking who verbs conjugate for if that has never been answered — and then opens
+  it. Both are what the Edit term screen links to.
+- **`/grammar`** — a heading and nothing else yet.
 - **`/settings`** — reached from the account menu at the right of the nav rather than
   from the tabs, which belong to the two lists. Four sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
@@ -165,6 +169,35 @@ further, lower it to bring the artwork forward.
 Dates are shown short — `01 Sep 2026`, no clock time. Hovering shows the exact timestamp, and
 sorting always uses the full stored value, so two terms added on the same day still order
 correctly.
+
+## Conjugation tables
+
+A verb's conjugation lives on the Verbs page, and is started from the verb itself:
+**Edit** the term and use **Conjugation table**. If that verb already has one, the same
+place shows an icon that opens it instead — so the Edit screen answers "does this word have
+a table yet?" either way.
+
+Creating one goes straight to the table. The Edit screen only links to
+`/verbs?new=<verb>`; the Verbs page does the work and the reader lands on the thing they
+asked for, rather than on a confirmation telling them where to go next.
+
+The first table asks who verbs conjugate for — `ich`, `du`, `er/sie/es`, and so on, one per
+line — and it asks **on the Verbs page**, not in the term dialog: a question about verbs in
+general does not belong inside a dialog about one word. That answer is kept in Settings and
+used for every table after it, so it is asked once. Nothing sensible could be shipped as a
+default: the language being studied is not the app's to assume. The list is editable later
+under **Settings → Verb persons**; changing it shapes the next table made, and leaves
+tables that already exist with the rows they were made with.
+
+Each table is named for its verb and has a row per person, with a **Conjugation** column and
+a notes icon. The icon opens a note for that row — filled in when there is one to read, an
+outline when there is not — and notes are saved with the table. Saving folds the table away
+again, so the page stays a list of verbs rather than a wall of conjugations.
+
+The rows are one `jsonb` column rather than a second table. They are only ever read, written
+and shown as one whole table — there is no query wanting one person's row across every verb
+— so a child table would add a join to answer a question nobody asks, and an `order` column
+to keep in step.
 
 ## Adding, editing, and deleting
 
@@ -387,9 +420,9 @@ src/
     page.tsx              the landing page, a heading for now
     terms/page.tsx        Terms page: add, edit, delete, search, sort
     phrases/page.tsx      phrase list, the same shape as Terms
-    verbs/page.tsx        a heading for now
     grammar/page.tsx      a heading for now
-    settings/page.tsx     profile, the two lists, and the export folder
+    settings/page.tsx     profile, the lists, verb persons, and the export folder
+    verbs/page.tsx        the conjugation tables, one rolled-up card each
     term/page.tsx         one term by ?id=, read-only plus Edit
     phrase/page.tsx       one phrase by ?id=, read-only plus Edit
     layout.tsx            shell, metadata, and the shaded logo backdrop
@@ -409,6 +442,8 @@ src/
     ImportLocalPrompt.tsx offers a pre-account localStorage list to the account
     StoreErrorBanner.tsx  says so when a save did not reach the database
     NameListEditor.tsx    add / remove / reorder a list of names in Settings
+    VerbTableControl.tsx  links to a verb's table, or to making one, from Edit term
+    VerbTableCard.tsx     one conjugation table, rolled up until opened
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
     RefText.tsx           renders a parsed Ref value
@@ -423,6 +458,8 @@ src/
     types.ts              Entry and Phrase shapes plus validators
     storage.ts            the term store
     phraseStorage.ts      the phrase store
+    verbTables.ts         the conjugation tables
+    useVerbTables.ts      React binding for the conjugation tables
     backup.ts             one backup file covering both lists
     settings.ts           the account's display name and editable lists
     useSettings.ts        React binding for the settings row

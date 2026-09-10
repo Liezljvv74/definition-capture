@@ -44,7 +44,7 @@ export default function SettingsPage() {
       <header className="mb-6">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Settings</h1>
         <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-          Your profile, the lists the term form offers, and where exports go.
+          Your profile, the lists the forms offer, and where exports go.
         </p>
       </header>
 
@@ -92,6 +92,16 @@ export default function SettingsPage() {
             onChange={(sources) => saveSettings({ sources })}
             minimum={1}
             placeholder="e.g. Textbook"
+          />
+        </SettingSection>
+
+        <SettingSection title="Verb persons">
+          <NameListEditor
+            legend="Verb persons"
+            description="The people a conjugation table is built from, in the order the rows should appear. Changing this shapes the next table you make; tables you already have keep the rows they were made with."
+            names={settings.verbPersons}
+            onChange={(verbPersons) => saveSettings({ verbPersons })}
+            placeholder="e.g. ich"
           />
         </SettingSection>
 

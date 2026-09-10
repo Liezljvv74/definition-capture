@@ -76,6 +76,7 @@ export function EditTermDialog({
       <EntryForm
         initialValue={draft}
         submitLabel="Save changes"
+        verbTableFor={entry.term}
         onSubmit={handleSubmit}
         onCancel={onClose}
         autoFocus

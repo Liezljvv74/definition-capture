@@ -65,6 +65,52 @@ export const EMPTY_PHRASE_INPUT: PhraseInput = {
   ref: "",
 };
 
+/* ------------------------------------------------------------------- verbs */
+
+/** One person's line in a conjugation table. */
+export type VerbRow = {
+  /** ich, du, er/sie/es … — from the list configured in Settings. */
+  person: string;
+  conjugation: string;
+  notes: string;
+};
+
+/**
+ * A verb's conjugation table. Tied to its term by name rather than by id,
+ * the same way a `[[Name]]` reference resolves.
+ */
+export type VerbTable = {
+  id: string;
+  verb: string;
+  rows: VerbRow[];
+  createdAt: string;
+};
+
+/** How many rows one table may hold, matching the check on the table. */
+export const MAX_VERB_ROWS = 30;
+
+/**
+ * Rows off a jsonb column, or off a backup. Anything unreadable is skipped
+ * rather than throwing: a table with one odd row should still open.
+ */
+export function readVerbRows(value: unknown): VerbRow[] {
+  if (!Array.isArray(value)) return [];
+  const rows: VerbRow[] = [];
+  for (const item of value) {
+    if (typeof item !== "object" || item === null) continue;
+    const row = item as Record<string, unknown>;
+    const person = readString(row.person).trim();
+    if (!person) continue;
+    rows.push({
+      person,
+      conjugation: readString(row.conjugation),
+      notes: readString(row.notes),
+    });
+    if (rows.length === MAX_VERB_ROWS) break;
+  }
+  return rows;
+}
+
 /* ------------------------------------------------------------------ import */
 
 /** How an imported list should meet the list already saved. */

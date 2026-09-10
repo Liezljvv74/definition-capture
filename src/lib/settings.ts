@@ -26,12 +26,21 @@ export type Settings = {
   categories: string[];
   /** In the reader's own order, which is what the Source column sorts by. */
   sources: string[];
+  /**
+   * The people every conjugation table is built from — ich, du, er/sie/es,
+   * and so on. Empty means never asked, which is what makes the first verb
+   * table ask before it is made.
+   */
+  verbPersons: string[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   displayName: "",
   categories: [...DEFAULT_CATEGORIES],
   sources: [...DEFAULT_SOURCES],
+  // Deliberately empty: there is no sensible default set of persons, and
+  // emptiness is the signal to ask.
+  verbPersons: [],
 };
 
 export type SettingsSnapshot = {
@@ -77,6 +86,8 @@ function fromRow(row: Record<string, unknown> | null): Settings {
     // from — a form with no options is not a state worth honouring.
     categories: categories.length > 0 ? categories : [...DEFAULT_CATEGORIES],
     sources: sources.length > 0 ? sources : [...DEFAULT_SOURCES],
+    // No fallback here: empty is a real answer, meaning not asked yet.
+    verbPersons: readNameList(row.verb_persons, MAX_LIST_LENGTH),
   };
 }
 
@@ -191,6 +202,10 @@ export function saveSettings(change: Partial<Settings>): void {
       MAX_LIST_LENGTH,
     ),
     sources: readNameList(change.sources ?? snapshot.settings.sources, MAX_LIST_LENGTH),
+    verbPersons: readNameList(
+      change.verbPersons ?? snapshot.settings.verbPersons,
+      MAX_LIST_LENGTH,
+    ),
   };
 
   // The form guards against this too, but the database refuses an empty
@@ -210,6 +225,7 @@ export function saveSettings(change: Partial<Settings>): void {
         display_name: next.displayName,
         categories: next.categories,
         sources: next.sources,
+        verb_persons: next.verbPersons,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },
