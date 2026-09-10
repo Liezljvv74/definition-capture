@@ -7,10 +7,11 @@ import { PhraseForm } from "@/components/PhraseForm";
 import { createPhrase, findByPhrase, updatePhrase } from "@/lib/phraseStorage";
 import { EMPTY_PHRASE_INPUT, type Phrase, type PhraseInput } from "@/lib/types";
 
-type DuplicatePrompt = { existing: Phrase; input: PhraseInput };
-
 export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
-  const [duplicate, setDuplicate] = useState<DuplicatePrompt | null>(null);
+  /** The saved phrase a new one collided with, if the reader hit one. */
+  const [duplicate, setDuplicate] = useState<Phrase | null>(null);
+  /** The saved phrase being edited, once the reader has chosen to edit it. */
+  const [editing, setEditing] = useState<Phrase | null>(null);
   // The prompt below replaces the form rather than sitting on top of it, so
   // the form unmounts and its state goes with it. Holding the draft here
   // means “Back to editing” returns the words that were typed, not a blank
@@ -22,23 +23,58 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
     if (existing) {
       // Never silently duplicate — ask what the user meant.
       setDraft(input);
-      setDuplicate({ existing, input });
+      setDuplicate(existing);
       return;
     }
     createPhrase(input);
     onClose();
   }
 
+  if (editing) {
+    return (
+      <Modal title={`Edit ${editing.phrase}`} onClose={onClose}>
+        {/* Shown rather than applied: updating used to overwrite this
+            phrase with what was typed, sight unseen. */}
+        {draft.literalMeaning.trim() &&
+          draft.literalMeaning.trim() !== editing.literalMeaning && (
+            <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
+              <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                What you just typed
+              </p>
+              <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                {draft.literalMeaning.trim()}
+              </p>
+            </div>
+          )}
+        <PhraseForm
+          initialValue={{
+            phrase: editing.phrase,
+            literalMeaning: editing.literalMeaning,
+            usageExample: editing.usageExample,
+            ref: editing.ref,
+          }}
+          submitLabel="Save changes"
+          onSubmit={(input) => {
+            updatePhrase(editing.id, input);
+            onClose();
+          }}
+          onCancel={onClose}
+          autoFocus
+        />
+      </Modal>
+    );
+  }
+
   // Saved once, for the same reasons as a term: the unique index refuses a
   // second, and a `[[Name]]` link resolves to exactly one phrase.
   if (duplicate) {
-    const { existing, input } = duplicate;
+    const existing = duplicate;
     return (
       <Modal title="That phrase is already saved" onClose={onClose}>
         <div className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            You already saved <strong className="font-semibold">{existing.phrase}</strong>. Do
-            you want to update it?
+            You already saved <strong className="font-semibold">{existing.phrase}</strong>.
+            Open it to edit, or go back and change the wording?
           </p>
 
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
@@ -58,12 +94,9 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => {
-                updatePhrase(existing.id, input);
-                onClose();
-              }}
+              onClick={() => setEditing(existing)}
             >
-              Update the existing phrase
+              Open it for editing
             </button>
             <button
               type="button"
