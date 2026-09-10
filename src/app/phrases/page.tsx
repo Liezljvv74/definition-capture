@@ -86,7 +86,9 @@ export default function PhrasesPage() {
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Phrases</h1>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+              Idioms, Proverbs and other Phrases
+            </h1>
             <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
               {!loaded
                 ? "Loading your phrases…"
