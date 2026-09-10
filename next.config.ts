@@ -9,8 +9,8 @@ const isGitHubPages = process.env.GITHUB_PAGES === "true";
 const nextConfig: NextConfig = {
   // GitHub Pages serves plain files with no Node process behind them, so the
   // whole app is emitted as static HTML/CSS/JS into `out/`. Everything here is
-  // client-side already — the glossary lives in localStorage — so nothing is
-  // lost by dropping the server.
+  // client-side already — the browser talks to Supabase directly — so nothing
+  // is lost by dropping the server.
   output: "export",
 
   // A project site is served from https://<user>.github.io/<repo>/, not from the
