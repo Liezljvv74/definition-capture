@@ -21,10 +21,8 @@ import { compareText } from "@/lib/sortName";
 import type { GrammarRule } from "@/lib/types";
 import { useGrammarRules } from "@/lib/useGrammarRules";
 import { useListPage } from "@/lib/useListPage";
-import { type ListSelection } from "@/lib/useListSelection";
 import { usePhrases } from "@/lib/usePhrases";
 import { useTerms } from "@/lib/useTerms";
-import { useWideScreen } from "@/lib/useWideScreen";
 
 /** Module scope so their identity is stable across renders; see `useListPage`. */
 const idOfRule = (rule: GrammarRule) => rule.id;
@@ -63,7 +61,6 @@ function GrammarList() {
   const { rules, loaded } = useGrammarRules();
   const { entries } = useTerms();
   const { phrases } = usePhrases();
-  const wide = useWideScreen();
 
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
@@ -220,30 +217,33 @@ function GrammarList() {
               />
             )}
 
-            {/* One layout once the viewport is known, both until then — see
-                `useWideScreen`. */}
-            {wide !== false && (
-              <RuleTable
-                rules={visible}
-                highlighted={highlighted}
-                linkIndex={linkIndex}
-                selection={selection}
-                onSelectCategory={setCategory}
-                onEdit={setEditingId}
-                onDelete={(id) => setPendingDelete([id])}
-              />
+            {visible.length > 0 && (
+              <label className="mb-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <SelectAllCheckbox
+                  checked={selection.allSelected}
+                  indeterminate={selection.partiallySelected}
+                  onChange={selection.toggleAll}
+                  label="Select every rule shown"
+                />
+                Select all
+              </label>
             )}
-            {wide !== true && (
-              <RuleCards
-                rules={visible}
-                highlighted={highlighted}
-                linkIndex={linkIndex}
-                selection={selection}
-                onSelectCategory={setCategory}
-                onEdit={setEditingId}
-                onDelete={(id) => setPendingDelete([id])}
-              />
-            )}
+
+            <div className="space-y-3">
+              {visible.map((rule) => (
+                <RuleTable
+                  key={rule.id}
+                  rule={rule}
+                  highlighted={rule.id === highlighted}
+                  linkIndex={linkIndex}
+                  selected={selection.isSelected(rule.id)}
+                  onToggleSelected={() => selection.toggle(rule.id)}
+                  onSelectCategory={setCategory}
+                  onEdit={() => setEditingId(rule.id)}
+                  onDelete={() => setPendingDelete([rule.id])}
+                />
+              ))}
+            </div>
 
             {visible.length === 0 && <NoMatches onClear={() => { setQuery(""); setCategory(""); }} />}
 
@@ -281,225 +281,138 @@ function GrammarList() {
   );
 }
 
-type ListProps = {
-  rules: GrammarRule[];
-  /** The row a `[[Title]]` link arrived at, ringed so it can be found. */
-  highlighted: string;
-  linkIndex: LinkIndex;
-  selection: ListSelection;
-  onSelectCategory: (name: string) => void;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
-};
-
+/**
+ * One rule, as its own table.
+ *
+ * The rules were rows in a single grid to begin with, which reads well for a
+ * term list where a row is a word and a short definition. A rule is not that
+ * shape: the explanation is a paragraph and the examples are several lines, so
+ * a shared grid either truncates them or gives every column the width of the
+ * longest one. A table per rule lets each field have the room it needs, and it
+ * is the same choice the Verbs page already makes in giving each verb its own
+ * conjugation table.
+ *
+ * It is a real `<table>` with row headers rather than a styled list, because
+ * that is what it is: a field name and its value on each line.
+ */
 function RuleTable({
-  rules,
+  rule,
   highlighted,
   linkIndex,
-  selection,
+  selected,
+  onToggleSelected,
   onSelectCategory,
   onEdit,
   onDelete,
-}: ListProps) {
+}: {
+  rule: GrammarRule;
+  highlighted: boolean;
+  linkIndex: LinkIndex;
+  selected: boolean;
+  onToggleSelected: () => void;
+  onSelectCategory: (name: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   return (
-    <div className="card hidden overflow-hidden md:block">
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead className="bg-slate-50 text-left dark:bg-slate-950/50">
-          <tr>
-            <th scope="col" className="w-10 px-3 py-2.5">
-              <SelectAllCheckbox
-                checked={selection.allSelected}
-                indeterminate={selection.partiallySelected}
-                onChange={selection.toggleAll}
-                label="Select every rule shown"
-              />
-            </th>
-            {/*
-             * Explanation is the one column with no width set, so it absorbs
-             * whatever the others give up — narrowing Title here is what
-             * widens it. Titles are short labels that wrap tidily; an
-             * explanation is prose, and prose in a narrow column is a column
-             * of two-word lines.
-             */}
-            <th scope="col" className="w-[15%] px-3 py-2.5 font-semibold">
-              Title
-            </th>
-            <th scope="col" className="w-[12%] px-3 py-2.5 font-semibold">
-              Category
-            </th>
-            <th scope="col" className="px-3 py-2.5 font-semibold">
-              Explanation
-            </th>
-            <th scope="col" className="w-[22%] px-3 py-2.5 font-semibold">
-              Examples
-            </th>
-            <th scope="col" className="w-[16%] px-3 py-2.5 font-semibold">
-              Ref
-            </th>
-            <th scope="col" className="w-24 px-3 py-2.5">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rules.map((rule) => (
-            <tr
-              key={rule.id}
-              id={`rule-${rule.id}`}
-              className={`border-t border-slate-200 align-top dark:border-slate-800 ${
-                rule.id === highlighted
-                  ? "bg-indigo-50/60 dark:bg-indigo-500/10"
-                  : ""
-              }`}
+    <section
+      id={`rule-${rule.id}`}
+      aria-labelledby={`rule-title-${rule.id}`}
+      className={`card overflow-hidden ${
+        highlighted
+          ? "border-indigo-400 dark:border-indigo-500"
+          : ""
+      }`}
+    >
+      <div
+        className={`flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-800 ${
+          highlighted ? "bg-indigo-50/60 dark:bg-indigo-500/10" : "bg-slate-50 dark:bg-slate-950/50"
+        }`}
+      >
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span className="pt-0.5">
+            <SelectRowCheckbox
+              checked={selected}
+              onChange={onToggleSelected}
+              label={rule.title}
+            />
+          </span>
+          <div className="min-w-0">
+            <h2
+              id={`rule-title-${rule.id}`}
+              className="text-base font-semibold break-words"
             >
-              <td className="px-3 py-2.5">
-                <SelectRowCheckbox
-                  checked={selection.isSelected(rule.id)}
-                  onChange={() => selection.toggle(rule.id)}
-                  label={rule.title}
-                />
-              </td>
-              <td className="px-3 py-2.5">
-                <button
-                  type="button"
-                  className="cursor-pointer text-left font-medium text-indigo-700 hover:underline dark:text-indigo-300"
-                  onClick={() => onEdit(rule.id)}
-                >
-                  {rule.title}
-                </button>
-              </td>
-              <td className="px-3 py-2.5">
-                {rule.category ? (
-                  <button
-                    type="button"
-                    className="cursor-pointer"
-                    title={`Show only ${rule.category}`}
-                    onClick={() => onSelectCategory(rule.category)}
-                  >
-                    <CategoryBadge name={rule.category} />
-                  </button>
-                ) : (
-                  <Dash />
-                )}
-              </td>
-              <td className="px-3 py-2.5 whitespace-pre-wrap text-slate-700 dark:text-slate-300">
-                {rule.explanation || <Dash />}
-              </td>
-              <td className="px-3 py-2.5 whitespace-pre-wrap text-slate-700 italic dark:text-slate-300">
-                {rule.examples || <Dash />}
-              </td>
-              <td className="px-3 py-2.5 break-words text-slate-700 dark:text-slate-300">
-                {rule.ref ? <RefText value={rule.ref} linkIndex={linkIndex} /> : <Dash />}
-              </td>
-              <td className="px-3 py-2.5">
-                <div className="flex items-center justify-end gap-0.5">
-                  <RowEditButton label={rule.title} onClick={() => onEdit(rule.id)} />
-                  <RowDeleteButton label={rule.title} onClick={() => onDelete(rule.id)} />
-                </div>
-              </td>
-            </tr>
-          ))}
+              {rule.title}
+            </h2>
+            {rule.category && (
+              <button
+                type="button"
+                className="mt-1 cursor-pointer"
+                title={`Show only ${rule.category}`}
+                onClick={() => onSelectCategory(rule.category)}
+              >
+                <CategoryBadge name={rule.category} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-0.5">
+          <RowEditButton label={rule.title} onClick={onEdit} />
+          <RowDeleteButton label={rule.title} onClick={onDelete} />
+        </div>
+      </div>
+
+      <table className="w-full table-fixed border-collapse text-sm">
+        <tbody>
+          <Field label="Explanation" value={rule.explanation} />
+          <Field label="Examples" value={rule.examples} italic />
+          <Field label="Ref">
+            {rule.ref ? <RefText value={rule.ref} linkIndex={linkIndex} /> : null}
+          </Field>
         </tbody>
       </table>
-    </div>
+    </section>
   );
 }
 
-function RuleCards({
-  rules,
-  highlighted,
-  linkIndex,
-  selection,
-  onSelectCategory,
-  onEdit,
-  onDelete,
-}: ListProps) {
+/**
+ * One line of a rule's table. Always rendered, even when empty: a rule with
+ * gaps should show where the gaps are, since filling them in later is the
+ * point of writing it down early.
+ */
+function Field({
+  label,
+  value,
+  italic = false,
+  children,
+}: {
+  label: string;
+  value?: string;
+  italic?: boolean;
+  children?: React.ReactNode;
+}) {
+  const filled = children ?? (value ? value : null);
+
   return (
-    <div className="md:hidden">
-      {rules.length > 0 && (
-        <label className="mb-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <SelectAllCheckbox
-            checked={selection.allSelected}
-            indeterminate={selection.partiallySelected}
-            onChange={selection.toggleAll}
-            label="Select every rule shown"
-          />
-          Select all
-        </label>
-      )}
-
-      <ul className="space-y-2">
-        {rules.map((rule) => (
-          <li
-            key={rule.id}
-            id={`rule-${rule.id}`}
-            className={`card p-4 ${
-              rule.id === highlighted
-                ? "border-indigo-400 bg-indigo-50/60 dark:border-indigo-500 dark:bg-indigo-500/10"
-                : ""
-            }`}
-          >
-            <div className="flex items-start gap-2.5">
-              <SelectRowCheckbox
-                checked={selection.isSelected(rule.id)}
-                onChange={() => selection.toggle(rule.id)}
-                label={rule.title}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <button
-                    type="button"
-                    className="cursor-pointer text-left font-medium text-indigo-700 hover:underline dark:text-indigo-300"
-                    onClick={() => onEdit(rule.id)}
-                  >
-                    <h2>{rule.title}</h2>
-                  </button>
-                  <div className="flex shrink-0 items-center gap-0.5">
-                    <RowEditButton label={rule.title} onClick={() => onEdit(rule.id)} />
-                    <RowDeleteButton label={rule.title} onClick={() => onDelete(rule.id)} />
-                  </div>
-                </div>
-
-                {rule.category && (
-                  <button
-                    type="button"
-                    className="mt-1.5 cursor-pointer"
-                    title={`Show only ${rule.category}`}
-                    onClick={() => onSelectCategory(rule.category)}
-                  >
-                    <CategoryBadge name={rule.category} />
-                  </button>
-                )}
-
-                {rule.explanation && (
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">
-                    {rule.explanation}
-                  </p>
-                )}
-
-                {rule.examples && (
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700 italic dark:text-slate-300">
-                    {rule.examples}
-                  </p>
-                )}
-
-                {rule.ref && (
-                  <p className="mt-2 text-sm break-words text-slate-600 dark:text-slate-400">
-                    <RefText value={rule.ref} linkIndex={linkIndex} />
-                  </p>
-                )}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <tr className="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
+      <th
+        scope="row"
+        className="w-32 px-4 py-2.5 text-left align-top text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400"
+      >
+        {label}
+      </th>
+      <td
+        className={`px-4 py-2.5 align-top break-words whitespace-pre-wrap text-slate-700 dark:text-slate-300 ${
+          italic ? "italic" : ""
+        }`}
+      >
+        {filled ?? (
+          <span className="text-slate-400 not-italic dark:text-slate-500">Not set</span>
+        )}
+      </td>
+    </tr>
   );
-}
-
-/** An em dash standing in for a field that has nothing in it. */
-function Dash() {
-  return <span className="text-slate-400 dark:text-slate-500">—</span>;
 }
 
 function EmptyGrammar({ onAdd }: { onAdd: () => void }) {
