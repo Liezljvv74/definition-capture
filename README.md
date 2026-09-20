@@ -1,7 +1,7 @@
 # Definition Capture
 
 A small personal list of terms and concepts worth remembering. You sign in with
-an emailed link, and your terms and phrases are private to your account.
+an email and password, and your terms and phrases are private to your account.
 
 ## Running it
 
@@ -15,17 +15,19 @@ npm install     # first time only
 npm run dev
 ```
 
-Then open <http://localhost:3001>.
+Then open <http://localhost:3000>.
 
 Either way you need a `.env.local` first — copy `.env.example` and fill in the two Supabase
 values. See [Setting up Supabase](#setting-up-supabase). Without them the app still builds and
 runs, but says so instead of showing a sign-in form.
 
-The port is fixed at 3001 on purpose: the sign-in link has to come back to an origin Supabase
-has been told to accept, and `http://localhost:3001` is the one registered. Starting on another
-port would bounce every magic link. The dev server also accepts requests from `192.168.0.11`,
-which lets a phone on the same router load it — that address is DHCP-assigned, so re-check it
-in `next.config.ts` if the router reassigns.
+The port is fixed at 3000 on purpose: a sign-in link only returns to a URL Supabase has been
+told to accept, and `http://localhost:3000/auth/callback` is the one registered. Starting on
+another port would bounce every link. The dev server also accepts requests from any
+`192.168.0.x` address, which lets a phone on the same router load it. The subnet is
+allowed rather than one address because the router hands them out by DHCP, and pinning a
+single number meant phone access broke each time it moved. Change the pattern in
+`next.config.ts` if your router uses a different range.
 
 ## Where the data lives
 
@@ -34,12 +36,17 @@ Both lists live in **Supabase** — Postgres tables `terms` and `phrases`, plus 
 rows per signed-in account: sign in on any browser or device and the same list is there,
 and a `/term?id=…` link opens anywhere you are signed in.
 
-Every query runs in the browser. The app is a static export with no server process behind it,
-so the only credential in play is the publishable key, which is compiled into the JavaScript
-bundle and readable by anyone who views source. That is what that key is for — but it means
-**row level security is the only thing separating one account's terms from another's.**
+List queries run in the browser under the publishable key, which is compiled into the
+JavaScript bundle and readable by anyone who views source. That is what that key is for,
+but it means **row level security is what separates one account's terms from another's.**
 The policies in `supabase/migrations/` are load-bearing, not decoration; every table has RLS
-enabled and four policies that check `auth.uid() = user_id`.
+enabled, and every policy checks `(select auth.uid()) = user_id`. The list tables carry all
+four — select, insert, update, delete — while `user_settings` has no delete policy, because a
+settings row is created once and edited thereafter, never thrown away.
+
+RLS is no longer the *only* thing standing there. `src/proxy.ts` verifies the session on
+the server before any page behind a sign-in is rendered, and `src/app/(workspace)/layout.tsx`
+verifies it again before those pages run — see [Where the check happens](#where-the-check-happens).
 
 The two stores are built from one factory in `src/lib/remoteStore.ts` — nothing else in the
 app talks to Supabase directly, so the lists cannot drift apart in how they load, save, or
@@ -124,21 +131,24 @@ too. What changes is only what is suggested for new ones.
   it. Both are what the Edit term screen links to.
 - **`/grammar`** — a heading and nothing else yet.
 - **`/settings`** — reached from the account menu at the right of the nav rather than
-  from the tabs, which belong to the two lists. Four sections: **Profile** (the address
+  from the tabs, which belong to the two lists. Seven sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
-  out), **Categories** and **Sources** (add, remove, and reorder the lists the term form
-  offers — source order is the order the Source column sorts by, so it is kept rather
-  than alphabetised), and **Export folder** (see Backup below). The first three are per
-  account; the folder is per browser.
+  out), **Password** (set one, or change it — an account created from an emailed link has
+  none until this is used), **Categories** and **Sources** (add, remove, and reorder the
+  lists the term form offers — source order is the order the Source column sorts by, so it
+  is kept rather than alphabetised), **Verb persons** and **Verb tenses** (what a new
+  conjugation table is built from), and **Export folder** (see Backup below). All but the
+  last are per account; the folder is per browser.
 
   Each section is rolled up to its name and what it is currently set to, with a pencil
   to open the controls. The two list sections show their name alone: spelling eight
   categories across a row meant to be skimmed would defeat the point of folding it up.
 
-The id is a query parameter rather than a path segment because the app is exported as static
-HTML (see Deploying): the ids only exist in each visitor's browser, so a `/terms/[id]` route
-would have nothing to pre-render at build time. One static page that reads the id at runtime
-works everywhere.
+The id is a query parameter rather than a path segment for historical reasons: the app was a
+static export, and a `/terms/[id]` route would have had nothing to pre-render, since the ids
+only exist in each account's own rows. That constraint is gone now that pages are rendered on
+the server, but the URLs are kept — they are saved in `[[Name]]` refs and pasted into notes,
+and breaking them to gain a tidier path would be a poor trade.
 
 A thin nav bar at the top of every page carries the Captured logo in the top left corner
 and switches between Glossary, Verbs, and Grammar. There is no Home tab — the logo is the
@@ -262,7 +272,8 @@ searchable along with the other fields on both lists, and it is included in back
 
 ## Backup: export and import
 
-**Export** and **Import** sit at the top right of every screen, so there is always a copy you
+**Export** and **Import** sit at the top right of the Terms and Phrases pages and of the
+single-term and single-phrase pages, so there is always a copy you
 hold yourself and a way out of the app entirely.
 
 By default an export goes wherever the browser puts downloads. **Settings → Export
@@ -344,39 +355,60 @@ npx supabase db push                            # applies supabase/migrations/
 Then, in the dashboard:
 
 - **Project Settings → API** — copy the project URL and the publishable key into `.env.local`.
-- **Authentication → URL Configuration → Redirect URLs** — add both
-  `http://localhost:3001/` and `https://liezljvv74.github.io/definition-capture/`. A magic
-  link that comes back to an unlisted URL is silently redirected to the site root, which
-  looks exactly like a broken link.
+- **Authentication → URL Configuration → Redirect URLs** — add
+  `http://localhost:3000/auth/callback`. That is the route that trades a link's `?code=` for
+  a session, and it is what both sign-in links and sign-up confirmations come back to. A link
+  returning to an unlisted URL is silently sent to the site root instead, which looks exactly
+  like a broken link.
 
-Sign-in is a one-time emailed link, so there is no password anywhere in the app and no
-sign-up step — Supabase creates the account on the first link it sends.
+Anyone without an account can make one at **`/sign-up`** with an email and a password. If
+the Supabase project requires email confirmation the account waits until the address is
+confirmed, and the screen says so; if it does not, the new account is signed in at once.
+Either way the screen never states that an account was created, because Supabase answers an
+address that already has one exactly as it answers a new one — deliberately, so the form
+cannot be used to discover who has an account.
 
-The client asks for the **implicit** flow rather than PKCE, and that is load-bearing.
-PKCE leaves a `code_verifier` in the localStorage of the browser that asked for the link
-and needs it back to complete the exchange, so a link opened anywhere else — a second
-device, or the mail app's own in-app browser — fails silently and lands on the sign-in
-form again. Implicit returns the tokens in the URL fragment instead, which needs nothing
-from the requesting browser; the fragment is never sent to a server and auth-js strips it
-from the address bar as soon as it has read it. PKCE would be the better choice if there
-were a server to do the exchange, and there is not.
+Sign-in is an email and password, checked by Supabase — no password is stored, compared,
+or hashed by this app. An emailed one-time link is still offered as a second route, and is
+how an account gets created in the first place: Supabase makes the account on the first
+link it sends, and **Settings → Password** gives that account a password afterwards.
+
+The link route matters because the built-in email sender is strictly limited — one message
+a minute to an address, and a few an hour — which is quickly spent by signing in and out
+while working on the app. A password has no such limit, which is why it is what the
+sign-in screen offers first.
+
+### Where the check happens
+
+Being signed in is decided on the server, before a page exists.
+
+`src/proxy.ts` runs ahead of every request. It refreshes the session cookies — tokens
+expire hourly and a Server Component cannot write cookies — and redirects anyone without
+a session to `/sign-in`. `src/app/(workspace)/layout.tsx` then asks again on the server
+before any page inside the group renders. Two checks, because one of them lives in a file
+whose matcher is easy to narrow by accident.
+
+Both use `getClaims()`, never `getSession()`. A session read straight out of a cookie is a
+claim made by whoever sent the request; `getClaims` verifies the token's signature against
+the project's public keys before believing it. A forged cookie is turned away exactly like
+no cookie at all.
+
+The session lives in cookies rather than `localStorage`, which is what makes any of this
+possible — `createBrowserClient` from `@supabase/ssr` puts it there, so the server is
+handed the same session the browser holds. That also allows **PKCE**: a sign-in link comes
+back to `/auth/callback`, a route handler that trades its `?code=` for a session
+server-side. The earlier static build had no server for that exchange and had to use the
+weaker implicit flow, which returns tokens in a URL fragment.
 
 A link that has expired or already been used comes back with an error in the URL rather
 than a session. `src/lib/authLinkError.ts` reads it before anything else can clear it and
 the sign-in screen says so, because the alternative — an unexplained form — invites
 asking for another link, and there are not many to spare.
 
-A second device does not have to wait for an email at all. On a device that is already
-signed in, **Settings → Pair a device** shows a ten-character code; the other device
-chooses “I have a pairing code” on the sign-in screen and types it in. The code lasts
-five minutes and works once.
-
-What travels between the devices is a claim ticket, not a session. Handing over an
-access and refresh token would make the copy equivalent to the account, with no way to
-take it back; instead the `pair` Edge Function — the only thing holding the service role,
-and the only thing that can read `device_pairings` — mints the second device a session of
-its own, which can be signed out on its own. The table stores a sha-256 of the code and
-has no select policy at all, so the code exists only on the screen showing it.
+A second device does not have to wait for an email either: sign in with the same email
+and password anywhere. **Settings → Password** is where a password is set or changed, and
+it is the only thing an account created by link needs in order to stop depending on the
+email sender.
 
 The built-in email sender is rate limited twice over: a few messages an hour in total,
 and no more than one a minute to the same address. `email rate limit exceeded` means one
@@ -405,37 +437,24 @@ stored credentials.
 
 ## Deploying
 
-The app is a static export — `output: "export"` in `next.config.ts` — because everything is
-client-side already, so there is nothing for a Node server to do. `npm run build` writes plain
-HTML, CSS, and JS into `out/`, which is committed so a built copy always travels with the
-source. It is only a snapshot — it refreshes when someone runs the build and commits it,
-while the deploy always builds from scratch, so the two can differ.
+**Not deployed at the moment, and that is deliberate.**
 
-`.github/workflows/deploy.yml` publishes to GitHub Pages on every push to `main`, and can be
-re-run by hand from the Actions tab. The live site is
-<https://liezljvv74.github.io/definition-capture/>.
+The app used to be a static export — `output: "export"` — published to GitHub Pages at
+<https://liezljvv74.github.io/definition-capture/>. That had to go. A static host serves
+files with no process behind them, so there was nowhere to ask whether a visitor was signed
+in except the browser, and a check the browser makes is a check the browser can be told to
+skip. Verifying the session on the server means having a server.
 
-**Pages has to be set to build from GitHub Actions** for that workflow's output to be what
-visitors actually get: Settings → Pages → Build and deployment → Source → GitHub Actions.
-While the source is set to a branch instead, GitHub runs its own "pages build and deployment"
-job alongside ours, which renders this README with Jekyll and publishes *that* to the same
-URL. Both jobs report success, they race on every push, and the site ends up showing whichever
-finished last — a README where the app should be. Changing the source stops the Jekyll job
-from running at all.
+So `output: "export"`, the `/definition-capture` basePath, and the `GITHUB_PAGES` flag are
+all gone from `next.config.ts`, and `.github/workflows/deploy.yml` is disabled — its push
+trigger removed, the file kept as a starting point. The committed `out/` directory is the
+last static build and is no longer produced by anything.
 
-That build sets `GITHUB_PAGES=true`, which switches on the `/definition-capture` basePath — a
-project site is served from `https://<user>.github.io/<repo>/`, not the domain root, and
-without it every stylesheet and script would 404. The same flag fills in
-`NEXT_PUBLIC_BASE_PATH`, which is what `asset()` reads to prefix the two logo files, since Next
-rewrites a `<Link href>` for the basePath but not an image or `background-image` URL. Local
-builds leave the flag unset and keep serving from `/`.
-
-The workflow also passes `NEXT_PUBLIC_SUPABASE_URL` and
-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` into the build, read from repository **variables**
-rather than secrets — both end up in the browser bundle and are meant to be public, so
-hiding them in the CI config would only make them harder to check. Set them under Settings →
-Secrets and variables → Actions → Variables. Without them the deploy still succeeds, but
-every visitor gets the "no Supabase credentials" notice instead of a sign-in form.
+The next host needs to run Node, so that `src/proxy.ts` and the server components actually
+execute. Whatever it is will need `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in its build environment — both are compiled into
+the browser bundle and meant to be public — and its origin added to **Authentication → URL
+Configuration → Redirect URLs** in the Supabase dashboard, as `<origin>/auth/callback`.
 
 A deployed copy is the same list: sign in there and your terms are the ones you saved
 locally, because both talk to the same Supabase project.
@@ -444,17 +463,24 @@ locally, because both talk to the same Supabase project.
 
 ```
 src/
+  proxy.ts                verifies the session before any page is rendered
   app/
-    page.tsx              the landing page, a heading for now
-    terms/page.tsx        Terms page: add, edit, delete, search, sort
-    phrases/page.tsx      phrase list, the same shape as Terms
-    grammar/page.tsx      a heading for now
-    settings/page.tsx     profile, the lists, verb persons and tenses, exports
-    verbs/page.tsx        the conjugation tables, one rolled-up card each
-    term/page.tsx         one term by ?id=, read-only plus Edit
-    phrase/page.tsx       one phrase by ?id=, read-only plus Edit
     layout.tsx            shell, metadata, and the shaded logo backdrop
     globals.css           Tailwind theme and shared control styles
+    sign-in/page.tsx      a password, or an emailed link
+    sign-up/page.tsx      making an account
+    auth/callback/route.ts  trades a sign-in link's ?code= for a session
+    (workspace)/          everything behind a sign-in. The brackets keep the
+      layout.tsx            group out of the URL, so /terms is still /terms;
+                            the layout re-checks the session on the server
+      page.tsx              the landing page, a heading for now
+      terms/page.tsx        Terms page: add, edit, delete, search, sort
+      phrases/page.tsx      phrase list, the same shape as Terms
+      term/page.tsx         one term by ?id=, read-only plus Edit
+      phrase/page.tsx       one phrase by ?id=, read-only plus Edit
+      verbs/page.tsx        the conjugation tables, one rolled-up card each
+      grammar/page.tsx      a heading for now
+      settings/page.tsx     profile, password, the lists, exports
   components/
     AddTermDialog.tsx     add-term flow, including the duplicate prompt
     AddPhraseDialog.tsx   add-phrase flow, including the duplicate prompt
@@ -464,11 +490,11 @@ src/
     BackupButtons.tsx     export / import buttons and their dialogs
     EntryForm.tsx         shared add/edit form for terms
     PhraseForm.tsx        shared add/edit form for phrases
+    RefField.tsx          the Ref input, with its name suggestions
     MainNav.tsx           the nav bar, including the Glossary dropdown
-    SignInGate.tsx        the magic-link screen, and what stands in for the app
     AccountMenu.tsx       display name or address, and a gear to Settings
     ImportLocalPrompt.tsx offers a pre-account localStorage list to the account
-    StoreErrorBanner.tsx  says so when a save did not reach the database
+    StoreErrorBanner.tsx  says so when a read or a save did not reach the database
     NameListEditor.tsx    add / remove / reorder a list of names in Settings
     VerbTableControl.tsx  links to a verb's table, or to making one, from Edit term
     VerbTableCard.tsx     one conjugation table, rolled up until opened
@@ -477,10 +503,10 @@ src/
     RefText.tsx           renders a parsed Ref value
   lib/
     remoteStore.ts        the Supabase factory both stores are built on
-    supabaseClient.ts     the one client, built lazily so `next build` can prerender
-    session.ts            who is signed in, as an external store
+    supabaseClient.ts     the browser client, session kept in cookies
+    supabaseServer.ts     the server client, and the verified "who is asking?"
+    session.ts            who is signed in, plus sign-in, sign-up, and sign-out
     authLinkError.ts      why a sign-in link did not sign you in
-    pairing.ts            codes that sign a second device in without email
     legacyLocal.ts        read-only access to the pre-account localStorage keys
     constants.ts          what a new account's lists start out as
     types.ts              Entry and Phrase shapes plus validators
@@ -489,19 +515,21 @@ src/
     verbTables.ts         the conjugation tables
     useVerbTables.ts      React binding for the conjugation tables
     backup.ts             one backup file covering both lists
+    backupFile.ts         download plumbing: builds the .xlsx and .json files
     settings.ts           the account's display name and editable lists
     useSettings.ts        React binding for the settings row
-    backupFile.ts         download plumbing: builds the .xlsx and .json files
     exportFolder.ts       the chosen export folder, held in IndexedDB
     useExportFolder.ts    React binding for the export folder
     useTerms.ts           React binding for the term store
     usePhrases.ts         React binding for the phrase store
     useSession.ts         React binding for the session store
     useListSelection.ts   row selection shared by both list pages
+    refSuggestions.ts     the names a Ref field offers to complete
+    sortName.ts           the comparison that skips a leading der / die / das
     parseTerm.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting
-    assetPath.ts          prefixes public/ URLs with the basePath
+    assetPath.ts          builds a public/ URL; a no-op without a base path
   types/
     file-system-access.d.ts  the folder picker, which lib.dom does not describe
 assets/
@@ -512,14 +540,13 @@ public/
   captured-logo-bg.png    the 1000px copy the backdrop loads
 supabase/
   config.toml             CLI project config
-  functions/pair/         redeems a pairing code for a session (service role)
   migrations/             the tables, indexes, and row level security policies
 ```
 
 `assets/` holds source art that is not served; `public/` holds what the browser downloads, so
-the logo is kept there at the size it is actually shown rather than at full resolution. Because
-`next/image` does not rewrite an image `src` for the basePath and a static export has no
-optimiser behind it, the nav uses a plain `<img>` whose URL goes through `asset()`.
+the logo is kept there at the size it is actually shown rather than at full resolution. The nav
+uses a plain `<img>` whose URL goes through `asset()` — a no-op now that there is no base path,
+kept as the one place to reinstate one if the app is ever served from a sub-path again.
 
 Built with Next.js (App Router), TypeScript, Tailwind CSS, and Supabase.
 

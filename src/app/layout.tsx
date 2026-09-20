@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 
-import { ImportLocalPrompt } from "@/components/ImportLocalPrompt";
 import { MainNav } from "@/components/MainNav";
-import { SignInGate } from "@/components/SignInGate";
-import { StoreErrorBanner } from "@/components/StoreErrorBanner";
 import { asset } from "@/lib/assetPath";
 
 import "./globals.css";
@@ -19,14 +16,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <PageBackground />
         <MainNav />
-        {/* Every page reads a per-account table, so nothing below the nav is
-            worth rendering until we know who is asking. The gate keeps
-            `children` server-rendered — it only decides whether to show it. */}
-        <SignInGate>
-          <StoreErrorBanner />
-          <ImportLocalPrompt />
-          {children}
-        </SignInGate>
+        {/* Nothing is gated here any more. `src/proxy.ts` turns a signed-out
+            request away before a protected page is rendered, and
+            `(workspace)/layout.tsx` checks again on the server before the
+            pages inside it run. What used to be a client component hiding
+            markup the browser had already been given is now a redirect that
+            happens before the markup exists. */}
+        {children}
       </body>
     </html>
   );

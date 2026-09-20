@@ -48,3 +48,12 @@ body {
   @apply rounded-xl border border-slate-200 bg-white shadow-sm
     dark:border-slate-800 dark:bg-slate-900;
 }
+
+/* A button that reads as a link — for the "use this other way in" choices on
+   the sign-in screen, which switch a form rather than navigating anywhere and
+   so must stay buttons however much they look like links. */
+@utility link-button {
+  @apply cursor-pointer text-indigo-700 underline underline-offset-2
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500
+    dark:text-indigo-300;
+}

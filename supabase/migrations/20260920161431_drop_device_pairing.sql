@@ -1,0 +1,16 @@
+-- Removes device pairing, added in 20260910164031_add_device_pairing.sql.
+--
+-- Pairing existed to get a second device signed in without an email, because
+-- the built-in sender allows only one link a minute and a few an hour, and an
+-- emailed link was then the only way in. Signing in with a password removed
+-- that constraint: it sends nothing, so it works as often as you like, and the
+-- feature it was working around no longer bites.
+--
+-- What is left behind is worth being rid of. The flow needed an Edge Function
+-- holding the service role key with JWT verification switched off — necessarily,
+-- since the caller has no session yet — which is a great deal of privileged
+-- machinery to keep running for a convenience nothing now depends on.
+--
+-- Dropping the table takes its policy and index with it. No other table
+-- references it, so nothing else changes.
+drop table if exists public.device_pairings;

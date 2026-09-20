@@ -157,11 +157,13 @@ enabled = true
 # in emails.
 #
 # This and `additional_redirect_urls` below mirror what is set on the hosted
-# project. They are the exact strings `authRedirectUrl()` builds in
-# `src/lib/supabaseClient.ts`: the dev server is pinned to port 3001, and the
-# deployed site sits under the /definition-capture base path. A magic link
-# whose redirect is not listed here bounces to the site root instead of
-# signing anyone in.
+# project. The redirect is the exact string `authRedirectUrl()` builds in
+# `src/lib/supabaseClient.ts` — the server route that trades a link's `?code=`
+# for a session, not a page. A link whose redirect is not listed here bounces
+# to the site root instead of signing anyone in.
+#
+# The GitHub Pages URL is gone from the list along with the Pages deploy: the
+# app now checks the session on the server, which a static host cannot do.
 #
 # WARNING: most of the rest of this file is still the stock `supabase init`
 # template, and it does NOT match the hosted project — running
@@ -174,8 +176,7 @@ site_url = "https://liezljvv74.github.io/definition-capture/"
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
-  "https://liezljvv74.github.io/definition-capture/",
-  "http://localhost:3001/",
+  "http://localhost:3000/auth/callback",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

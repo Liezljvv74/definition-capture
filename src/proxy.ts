@@ -1,0 +1,111 @@
+/**
+ * Runs on the server before any page is rendered, and decides who gets to see
+ * one.
+ *
+ * This is the check the app used to be missing. As a static export there was
+ * nowhere to ask the question except the browser, and `SignInGate` only ever
+ * hid the workspace — the markup was served to anyone who asked. Here the
+ * question is asked and answered before a page is rendered at all.
+ *
+ * Named `proxy.ts` rather than `middleware.ts` because Next 16 renamed the
+ * convention; `middleware` still works but is deprecated. See
+ * `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md`.
+ *
+ * It does two jobs at once, and both matter:
+ *
+ *  1. Refreshes the session cookies. Access tokens expire every hour, and a
+ *     Server Component cannot write cookies, so if this did not run the
+ *     session would quietly die an hour into the day.
+ *  2. Sends anyone without a session to `/sign-in`, and anyone with one away
+ *     from it.
+ */
+
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+/** Reachable without a session. Everything else is the workspace. */
+const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/auth"];
+
+/** The two that make no sense to somebody who is already signed in. */
+const SIGNED_OUT_ONLY = ["/sign-in", "/sign-up"];
+
+/** `trailingSlash: true` means paths arrive as `/sign-in/`; compare without it. */
+function normalise(pathname: string): string {
+  return pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
+function isPublic(pathname: string): boolean {
+  const path = normalise(pathname);
+  return PUBLIC_PATHS.some((base) => path === base || path.startsWith(`${base}/`));
+}
+
+export async function proxy(request: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // A build with no credentials has nothing to check against. Let the request
+  // through so the sign-in screen can explain itself, rather than bouncing
+  // between two pages that both need a Supabase that is not there.
+  if (!url || !publishableKey) return NextResponse.next({ request });
+
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(url, publishableKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        // Onto the request so anything rendered downstream in this same pass
+        // sees the refreshed session, and onto a rebuilt response so the
+        // browser is told to keep it.
+        for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
+        response = NextResponse.next({ request });
+        for (const { name, value, options } of cookiesToSet) {
+          response.cookies.set(name, value, options);
+        }
+      },
+    },
+  });
+
+  // Nothing may go between creating the client and this call. `getClaims`
+  // refreshes the session as a side effect, and any `await` slipped in ahead
+  // of it can have the cookies written in the wrong order, which signs people
+  // out at random and is thoroughly miserable to debug.
+  //
+  // `getClaims`, never `getSession`: a cookie is sent by the caller, so a
+  // session read straight out of one is a claim, not a fact. This verifies the
+  // token's signature before believing a word of it.
+  const { data } = await supabase.auth.getClaims();
+  const signedIn = Boolean(data?.claims?.sub);
+
+  const { pathname } = request.nextUrl;
+
+  if (!signedIn && !isPublic(pathname)) {
+    const target = request.nextUrl.clone();
+    target.pathname = "/sign-in";
+    target.search = "";
+    return NextResponse.redirect(target);
+  }
+
+  if (signedIn && SIGNED_OUT_ONLY.includes(normalise(pathname))) {
+    const target = request.nextUrl.clone();
+    target.pathname = "/";
+    target.search = "";
+    return NextResponse.redirect(target);
+  }
+
+  return response;
+}
+
+export const config = {
+  // Everything except Next's own static output and the files served straight
+  // out of `public/`. Without the exclusions this would run on every
+  // stylesheet and image, and the redirect above would keep the sign-in page
+  // from loading its own CSS.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpe?g|gif|svg|ico|webp|css|js|txt|xml|webmanifest)$).*)",
+  ],
+};

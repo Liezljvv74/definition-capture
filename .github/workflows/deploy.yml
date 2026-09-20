@@ -1,9 +1,18 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages (disabled)
 
+# Disabled, not deleted.
+#
+# This workflow published `out/`, which `output: "export"` in next.config.ts
+# used to produce. That setting is gone: the app now verifies the session on
+# the server before a protected page renders, and GitHub Pages serves files
+# with no process behind them, so there is nothing there to run the check.
+# Building this app for Pages again would mean giving that up.
+#
+# The push trigger is removed so it cannot fire and publish a stale or broken
+# site. It is left here, and still runnable by hand, as the starting point for
+# whatever host replaces it — one that runs Node, where `src/proxy.ts` and the
+# server components actually execute.
 on:
-  push:
-    branches: [main]
-  # Lets you redeploy by hand from the Actions tab without pushing.
   workflow_dispatch:
 
 permissions:

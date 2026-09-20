@@ -100,6 +100,91 @@ export function currentUserId(): string | null {
 /* ---------------------------------------------------------------- commands */
 
 /**
+ * Supabase's own floor for a password. Checking it here rather than letting the
+ * server say so saves a round trip and, more to the point, lets the form say it
+ * before anyone has finished typing.
+ */
+export const MIN_PASSWORD = 6;
+
+/**
+ * Creates an account from an email and a password.
+ *
+ * Whether the new account can be used straight away is the project's decision,
+ * not this app's: with email confirmation switched on Supabase withholds the
+ * session until the address has been confirmed, and with it off the account is
+ * usable immediately. `needsConfirmation` reports which happened, by looking at
+ * whether a session came back, so the screen can say the right thing without
+ * this app having to know how the dashboard is configured.
+ *
+ * Note that a refusal is not always reported. With confirmations on, signing up
+ * with an address that already has an account returns success rather than
+ * saying so — Supabase does that deliberately, so that a stranger cannot use
+ * this form to discover who has an account here. The screen must therefore not
+ * promise that a new account was made, only that a confirmation email is on its
+ * way if one was needed.
+ */
+export async function signUpWithPassword(
+  email: string,
+  password: string,
+): Promise<{ needsConfirmation: boolean; error: string | null }> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return { needsConfirmation: false, error: "This build has no Supabase credentials." };
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password,
+    options: { emailRedirectTo: authRedirectUrl() },
+  });
+  if (error) return { needsConfirmation: false, error: error.message };
+
+  return { needsConfirmation: data.session === null, error: null };
+}
+
+/**
+ * Signs in with a password.
+ *
+ * This is the route the sign-in screen offers first, because it is the only
+ * one that sends no email and so cannot run into the sender's limits: the
+ * built-in sender allows one link a minute and a few an hour, which is quickly
+ * spent by signing in and out a few times while working on the app.
+ *
+ * Supabase does the checking; no password is ever stored, compared, or hashed
+ * by this app.
+ */
+export async function signInWithPassword(
+  email: string,
+  password: string,
+): Promise<{ error: string | null }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "This build has no Supabase credentials." };
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  });
+  return { error: error?.message ?? null };
+}
+
+/**
+ * Gives the signed-in account a password, or replaces the one it has.
+ *
+ * An account that has only ever been used through an emailed link has no
+ * password at all, and no way to be given one from the sign-in screen — the
+ * request has to come from a session that already exists. So it lives in
+ * Settings, and it is how an existing reader stops depending on the email
+ * sender.
+ */
+export async function setPassword(password: string): Promise<{ error: string | null }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "This build has no Supabase credentials." };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  return { error: error?.message ?? null };
+}
+
+/**
  * Emails a one-time sign-in link. Supabase creates the account on the first
  * link, so this is both sign-up and sign-in — there is no separate register
  * step and no password to store.

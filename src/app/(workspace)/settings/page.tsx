@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
 import { MAX_CATEGORIES } from "@/lib/constants";
@@ -11,12 +11,7 @@ import {
   ExportFolderError,
   supportsExportFolder,
 } from "@/lib/exportFolder";
-import {
-  createPairingCode,
-  PAIRING_MINUTES,
-  type PairingCode,
-} from "@/lib/pairing";
-import { signOut } from "@/lib/session";
+import { MIN_PASSWORD, setPassword, signOut } from "@/lib/session";
 import { clearError, saveSettings } from "@/lib/settings";
 import { useExportFolder } from "@/lib/useExportFolder";
 import { useSession } from "@/lib/useSession";
@@ -74,6 +69,8 @@ export default function SettingsPage() {
           loaded={loaded}
         />
 
+        <PasswordSection />
+
         <SettingSection title="Categories">
           <NameListEditor
             legend="Categories"
@@ -114,8 +111,6 @@ export default function SettingsPage() {
             placeholder="e.g. Present"
           />
         </SettingSection>
-
-        <PairDeviceSection />
 
         <ExportFolderSection />
       </div>
@@ -258,91 +253,116 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
   );
 }
 
-/* ------------------------------------------------------------- pairing */
+/* ------------------------------------------------------------ password */
 
 /**
- * Shows a code another device can sign in with. Useful in its own right, and
- * the way out of the email sender's rate limit: nothing here sends mail.
+ * Gives this account a password, or replaces the one it has.
+ *
+ * The point of it is the email sender: an account signed into by link alone
+ * can only get in as often as the sender will send, which is one link a minute
+ * and a few an hour, and signing out a few times in an afternoon is enough to
+ * be locked out for a while. A password has no such limit.
+ *
+ * There is no "current password" field. Supabase accepts the change on the
+ * strength of the session alone, and requiring one here would shut out exactly
+ * the people this section is for — the accounts that have no password yet.
  */
-function PairDeviceSection() {
-  const [code, setCode] = useState<PairingCode | null>(null);
-  const [error, setError] = useState<string | null>(null);
+function PasswordSection() {
+  const [password, setPasswordDraft] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
-  // The clock, ticked by an interval, so the countdown is derived at render
-  // rather than being a second piece of state to keep in step.
-  const [now, setNow] = useState(() => Date.now());
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!code) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [code]);
+  async function save() {
+    if (password.length < MIN_PASSWORD) {
+      setError(`A password needs at least ${MIN_PASSWORD} characters.`);
+      return;
+    }
+    if (password !== confirm) {
+      setError("The two passwords do not match.");
+      return;
+    }
 
-  const secondsLeft = code ? Math.max(0, Math.ceil((code.expiresAt - now) / 1000)) : 0;
-  const live = code !== null && secondsLeft > 0;
-
-  async function show() {
     setBusy(true);
     setError(null);
-    const { code: fresh, error: failure } = await createPairingCode();
-    setNow(Date.now());
-    setCode(fresh);
-    setError(failure);
+    const { error: failure } = await setPassword(password);
     setBusy(false);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+
+    setPasswordDraft("");
+    setConfirm("");
+    setDone(true);
   }
 
   return (
-    <SettingSection title="Pair a device" summary="Sign in elsewhere without email">
-      <p className="text-sm text-slate-600 dark:text-slate-300">
-        Shows a code you can type into this app on another device to sign it
-        in. The code lasts {PAIRING_MINUTES} minutes, works once, and is never
-        stored anywhere you could read it back — so if you lose sight of it,
-        make another.
+    <SettingSection title="Password" summary="Sign in without waiting for an email">
+      <p className="text-sm text-slate-600 dark:text-slate-400">
+        Set a password and you can sign in as often as you like. Signing in by emailed link
+        is limited to one a minute and a few an hour; a password is not limited at all.
       </p>
 
-      {error && (
-        <p
-          role="alert"
-          className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-        >
-          {error}
-        </p>
-      )}
-
-      {live && (
-        <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-center dark:border-indigo-900 dark:bg-indigo-950/40">
-          <p className="font-mono text-2xl font-semibold tracking-[0.2em] break-all">
-            {code.display}
-          </p>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-            Expires in {Math.floor(secondsLeft / 60)}:
-            {String(secondsLeft % 60).padStart(2, "0")}
-          </p>
+      <div className="mt-4 space-y-3">
+        <div>
+          <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium">
+            New password
+          </label>
+          <input
+            id="new-password"
+            type="password"
+            autoComplete="new-password"
+            className="field"
+            value={password}
+            onChange={(event) => {
+              setPasswordDraft(event.target.value);
+              setDone(false);
+              setError(null);
+            }}
+          />
         </div>
-      )}
 
-      {code && !live && (
-        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
-          That code has expired. Make another when the other device is ready.
-        </p>
-      )}
+        <div>
+          <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium">
+            Again, to be sure
+          </label>
+          <input
+            id="confirm-password"
+            type="password"
+            autoComplete="new-password"
+            className="field"
+            value={confirm}
+            onChange={(event) => {
+              setConfirm(event.target.value);
+              setDone(false);
+              setError(null);
+            }}
+          />
+        </div>
 
-      <div className="mt-4">
+        {error && (
+          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+            {error}
+          </p>
+        )}
+
+        {done && (
+          <p role="status" className="text-sm text-green-700 dark:text-green-400">
+            Password saved. Use it with your email address next time you sign in.
+          </p>
+        )}
+
         <button
           type="button"
-          className="btn btn-primary"
-          disabled={busy}
-          onClick={() => void show()}
+          className="btn btn-secondary"
+          disabled={busy || !password || !confirm}
+          onClick={() => void save()}
         >
-          {code ? "Show a new code" : "Show a pairing code"}
+          {busy ? "Saving…" : "Save password"}
         </button>
       </div>
-
-      <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-        On the other device, open the app and choose &ldquo;I have a pairing
-        code&rdquo; on the sign-in screen. It is signed in with its own
-        session, which you can sign out separately.
-      </p>
     </SettingSection>
   );
 }

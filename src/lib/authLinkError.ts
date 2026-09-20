@@ -30,8 +30,10 @@ function friendly(code: string, description: string): string {
 function capture(): string | null {
   if (typeof window === "undefined") return null;
 
-  // The fragment is where an implicit-flow redirect puts things; the query is
-  // where some refusals land instead. Check both.
+  // `src/app/auth/callback/route.ts` sends a refused link back here as
+  // `?error=<sentence>`. The fragment is checked too, because a link refused
+  // before it ever reaches the callback is answered by Supabase directly and
+  // lands there instead.
   const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const query = new URLSearchParams(window.location.search);
   const read = (key: string) => fragment.get(key) ?? query.get(key) ?? "";
@@ -52,7 +54,10 @@ function capture(): string | null {
   url.hash = fragment.toString();
   window.history.replaceState(window.history.state, "", url.toString());
 
-  return friendly(code, description);
+  // The callback route puts its whole sentence in `error`; Supabase's own
+  // refusals put theirs in `error_description`. Either is better than the
+  // generic fallback.
+  return friendly(code, description || error);
 }
 
 const captured = capture();

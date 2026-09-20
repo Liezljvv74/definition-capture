@@ -4,10 +4,10 @@ title Definition Capture
 
 cd /d "%~dp0"
 
-rem The port is fixed on purpose. Signing in sends an emailed link, and that
-rem link only comes back to an origin Supabase has been told to accept -
-rem http://localhost:3001 is the one registered. Any other port bounces it.
-set PORT=3001
+rem The port is fixed on purpose. A sign-in link only returns to a URL Supabase
+rem has been told to accept, and http://localhost:3000/auth/callback is the one
+rem registered. Any other port bounces it.
+set PORT=3000
 set URL=http://localhost:%PORT%
 
 rem Already running? Just open the browser, rather than letting a second
