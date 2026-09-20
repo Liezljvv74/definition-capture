@@ -3,8 +3,9 @@
  * exists and can be linked to while what goes on it is decided.
  *
  * No "use client" and no hooks: there is nothing here that needs the browser,
- * so it stays a server component and is prerendered into the static export
- * like every other route.
+ * so it stays a server component. It is still server-rendered rather than
+ * static, because it sits under `(workspace)` and that layout reads the
+ * session cookie before anything in the group renders.
  */
 export default function GrammarPage() {
   return (

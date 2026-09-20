@@ -162,8 +162,14 @@ enabled = true
 # for a session, not a page. A link whose redirect is not listed here bounces
 # to the site root instead of signing anyone in.
 #
-# The GitHub Pages URL is gone from the list along with the Pages deploy: the
-# app now checks the session on the server, which a static host cannot do.
+# The GitHub Pages URL is gone from here along with the Pages deploy: the app
+# now checks the session on the server, which a static host cannot do.
+#
+# `site_url` is always an allowed redirect target, and it is where a link whose
+# own redirect is not on the list gets sent. It pointed at the abandoned Pages
+# origin long after that site stopped being built, which made a domain nobody
+# owns any more a valid destination for a sign-in code. Until there is a
+# deployment it should name the only origin this app actually runs on.
 #
 # WARNING: most of the rest of this file is still the stock `supabase init`
 # template, and it does NOT match the hosted project — running
@@ -171,7 +177,7 @@ enabled = true
 # confirmations and TOTP MFA, shorten the OTP, and loosen the email rate
 # limit. Run `supabase config diff` first, and push a minimal config that
 # declares only the properties you actually mean to change.
-site_url = "https://liezljvv74.github.io/definition-capture/"
+site_url = "http://localhost:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.

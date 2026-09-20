@@ -11,6 +11,8 @@ import { createEntry, findByTerm } from "@/lib/storage";
 import { compareText } from "@/lib/sortName";
 import { EMPTY_ENTRY_INPUT, readNameList } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
+import { foldName } from "@/lib/foldName";
+import { ANOTHER, chosenTense, TenseChoice } from "@/components/TenseChoice";
 import { useVerbTables } from "@/lib/useVerbTables";
 import { createVerbTable } from "@/lib/verbTables";
 
@@ -69,16 +71,16 @@ function VerbList() {
   /** A verb arriving from the Edit term screen, still to be made. */
   const pending = (params.get("new") ?? "").trim();
   /** Either the verb just made, or one a link asked to open. */
-  const wanted = (params.get("verb") ?? pending).trim().toLocaleLowerCase();
+  const wanted = foldName(params.get("verb") ?? pending);
 
   const has = (verb: string) =>
-    tables.some((table) => table.verb.toLocaleLowerCase() === verb.toLocaleLowerCase());
+    tables.some((table) => foldName(table.verb) === foldName(verb));
 
   /** Alphabetical, and narrowed by the search box. */
   const visible = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase();
+    const needle = foldName(query);
     return tables
-      .filter((table) => !needle || table.verb.toLocaleLowerCase().includes(needle))
+      .filter((table) => !needle || foldName(table.verb).includes(needle))
       .sort((a, b) => compareText(a.verb, b.verb));
   }, [tables, query]);
 
@@ -97,7 +99,7 @@ function VerbList() {
    * Nothing is open until something asks: a link naming a verb, or a click.
    * One at a time, so opening a table rolls up whichever was open before.
    */
-  const targeted = tables.find((table) => table.verb.toLocaleLowerCase() === wanted);
+  const targeted = tables.find((table) => foldName(table.verb) === wanted);
   const openId = chosen === undefined ? (targeted?.id ?? null) : chosen;
 
   /**
@@ -239,9 +241,6 @@ function VerbList() {
   );
 }
 
-/** The dropdown value meaning "none of these, let me type one". */
-const ANOTHER = " another";
-
 /**
  * Everything a new table needs, asked in one place: the tense always, and
  * the persons the first time. Both answers are kept, so the second table is
@@ -258,7 +257,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
   const name = (verb || typedVerb).trim();
   const asksForVerb = verb === "";
   const alreadyHasTable = tables.some(
-    (table) => table.verb.toLocaleLowerCase() === name.toLocaleLowerCase(),
+    (table) => foldName(table.verb) === foldName(name),
   );
 
   const knownTenses = settings.verbTenses;
@@ -268,7 +267,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
   const [typedTense, setTypedTense] = useState("");
   const [typedPersons, setTypedPersons] = useState("");
 
-  const tense = (choice === ANOTHER ? typedTense : choice).trim();
+  const tense = chosenTense(choice, typedTense);
   const persons = needsPersons
     ? readNameList(typedPersons.split("\n"), MAX_LIST_LENGTH)
     : settings.verbPersons;
@@ -280,7 +279,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
     // A tense typed once is offered from then on. One already on the list
     // stays where it is: the order is the reader's.
     const known = knownTenses.some(
-      (candidate) => candidate.toLocaleLowerCase() === tense.toLocaleLowerCase(),
+      (candidate) => foldName(candidate) === foldName(tense),
     );
     const tenses = known ? knownTenses : [...knownTenses, tense];
 
@@ -333,33 +332,15 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
           Which tense is it for?
         </label>
 
-        {knownTenses.length > 0 && (
-          <select
-            id={`${ids}-tense`}
-            className="field"
-            value={choice}
-            onChange={(event) => setChoice(event.target.value)}
-          >
-            {knownTenses.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-            <option value={ANOTHER}>Another tense…</option>
-          </select>
-        )}
-
-        {(knownTenses.length === 0 || choice === ANOTHER) && (
-          <input
-            id={knownTenses.length === 0 ? `${ids}-tense` : `${ids}-new-tense`}
-            autoFocus
-            className={`field ${knownTenses.length > 0 ? "mt-2" : ""}`}
-            placeholder="e.g. Present"
-            aria-label="A new tense"
-            value={typedTense}
-            onChange={(event) => setTypedTense(event.target.value)}
-          />
-        )}
+        <TenseChoice
+          id={`${ids}-tense`}
+          known={knownTenses}
+          choice={choice}
+          onChoice={setChoice}
+          typed={typedTense}
+          onTyped={setTypedTense}
+          placeholder="e.g. Present"
+        />
 
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           Kept for next time, so you pick it from a list rather than typing it

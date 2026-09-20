@@ -8,6 +8,8 @@
  * begins with, not what an existing one sees.
  */
 
+import { foldName } from "@/lib/foldName";
+
 export const DEFAULT_SOURCES = ["Manual", "Google", "Claude", "ChatGPT"] as const;
 
 /**
@@ -44,7 +46,7 @@ export const MAX_LIST_LENGTH = 30;
  */
 export function sourceOrder(source: Source, sources: readonly string[]): number {
   const index = sources.findIndex(
-    (candidate) => candidate.toLocaleLowerCase() === source.toLocaleLowerCase(),
+    (candidate) => foldName(candidate) === foldName(source),
   );
   return index === -1 ? sources.length : index;
 }

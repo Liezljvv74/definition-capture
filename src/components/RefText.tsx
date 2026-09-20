@@ -3,21 +3,22 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { foldName } from "@/lib/foldName";
 import { parseRef } from "@/lib/parseRef";
 import type { Entry, Phrase } from "@/lib/types";
 
-/** Lower-cased name → the page it lives on, so `[[Name]]` can find it. */
+/** Folded name (see `foldName`) → the page it lives on, so `[[Name]]` finds it. */
 export type LinkIndex = Map<string, string>;
 
 /** Terms and phrases share one namespace, so a Ref can point at either list. */
 export function buildLinkIndex(entries: Entry[], phrases: Phrase[] = []): LinkIndex {
   const index: LinkIndex = new Map();
   for (const phrase of phrases) {
-    index.set(phrase.phrase.toLocaleLowerCase(), `/phrase?id=${phrase.id}`);
+    index.set(foldName(phrase.phrase), `/phrase?id=${phrase.id}`);
   }
   // Terms win a name clash: they are the more specific thing to link to.
   for (const entry of entries) {
-    index.set(entry.term.toLocaleLowerCase(), `/term?id=${entry.id}`);
+    index.set(foldName(entry.term), `/term?id=${entry.id}`);
   }
   return index;
 }
@@ -40,7 +41,7 @@ export function RefText({ value, linkIndex }: { value: string; linkIndex: LinkIn
             return <span key={index}>{token.value}</span>;
 
           case "term": {
-            const href = linkIndex.get(token.name.toLocaleLowerCase());
+            const href = linkIndex.get(foldName(token.name));
             if (!href) {
               return (
                 <span

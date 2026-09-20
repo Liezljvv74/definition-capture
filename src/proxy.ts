@@ -101,11 +101,21 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except Next's own static output and the files served straight
-  // out of `public/`. Without the exclusions this would run on every
+  // Everything except Next's own static output and the handful of files served
+  // straight out of `public/`. Without the exclusions this would run on every
   // stylesheet and image, and the redirect above would keep the sign-in page
   // from loading its own CSS.
+  //
+  // The public files are named one by one. This used to end in a pattern that
+  // excluded *any* path ending in `.png`, `.css`, `.js`, `.txt` and so on, at
+  // any depth — which quietly meant "runs before every request" was not true.
+  // Nothing protected happened to match, because `trailingSlash: true` ends
+  // every page path with a slash, but the exclusion was a standing invitation:
+  // one route handler or data URL ending in a listed extension and it would
+  // have skipped the session check and the cookie refresh with it. An exact
+  // list cannot widen by accident — a new file in `public/` either gets added
+  // here or simply goes through the proxy, and going through it is harmless.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpe?g|gif|svg|ico|webp|css|js|txt|xml|webmanifest)$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|captured-logo\\.png|captured-logo-bg\\.png).*)",
   ],
 };

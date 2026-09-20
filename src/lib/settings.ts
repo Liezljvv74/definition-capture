@@ -16,6 +16,13 @@ import {
   DEFAULT_SOURCES,
   MAX_LIST_LENGTH,
 } from "@/lib/constants";
+import {
+  ABANDONED,
+  readError,
+  readWithSkewRetry,
+  REFRESH_GAP_MS,
+  watchForRefocus,
+} from "@/lib/remoteStore";
 import { currentUserId, subscribe as subscribeToSession } from "@/lib/session";
 import { getSupabase } from "@/lib/supabaseClient";
 import { readNameList, readString } from "@/lib/types";
@@ -56,9 +63,6 @@ export type SettingsSnapshot = {
 
 const EMPTY: SettingsSnapshot = { settings: DEFAULT_SETTINGS, loaded: false, error: null };
 
-/** How long after a read another catch-up read is considered pointless. */
-const REFRESH_GAP_MS = 2000;
-
 let snapshot: SettingsSnapshot = EMPTY;
 let started = false;
 let cachedFor: string | null = null;
@@ -69,13 +73,6 @@ const listeners = new Set<() => void>();
 function publish(next: SettingsSnapshot): void {
   snapshot = next;
   for (const listener of listeners) listener();
-}
-
-function readError(error: unknown): string {
-  if (error && typeof error === "object" && "message" in error) {
-    return String((error as { message: unknown }).message);
-  }
-  return "Unknown error";
 }
 
 /** A row, or the absence of one, as settings. */
@@ -101,13 +98,19 @@ async function load(userId: string): Promise<void> {
 
   loading = true;
   try {
-    const { data, error } = await supabase
-      .from("user_settings")
-      .select("*")
-      .maybeSingle();
+    // The same retry the lists use, from the same function rather than a
+    // second copy of it. This read is the one most exposed to the clock skew
+    // it guards against: it runs on the first workspace page after signing in,
+    // with a token minted a moment earlier.
+    const answer = await readWithSkewRetry(
+      () => supabase.from("user_settings").select("*").maybeSingle(),
+      () => currentUserId() === userId,
+    );
 
     // A sign-out or account switch while the request was in flight.
-    if (currentUserId() !== userId) return;
+    if (answer === ABANDONED) return;
+
+    const { data, error } = answer;
 
     if (error) {
       // Hold on to the settings already in hand rather than snapping the
@@ -160,10 +163,7 @@ export function subscribe(listener: () => void): () => void {
     started = true;
     subscribeToSession(syncToSession);
     syncToSession();
-    window.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") refresh();
-    });
-    window.addEventListener("focus", refresh);
+    watchForRefocus(refresh);
   }
 
   return () => {
@@ -181,6 +181,45 @@ export function getServerSnapshot(): SettingsSnapshot {
 
 export function currentSettings(): Settings {
   return snapshot.settings;
+}
+
+/**
+ * Settings out of a backup file. Reads the camelCase shape an export writes,
+ * the way `fromRow` reads a database row.
+ *
+ * Null means the file carries no settings at all — an older backup, or a
+ * scoped one — and that is deliberately different from carrying empty
+ * settings: the first restores nothing, the second would overwrite the
+ * reader's categories and sources with blanks.
+ */
+export function parseSettings(raw: unknown): Settings | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const value = raw as Record<string, unknown>;
+
+  const categories = readNameList(value.categories, MAX_LIST_LENGTH);
+  const sources = readNameList(value.sources, MAX_LIST_LENGTH);
+  return {
+    displayName: readString(value.displayName).trim(),
+    // Same fallbacks as `fromRow`: a form with no options to pick from is not
+    // a state worth restoring into.
+    categories: categories.length > 0 ? categories : [...DEFAULT_CATEGORIES],
+    sources: sources.length > 0 ? sources : [...DEFAULT_SOURCES],
+    // No fallback: empty is a real answer, meaning not asked yet.
+    verbPersons: readNameList(value.verbPersons, MAX_LIST_LENGTH),
+    verbTenses: readNameList(value.verbTenses, MAX_LIST_LENGTH),
+  };
+}
+
+/** Watch only the error, without starting the read; see `remoteStore.ts`. */
+export function subscribeToError(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function getError(): string | null {
+  return snapshot.error;
 }
 
 export function clearError(): void {

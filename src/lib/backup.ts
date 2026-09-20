@@ -1,9 +1,21 @@
 /**
- * One backup file covers both lists. Keeping them together means a single
+ * One backup file covers every list. Keeping them together means a single
  * Export gives you everything — there is no second file to remember.
+ *
+ * "Every list" was once "both lists", and the gap between the two was a real
+ * way to lose data: conjugation tables were added as a third list and this
+ * module was never widened, so Export quietly left them out and a Replace
+ * import — which deletes before it writes — took them away for good. Adding a
+ * list means adding it here.
  */
 
 import { getPhrases, importPhrases, parsePhraseList } from "@/lib/phraseStorage";
+import {
+  currentSettings,
+  parseSettings,
+  saveSettings,
+  type Settings,
+} from "@/lib/settings";
 import { getEntries, importEntries, parseEntryList } from "@/lib/storage";
 import {
   NO_IMPORT,
@@ -11,11 +23,21 @@ import {
   type ImportCounts,
   type ImportMode,
   type Phrase,
+  type VerbTable,
 } from "@/lib/types";
+import {
+  getVerbTables,
+  importVerbTables,
+  parseVerbTableList,
+} from "@/lib/verbTables";
 
 export const BACKUP_FORMAT = "definition-capture-backup";
-/** 1 was terms only; 2 adds the phrase list. Version 1 files still import. */
-export const BACKUP_VERSION = 2;
+/**
+ * 1 was terms only; 2 adds the phrase list; 3 adds the conjugation tables.
+ * Older files still import — a missing list reads as an absent one, not an
+ * empty one, which is what keeps Replace from wiping what the file predates.
+ */
+export const BACKUP_VERSION = 3;
 
 export type Backup = {
   format: typeof BACKUP_FORMAT;
@@ -23,25 +45,41 @@ export type Backup = {
   exportedAt: string;
   entries: Entry[];
   phrases: Phrase[];
+  verbTables: VerbTable[];
+  /**
+   * Categories, sources, persons, tenses and the display name. Not a list, so
+   * it has no scope of its own: a full backup carries it and a scoped export
+   * does not. Null means the file says nothing about settings, which is what
+   * every backup written before version 3 looks like.
+   */
+  settings: Settings | null;
 };
 
 /** Which lists an export should carry. */
-export type BackupScope = "all" | "terms" | "phrases";
+export type BackupScope = "all" | "terms" | "phrases" | "verbs";
 
 export function buildBackup(scope: BackupScope = "all"): Backup {
+  // Asking what is included, rather than what is excluded: with three lists a
+  // chain of "not that one" tests silently includes anything newly added.
+  const wants = (list: Exclude<BackupScope, "all">) => scope === "all" || scope === list;
+
   return {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    entries: scope === "phrases" ? [] : getEntries(),
-    phrases: scope === "terms" ? [] : getPhrases(),
+    entries: wants("terms") ? getEntries() : [],
+    phrases: wants("phrases") ? getPhrases() : [],
+    verbTables: wants("verbs") ? getVerbTables() : [],
+    settings: scope === "all" ? currentSettings() : null,
   };
 }
 
 export type BackupContents = {
   entries: Entry[];
   phrases: Phrase[];
-  /** Rows in the file that could not be read as either kind. */
+  verbTables: VerbTable[];
+  settings: Settings | null;
+  /** Rows in the file that could not be read as any of the kinds. */
   unreadable: number;
 };
 
@@ -65,7 +103,7 @@ export function parseBackup(text: string): BackupParse {
   if (bare) {
     const { entries, unreadable } = parseEntryList(bare);
     return entries.length > 0
-      ? { ok: true, entries, phrases: [], unreadable }
+      ? { ok: true, entries, phrases: [], verbTables: [], settings: null, unreadable }
       : { ok: false, error: "That backup contains no readable terms." };
   }
 
@@ -77,14 +115,22 @@ export function parseBackup(text: string): BackupParse {
     };
   }
 
-  const { entries: rawEntries, phrases: rawPhrases } = raw as {
+  const {
+    entries: rawEntries,
+    phrases: rawPhrases,
+    verbTables: rawVerbTables,
+    settings: rawSettings,
+  } = raw as {
     entries?: unknown;
     phrases?: unknown;
+    verbTables?: unknown;
+    settings?: unknown;
   };
   const entryList = asArray(rawEntries);
   const phraseList = asArray(rawPhrases);
+  const verbTableList = asArray(rawVerbTables);
 
-  if (!entryList && !phraseList) {
+  if (!entryList && !phraseList && !verbTableList) {
     return {
       ok: false,
       error:
@@ -98,20 +144,39 @@ export function parseBackup(text: string): BackupParse {
   const parsedPhrases = phraseList
     ? parsePhraseList(phraseList)
     : { phrases: [], unreadable: 0 };
+  const parsedVerbTables = verbTableList
+    ? parseVerbTableList(verbTableList)
+    : { tables: [], unreadable: 0 };
 
-  if (parsedEntries.entries.length === 0 && parsedPhrases.phrases.length === 0) {
-    return { ok: false, error: "That backup contains no readable terms or phrases." };
+  if (
+    parsedEntries.entries.length === 0 &&
+    parsedPhrases.phrases.length === 0 &&
+    parsedVerbTables.tables.length === 0
+  ) {
+    return {
+      ok: false,
+      error: "That backup contains no readable terms, phrases, or verb tables.",
+    };
   }
 
   return {
     ok: true,
     entries: parsedEntries.entries,
     phrases: parsedPhrases.phrases,
-    unreadable: parsedEntries.unreadable + parsedPhrases.unreadable,
+    verbTables: parsedVerbTables.tables,
+    settings: parseSettings(rawSettings),
+    unreadable:
+      parsedEntries.unreadable + parsedPhrases.unreadable + parsedVerbTables.unreadable,
   };
 }
 
-export type ImportResult = { terms: ImportCounts; phrases: ImportCounts };
+export type ImportResult = {
+  terms: ImportCounts;
+  phrases: ImportCounts;
+  verbTables: ImportCounts;
+  /** Whether the file's settings were written over the reader's own. */
+  settingsRestored: boolean;
+};
 
 /** True when Replace would wipe a list the file carries nothing for. */
 export function leavesTermsAlone(contents: BackupContents, mode: ImportMode): boolean {
@@ -122,12 +187,37 @@ export function leavesPhrasesAlone(contents: BackupContents, mode: ImportMode): 
   return mode === "replace" && contents.phrases.length === 0;
 }
 
+export function leavesVerbTablesAlone(
+  contents: BackupContents,
+  mode: ImportMode,
+): boolean {
+  return mode === "replace" && contents.verbTables.length === 0;
+}
+
 /**
- * Applies a parsed backup to both lists with the same mode. "Replace" only
+ * Whether restoring would also put the file's settings back.
+ *
+ * Settings are one row rather than a list, so "add only what I don't have"
+ * has nothing to mean for them — there is always exactly one set. Skip leaves
+ * them alone; the two modes that are willing to overwrite saved data
+ * overwrite these too.
+ */
+export function restoresSettings(contents: BackupContents, mode: ImportMode): boolean {
+  return mode !== "skip" && contents.settings !== null;
+}
+
+/**
+ * Applies a parsed backup to every list with the same mode. "Replace" only
  * wipes a list the file actually carries, so restoring a single-list export —
- * terms only, or phrases only — cannot silently delete the other list.
+ * or a version 2 file written before conjugation tables existed — cannot
+ * silently delete the lists it says nothing about.
  */
 export function applyImport(contents: BackupContents, mode: ImportMode): ImportResult {
+  const settingsRestored = restoresSettings(contents, mode);
+  // Before the lists, so a restored set of sources and categories is already
+  // in place for the entries that refer to them.
+  if (settingsRestored && contents.settings) saveSettings(contents.settings);
+
   return {
     terms: leavesTermsAlone(contents, mode)
       ? { ...NO_IMPORT }
@@ -135,5 +225,9 @@ export function applyImport(contents: BackupContents, mode: ImportMode): ImportR
     phrases: leavesPhrasesAlone(contents, mode)
       ? { ...NO_IMPORT }
       : importPhrases(contents.phrases, mode),
+    verbTables: leavesVerbTablesAlone(contents, mode)
+      ? { ...NO_IMPORT }
+      : importVerbTables(contents.verbTables, mode),
+    settingsRestored,
   };
 }

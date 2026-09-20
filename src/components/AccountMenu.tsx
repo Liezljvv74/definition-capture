@@ -15,7 +15,9 @@ import { useSettings } from "@/lib/useSettings";
  * the gear is the way to it.
  *
  * Renders nothing while the session is still loading or when nobody is signed
- * in; in the latter case `SignInGate` is showing the sign-in screen anyway.
+ * in. The second case is close to unreachable now — `src/proxy.ts` redirects a
+ * request with no session before any workspace page renders — but this nav
+ * sits in the root layout, above that boundary, so it still has to cope.
  */
 export function AccountMenu() {
   const { user, loaded } = useSession();

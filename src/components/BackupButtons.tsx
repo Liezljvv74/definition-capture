@@ -1,14 +1,16 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 
 import { Modal } from "@/components/Modal";
 import {
   applyImport,
   leavesPhrasesAlone,
   leavesTermsAlone,
+  leavesVerbTablesAlone,
   parseBackup,
+  restoresSettings,
   type BackupContents,
   type BackupScope,
   type ImportResult,
@@ -16,6 +18,7 @@ import {
 import {
   downloadExcelBackup,
   downloadJsonBackup,
+  type ExportFormat,
   type ExportSummary,
   readFileAsText,
 } from "@/lib/backupFile";
@@ -24,9 +27,11 @@ import {
   clearExportFolder,
   ExportFolderError,
 } from "@/lib/exportFolder";
+import { foldName } from "@/lib/foldName";
 import type { ImportMode } from "@/lib/types";
 import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
+import { useVerbTables } from "@/lib/useVerbTables";
 
 type Preview = {
   fileName: string;
@@ -34,6 +39,7 @@ type Preview = {
   /** How many of the file's items already exist here, by name. */
   matchingTerms: number;
   matchingPhrases: number;
+  matchingVerbTables: number;
 };
 
 type ExportState =
@@ -41,8 +47,10 @@ type ExportState =
   | { step: "choosing" }
   | { step: "working" }
   | { step: "failed"; message: string }
+  /** Written. Says where, which is the one thing the reader cannot see. */
+  | { step: "done"; summary: ExportSummary }
   /** The chosen folder let us down. Keeps the format so it can be retried. */
-  | { step: "folderFailed"; message: string; format: "json" | "xlsx" };
+  | { step: "folderFailed"; message: string; format: ExportFormat };
 
 type ImportState =
   | { step: "idle" }
@@ -54,13 +62,12 @@ type ImportState =
 export function BackupButtons() {
   const { entries } = useTerms();
   const { phrases } = usePhrases();
+  const { tables } = useVerbTables();
   const fileInput = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<ImportState>({ step: "idle" });
   const [exportState, setExportState] = useState<ExportState>({ step: "idle" });
   const [scope, setScope] = useState<BackupScope>("all");
   const [mode, setMode] = useState<ImportMode>("skip");
-  /** The last finished export, for the button’s brief "Exported" state. */
-  const [justExported, setJustExported] = useState<ExportSummary | null>(null);
 
   // Which list the page you are on is showing, for the "only this page" option.
   // `/phrase` (one phrase) counts as the phrase list just as `/phrases` does,
@@ -69,22 +76,26 @@ export function BackupButtons() {
   // these buttons only appear on the four pages where that is true: the two
   // lists and the two detail pages.
   const pathname = usePathname();
-  const activeList: Exclude<BackupScope, "all"> = pathname.startsWith("/phrase")
+  const activeList: "terms" | "phrases" = pathname.startsWith("/phrase")
     ? "phrases"
     : "terms";
   const activeLabel = activeList === "phrases" ? "Phrases" : "Terms";
 
-  const savedCount = entries.length + phrases.length;
+  // "Everything" means every list, conjugation tables included. They have no
+  // "only this page" option because these buttons never appear on the verbs
+  // page — but leaving them out of the total was how an export that claimed to
+  // be everything quietly wasn't.
+  const savedCount = entries.length + phrases.length + tables.length;
   const scopedCount =
-    scope === "terms" ? entries.length : scope === "phrases" ? phrases.length : savedCount;
+    scope === "terms"
+      ? entries.length
+      : scope === "phrases"
+        ? phrases.length
+        : scope === "verbs"
+          ? tables.length
+          : savedCount;
 
-  useEffect(() => {
-    if (!justExported) return;
-    const timer = window.setTimeout(() => setJustExported(null), 2000);
-    return () => window.clearTimeout(timer);
-  }, [justExported]);
-
-  async function runExport(format: "json" | "xlsx") {
+  async function runExport(format: ExportFormat) {
     setExportState({ step: "working" });
     try {
       // Both formats are built and written asynchronously, so a failure
@@ -94,8 +105,11 @@ export function BackupButtons() {
         format === "json"
           ? await downloadJsonBackup(scope)
           : await downloadExcelBackup(scope);
-      setExportState({ step: "idle" });
-      setJustExported(summary);
+      // Not closed on success. `exportFolder.ts` argues that sending a backup
+      // somewhere unexpected is worse than an error, and until now the folder
+      // it resolved was computed and thrown away — the reader got a tick and
+      // no idea where the file went.
+      setExportState({ step: "done", summary });
     } catch (cause) {
       // A folder problem is worth its own screen: the file is fine, it is
       // the destination that is not, and that is something the reader can
@@ -112,7 +126,7 @@ export function BackupButtons() {
   }
 
   /** Pick a new folder from the failure screen, then finish the export. */
-  async function retryInNewFolder(format: "json" | "xlsx") {
+  async function retryInNewFolder(format: ExportFormat) {
     try {
       if (await chooseExportFolder()) await runExport(format);
     } catch (cause) {
@@ -128,7 +142,7 @@ export function BackupButtons() {
   }
 
   /** Give up on the folder for this export and let the browser take it. */
-  async function retryInDownloads(format: "json" | "xlsx") {
+  async function retryInDownloads(format: ExportFormat) {
     await clearExportFolder();
     await runExport(format);
   }
@@ -153,20 +167,30 @@ export function BackupButtons() {
       return;
     }
 
-    const savedTerms = new Set(entries.map((entry) => entry.term.toLocaleLowerCase()));
-    const savedPhrases = new Set(phrases.map((phrase) => phrase.phrase.toLocaleLowerCase()));
+    const savedTerms = new Set(entries.map((entry) => foldName(entry.term)));
+    const savedPhrases = new Set(phrases.map((phrase) => foldName(phrase.phrase)));
+    const savedVerbs = new Set(tables.map((table) => foldName(table.verb)));
 
     setMode("skip");
     setState({
       step: "preview",
       preview: {
         fileName: file.name,
-        contents: { entries: parsed.entries, phrases: parsed.phrases, unreadable: parsed.unreadable },
+        contents: {
+          entries: parsed.entries,
+          phrases: parsed.phrases,
+          verbTables: parsed.verbTables,
+          settings: parsed.settings,
+          unreadable: parsed.unreadable,
+        },
         matchingTerms: parsed.entries.filter((entry) =>
-          savedTerms.has(entry.term.toLocaleLowerCase()),
+          savedTerms.has(foldName(entry.term)),
         ).length,
         matchingPhrases: parsed.phrases.filter((phrase) =>
-          savedPhrases.has(phrase.phrase.toLocaleLowerCase()),
+          savedPhrases.has(foldName(phrase.phrase)),
+        ).length,
+        matchingVerbTables: parsed.verbTables.filter((table) =>
+          savedVerbs.has(foldName(table.verb)),
         ).length,
       },
     });
@@ -187,17 +211,17 @@ export function BackupButtons() {
         title={
           savedCount === 0
             ? "Save something before exporting"
-            : "Download all terms and phrases as Excel or JSON"
+            : "Download your terms, phrases, and verb tables as Excel or JSON"
         }
       >
-        {justExported ? "Exported ✓" : "Export"}
+        Export
       </button>
 
       <button
         type="button"
         className="btn btn-secondary"
         onClick={() => fileInput.current?.click()}
-        title="Restore terms and phrases from a JSON backup"
+        title="Restore terms, phrases, and verb tables from a JSON backup"
       >
         Import
       </button>
@@ -209,7 +233,33 @@ export function BackupButtons() {
             exportState.step === "working" ? undefined : setExportState({ step: "idle" })
           }
         >
-          {exportState.step === "folderFailed" ? (
+          {exportState.step === "done" ? (
+            <>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Saved{" "}
+                <span className="font-medium break-all">
+                  {exportState.summary.fileName}
+                </span>{" "}
+                {exportState.summary.folder === null
+                  ? "to your browser’s download folder"
+                  : `to ${exportState.summary.folder}`}
+                .
+              </p>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                {exportState.summary.count}{" "}
+                {exportState.summary.count === 1 ? "item" : "items"} written.
+              </p>
+              <div className="mt-5 flex justify-end">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setExportState({ step: "idle" })}
+                >
+                  Done
+                </button>
+              </div>
+            </>
+          ) : exportState.step === "folderFailed" ? (
             <>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 {exportState.message}
@@ -265,7 +315,7 @@ export function BackupButtons() {
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <ScopeChoice
                     label="Everything"
-                    detail={`${savedCount} in both lists`}
+                    detail={`${savedCount} across all lists`}
                     checked={scope === "all"}
                     disabled={exportState.step === "working"}
                     onSelect={() => setScope("all")}
@@ -290,7 +340,7 @@ export function BackupButtons() {
                 title="Excel workbook (.xlsx)"
                 detail={
                   scope === "all"
-                    ? "Terms and Phrases on separate sheets. Best for reading, sorting, or printing outside the app."
+                    ? "Terms, Phrases, and Verb tables on separate sheets. Best for reading, sorting, or printing outside the app."
                     : `One sheet of ${scope}. Best for reading, sorting, or printing outside the app.`
                 }
                 disabled={exportState.step === "working"}
@@ -349,6 +399,7 @@ export function BackupButtons() {
           preview={state.preview}
           savedTerms={entries.length}
           savedPhrases={phrases.length}
+          savedVerbTables={tables.length}
           mode={mode}
           onModeChange={setMode}
           onCancel={close}
@@ -382,6 +433,25 @@ export function BackupButtons() {
               incoming={state.preview.contents.phrases.length}
               untouched={leavesPhrasesAlone(state.preview.contents, "replace")}
             />
+            <ReplaceLine
+              label="Verb tables"
+              saved={tables.length}
+              incoming={state.preview.contents.verbTables.length}
+              untouched={leavesVerbTablesAlone(state.preview.contents, "replace")}
+            />
+            <li className="flex flex-wrap gap-x-1.5">
+              <span className="font-medium">Settings:</span>
+              {restoresSettings(state.preview.contents, "replace") ? (
+                <span className="text-red-700 dark:text-red-300">
+                  your categories, sources, persons, and tenses replaced by the
+                  file&rsquo;s
+                </span>
+              ) : (
+                <span className="text-slate-600 dark:text-slate-300">
+                  nothing in this file, so yours stay as they are
+                </span>
+              )}
+            </li>
           </ul>
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
@@ -413,6 +483,21 @@ export function BackupButtons() {
           <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
             <ResultBlock label="Terms" counts={state.result.terms} mode={state.mode} />
             <ResultBlock label="Phrases" counts={state.result.phrases} mode={state.mode} />
+            <ResultBlock
+              label="Verb tables"
+              counts={state.result.verbTables}
+              mode={state.mode}
+            />
+            <div>
+              <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                Settings
+              </p>
+              <p className="mt-1">
+                {state.result.settingsRestored
+                  ? "Categories, sources, persons, and tenses restored from the file."
+                  : "Left as they were."}
+              </p>
+            </div>
           </div>
           <div className="mt-5 flex justify-end">
             <button type="button" className="btn btn-primary" onClick={close}>
@@ -573,6 +658,7 @@ function ImportPreview({
   preview,
   savedTerms,
   savedPhrases,
+  savedVerbTables,
   mode,
   onModeChange,
   onCancel,
@@ -581,6 +667,7 @@ function ImportPreview({
   preview: Preview;
   savedTerms: number;
   savedPhrases: number;
+  savedVerbTables: number;
   mode: ImportMode;
   onModeChange: (mode: ImportMode) => void;
   onCancel: () => void;
@@ -588,6 +675,7 @@ function ImportPreview({
 }) {
   const terms = preview.contents.entries.length;
   const phrases = preview.contents.phrases.length;
+  const verbTables = preview.contents.verbTables.length;
 
   return (
     <Modal title="Import a backup" onClose={onCancel}>
@@ -603,6 +691,18 @@ function ImportPreview({
               {phrases} {phrases === 1 ? "phrase" : "phrases"} —{" "}
               {phrases - preview.matchingPhrases} new to you, {preview.matchingPhrases} of your{" "}
               {savedPhrases} already saved.
+            </li>
+            <li>
+              {verbTables} {verbTables === 1 ? "verb table" : "verb tables"} —{" "}
+              {verbTables - preview.matchingVerbTables} new to you,{" "}
+              {preview.matchingVerbTables} of your {savedVerbTables} already saved.
+            </li>
+            <li>
+              {!preview.contents.settings
+                ? "No settings in this file; yours will be left alone."
+                : restoresSettings(preview.contents, mode)
+                  ? "Settings included — these will replace your own."
+                  : "Settings included, but this option leaves your own alone."}
             </li>
           </ul>
           {preview.contents.unreadable > 0 && (

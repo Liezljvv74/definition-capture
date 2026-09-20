@@ -16,9 +16,18 @@ import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { deletePhrases } from "@/lib/phraseStorage";
 import { compareText } from "@/lib/sortName";
 import type { Phrase } from "@/lib/types";
+
+/** Module scope so their identity is stable across renders; `useListPage`
+ *  memoises against them. */
+const idOfPhrase = (phrase: Phrase) => phrase.id;
+const nameOfPhrase = (phrase: Phrase) => phrase.phrase;
+
 import { useTerms } from "@/lib/useTerms";
-import { useListSelection, type ListSelection } from "@/lib/useListSelection";
+import { useListPage } from "@/lib/useListPage";
+import { type ListSelection } from "@/lib/useListSelection";
+import { foldName } from "@/lib/foldName";
 import { usePhrases } from "@/lib/usePhrases";
+import { useWideScreen } from "@/lib/useWideScreen";
 
 type PhraseSortKey = "phrase" | "literalMeaning";
 /** null keeps the order phrases were added in, newest first. */
@@ -33,23 +42,20 @@ const COLUMNS: { key?: PhraseSortKey; label: string; className?: string }[] = [
 
 export default function PhrasesPage() {
   const { phrases, loaded } = usePhrases();
+  const wide = useWideScreen();
   const { entries } = useTerms();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<PhraseSort>(null);
-  /** The ids the confirmation dialog is currently asking about, or null. */
-  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
-  /** The phrase the edit dialog is open on, or null. */
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
 
   const visible = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase();
+    const needle = foldName(query);
     const filtered = needle
       ? phrases.filter((phrase) =>
           [phrase.phrase, phrase.literalMeaning, phrase.usageExample, phrase.ref].some(
-            (field) => field.toLocaleLowerCase().includes(needle),
+            (field) => foldName(field).includes(needle),
           ),
         )
       : phrases;
@@ -67,19 +73,15 @@ export default function PhrasesPage() {
     });
   }, [phrases, query, sort]);
 
-  const visibleIds = useMemo(() => visible.map((phrase) => phrase.id), [visible]);
-  const selection = useListSelection(visibleIds);
-
-  const editing = editingId
-    ? (phrases.find((phrase) => phrase.id === editingId) ?? null)
-    : null;
-
-  /** Names in on-screen order, so the dialog lists what the user is looking at. */
-  const pendingNames = useMemo(() => {
-    if (!pendingDelete) return [];
-    const doomed = new Set(pendingDelete);
-    return phrases.filter((phrase) => doomed.has(phrase.id)).map((phrase) => phrase.phrase);
-  }, [pendingDelete, phrases]);
+  // The same four pieces the term page uses; see `useListPage`.
+  const {
+    selection,
+    editing,
+    setEditingId,
+    pendingDelete,
+    setPendingDelete,
+    pendingNames,
+  } = useListPage(visible, idOfPhrase, nameOfPhrase);
 
   return (
     <>
@@ -143,6 +145,8 @@ export default function PhrasesPage() {
                     onClear={selection.clear}
                   />
                 )}
+                {/* See `useWideScreen`: one layout once known, both until. */}
+                {wide !== false && (
                 <PhraseTable
                   phrases={visible}
                   sort={sort}
@@ -160,13 +164,16 @@ export default function PhrasesPage() {
                   onEdit={setEditingId}
                   onDelete={(id) => setPendingDelete([id])}
                 />
-                <PhraseCards
-                  phrases={visible}
-                  linkIndex={linkIndex}
-                  selection={selection}
-                  onEdit={setEditingId}
-                  onDelete={(id) => setPendingDelete([id])}
-                />
+                )}
+                {wide !== true && (
+                  <PhraseCards
+                    phrases={visible}
+                    linkIndex={linkIndex}
+                    selection={selection}
+                    onEdit={setEditingId}
+                    onDelete={(id) => setPendingDelete([id])}
+                  />
+                )}
                 {query.trim() !== "" && (
                   <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                     Showing {visible.length} of {phrases.length} phrases.

@@ -41,10 +41,13 @@ function classify(word: string): RefToken | null {
   if (/^www\.\S+\.\S+$/i.test(word)) {
     return { kind: "url", href: `https://${word}`, label: word };
   }
-  // One slash, not two: `//evil.com` is protocol-relative and leaves the
-  // site, but would otherwise read as an internal path and be rendered as a
-  // same-tab link with no `rel="noopener"`.
-  if (/^\/(?!\/)\S*$/.test(word)) {
+  // One slash, and not a backslash behind it. `//evil.com` is protocol-
+  // relative and leaves the site, but would otherwise read as an internal path
+  // and be rendered as a same-tab link with no `rel="noopener"`. `/\evil.com`
+  // is the same attack wearing a different hat: browsers fold `\` to `/` for
+  // http(s) URLs, so it resolves off-site too while sailing past a guard that
+  // only looks for a second slash.
+  if (/^\/(?![/\\])\S*$/.test(word)) {
     return { kind: "internal", href: word, label: word };
   }
   if (/^#[^\s#]+$/.test(word)) {
@@ -96,7 +99,3 @@ export function parseRef(text: string): RefToken[] {
   return tokens;
 }
 
-/** True when the field holds at least one thing worth linking. */
-export function hasLink(text: string): boolean {
-  return parseRef(text).some((token) => token.kind !== "text");
-}

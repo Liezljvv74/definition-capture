@@ -10,7 +10,8 @@
  * failure it can no longer block on.
  */
 
-import { createId, createRemoteStore } from "@/lib/remoteStore";
+import { foldName } from "@/lib/foldName";
+import { createId, createRemoteStore, usableId } from "@/lib/remoteStore";
 import {
   needsDefinition,
   NO_IMPORT,
@@ -96,6 +97,9 @@ export const subscribe = store.subscribe;
 export const getSnapshot = store.getSnapshot;
 export const getServerSnapshot = store.getServerSnapshot;
 export const clearError = store.clearError;
+export const subscribeToError = store.subscribeToError;
+export const getError = store.getError;
+export const settled = store.settled;
 
 /* --------------------------------------------------------------- mutations */
 
@@ -138,10 +142,6 @@ export function updateEntry(id: string, input: EntryInput): Entry | null {
   return updated;
 }
 
-export function deleteEntry(id: string): void {
-  deleteEntries([id]);
-}
-
 /**
  * Removes every entry whose id is listed, in one write — so a bulk delete is a
  * single round trip and a single re-render, not one per row. Returns how many
@@ -164,11 +164,11 @@ export function getEntries(): Entry[] {
 
 /** Case-insensitive term lookup, used for the duplicate check before saving. */
 export function findByTerm(term: string, ignoreId?: string): Entry | undefined {
-  const needle = term.trim().toLocaleLowerCase();
+  const needle = foldName(term);
   if (!needle) return undefined;
   return store
     .items()
-    .find((entry) => entry.id !== ignoreId && entry.term.toLocaleLowerCase() === needle);
+    .find((entry) => entry.id !== ignoreId && foldName(entry.term) === needle);
 }
 
 /* ------------------------------------------------------------------ import */
@@ -185,16 +185,6 @@ function newestFirst(entries: Entry[]): Entry[] {
 }
 
 /**
- * Ids in a backup are whatever the exporting version used — the localStorage
- * store minted short random strings, which the `uuid` primary key will not
- * accept. Anything that is not a usable id is replaced with a fresh one.
- */
-function usableId(id: string, taken: Set<string>): string {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  return isUuid && !taken.has(id) ? id : createId();
-}
-
-/**
  * Merges imported entries into the term list. Existing entries are matched by
  * term, case-insensitively — the same rule the add form uses. Imported entries
  * keep their original `dateAdded`, which is the point of a backup.
@@ -203,8 +193,16 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts
   const result: ImportCounts = { ...NO_IMPORT };
 
   if (mode === "replace") {
+    // One row per term before anything is sent. The unique index on
+    // (user_id, lower(term)) refuses a second, and `replaceAll` deletes the
+    // old list before it inserts — so a file naming the same term twice would
+    // have emptied the list and then failed to refill it. The last copy wins,
+    // which is what the merge modes do too.
+    const byTerm = new Map<string, Entry>();
+    for (const entry of incoming) byTerm.set(foldName(entry.term), entry);
+
     const taken = new Set<string>();
-    const restored = incoming.map((entry) => {
+    const restored = [...byTerm.values()].map((entry) => {
       const id = usableId(entry.id, taken);
       taken.add(id);
       return { ...entry, id };
@@ -215,21 +213,35 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts
   }
 
   const byTerm = new Map(
-    store.items().map((entry) => [entry.term.toLocaleLowerCase(), entry]),
+    store.items().map((entry) => [foldName(entry.term), entry]),
   );
   const taken = new Set(store.items().map((entry) => entry.id));
   const now = new Date().toISOString();
   const added: Entry[] = [];
+  /** Matched rows, sent as one write after the loop rather than one each. */
+  const updated: Entry[] = [];
+  /**
+   * Where in `added` a term this same file already introduced is waiting.
+   *
+   * The new entries go in as one insert after the loop, so until then they are
+   * in `byTerm` but not in the store. A second copy of the same term used to
+   * take the update path and call `store.update`, which maps over a list the
+   * row is not in and sends a `PATCH` matching no row: no error, no write, and
+   * `updated` counted one anyway. The second copy simply vanished. Merging
+   * into the pending entry instead is what keeps it.
+   */
+  const pending = new Map<string, number>();
 
   for (const candidate of incoming) {
-    const existing = byTerm.get(candidate.term.toLocaleLowerCase());
+    const key = foldName(candidate.term);
+    const existing = byTerm.get(key);
 
     if (existing) {
       if (mode === "skip") {
         result.skipped += 1;
         continue;
       }
-      store.update({
+      const merged: Entry = {
         ...existing,
         term: candidate.term,
         definition: candidate.definition,
@@ -241,7 +253,14 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts
         source: candidate.source,
         needsDefinition: candidate.needsDefinition,
         dateUpdated: now,
-      });
+      };
+
+      const at = pending.get(key);
+      if (at === undefined) updated.push(merged);
+      else added[at] = merged;
+
+      // So a third copy of the same term merges onto the second, not the first.
+      byTerm.set(key, merged);
       result.updated += 1;
       continue;
     }
@@ -249,13 +268,15 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts
     const id = usableId(candidate.id, taken);
     taken.add(id);
     const entry = { ...candidate, id };
+    pending.set(key, added.length);
     added.push(entry);
-    byTerm.set(candidate.term.toLocaleLowerCase(), entry);
+    byTerm.set(key, entry);
     result.added += 1;
   }
 
-  // Every new entry in one insert; the updates above each went on their own,
-  // because they touch rows that already exist.
+  // Two writes for the whole import, whatever its size: one for the rows
+  // that already existed and one for the rows that did not.
+  store.updateMany(updated);
   store.insertMany(newestFirst(added));
   return result;
 }

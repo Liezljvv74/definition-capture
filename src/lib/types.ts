@@ -1,4 +1,5 @@
 import { DEFAULT_SOURCE, MAX_CATEGORIES, type Source } from "@/lib/constants";
+import { foldName } from "@/lib/foldName";
 
 /* ----------------------------------------------------------- term entries  */
 
@@ -94,7 +95,7 @@ export type VerbTable = {
 };
 
 /** How many rows one table may hold, matching the check on the table. */
-export const MAX_VERB_ROWS = 30;
+const MAX_VERB_ROWS = 30;
 
 /** How many tense columns fit before a table stops being readable. */
 export const MAX_TENSES = 12;
@@ -188,7 +189,7 @@ export function readNameList(value: unknown, limit: number): string[] {
   for (const item of value) {
     const name = readString(item).trim();
     if (!name) continue;
-    const key = name.toLocaleLowerCase();
+    const key = foldName(name);
     if (seen.has(key)) continue;
     seen.add(key);
     names.push(name);

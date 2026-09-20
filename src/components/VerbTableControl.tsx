@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { foldName } from "@/lib/foldName";
 import { useVerbTables } from "@/lib/useVerbTables";
 
 /**
@@ -20,7 +21,7 @@ export function VerbTableControl({ verb }: { verb: string }) {
 
   const name = verb.trim();
   const existing = tables.some(
-    (table) => table.verb.toLocaleLowerCase() === name.toLocaleLowerCase(),
+    (table) => foldName(table.verb) === foldName(name),
   );
 
   return (
