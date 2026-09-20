@@ -14,6 +14,7 @@ import {
 } from "@/components/DeleteControls";
 import { EditGrammarRuleDialog } from "@/components/EditGrammarRuleDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { RowEditButton } from "@/components/RowEditButton";
 import { foldName } from "@/lib/foldName";
 import { deleteGrammarRules } from "@/lib/grammarRules";
 import { compareText } from "@/lib/sortName";
@@ -339,8 +340,8 @@ function RuleTable({
             <th scope="col" className="w-[16%] px-3 py-2.5 font-semibold">
               Ref
             </th>
-            <th scope="col" className="w-12 px-3 py-2.5">
-              <span className="sr-only">Delete</span>
+            <th scope="col" className="w-24 px-3 py-2.5">
+              <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
@@ -394,8 +395,11 @@ function RuleTable({
               <td className="px-3 py-2.5 break-words text-slate-700 dark:text-slate-300">
                 {rule.ref ? <RefText value={rule.ref} linkIndex={linkIndex} /> : <Dash />}
               </td>
-              <td className="px-3 py-2.5 text-right">
-                <RowDeleteButton label={rule.title} onClick={() => onDelete(rule.id)} />
+              <td className="px-3 py-2.5">
+                <div className="flex items-center justify-end gap-0.5">
+                  <RowEditButton label={rule.title} onClick={() => onEdit(rule.id)} />
+                  <RowDeleteButton label={rule.title} onClick={() => onDelete(rule.id)} />
+                </div>
               </td>
             </tr>
           ))}
@@ -454,11 +458,10 @@ function RuleCards({
                   >
                     <h2>{rule.title}</h2>
                   </button>
-                  <RowDeleteButton
-                    label={rule.title}
-                    onClick={() => onDelete(rule.id)}
-                    className="shrink-0"
-                  />
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <RowEditButton label={rule.title} onClick={() => onEdit(rule.id)} />
+                    <RowDeleteButton label={rule.title} onClick={() => onDelete(rule.id)} />
+                  </div>
                 </div>
 
                 {rule.category && (
