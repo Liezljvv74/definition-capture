@@ -11,10 +11,10 @@
  */
 
 import { foldName } from "@/lib/foldName";
-import { createId, createRemoteStore, usableId } from "@/lib/remoteStore";
+import { planImport } from "@/lib/planImport";
+import { createId, createRemoteStore } from "@/lib/remoteStore";
 import {
   needsDefinition,
-  NO_IMPORT,
   readCategories,
   readSource,
   readString,
@@ -186,97 +186,43 @@ function newestFirst(entries: Entry[]): Entry[] {
 
 /**
  * Merges imported entries into the term list. Existing entries are matched by
- * term, case-insensitively — the same rule the add form uses. Imported entries
- * keep their original `dateAdded`, which is the point of a backup.
+ * term, case- and accent-insensitively — the same rule the add form uses.
+ * Imported entries keep their original `dateAdded`, which is the point of a
+ * backup.
+ *
+ * What it *means* to merge lives in `planImport`, which is pure and tested;
+ * this decides what that plan is worth writing and how.
  */
 export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts {
-  const result: ImportCounts = { ...NO_IMPORT };
-
-  if (mode === "replace") {
-    // One row per term before anything is sent. The unique index on
-    // (user_id, lower(term)) refuses a second, and `replaceAll` deletes the
-    // old list before it inserts — so a file naming the same term twice would
-    // have emptied the list and then failed to refill it. The last copy wins,
-    // which is what the merge modes do too.
-    const byTerm = new Map<string, Entry>();
-    for (const entry of incoming) byTerm.set(foldName(entry.term), entry);
-
-    const taken = new Set<string>();
-    const restored = [...byTerm.values()].map((entry) => {
-      const id = usableId(entry.id, taken);
-      taken.add(id);
-      return { ...entry, id };
-    });
-    result.added = restored.length;
-    store.replaceAll(newestFirst(restored));
-    return result;
-  }
-
-  const byTerm = new Map(
-    store.items().map((entry) => [foldName(entry.term), entry]),
-  );
-  const taken = new Set(store.items().map((entry) => entry.id));
   const now = new Date().toISOString();
-  const added: Entry[] = [];
-  /** Matched rows, sent as one write after the loop rather than one each. */
-  const updated: Entry[] = [];
-  /**
-   * Where in `added` a term this same file already introduced is waiting.
-   *
-   * The new entries go in as one insert after the loop, so until then they are
-   * in `byTerm` but not in the store. A second copy of the same term used to
-   * take the update path and call `store.update`, which maps over a list the
-   * row is not in and sends a `PATCH` matching no row: no error, no write, and
-   * `updated` counted one anyway. The second copy simply vanished. Merging
-   * into the pending entry instead is what keeps it.
-   */
-  const pending = new Map<string, number>();
 
-  for (const candidate of incoming) {
-    const key = foldName(candidate.term);
-    const existing = byTerm.get(key);
+  const plan = planImport(store.items(), incoming, mode, {
+    keyOf: (entry) => foldName(entry.term),
+    idOf: (entry) => entry.id,
+    withId: (entry, id) => ({ ...entry, id }),
+    merge: (existing, candidate) => ({
+      ...existing,
+      term: candidate.term,
+      definition: candidate.definition,
+      ref: candidate.ref,
+      // Categories are part of the entry the backup is restoring. Leaving
+      // them out kept whatever was already there and silently threw the
+      // backup’s away, which is not what "update" promises.
+      categories: candidate.categories,
+      source: candidate.source,
+      needsDefinition: candidate.needsDefinition,
+      dateUpdated: now,
+    }),
+  });
 
-    if (existing) {
-      if (mode === "skip") {
-        result.skipped += 1;
-        continue;
-      }
-      const merged: Entry = {
-        ...existing,
-        term: candidate.term,
-        definition: candidate.definition,
-        ref: candidate.ref,
-        // Categories are part of the entry the backup is restoring. Leaving
-        // them out kept whatever was already there and silently threw the
-        // backup’s away, which is not what "update" promises.
-        categories: candidate.categories,
-        source: candidate.source,
-        needsDefinition: candidate.needsDefinition,
-        dateUpdated: now,
-      };
-
-      const at = pending.get(key);
-      if (at === undefined) updated.push(merged);
-      else added[at] = merged;
-
-      // So a third copy of the same term merges onto the second, not the first.
-      byTerm.set(key, merged);
-      result.updated += 1;
-      continue;
-    }
-
-    const id = usableId(candidate.id, taken);
-    taken.add(id);
-    const entry = { ...candidate, id };
-    pending.set(key, added.length);
-    added.push(entry);
-    byTerm.set(key, entry);
-    result.added += 1;
+  if (plan.toReplace) {
+    store.replaceAll(newestFirst(plan.toReplace));
+    return plan.counts;
   }
 
-  // Two writes for the whole import, whatever its size: one for the rows
-  // that already existed and one for the rows that did not.
-  store.updateMany(updated);
-  store.insertMany(newestFirst(added));
-  return result;
+  // Two writes for the whole import, whatever its size: one for the rows that
+  // already existed and one for the rows that did not.
+  store.updateMany(plan.toUpdate);
+  store.insertMany(newestFirst(plan.toInsert));
+  return plan.counts;
 }

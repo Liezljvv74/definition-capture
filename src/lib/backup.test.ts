@@ -1,0 +1,195 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  leavesPhrasesAlone,
+  leavesTermsAlone,
+  leavesVerbTablesAlone,
+  parseBackup,
+  restoresSettings,
+  type BackupContents,
+} from "@/lib/backup";
+import type { Entry, Phrase } from "@/lib/types";
+
+const ok = (text: string) => {
+  const parsed = parseBackup(text);
+  if (!parsed.ok) throw new Error(`expected a readable backup, got: ${parsed.error}`);
+  return parsed;
+};
+
+const contents = (over: Partial<BackupContents> = {}): BackupContents => ({
+  entries: [],
+  phrases: [],
+  verbTables: [],
+  settings: null,
+  unreadable: 0,
+  ...over,
+});
+
+const entry = (term: string): Entry => ({
+  id: crypto.randomUUID(),
+  term,
+  definition: "d",
+  ref: "",
+  categories: [],
+  source: "Manual",
+  dateAdded: "2026-01-01T00:00:00.000Z",
+  dateUpdated: null,
+  needsDefinition: false,
+});
+
+const phrase = (text: string): Phrase => ({
+  id: crypto.randomUUID(),
+  phrase: text,
+  literalMeaning: "",
+  usageExample: "",
+  ref: "",
+});
+
+describe("parseBackup — rejects", () => {
+  it("anything that is not JSON", () => {
+    expect(parseBackup("not json").ok).toBe(false);
+    expect(parseBackup("").ok).toBe(false);
+  });
+
+  it("JSON with no list in it at all", () => {
+    for (const text of ["null", "42", '"a"', "{}", '{"other":[]}']) {
+      expect(parseBackup(text).ok).toBe(false);
+    }
+  });
+
+  it("a file whose lists are present but hold nothing readable", () => {
+    expect(parseBackup('{"entries":[],"phrases":[],"verbTables":[]}').ok).toBe(false);
+    expect(parseBackup('{"entries":[null,42,{}]}').ok).toBe(false);
+  });
+});
+
+describe("parseBackup — reads", () => {
+  it("a bare array as a list of terms", () => {
+    // What a hand-written file or a very early export looks like.
+    const parsed = ok(JSON.stringify([entry("Tür")]));
+    expect(parsed.entries.map((e) => e.term)).toEqual(["Tür"]);
+    expect(parsed.phrases).toEqual([]);
+    expect(parsed.verbTables).toEqual([]);
+  });
+
+  it("counts rows it could not read rather than failing on them", () => {
+    const parsed = ok(JSON.stringify({ entries: [entry("Tür"), null, 42, {}] }));
+    expect(parsed.entries).toHaveLength(1);
+    expect(parsed.unreadable).toBe(3);
+  });
+
+  it("a version 2 file, leaving verb tables and settings absent", () => {
+    // Absent is not the same as empty — see the Replace tests below.
+    const parsed = ok(
+      JSON.stringify({ version: 2, entries: [entry("Tür")], phrases: [] }),
+    );
+    expect(parsed.verbTables).toEqual([]);
+    expect(parsed.settings).toBeNull();
+  });
+
+  it("a version 3 file, with tables and settings", () => {
+    const parsed = ok(
+      JSON.stringify({
+        version: 3,
+        entries: [entry("gehen")],
+        verbTables: [
+          {
+            id: crypto.randomUUID(),
+            verb: "gehen",
+            tenses: ["Present"],
+            rows: [{ person: "ich", conjugations: ["gehe"], notes: "" }],
+          },
+        ],
+        settings: { categories: ["Grammar"], sources: ["Textbook"] },
+      }),
+    );
+    expect(parsed.verbTables).toHaveLength(1);
+    expect(parsed.verbTables[0].rows[0].conjugations).toEqual(["gehe"]);
+    expect(parsed.settings?.categories).toEqual(["Grammar"]);
+  });
+
+  it("holds the conjugation invariant for a hand-edited table", () => {
+    // Two headings, one cell in the file: the reader pads it, because the
+    // database cannot enforce this and everything downstream assumes it.
+    const parsed = ok(
+      JSON.stringify({
+        verbTables: [
+          {
+            id: crypto.randomUUID(),
+            verb: "gehen",
+            tenses: ["Present", "Past"],
+            rows: [{ person: "ich", conjugations: ["gehe"] }],
+          },
+        ],
+      }),
+    );
+    expect(parsed.verbTables[0].rows[0].conjugations).toEqual(["gehe", ""]);
+  });
+
+  it("survives a round trip through JSON with accented and non-Latin text", () => {
+    const original = { id: crypto.randomUUID(), term: "Tür", definition: "ある 🇩🇪" };
+    const parsed = ok(JSON.stringify({ entries: [original] }));
+    expect(parsed.entries[0].term).toBe("Tür");
+    expect(parsed.entries[0].definition).toBe("ある 🇩🇪");
+  });
+});
+
+/**
+ * Replace deletes before it writes, so what it declines to touch is the most
+ * consequential thing in this module. A list the file says nothing about must
+ * survive — otherwise restoring a terms-only export, or a backup written
+ * before conjugation tables existed, silently destroys everything else.
+ */
+describe("Replace only touches the lists the file carries", () => {
+  it("leaves every other list alone when the file has terms only", () => {
+    const only = contents({ entries: [entry("Tür")] });
+    expect(leavesTermsAlone(only, "replace")).toBe(false);
+    expect(leavesPhrasesAlone(only, "replace")).toBe(true);
+    expect(leavesVerbTablesAlone(only, "replace")).toBe(true);
+    expect(restoresSettings(only, "replace")).toBe(false);
+  });
+
+  it("wipes a list the file does carry", () => {
+    const both = contents({
+      entries: [entry("Tür")],
+      phrases: [phrase("guten Tag")],
+    });
+    expect(leavesTermsAlone(both, "replace")).toBe(false);
+    expect(leavesPhrasesAlone(both, "replace")).toBe(false);
+  });
+
+  it("never counts as leaving anything alone in the merge modes", () => {
+    // "Leaves alone" is a Replace concept; skip and update never delete.
+    const empty = contents();
+    for (const mode of ["skip", "update"] as const) {
+      expect(leavesTermsAlone(empty, mode)).toBe(false);
+      expect(leavesPhrasesAlone(empty, mode)).toBe(false);
+      expect(leavesVerbTablesAlone(empty, mode)).toBe(false);
+    }
+  });
+});
+
+describe("restoresSettings", () => {
+  const withSettings = contents({
+    settings: {
+      displayName: "",
+      categories: ["Grammar"],
+      sources: ["Manual"],
+      verbPersons: [],
+      verbTenses: [],
+    },
+  });
+
+  it("leaves settings alone in skip mode, which has nothing to mean for one row", () => {
+    expect(restoresSettings(withSettings, "skip")).toBe(false);
+  });
+
+  it("restores them in the modes that are willing to overwrite", () => {
+    expect(restoresSettings(withSettings, "update")).toBe(true);
+    expect(restoresSettings(withSettings, "replace")).toBe(true);
+  });
+
+  it("restores nothing when the file carries no settings", () => {
+    expect(restoresSettings(contents(), "replace")).toBe(false);
+  });
+});

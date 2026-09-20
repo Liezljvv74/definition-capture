@@ -21,6 +21,18 @@ export type RefToken =
 /** Splits on [[…]] while keeping the delimiters, so term links survive. */
 const TERM_LINK = /(\[\[[^[\]\n]+\]\])/g;
 
+/**
+ * The same rule as `TERM_LINK`, anchored, for checking a whole segment.
+ *
+ * It exists because testing `startsWith("[[")` instead was looser than the
+ * pattern that does the splitting: `[[a[b]]` never matches `TERM_LINK`, so it
+ * arrives as one unsplit segment, and the loose check then read it as a term
+ * named `a[b` — a name `TERM_LINK` cannot produce and no `[[Name]]` the
+ * autocomplete writes will ever resolve to. Two spellings of one rule is how
+ * they drift; this is the one rule.
+ */
+const TERM_LINK_ONLY = /^\[\[[^[\]\n]+\]\]$/;
+
 /** Brackets and quotes that wrap a link rather than belonging to it. */
 const LEADING_PUNCTUATION = /^[([{'"]+/;
 
@@ -63,7 +75,7 @@ export function parseRef(text: string): RefToken[] {
   for (const segment of text.split(TERM_LINK)) {
     if (!segment) continue;
 
-    if (segment.startsWith("[[") && segment.endsWith("]]")) {
+    if (TERM_LINK_ONLY.test(segment)) {
       const name = segment.slice(2, -2).trim();
       if (name) tokens.push({ kind: "term", name });
       else appendText(tokens, segment);
