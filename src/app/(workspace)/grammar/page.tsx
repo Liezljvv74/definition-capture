@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { AddGrammarRuleDialog } from "@/components/AddGrammarRuleDialog";
 import { CategoryBadge } from "@/components/Badges";
@@ -41,6 +42,23 @@ const nameOfRule = (rule: GrammarRule) => rule.title;
  * term is, and the alphabetical order is what makes a list of them scannable.
  */
 export default function GrammarPage() {
+  // `useSearchParams` needs a boundary to suspend against during prerender.
+  return (
+    <Suspense fallback={<GrammarSkeleton />}>
+      <GrammarList />
+    </Suspense>
+  );
+}
+
+function GrammarSkeleton() {
+  return (
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+      <div className="card h-40 animate-pulse" aria-hidden="true" />
+    </main>
+  );
+}
+
+function GrammarList() {
   const { rules, loaded } = useGrammarRules();
   const { entries } = useTerms();
   const { phrases } = usePhrases();
@@ -95,12 +113,31 @@ export default function GrammarPage() {
   const { selection, editing, setEditingId, pendingDelete, setPendingDelete, pendingNames } =
     useListPage(visible, idOfRule, nameOfRule);
 
-  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
+  const linkIndex = useMemo(
+    () => buildLinkIndex(entries, phrases, rules),
+    [entries, phrases, rules],
+  );
   const knownCategories = useMemo(
     () => categoryOptions.filter(Boolean),
     [categoryOptions],
   );
   const isFiltered = query.trim() !== "" || category !== "";
+
+  /**
+   * The rule a `[[Title]]` link arrived at, if any. Rules have no page of
+   * their own — the list already shows the whole explanation and every
+   * example, so a detail page would repeat it — so a link lands here and
+   * points at the row instead.
+   */
+  const targetId = useSearchParams().get("rule") ?? "";
+  const highlighted = rules.some((rule) => rule.id === targetId) ? targetId : "";
+
+  useEffect(() => {
+    if (!highlighted || !loaded) return;
+    // After the list has rendered, not during: the row has to exist first.
+    const row = document.getElementById(`rule-${highlighted}`);
+    row?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [highlighted, loaded]);
 
   return (
     <>
@@ -191,6 +228,7 @@ export default function GrammarPage() {
             {wide !== false && (
               <RuleTable
                 rules={visible}
+                highlighted={highlighted}
                 linkIndex={linkIndex}
                 selection={selection}
                 onSelectCategory={setCategory}
@@ -201,6 +239,7 @@ export default function GrammarPage() {
             {wide !== true && (
               <RuleCards
                 rules={visible}
+                highlighted={highlighted}
                 linkIndex={linkIndex}
                 selection={selection}
                 onSelectCategory={setCategory}
@@ -254,6 +293,8 @@ export default function GrammarPage() {
 
 type ListProps = {
   rules: GrammarRule[];
+  /** The row a `[[Title]]` link arrived at, ringed so it can be found. */
+  highlighted: string;
   linkIndex: LinkIndex;
   selection: ListSelection;
   onSelectCategory: (name: string) => void;
@@ -263,6 +304,7 @@ type ListProps = {
 
 function RuleTable({
   rules,
+  highlighted,
   linkIndex,
   selection,
   onSelectCategory,
@@ -306,7 +348,12 @@ function RuleTable({
           {rules.map((rule) => (
             <tr
               key={rule.id}
-              className="border-t border-slate-200 align-top dark:border-slate-800"
+              id={`rule-${rule.id}`}
+              className={`border-t border-slate-200 align-top dark:border-slate-800 ${
+                rule.id === highlighted
+                  ? "bg-indigo-50/60 dark:bg-indigo-500/10"
+                  : ""
+              }`}
             >
               <td className="px-3 py-2.5">
                 <SelectRowCheckbox
@@ -360,6 +407,7 @@ function RuleTable({
 
 function RuleCards({
   rules,
+  highlighted,
   linkIndex,
   selection,
   onSelectCategory,
@@ -382,7 +430,15 @@ function RuleCards({
 
       <ul className="space-y-2">
         {rules.map((rule) => (
-          <li key={rule.id} className="card p-4">
+          <li
+            key={rule.id}
+            id={`rule-${rule.id}`}
+            className={`card p-4 ${
+              rule.id === highlighted
+                ? "border-indigo-400 bg-indigo-50/60 dark:border-indigo-500 dark:bg-indigo-500/10"
+                : ""
+            }`}
+          >
             <div className="flex items-start gap-2.5">
               <SelectRowCheckbox
                 checked={selection.isSelected(rule.id)}

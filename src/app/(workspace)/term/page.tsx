@@ -9,6 +9,7 @@ import { EditTermDialog } from "@/components/EditTermDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Entry } from "@/lib/types";
+import { useGrammarRules } from "@/lib/useGrammarRules";
 import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
 
@@ -45,10 +46,14 @@ function DetailSkeleton() {
 function TermDetail() {
   const id = useSearchParams().get("id") ?? "";
   const { entries, loaded } = useTerms();
+  const { rules } = useGrammarRules();
   const { phrases } = usePhrases();
   const entry = entries.find((candidate) => candidate.id === id);
 
-  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
+  const linkIndex = useMemo(
+    () => buildLinkIndex(entries, phrases, rules),
+    [entries, phrases, rules],
+  );
 
   return (
     <>
