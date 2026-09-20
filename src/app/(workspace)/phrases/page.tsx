@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 
 import { AddPhraseDialog } from "@/components/AddPhraseDialog";
-import { BackupButtons } from "@/components/BackupButtons";
 import {
   ConfirmDeleteDialog,
   RowDeleteButton,
@@ -100,7 +99,6 @@ export default function PhrasesPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <BackupButtons />
             <button type="button" className="btn btn-primary" onClick={() => setIsAdding(true)}>
               <span aria-hidden="true">+</span> Add phrase
             </button>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ImportLocalPrompt } from "@/components/ImportLocalPrompt";
+import { MainNav } from "@/components/MainNav";
 import { StoreErrorBanner } from "@/components/StoreErrorBanner";
 import { serverUserId } from "@/lib/supabaseServer";
 
@@ -28,6 +29,11 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
 
   return (
     <>
+      {/* The nav lives here rather than in the root layout so it exists only
+          behind this check. Every destination in it is protected, and the
+          Backup menu inside it reaches the account's lists — neither belongs
+          on the sign-in page. */}
+      <MainNav />
       <StoreErrorBanner />
       <ImportLocalPrompt />
       {children}

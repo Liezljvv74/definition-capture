@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
-import { BackupButtons } from "@/components/BackupButtons";
 import { CategoryBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { EditTermDialog } from "@/components/EditTermDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
@@ -61,9 +60,6 @@ function TermDetail() {
           >
             ← Back to Terms
           </Link>
-          <div className="flex flex-wrap items-center gap-2">
-            <BackupButtons />
-          </div>
         </div>
       </header>
 

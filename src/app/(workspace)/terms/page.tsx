@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 
 import { AddTermDialog } from "@/components/AddTermDialog";
-import { BackupButtons } from "@/components/BackupButtons";
 import { CategoryBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import {
   ConfirmDeleteDialog,
@@ -181,7 +180,6 @@ export default function TermsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <BackupButtons />
             <button type="button" className="btn btn-primary" onClick={() => setIsAdding(true)}>
               <span aria-hidden="true">+</span> Add term
             </button>
