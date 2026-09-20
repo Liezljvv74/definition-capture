@@ -34,12 +34,32 @@ export default function VerbsPage() {
   );
 }
 
-function VerbsShell({ children }: { children?: React.ReactNode }) {
+/**
+ * Title, count and the Add button, laid out the way Terms and Phrases lay
+ * theirs out. The action is a prop rather than fixed here because the shell
+ * is also what the loading and Suspense states render, and there is nothing
+ * to add to a page that has not arrived yet.
+ */
+function VerbsShell({
+  subtitle,
+  action,
+  children,
+}: {
+  subtitle?: string;
+  action?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
   return (
     <>
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Verbs</h1>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Verbs</h1>
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+              {subtitle ?? "Loading your verbs…"}
+            </p>
+          </div>
+          {action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">{children}</main>
@@ -127,12 +147,18 @@ function VerbList() {
     setDirty(false);
   }
 
+  const addButton = (
+    <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>
+      <span aria-hidden="true">+</span> Add verb
+    </button>
+  );
+
   if (!loaded || !settingsLoaded) return <VerbsShell />;
 
   // A verb on its way in — from a term, or typed here.
   if (pending !== "" && !has(pending)) {
     return (
-      <VerbsShell>
+      <VerbsShell subtitle="Adding a verb">
         <NewTableForm verb={pending} />
       </VerbsShell>
     );
@@ -140,7 +166,7 @@ function VerbList() {
 
   if (adding) {
     return (
-      <VerbsShell>
+      <VerbsShell subtitle="Adding a verb">
         <NewTableForm verb="" onCancel={() => setAdding(false)} />
       </VerbsShell>
     );
@@ -148,7 +174,7 @@ function VerbList() {
 
   if (tables.length === 0) {
     return (
-      <VerbsShell>
+      <VerbsShell subtitle="Your conjugation tables" action={addButton}>
         <div className="card mx-auto max-w-xl p-8 text-center">
           <div aria-hidden="true" className="mb-3 text-4xl">
             🧩
@@ -173,7 +199,10 @@ function VerbList() {
   }
 
   return (
-    <VerbsShell>
+    <VerbsShell
+      subtitle={`${tables.length} ${tables.length === 1 ? "verb" : "verbs"}`}
+      action={addButton}
+    >
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="w-full sm:w-1/2 lg:w-[12.5%] lg:min-w-44">
           <label htmlFor="verb-search" className="sr-only">
@@ -188,20 +217,15 @@ function VerbList() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <button
-          type="button"
-          className="btn btn-secondary shrink-0"
-          onClick={() => setAdding(true)}
-        >
-          + Add a verb
-        </button>
       </div>
 
-      <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-        {visible.length === tables.length
-          ? `${tables.length} ${tables.length === 1 ? "verb" : "verbs"}`
-          : `${visible.length} of ${tables.length} verbs`}
-      </p>
+      {/* Only while a search is narrowing things down: the total now lives in
+          the header, so repeating it here would say the same thing twice. */}
+      {visible.length !== tables.length && (
+        <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+          Showing {visible.length} of {tables.length} verbs.
+        </p>
+      )}
 
       <div className="space-y-1.5">
         {visible.map((table) => {

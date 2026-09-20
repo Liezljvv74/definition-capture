@@ -9,6 +9,11 @@
  * list means adding it here.
  */
 
+import {
+  getGrammarRules,
+  importGrammarRules,
+  parseGrammarRuleList,
+} from "@/lib/grammarRules";
 import { getPhrases, importPhrases, parsePhraseList } from "@/lib/phraseStorage";
 import {
   currentSettings,
@@ -22,6 +27,7 @@ import {
   type Entry,
   type ImportCounts,
   type ImportMode,
+  type GrammarRule,
   type Phrase,
   type VerbTable,
 } from "@/lib/types";
@@ -33,11 +39,12 @@ import {
 
 export const BACKUP_FORMAT = "definition-capture-backup";
 /**
- * 1 was terms only; 2 adds the phrase list; 3 adds the conjugation tables.
- * Older files still import — a missing list reads as an absent one, not an
- * empty one, which is what keeps Replace from wiping what the file predates.
+ * 1 was terms only; 2 adds the phrase list; 3 adds the conjugation tables and
+ * the settings; 4 adds the grammar rules. Older files still import — a
+ * missing list reads as an absent one, not an empty one, which is what keeps
+ * Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 3;
+export const BACKUP_VERSION = 4;
 
 export type Backup = {
   format: typeof BACKUP_FORMAT;
@@ -46,6 +53,7 @@ export type Backup = {
   entries: Entry[];
   phrases: Phrase[];
   verbTables: VerbTable[];
+  grammarRules: GrammarRule[];
   /**
    * Categories, sources, persons, tenses and the display name. Not a list, so
    * it has no scope of its own: a full backup carries it and a scoped export
@@ -56,11 +64,11 @@ export type Backup = {
 };
 
 /** Which lists an export should carry. */
-export type BackupScope = "all" | "terms" | "phrases" | "verbs";
+export type BackupScope = "all" | "terms" | "phrases" | "verbs" | "grammar";
 
 export function buildBackup(scope: BackupScope = "all"): Backup {
-  // Asking what is included, rather than what is excluded: with three lists a
-  // chain of "not that one" tests silently includes anything newly added.
+  // Asking what is included, rather than what is excluded: a chain of "not
+  // that one" tests silently includes anything newly added.
   const wants = (list: Exclude<BackupScope, "all">) => scope === "all" || scope === list;
 
   return {
@@ -70,6 +78,7 @@ export function buildBackup(scope: BackupScope = "all"): Backup {
     entries: wants("terms") ? getEntries() : [],
     phrases: wants("phrases") ? getPhrases() : [],
     verbTables: wants("verbs") ? getVerbTables() : [],
+    grammarRules: wants("grammar") ? getGrammarRules() : [],
     settings: scope === "all" ? currentSettings() : null,
   };
 }
@@ -78,6 +87,7 @@ export type BackupContents = {
   entries: Entry[];
   phrases: Phrase[];
   verbTables: VerbTable[];
+  grammarRules: GrammarRule[];
   settings: Settings | null;
   /** Rows in the file that could not be read as any of the kinds. */
   unreadable: number;
@@ -103,7 +113,15 @@ export function parseBackup(text: string): BackupParse {
   if (bare) {
     const { entries, unreadable } = parseEntryList(bare);
     return entries.length > 0
-      ? { ok: true, entries, phrases: [], verbTables: [], settings: null, unreadable }
+      ? {
+          ok: true,
+          entries,
+          phrases: [],
+          verbTables: [],
+          grammarRules: [],
+          settings: null,
+          unreadable,
+        }
       : { ok: false, error: "That backup contains no readable terms." };
   }
 
@@ -119,18 +137,21 @@ export function parseBackup(text: string): BackupParse {
     entries: rawEntries,
     phrases: rawPhrases,
     verbTables: rawVerbTables,
+    grammarRules: rawGrammarRules,
     settings: rawSettings,
   } = raw as {
     entries?: unknown;
     phrases?: unknown;
     verbTables?: unknown;
+    grammarRules?: unknown;
     settings?: unknown;
   };
   const entryList = asArray(rawEntries);
   const phraseList = asArray(rawPhrases);
   const verbTableList = asArray(rawVerbTables);
+  const grammarRuleList = asArray(rawGrammarRules);
 
-  if (!entryList && !phraseList && !verbTableList) {
+  if (!entryList && !phraseList && !verbTableList && !grammarRuleList) {
     return {
       ok: false,
       error:
@@ -147,15 +168,19 @@ export function parseBackup(text: string): BackupParse {
   const parsedVerbTables = verbTableList
     ? parseVerbTableList(verbTableList)
     : { tables: [], unreadable: 0 };
+  const parsedGrammarRules = grammarRuleList
+    ? parseGrammarRuleList(grammarRuleList)
+    : { rules: [], unreadable: 0 };
 
   if (
     parsedEntries.entries.length === 0 &&
     parsedPhrases.phrases.length === 0 &&
-    parsedVerbTables.tables.length === 0
+    parsedVerbTables.tables.length === 0 &&
+    parsedGrammarRules.rules.length === 0
   ) {
     return {
       ok: false,
-      error: "That backup contains no readable terms, phrases, or verb tables.",
+      error: "That backup contains nothing readable.",
     };
   }
 
@@ -164,9 +189,13 @@ export function parseBackup(text: string): BackupParse {
     entries: parsedEntries.entries,
     phrases: parsedPhrases.phrases,
     verbTables: parsedVerbTables.tables,
+    grammarRules: parsedGrammarRules.rules,
     settings: parseSettings(rawSettings),
     unreadable:
-      parsedEntries.unreadable + parsedPhrases.unreadable + parsedVerbTables.unreadable,
+      parsedEntries.unreadable +
+      parsedPhrases.unreadable +
+      parsedVerbTables.unreadable +
+      parsedGrammarRules.unreadable,
   };
 }
 
@@ -174,6 +203,7 @@ export type ImportResult = {
   terms: ImportCounts;
   phrases: ImportCounts;
   verbTables: ImportCounts;
+  grammarRules: ImportCounts;
   /** Whether the file's settings were written over the reader's own. */
   settingsRestored: boolean;
 };
@@ -192,6 +222,13 @@ export function leavesVerbTablesAlone(
   mode: ImportMode,
 ): boolean {
   return mode === "replace" && contents.verbTables.length === 0;
+}
+
+export function leavesGrammarRulesAlone(
+  contents: BackupContents,
+  mode: ImportMode,
+): boolean {
+  return mode === "replace" && contents.grammarRules.length === 0;
 }
 
 /**
@@ -228,6 +265,9 @@ export function applyImport(contents: BackupContents, mode: ImportMode): ImportR
     verbTables: leavesVerbTablesAlone(contents, mode)
       ? { ...NO_IMPORT }
       : importVerbTables(contents.verbTables, mode),
+    grammarRules: leavesGrammarRulesAlone(contents, mode)
+      ? { ...NO_IMPORT }
+      : importGrammarRules(contents.grammarRules, mode),
     settingsRestored,
   };
 }
