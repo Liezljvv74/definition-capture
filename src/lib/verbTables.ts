@@ -11,9 +11,9 @@
  */
 
 import { foldName } from "@/lib/foldName";
-import { createId, createRemoteStore, usableId } from "@/lib/remoteStore";
+import { planImport } from "@/lib/planImport";
+import { createId, createRemoteStore } from "@/lib/remoteStore";
 import {
-  NO_IMPORT,
   readString,
   readTenses,
   readVerbRows,
@@ -161,73 +161,27 @@ export function parseVerbTableList(list: unknown[]): {
  * for the same verb is not a thing that can exist.
  */
 export function importVerbTables(incoming: VerbTable[], mode: ImportMode): ImportCounts {
-  const result: ImportCounts = { ...NO_IMPORT };
+  const plan = planImport(store.items(), incoming, mode, {
+    keyOf: (table) => foldName(table.verb),
+    idOf: (table) => table.id,
+    withId: (table, id) => ({ ...table, id }),
+    // Columns and cells travel together, for the reason `saveVerbTable`
+    // gives: taking one from the backup and leaving the other would put the
+    // headings and the rows out of step.
+    merge: (existing, candidate) => ({
+      ...existing,
+      verb: candidate.verb,
+      tenses: candidate.tenses,
+      rows: candidate.rows,
+    }),
+  });
 
-  if (mode === "replace") {
-    // One table per verb before anything is sent; see `storage.ts` for why a
-    // duplicate in the file would otherwise empty the list and leave it empty.
-    const byVerb = new Map<string, VerbTable>();
-    for (const table of incoming) byVerb.set(foldName(table.verb), table);
-
-    const taken = new Set<string>();
-    const restored = [...byVerb.values()].map((table) => {
-      const id = usableId(table.id, taken);
-      taken.add(id);
-      return { ...table, id };
-    });
-    result.added = restored.length;
-    store.replaceAll(restored);
-    return result;
+  if (plan.toReplace) {
+    store.replaceAll(plan.toReplace);
+    return plan.counts;
   }
 
-  const byVerb = new Map(
-    store.items().map((table) => [foldName(table.verb), table]),
-  );
-  const taken = new Set(store.items().map((table) => table.id));
-  const added: VerbTable[] = [];
-  /** Matched rows, sent as one write after the loop rather than one each. */
-  const updated: VerbTable[] = [];
-  /** See `storage.ts` — a second copy in one file merges into the pending row. */
-  const pending = new Map<string, number>();
-
-  for (const candidate of incoming) {
-    const key = foldName(candidate.verb);
-    const existing = byVerb.get(key);
-
-    if (existing) {
-      if (mode === "skip") {
-        result.skipped += 1;
-        continue;
-      }
-      // Columns and cells travel together, for the reason `saveVerbTable`
-      // gives: taking one from the backup and leaving the other would put the
-      // headings and the rows out of step.
-      const merged: VerbTable = {
-        ...existing,
-        verb: candidate.verb,
-        tenses: candidate.tenses,
-        rows: candidate.rows,
-      };
-
-      const at = pending.get(key);
-      if (at === undefined) updated.push(merged);
-      else added[at] = merged;
-
-      byVerb.set(key, merged);
-      result.updated += 1;
-      continue;
-    }
-
-    const id = usableId(candidate.id, taken);
-    taken.add(id);
-    const table = { ...candidate, id };
-    pending.set(key, added.length);
-    added.push(table);
-    byVerb.set(key, table);
-    result.added += 1;
-  }
-
-  store.updateMany(updated);
-  store.insertMany(added);
-  return result;
+  store.updateMany(plan.toUpdate);
+  store.insertMany(plan.toInsert);
+  return plan.counts;
 }

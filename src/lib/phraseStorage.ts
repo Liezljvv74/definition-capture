@@ -8,9 +8,9 @@
  */
 
 import { foldName } from "@/lib/foldName";
-import { createId, createRemoteStore, usableId } from "@/lib/remoteStore";
+import { planImport } from "@/lib/planImport";
+import { createId, createRemoteStore } from "@/lib/remoteStore";
 import {
-  NO_IMPORT,
   readString,
   type ImportCounts,
   type ImportMode,
@@ -142,71 +142,19 @@ export function parsePhraseList(list: unknown[]): {
 
 /** Matches on the phrase text, mirroring how the term list matches on terms. */
 export function importPhrases(incoming: Phrase[], mode: ImportMode): ImportCounts {
-  const result: ImportCounts = { ...NO_IMPORT };
+  const plan = planImport(store.items(), incoming, mode, {
+    keyOf: (phrase) => foldName(phrase.phrase),
+    idOf: (phrase) => phrase.id,
+    withId: (phrase, id) => ({ ...phrase, id }),
+    merge: (existing, candidate) => ({ ...candidate, id: existing.id }),
+  });
 
-  if (mode === "replace") {
-    // One row per phrase before anything is sent; see `storage.ts` for why a
-    // duplicate in the file would otherwise empty the list and leave it empty.
-    const byPhrase = new Map<string, Phrase>();
-    for (const phrase of incoming) byPhrase.set(foldName(phrase.phrase), phrase);
-
-    const taken = new Set<string>();
-    const restored = [...byPhrase.values()].map((phrase) => {
-      const id = usableId(phrase.id, taken);
-      taken.add(id);
-      return { ...phrase, id };
-    });
-    result.added = restored.length;
-    store.replaceAll(restored);
-    return result;
+  if (plan.toReplace) {
+    store.replaceAll(plan.toReplace);
+    return plan.counts;
   }
 
-  const byPhrase = new Map(
-    store.items().map((phrase) => [foldName(phrase.phrase), phrase]),
-  );
-  const taken = new Set(store.items().map((phrase) => phrase.id));
-  const added: Phrase[] = [];
-  /** Matched rows, sent as one write after the loop rather than one each. */
-  const updated: Phrase[] = [];
-  /**
-   * Where in `added` a phrase this same file already introduced is waiting.
-   * The new rows are not in the store until the insert below, so a second copy
-   * of the same phrase has to merge into the pending one — sending it through
-   * `store.update` would `PATCH` a row that does not exist yet and lose it
-   * without a word. Same reasoning as the term list; see `storage.ts`.
-   */
-  const pending = new Map<string, number>();
-
-  for (const candidate of incoming) {
-    const key = foldName(candidate.phrase);
-    const existing = byPhrase.get(key);
-
-    if (existing) {
-      if (mode === "skip") {
-        result.skipped += 1;
-        continue;
-      }
-      const merged: Phrase = { ...candidate, id: existing.id };
-
-      const at = pending.get(key);
-      if (at === undefined) updated.push(merged);
-      else added[at] = merged;
-
-      byPhrase.set(key, merged);
-      result.updated += 1;
-      continue;
-    }
-
-    const id = usableId(candidate.id, taken);
-    taken.add(id);
-    const phrase = { ...candidate, id };
-    pending.set(key, added.length);
-    added.push(phrase);
-    byPhrase.set(key, phrase);
-    result.added += 1;
-  }
-
-  store.updateMany(updated);
-  store.insertMany(added);
-  return result;
+  store.updateMany(plan.toUpdate);
+  store.insertMany(plan.toInsert);
+  return plan.counts;
 }
