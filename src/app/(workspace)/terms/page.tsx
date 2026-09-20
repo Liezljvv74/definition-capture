@@ -17,6 +17,7 @@ import { sourceOrder } from "@/lib/constants";
 import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
 import { foldName } from "@/lib/foldName";
+import { useGrammarRules } from "@/lib/useGrammarRules";
 import { useTerms } from "@/lib/useTerms";
 import { useWideScreen } from "@/lib/useWideScreen";
 import { useListPage } from "@/lib/useListPage";
@@ -65,6 +66,7 @@ function compare(
 
 export default function TermsPage() {
   const { entries, loaded } = useTerms();
+  const { rules } = useGrammarRules();
   const wide = useWideScreen();
   const { settings } = useSettings();
   const { phrases } = usePhrases();
@@ -147,7 +149,10 @@ export default function TermsPage() {
     pendingNames,
   } = useListPage(visible, idOfEntry, nameOfEntry);
 
-  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
+  const linkIndex = useMemo(
+    () => buildLinkIndex(entries, phrases, rules),
+    [entries, phrases, rules],
+  );
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
   const isFiltered = query.trim() !== "" || onlyNeedsDefinition || category !== "";
 

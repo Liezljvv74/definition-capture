@@ -7,6 +7,7 @@ import { Suspense, useMemo, useState } from "react";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import type { Phrase } from "@/lib/types";
+import { useGrammarRules } from "@/lib/useGrammarRules";
 import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
 
@@ -41,10 +42,14 @@ function DetailSkeleton() {
 function PhraseDetail() {
   const id = useSearchParams().get("id") ?? "";
   const { phrases, loaded } = usePhrases();
+  const { rules } = useGrammarRules();
   const { entries } = useTerms();
   const phrase = phrases.find((candidate) => candidate.id === id);
 
-  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
+  const linkIndex = useMemo(
+    () => buildLinkIndex(entries, phrases, rules),
+    [entries, phrases, rules],
+  );
 
   return (
     <>
