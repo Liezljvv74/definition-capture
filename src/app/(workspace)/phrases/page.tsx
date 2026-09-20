@@ -12,6 +12,7 @@ import {
 } from "@/components/DeleteControls";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { RowEditButton } from "@/components/RowEditButton";
 import { deletePhrases } from "@/lib/phraseStorage";
 import { compareText } from "@/lib/sortName";
 import type { Phrase } from "@/lib/types";
@@ -286,8 +287,8 @@ function PhraseTable({
                 </th>
               );
             })}
-            <th scope="col" className="w-12 px-3 py-2.5">
-              <span className="sr-only">Delete</span>
+            <th scope="col" className="w-24 px-3 py-2.5">
+              <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
@@ -341,7 +342,13 @@ function PhraseTable({
                   )}
                 </td>
                 <td className="px-3 py-3 align-top">
-                  <RowDeleteButton label={phrase.phrase} onClick={() => onDelete(phrase.id)} />
+                  <div className="flex items-center justify-end gap-0.5">
+                    <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
+                    <RowDeleteButton
+                      label={phrase.phrase}
+                      onClick={() => onDelete(phrase.id)}
+                    />
+                  </div>
                 </td>
               </tr>
             );
@@ -414,11 +421,13 @@ function PhraseCards({
                       {phrase.phrase}
                     </button>
                   </h2>
-                  <RowDeleteButton
-                    label={phrase.phrase}
-                    onClick={() => onDelete(phrase.id)}
-                    className="-mt-1 -mr-1"
-                  />
+                  <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-0.5">
+                    <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
+                    <RowDeleteButton
+                      label={phrase.phrase}
+                      onClick={() => onDelete(phrase.id)}
+                    />
+                  </div>
                 </div>
                 {phrase.literalMeaning && (
                   <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">

@@ -13,6 +13,7 @@ import {
 } from "@/components/DeleteControls";
 import { EditTermDialog } from "@/components/EditTermDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { RowEditButton } from "@/components/RowEditButton";
 import { sourceOrder } from "@/lib/constants";
 import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
@@ -389,8 +390,8 @@ function EntryTable({
                 </th>
               );
             })}
-            <th scope="col" className="w-12 px-3 py-2.5">
-              <span className="sr-only">Delete</span>
+            <th scope="col" className="w-24 px-3 py-2.5">
+              <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
@@ -459,7 +460,10 @@ function EntryTable({
                   )}
                 </td>
                 <td className="px-3 py-3 align-top">
-                  <RowDeleteButton label={entry.term} onClick={() => onDelete(entry.id)} />
+                  <div className="flex items-center justify-end gap-0.5">
+                    <RowEditButton label={entry.term} onClick={() => onEdit(entry.id)} />
+                    <RowDeleteButton label={entry.term} onClick={() => onDelete(entry.id)} />
+                  </div>
                 </td>
               </tr>
             );
@@ -529,11 +533,10 @@ function EntryCards({
                     </button>
                   </h2>
                   {entry.needsDefinition && <NeedsDefinitionBadge />}
-                  <RowDeleteButton
-                    label={entry.term}
-                    onClick={() => onDelete(entry.id)}
-                    className="-mt-1 -mr-1"
-                  />
+                  <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-0.5">
+                    <RowEditButton label={entry.term} onClick={() => onEdit(entry.id)} />
+                    <RowDeleteButton label={entry.term} onClick={() => onDelete(entry.id)} />
+                  </div>
                 </div>
                 {entry.definition && (
                   <p className="mt-1.5 line-clamp-3 text-sm text-slate-700 dark:text-slate-300">
