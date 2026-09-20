@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
-import { BackupButtons } from "@/components/BackupButtons";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import type { Phrase } from "@/lib/types";
@@ -57,9 +56,6 @@ function PhraseDetail() {
           >
             ← Back to phrases
           </Link>
-          <div className="flex flex-wrap items-center gap-2">
-            <BackupButtons />
-          </div>
         </div>
       </header>
 

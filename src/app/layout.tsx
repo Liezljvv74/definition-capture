@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { MainNav } from "@/components/MainNav";
 
 import "./globals.css";
 
@@ -14,7 +13,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className="h-full">
       <body className="flex min-h-full flex-col">
         <PageBackground />
-        <MainNav />
         {/* Nothing is gated here any more. `src/proxy.ts` turns a signed-out
             request away before a protected page is rendered, and
             `(workspace)/layout.tsx` checks again on the server before the
