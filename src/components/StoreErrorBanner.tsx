@@ -29,10 +29,11 @@ export function StoreErrorBanner() {
         className="card flex items-start gap-3 border-red-200 bg-red-50 p-4 text-sm
           text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
       >
-        <p className="flex-1">
-          {message} Your list has been reloaded from the database, so anything you just
-          changed may need doing again.
-        </p>
+        {/* The whole sentence comes from the store. A read that failed and a
+            write that failed need to say different things, and appending one
+            fixed ending here told everyone their changes had been undone even
+            when nothing had been written at all. */}
+        <p className="flex-1">{message}</p>
         <button
           type="button"
           className="btn btn-secondary shrink-0"

@@ -11,9 +11,9 @@ import type { Entry } from "@/lib/types";
  * during the server render, the hydration pass, and the first fetch from
  * Supabase, which is what keeps the empty state from flashing.
  *
- * `error` is set when a write could not reach the database; the list has been
- * reloaded to match what is really stored, so showing it is the only thing
- * left to do.
+ * `error` is set when a read or a write could not reach the database. It is a
+ * complete sentence, already saying which of the two happened and what became
+ * of the reader's changes, so showing it is the only thing left to do.
  */
 export function useTerms(): { entries: Entry[]; loaded: boolean; error: string | null } {
   const { items, loaded, error } = useSyncExternalStore(

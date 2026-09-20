@@ -55,6 +55,37 @@ type Row = Record<string, unknown>;
 /** How long after a read another catch-up read is considered pointless. */
 const REFRESH_GAP_MS = 2000;
 
+/**
+ * How long to wait before each re-attempt of a read that failed on a clock
+ * complaint. Two retries, roughly two seconds all told — long enough to outlast
+ * the drift described in `isNotYetValidError`, short enough that a genuinely
+ * broken token still reports itself promptly.
+ */
+const RETRY_DELAYS_MS = [400, 1500];
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * True for the one failure worth retrying rather than reporting: the database
+ * rejecting a token because its timestamps are in the future.
+ *
+ * Supabase mints the token in one service and checks it in another. When those
+ * two clocks disagree by even a second, a token that was issued *just* now can
+ * look as though it comes from the future, and PostgREST answers "JWT issued at
+ * future". It is transient by definition — the moment the checking clock
+ * catches up, the very same token is accepted — and it lands almost exclusively
+ * on the first read after signing in, which is the worst possible moment to
+ * show somebody an error about JSON web tokens.
+ *
+ * Only reads are retried. A write that failed may in fact have succeeded before
+ * the response went missing, so sending it again risks storing it twice; a read
+ * can be repeated as often as we like.
+ */
+function isNotYetValidError(error: unknown): boolean {
+  const message = readError(error).toLowerCase();
+  return message.includes("issued at future") || message.includes("not yet valid");
+}
+
 export type RemoteStoreConfig<T> = {
   table: string;
   /** Column the list is sorted by, newest first. */
@@ -97,20 +128,39 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
 
     loading = true;
     try {
-      const { data, error } = await supabase
-        .from(config.table)
-        .select("*")
-        .order(config.orderBy, { ascending: false });
+      let data: unknown[] | null = null;
 
-      // A sign-out or account switch while the request was in flight: the rows
-      // that just arrived belong to the wrong reader, so drop them.
-      if (currentUserId() !== userId) return;
+      for (let attempt = 0; ; attempt++) {
+        const answer = await supabase
+          .from(config.table)
+          .select("*")
+          .order(config.orderBy, { ascending: false });
 
-      if (error) {
+        // A sign-out or account switch while the request was in flight: the rows
+        // that just arrived belong to the wrong reader, so drop them.
+        if (currentUserId() !== userId) return;
+
+        if (!answer.error) {
+          data = answer.data;
+          break;
+        }
+
+        // A token the database thinks is from the future settles by itself.
+        // Wait it out rather than telling the reader about it.
+        if (isNotYetValidError(answer.error) && attempt < RETRY_DELAYS_MS.length) {
+          await wait(RETRY_DELAYS_MS[attempt]);
+          if (currentUserId() !== userId) return;
+          continue;
+        }
+
         // Keep the rows already in hand. A failed read is not evidence the
         // list is empty, and emptying it here showed the “nothing saved yet”
         // screen to anyone with a full list whenever a refresh went wrong.
-        publish({ items: snapshot.items, loaded: true, error: readError(error) });
+        publish({
+          items: snapshot.items,
+          loaded: true,
+          error: `Could not read your list from the database: ${readError(answer.error)}.`,
+        });
         return;
       }
 
@@ -168,7 +218,13 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
   function send(work: PromiseLike<{ error: unknown }>): void {
     void Promise.resolve(work).then(({ error }) => {
       if (!error) return;
-      setError(`Could not save to the database: ${readError(error)}`);
+      // The whole sentence is built here rather than half of it in the banner,
+      // because a read failure and a write failure need different second
+      // halves: only this one undoes something the reader just did.
+      setError(
+        `Could not save to the database: ${readError(error)}. Your list has been ` +
+          "reloaded from the database, so anything you just changed may need doing again.",
+      );
       reload();
     });
   }
