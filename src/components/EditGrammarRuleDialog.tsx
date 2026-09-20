@@ -13,11 +13,9 @@ import type { GrammarRule, GrammarRuleInput } from "@/lib/types";
  */
 export function EditGrammarRuleDialog({
   rule,
-  knownCategories,
   onClose,
 }: {
   rule: GrammarRule;
-  knownCategories: readonly string[];
   onClose: () => void;
 }) {
   /** Set when the new title collides with a *different* saved rule. */
@@ -66,7 +64,6 @@ export function EditGrammarRuleDialog({
     <Modal title="Edit grammar rule" onClose={onClose}>
       <GrammarRuleForm
         initialValue={draft}
-        knownCategories={knownCategories}
         submitLabel="Save changes"
         onSubmit={handleSubmit}
         onCancel={onClose}

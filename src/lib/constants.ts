@@ -33,6 +33,22 @@ export const DEFAULT_CATEGORIES = [
   "Health",
 ] as const;
 
+/**
+ * The groups a grammar rule can be filed under, before Settings is touched.
+ *
+ * Kept separate from `DEFAULT_CATEGORIES` because the two vocabularies have
+ * nothing in common: a term is filed under Food or Travel, a rule under Cases
+ * or Word order. Sharing one list would offer each set on the wrong form.
+ */
+export const DEFAULT_GRAMMAR_CATEGORIES = [
+  "Cases",
+  "Word order",
+  "Verbs",
+  "Nouns",
+  "Prepositions",
+  "Articles",
+] as const;
+
 /** How many categories one term may carry. Not the size of the list to pick from. */
 export const MAX_CATEGORIES = 3;
 

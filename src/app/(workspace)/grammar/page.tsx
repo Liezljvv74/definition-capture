@@ -118,10 +118,6 @@ function GrammarList() {
     () => buildLinkIndex(entries, phrases, rules),
     [entries, phrases, rules],
   );
-  const knownCategories = useMemo(
-    () => categoryOptions.filter(Boolean),
-    [categoryOptions],
-  );
   const isFiltered = query.trim() !== "" || category !== "";
 
   /**
@@ -261,18 +257,11 @@ function GrammarList() {
       </main>
 
       {isAdding && (
-        <AddGrammarRuleDialog
-          knownCategories={knownCategories}
-          onClose={() => setIsAdding(false)}
-        />
+        <AddGrammarRuleDialog onClose={() => setIsAdding(false)} />
       )}
 
       {editing && (
-        <EditGrammarRuleDialog
-          rule={editing}
-          knownCategories={knownCategories}
-          onClose={() => setEditingId(null)}
-        />
+        <EditGrammarRuleDialog rule={editing} onClose={() => setEditingId(null)} />
       )}
 
       {pendingDelete && (
