@@ -13,6 +13,7 @@ import {
   applyImport,
   leavesPhrasesAlone,
   leavesTermsAlone,
+  leavesGrammarRulesAlone,
   leavesVerbTablesAlone,
   parseBackup,
   restoresSettings,
@@ -22,6 +23,7 @@ import {
 import { readFileAsText } from "@/lib/backupFile";
 import { foldName } from "@/lib/foldName";
 import type { ImportMode } from "@/lib/types";
+import { useGrammarRules } from "@/lib/useGrammarRules";
 import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
 import { useVerbTables } from "@/lib/useVerbTables";
@@ -32,6 +34,7 @@ type Preview = {
   matchingTerms: number;
   matchingPhrases: number;
   matchingVerbTables: number;
+  matchingGrammarRules: number;
 };
 
 type State =
@@ -54,10 +57,11 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
   const { entries, loaded: termsLoaded } = useTerms();
   const { phrases, loaded: phrasesLoaded } = usePhrases();
   const { tables, loaded: tablesLoaded } = useVerbTables();
+  const { rules, loaded: rulesLoaded } = useGrammarRules();
   const [state, setState] = useState<State>({ step: "reading" });
   const [mode, setMode] = useState<ImportMode>("skip");
 
-  const ready = termsLoaded && phrasesLoaded && tablesLoaded;
+  const ready = termsLoaded && phrasesLoaded && tablesLoaded && rulesLoaded;
 
   useEffect(() => {
     if (!ready) return;
@@ -82,6 +86,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
       const savedTerms = new Set(entries.map((entry) => foldName(entry.term)));
       const savedPhrases = new Set(phrases.map((phrase) => foldName(phrase.phrase)));
       const savedVerbs = new Set(tables.map((table) => foldName(table.verb)));
+      const savedRules = new Set(rules.map((rule) => foldName(rule.title)));
 
       setState({
         step: "preview",
@@ -90,6 +95,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             entries: parsed.entries,
             phrases: parsed.phrases,
             verbTables: parsed.verbTables,
+            grammarRules: parsed.grammarRules,
             settings: parsed.settings,
             unreadable: parsed.unreadable,
           },
@@ -101,6 +107,9 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
           ).length,
           matchingVerbTables: parsed.verbTables.filter((table) =>
             savedVerbs.has(foldName(table.verb)),
+          ).length,
+          matchingGrammarRules: parsed.grammarRules.filter((rule) =>
+            savedRules.has(foldName(rule.title)),
           ).length,
         },
       });
@@ -154,6 +163,11 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             counts={state.result.verbTables}
             mode={state.mode}
           />
+          <ResultBlock
+            label="Grammar rules"
+            counts={state.result.grammarRules}
+            mode={state.mode}
+          />
           <div>
             <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
               Settings
@@ -200,6 +214,12 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             incoming={contents.verbTables.length}
             untouched={leavesVerbTablesAlone(contents, "replace")}
           />
+          <ReplaceLine
+            label="Grammar rules"
+            saved={rules.length}
+            incoming={contents.grammarRules.length}
+            untouched={leavesGrammarRulesAlone(contents, "replace")}
+          />
           <li className="flex flex-wrap gap-x-1.5">
             <span className="font-medium">Settings:</span>
             {restoresSettings(contents, "replace") ? (
@@ -242,6 +262,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
   const terms = contents.entries.length;
   const phraseCount = contents.phrases.length;
   const verbTables = contents.verbTables.length;
+  const grammarRules = contents.grammarRules.length;
 
   return (
     <Modal title="Import a backup" onClose={onClose}>
@@ -262,6 +283,11 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
               {verbTables} {verbTables === 1 ? "verb table" : "verb tables"} —{" "}
               {verbTables - preview.matchingVerbTables} new to you,{" "}
               {preview.matchingVerbTables} of your {tables.length} already saved.
+            </li>
+            <li>
+              {grammarRules} {grammarRules === 1 ? "grammar rule" : "grammar rules"} —{" "}
+              {grammarRules - preview.matchingGrammarRules} new to you,{" "}
+              {preview.matchingGrammarRules} of your {rules.length} already saved.
             </li>
             <li>
               {!contents.settings

@@ -20,6 +20,7 @@ const contents = (over: Partial<BackupContents> = {}): BackupContents => ({
   entries: [],
   phrases: [],
   verbTables: [],
+  grammarRules: [],
   settings: null,
   unreadable: 0,
   ...over,

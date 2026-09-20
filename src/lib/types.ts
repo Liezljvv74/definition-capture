@@ -66,6 +66,44 @@ export const EMPTY_PHRASE_INPUT: PhraseInput = {
   ref: "",
 };
 
+/* ---------------------------------------------------------------- grammar */
+
+/**
+ * One grammar rule: what it is called, what it says, and the examples that
+ * make it land.
+ *
+ * `category` is one name rather than a list, and free text rather than a
+ * setting — see the migration for why. Blank means unfiled, which is a real
+ * state: a rule is often captured before there is a name for the group it
+ * belongs to.
+ */
+export type GrammarRule = {
+  id: string;
+  title: string;
+  category: string;
+  explanation: string;
+  /** Free text, often a sentence and its translation on the next line. */
+  examples: string;
+  ref: string;
+  createdAt: string;
+};
+
+export type GrammarRuleInput = {
+  title: string;
+  category: string;
+  explanation: string;
+  examples: string;
+  ref: string;
+};
+
+export const EMPTY_GRAMMAR_RULE_INPUT: GrammarRuleInput = {
+  title: "",
+  category: "",
+  explanation: "",
+  examples: "",
+  ref: "",
+};
+
 /* ------------------------------------------------------------------- verbs */
 
 /** One person's line in a conjugation table. */

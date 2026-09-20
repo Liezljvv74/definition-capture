@@ -3,6 +3,11 @@
 import { useSyncExternalStore } from "react";
 
 import {
+  clearError as clearGrammarError,
+  getError as getGrammarError,
+  subscribeToError as watchGrammarError,
+} from "@/lib/grammarRules";
+import {
   clearError as clearPhraseError,
   getError as getPhraseError,
   subscribeToError as watchPhraseError,
@@ -28,6 +33,7 @@ const STORES = [
   { watch: watchEntryError, get: getEntryError, clear: clearEntryError },
   { watch: watchPhraseError, get: getPhraseError, clear: clearPhraseError },
   { watch: watchVerbError, get: getVerbError, clear: clearVerbError },
+  { watch: watchGrammarError, get: getGrammarError, clear: clearGrammarError },
   { watch: watchSettingsError, get: getSettingsError, clear: clearSettingsError },
 ];
 
