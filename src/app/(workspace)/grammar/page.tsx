@@ -325,7 +325,14 @@ function RuleTable({
                 label="Select every rule shown"
               />
             </th>
-            <th scope="col" className="w-[22%] px-3 py-2.5 font-semibold">
+            {/*
+             * Explanation is the one column with no width set, so it absorbs
+             * whatever the others give up — narrowing Title here is what
+             * widens it. Titles are short labels that wrap tidily; an
+             * explanation is prose, and prose in a narrow column is a column
+             * of two-word lines.
+             */}
+            <th scope="col" className="w-[15%] px-3 py-2.5 font-semibold">
               Title
             </th>
             <th scope="col" className="w-[12%] px-3 py-2.5 font-semibold">
