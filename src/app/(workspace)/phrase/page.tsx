@@ -14,9 +14,9 @@ import { usePhrases } from "@/lib/usePhrases";
 /**
  * Where a `[[Phrase]]` reference lands, addressed as `/phrase?id=abc123`.
  *
- * Query parameter rather than path segment for the same reason as `/term`: the
- * app is exported as static HTML, and ids that only exist in a visitor's browser
- * cannot be pre-rendered. The singular path also keeps this clear of `/phrases`,
+ * Query parameter rather than path segment for the same reason as `/term`,
+ * which explains it: a constraint of the static-export era that the saved
+ * links now outlive. The singular path also keeps this clear of `/phrases`,
  * which is the list.
  *
  * Deliberately thin — phrases carry no dates and no source, so this page has
@@ -164,8 +164,9 @@ function PhraseNotFound() {
       </div>
       <h1 className="text-lg font-semibold">Phrase not found</h1>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-        There is no phrase with that ID in your list. It may have been deleted, or the link may
-        be from a different browser — everything is saved on this device only.
+        There is no phrase with that ID in your list. It may have been deleted, or the link
+        may point to a phrase in a different account — your list follows the account you are
+        signed in to.
       </p>
       <Link href="/phrases" className="btn btn-primary mt-5">
         Back to phrases

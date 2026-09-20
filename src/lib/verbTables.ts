@@ -10,11 +10,15 @@
  * is the same rule `[[Name]]` links already follow.
  */
 
-import { createId, createRemoteStore } from "@/lib/remoteStore";
+import { foldName } from "@/lib/foldName";
+import { createId, createRemoteStore, usableId } from "@/lib/remoteStore";
 import {
+  NO_IMPORT,
   readString,
   readTenses,
   readVerbRows,
+  type ImportCounts,
+  type ImportMode,
   type VerbRow,
   type VerbTable,
 } from "@/lib/types";
@@ -53,6 +57,8 @@ export const subscribe = store.subscribe;
 export const getSnapshot = store.getSnapshot;
 export const getServerSnapshot = store.getServerSnapshot;
 export const clearError = store.clearError;
+export const subscribeToError = store.subscribeToError;
+export const getError = store.getError;
 
 /* ----------------------------------------------------------------- queries */
 
@@ -61,12 +67,12 @@ export function getVerbTables(): VerbTable[] {
 }
 
 /** The table for a verb, matched the way the term list matches its names. */
-export function findVerbTable(verb: string): VerbTable | undefined {
-  const needle = verb.trim().toLocaleLowerCase();
+function findVerbTable(verb: string): VerbTable | undefined {
+  const needle = foldName(verb);
   if (!needle) return undefined;
   return store
     .items()
-    .find((table) => table.verb.toLocaleLowerCase() === needle);
+    .find((table) => foldName(table.verb) === needle);
 }
 
 /* --------------------------------------------------------------- mutations */
@@ -108,4 +114,120 @@ export function saveVerbTable(id: string, tenses: string[], rows: VerbRow[]): vo
 
 export function deleteVerbTable(id: string): void {
   store.remove([id]);
+}
+
+/* ------------------------------------------------------------------ import */
+
+/**
+ * Turns unknown JSON into a VerbTable, or null if it is unusable. This reads
+ * the camelCase shape a backup file uses; database rows go through `fromRow`.
+ *
+ * `rows` is read against the tense count, so the invariant the whole table
+ * depends on — one conjugation per column, no more and no fewer — holds for a
+ * hand-edited backup exactly as it does for a row out of the database.
+ */
+export function parseVerbTable(raw: unknown, allowMissingId = false): VerbTable | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const value = raw as Record<string, unknown>;
+
+  const rawId = readString(value.id).trim();
+  const id = rawId || (allowMissingId ? "" : null);
+  const verb = readString(value.verb).trim() || null;
+  if (id === null || !verb) return null;
+
+  const tenses = readTenses(value.tenses);
+  return {
+    id,
+    verb,
+    tenses,
+    rows: readVerbRows(value.rows, tenses.length),
+    createdAt: readString(value.createdAt) || new Date().toISOString(),
+  };
+}
+
+export function parseVerbTableList(list: unknown[]): {
+  tables: VerbTable[];
+  unreadable: number;
+} {
+  const tables = list
+    .map((item) => parseVerbTable(item, true))
+    .filter((table): table is VerbTable => table !== null);
+  return { tables, unreadable: list.length - tables.length };
+}
+
+/**
+ * Merges imported tables into the list. Matched by verb name, which is the
+ * same rule `findVerbTable` and the unique index already use — a second table
+ * for the same verb is not a thing that can exist.
+ */
+export function importVerbTables(incoming: VerbTable[], mode: ImportMode): ImportCounts {
+  const result: ImportCounts = { ...NO_IMPORT };
+
+  if (mode === "replace") {
+    // One table per verb before anything is sent; see `storage.ts` for why a
+    // duplicate in the file would otherwise empty the list and leave it empty.
+    const byVerb = new Map<string, VerbTable>();
+    for (const table of incoming) byVerb.set(foldName(table.verb), table);
+
+    const taken = new Set<string>();
+    const restored = [...byVerb.values()].map((table) => {
+      const id = usableId(table.id, taken);
+      taken.add(id);
+      return { ...table, id };
+    });
+    result.added = restored.length;
+    store.replaceAll(restored);
+    return result;
+  }
+
+  const byVerb = new Map(
+    store.items().map((table) => [foldName(table.verb), table]),
+  );
+  const taken = new Set(store.items().map((table) => table.id));
+  const added: VerbTable[] = [];
+  /** Matched rows, sent as one write after the loop rather than one each. */
+  const updated: VerbTable[] = [];
+  /** See `storage.ts` — a second copy in one file merges into the pending row. */
+  const pending = new Map<string, number>();
+
+  for (const candidate of incoming) {
+    const key = foldName(candidate.verb);
+    const existing = byVerb.get(key);
+
+    if (existing) {
+      if (mode === "skip") {
+        result.skipped += 1;
+        continue;
+      }
+      // Columns and cells travel together, for the reason `saveVerbTable`
+      // gives: taking one from the backup and leaving the other would put the
+      // headings and the rows out of step.
+      const merged: VerbTable = {
+        ...existing,
+        verb: candidate.verb,
+        tenses: candidate.tenses,
+        rows: candidate.rows,
+      };
+
+      const at = pending.get(key);
+      if (at === undefined) updated.push(merged);
+      else added[at] = merged;
+
+      byVerb.set(key, merged);
+      result.updated += 1;
+      continue;
+    }
+
+    const id = usableId(candidate.id, taken);
+    taken.add(id);
+    const table = { ...candidate, id };
+    pending.set(key, added.length);
+    added.push(table);
+    byVerb.set(key, table);
+    result.added += 1;
+  }
+
+  store.updateMany(updated);
+  store.insertMany(added);
+  return result;
 }

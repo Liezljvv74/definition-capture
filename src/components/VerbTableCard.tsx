@@ -4,6 +4,8 @@ import { useId, useState } from "react";
 
 import { saveSettings } from "@/lib/settings";
 import { MAX_TENSES, type VerbRow, type VerbTable } from "@/lib/types";
+import { ANOTHER, chosenTense, TenseChoice } from "@/components/TenseChoice";
+import { foldName } from "@/lib/foldName";
 import { useSettings } from "@/lib/useSettings";
 import { deleteVerbTable, saveVerbTable } from "@/lib/verbTables";
 
@@ -102,7 +104,7 @@ export function VerbTableCard({
 
     // Remembered for the dropdown, here as well as on the new-table screen.
     const known = settings.verbTenses.some(
-      (candidate) => candidate.toLocaleLowerCase() === name.toLocaleLowerCase(),
+      (candidate) => foldName(candidate) === foldName(name),
     );
     if (!known) saveSettings({ verbTenses: [...settings.verbTenses, name] });
   }
@@ -356,9 +358,6 @@ function AddTenseButton({
   );
 }
 
-/** The dropdown value meaning "none of these, let me type one". */
-const ANOTHER = " another";
-
 /**
  * Names the column about to be inserted — the same question the first table
  * asked, offering the same remembered answers.
@@ -380,7 +379,7 @@ function NameTense({
   const [choice, setChoice] = useState(known[0] ?? ANOTHER);
   const [typed, setTyped] = useState("");
 
-  const name = (choice === ANOTHER ? typed : choice).trim();
+  const name = chosenTense(choice, typed);
 
   return (
     <div className="mt-2 rounded-lg border border-slate-200 p-2 dark:border-slate-800">
@@ -389,33 +388,16 @@ function NameTense({
       </label>
 
       <div className="mt-1 flex flex-wrap items-center gap-2">
-        {known.length > 0 && (
-          <select
-            id={ids}
-            className="field !px-1.5 !py-0.5 w-auto text-xs"
-            value={choice}
-            onChange={(event) => setChoice(event.target.value)}
-          >
-            {known.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-            <option value={ANOTHER}>Another tense…</option>
-          </select>
-        )}
-
-        {(known.length === 0 || choice === ANOTHER) && (
-          <input
-            id={known.length === 0 ? ids : undefined}
-            autoFocus
-            aria-label="A new tense"
-            className="field !px-1.5 !py-0.5 w-32 text-xs"
-            placeholder="e.g. Past"
-            value={typed}
-            onChange={(event) => setTyped(event.target.value)}
-          />
-        )}
+        <TenseChoice
+          id={ids}
+          known={known}
+          choice={choice}
+          onChoice={setChoice}
+          typed={typed}
+          onTyped={setTyped}
+          placeholder="e.g. Past"
+          compact
+        />
 
         <button
           type="button"

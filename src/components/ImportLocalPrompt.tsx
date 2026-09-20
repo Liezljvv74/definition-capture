@@ -8,8 +8,13 @@ import {
   LEGACY_PHRASES_KEY,
   readLegacyList,
 } from "@/lib/legacyLocal";
-import { importPhrases, parsePhrase } from "@/lib/phraseStorage";
-import { importEntries, parseEntry } from "@/lib/storage";
+import {
+  importPhrases,
+  parsePhrase,
+  settled as phrasesSettled,
+} from "@/lib/phraseStorage";
+import { importEntries, parseEntry, settled as termsSettled } from "@/lib/storage";
+import type { Entry, Phrase } from "@/lib/types";
 import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
 
@@ -17,11 +22,18 @@ import { usePhrases } from "@/lib/usePhrases";
  * Offers the pre-account term list — the one still sitting in this browser's
  * `localStorage` — to the signed-in account.
  *
- * Deliberately two steps. The copy is one write, and dropping the old keys is
- * another; doing both at once would mean deleting the only copy of the data on
- * the strength of a request whose outcome has not been seen yet. So the import
- * runs first, and the old copy is only removed once the reader has looked at
- * their list and pressed the second button.
+ * This is the last thread back to the browser-only version of the app, and the
+ * only place `localStorage` is still read. Everything it copies is on its way
+ * to Supabase, where it belongs; once a browser has been through this, the
+ * prompt never appears again.
+ *
+ * Deliberately two steps, and the second one waits. Copying is one write and
+ * dropping the old keys is another, and doing both at once would delete the
+ * only copy of the data on the strength of a request nobody has seen the
+ * answer to. Writes here are optimistic — the list on screen updates before
+ * the database replies — so "it looks copied" is not evidence that it is.
+ * `settled()` waits for the real answer, and the old copy is only offered for
+ * removal once the write has actually landed.
  */
 export function ImportLocalPrompt() {
   // Read once, on mount, rather than on every render: this is synchronous
@@ -34,7 +46,25 @@ export function ImportLocalPrompt() {
     };
   });
 
-  const [step, setStep] = useState<"offer" | "copied" | "gone">("offer");
+  // The store hooks live in the inner component, not here, and that split is
+  // the whole point of it. Subscribing to a store is what tells it to fetch,
+  // and this prompt is mounted in the workspace layout — so reading the term
+  // and phrase lists at this level made every page fetch both, for every
+  // reader, to answer a question that only matters to someone migrating off
+  // the browser-only version once. Almost nobody has legacy data; those who
+  // do not now cost nothing.
+  if (legacy.entries.length + legacy.phrases.length === 0) return null;
+  return <LegacyOffer legacy={legacy} />;
+}
+
+function LegacyOffer({
+  legacy,
+}: {
+  legacy: { entries: Entry[]; phrases: Phrase[] };
+}) {
+  const [step, setStep] = useState<
+    "offer" | "copying" | "copied" | "confirmForget" | "confirmDiscard" | "gone"
+  >("offer");
   const [copied, setCopied] = useState({ terms: 0, phrases: 0, skipped: 0 });
 
   const terms = useTerms();
@@ -44,19 +74,28 @@ export function ImportLocalPrompt() {
   // the database's unique index rather than quietly merged.
   const ready = terms.loaded && phraseList.loaded;
 
-  const total = legacy.entries.length + legacy.phrases.length;
-  if (total === 0 || step === "gone") return null;
+  // Whichever store reported a failure, the copy did not fully arrive. The
+  // store has already reloaded itself from the database and the banner is
+  // saying so; all this needs to do is refuse to delete the other copy.
+  const writeFailed = terms.error !== null || phraseList.error !== null;
 
-  function handleCopy() {
+  if (step === "gone") return null;
+
+  async function handleCopy() {
+    setStep("copying");
     // "skip" so running this twice, or on a browser whose terms are already in
     // the account, cannot overwrite anything that has since been edited.
-    const terms = importEntries(legacy.entries, "skip");
-    const phrases = importPhrases(legacy.phrases, "skip");
+    const termResult = importEntries(legacy.entries, "skip");
+    const phraseResult = importPhrases(legacy.phrases, "skip");
     setCopied({
-      terms: terms.added,
-      phrases: phrases.added,
-      skipped: terms.skipped + phrases.skipped,
+      terms: termResult.added,
+      phrases: phraseResult.added,
+      skipped: termResult.skipped + phraseResult.skipped,
     });
+
+    // The counts above describe what was asked for. This is where we find out
+    // whether it happened.
+    await Promise.all([termsSettled(), phrasesSettled()]);
     setStep("copied");
   }
 
@@ -68,7 +107,7 @@ export function ImportLocalPrompt() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6">
       <div className="card border-indigo-200 bg-indigo-50 p-4 text-sm dark:border-indigo-900 dark:bg-indigo-950/40">
-        {step === "offer" ? (
+        {step === "offer" || step === "copying" ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p>
               This browser still holds {describe(legacy.entries.length, legacy.phrases.length)}{" "}
@@ -78,13 +117,72 @@ export function ImportLocalPrompt() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={handleCopy}
-                disabled={!ready}
+                onClick={() => void handleCopy()}
+                disabled={!ready || step === "copying"}
               >
-                {ready ? "Copy them in" : "Loading…"}
+                {step === "copying" ? "Copying…" : ready ? "Copy them in" : "Loading…"}
               </button>
-              <button type="button" className="btn btn-secondary" onClick={handleForget}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setStep("confirmDiscard")}
+                disabled={step === "copying"}
+              >
                 Discard
+              </button>
+            </div>
+          </div>
+        ) : step === "confirmDiscard" ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              Discarding deletes {describe(legacy.entries.length, legacy.phrases.length)} from
+              this browser without copying anything into your account. This cannot be undone.
+            </p>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setStep("offer")}
+              >
+                Go back
+              </button>
+              <button type="button" className="btn btn-danger" onClick={handleForget}>
+                Yes, discard
+              </button>
+            </div>
+          </div>
+        ) : step === "confirmForget" ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              Your account now has {describe(copied.terms, copied.phrases)}. Removing the old
+              copy deletes it from this browser for good.
+            </p>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setStep("copied")}
+              >
+                Go back
+              </button>
+              <button type="button" className="btn btn-danger" onClick={handleForget}>
+                Yes, remove it
+              </button>
+            </div>
+          </div>
+        ) : writeFailed ? (
+          <div className="flex flex-col gap-3">
+            <p>
+              The copy did not reach the database, so the browser&rsquo;s copy is being kept.
+              Nothing has been deleted. Try again once the message above is sorted out.
+            </p>
+            <div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setStep("offer")}
+              >
+                Try again
               </button>
             </div>
           </div>
@@ -99,7 +197,7 @@ export function ImportLocalPrompt() {
             <button
               type="button"
               className="btn btn-secondary shrink-0"
-              onClick={handleForget}
+              onClick={() => setStep("confirmForget")}
             >
               Remove the old copy
             </button>

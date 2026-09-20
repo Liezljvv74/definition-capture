@@ -24,8 +24,10 @@ port bounces every link.
 
 There is no deployment at the moment. The app used to be a static export on
 GitHub Pages; that was given up to get a server, because a static host cannot
-check a session. `.github/workflows/deploy.yml` is disabled rather than deleted,
-and `out/` is a stale artefact of that era.
+check a session. That era is over and its remains have been deleted — the Pages
+workflow, the committed `out/` build, and the `asset()` base-path helper. Any
+host for this app has to run Node, and nothing should be designed around the
+absence of a server.
 
 ## Authentication rules
 

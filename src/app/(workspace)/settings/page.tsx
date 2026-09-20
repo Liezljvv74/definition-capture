@@ -12,7 +12,7 @@ import {
   supportsExportFolder,
 } from "@/lib/exportFolder";
 import { MIN_PASSWORD, setPassword, signOut } from "@/lib/session";
-import { clearError, saveSettings } from "@/lib/settings";
+import { saveSettings } from "@/lib/settings";
 import { useExportFolder } from "@/lib/useExportFolder";
 import { useSession } from "@/lib/useSession";
 import { useSettings } from "@/lib/useSettings";
@@ -32,7 +32,7 @@ import { useSettings } from "@/lib/useSettings";
  * on the section itself rather than leaving the difference to be discovered.
  */
 export default function SettingsPage() {
-  const { settings, loaded, error } = useSettings();
+  const { settings, loaded } = useSettings();
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
@@ -43,21 +43,11 @@ export default function SettingsPage() {
         </p>
       </header>
 
-      {error && (
-        <p
-          role="alert"
-          className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-        >
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={clearError}
-            className="cursor-pointer font-medium underline"
-          >
-            Dismiss
-          </button>
-        </p>
-      )}
+      {/* A failed settings save used to be reported here, and only here —
+          which meant a save made from the verbs page or a table card failed
+          silently. `StoreErrorBanner` in the workspace layout now shows it
+          wherever it happens, so repeating it on this page would say the same
+          thing twice. */}
 
       <div className="space-y-3">
         {/* Keyed on the stored name so a save, or a change in another tab,
@@ -208,8 +198,8 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
         <dd className="mt-1 text-sm break-words">{user?.email ?? "—"}</dd>
       </dl>
       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-        Sign-in is a one-time emailed link, so there is no password to change
-        here. The address itself is the account.
+        The address itself is the account. You can sign in with a one-time
+        emailed link, or set a password below and use that instead.
       </p>
 
       <div className="mt-4">

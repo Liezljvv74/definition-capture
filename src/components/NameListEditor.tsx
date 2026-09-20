@@ -1,5 +1,6 @@
 "use client";
 
+import { foldName } from "@/lib/foldName";
 import { useId, useState } from "react";
 
 import { MAX_LIST_LENGTH } from "@/lib/constants";
@@ -38,7 +39,7 @@ export function NameListEditor({
     const name = draft.trim();
     if (!name) return;
 
-    if (names.some((existing) => existing.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+    if (names.some((existing) => foldName(existing) === foldName(name))) {
       setError(`"${name}" is already on the list.`);
       return;
     }

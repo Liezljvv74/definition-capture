@@ -181,7 +181,20 @@ export async function setPassword(password: string): Promise<{ error: string | n
   if (!supabase) return { error: "This build has no Supabase credentials." };
 
   const { error } = await supabase.auth.updateUser({ password });
-  return { error: error?.message ?? null };
+  if (error) return { error: error.message };
+
+  // Every other session is ended, and this one is kept.
+  //
+  // Changing a password is what you do when you think someone else may have
+  // had your account, and leaving their session signed in would make the
+  // change pointless — Supabase does not revoke anything on its own. `others`
+  // rather than `global` so the person doing it is not signed out of the page
+  // they are standing on.
+  //
+  // A failure here is deliberately not reported as a failure: the password did
+  // change, and saying otherwise would invite someone to set it twice.
+  await supabase.auth.signOut({ scope: "others" });
+  return { error: null };
 }
 
 /**

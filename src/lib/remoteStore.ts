@@ -46,14 +46,36 @@ export type RemoteStore<T> = {
   replaceAll: (items: T[]) => void;
   /** Store many new items in one write — the localStorage import. */
   insertMany: (items: T[]) => void;
+  /** Replace many existing items in one write — the merge half of an import. */
+  updateMany: (items: T[]) => void;
   /** Clear the error banner. */
   clearError: () => void;
+  /**
+   * Watch only the error, without starting the store.
+   *
+   * `subscribe` doubles as "someone is looking at this list, go and fetch
+   * it", which is right for a page showing the list and wrong for the banner.
+   * The banner sits in the workspace layout and only ever reads `error`, so
+   * subscribing normally made every page — Settings, Grammar, Verbs — fetch
+   * the terms and phrases it had no intention of showing.
+   */
+  subscribeToError: (listener: () => void) => () => void;
+  getError: () => string | null;
+  /**
+   * Resolves once every write started so far has been answered.
+   *
+   * Writes are otherwise fire-and-forget, which is the whole point of an
+   * optimistic store. This is for the one caller that cannot be optimistic:
+   * the legacy import, which is about to delete the only other copy of the
+   * data and so has to know the write really landed.
+   */
+  settled: () => Promise<void>;
 };
 
 type Row = Record<string, unknown>;
 
 /** How long after a read another catch-up read is considered pointless. */
-const REFRESH_GAP_MS = 2000;
+export const REFRESH_GAP_MS = 2000;
 
 /**
  * How long to wait before each re-attempt of a read that failed on a clock
@@ -63,7 +85,40 @@ const REFRESH_GAP_MS = 2000;
  */
 const RETRY_DELAYS_MS = [400, 1500];
 
+/**
+ * How many rows to ask for at a time.
+ *
+ * PostgREST caps any single response at the project's `max_rows`, which is
+ * 1000 here and on hosted Supabase by default. A plain `select("*")` past that
+ * came back quietly truncated — no error, no flag — and the app showed the
+ * first 1000 rows as though they were the whole list. That was not merely a
+ * display bug: `buildBackup` reads this same cache, so an export followed by a
+ * Replace import deleted every row beyond the cut. Reading in pages until a
+ * short one arrives is what makes the list actually complete.
+ */
+const PAGE_SIZE = 1000;
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Calls back when the reader returns to the tab.
+ *
+ * Two tabs used to stay in step through the `storage` event, which the
+ * localStorage store got for free. A database has no such event, so every
+ * store re-reads when a tab is looked at again — which is when a stale list
+ * would actually be noticed. It is not live sync: a second tab sitting
+ * visible alongside the first will not update until it is focused.
+ *
+ * `visibilitychange` and `focus` both fire on the same return, which is why
+ * the caller's `refresh` is expected to throttle itself with
+ * `REFRESH_GAP_MS`.
+ */
+export function watchForRefocus(refresh: () => void): void {
+  window.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refresh();
+  });
+  window.addEventListener("focus", refresh);
+}
 
 /**
  * True for the one failure worth retrying rather than reporting: the database
@@ -84,6 +139,43 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 function isNotYetValidError(error: unknown): boolean {
   const message = readError(error).toLowerCase();
   return message.includes("issued at future") || message.includes("not yet valid");
+}
+
+/** What a read gave up on, as distinct from a read that answered. */
+export const ABANDONED = Symbol("abandoned");
+
+/**
+ * Runs a read, waiting out a token the database thinks comes from the future.
+ *
+ * This is exported, and every read in the app goes through it, because the
+ * alternative was tried and failed: `settings.ts` copied this module's loading
+ * behaviour by hand, the retry was added here afterwards, and the copy never
+ * got it — so the one read most likely to hit the problem, the settings read
+ * on the first page after signing in, still reported a raw JWT complaint. A
+ * shared function is what makes a fix like that arrive everywhere at once.
+ *
+ * `stillWanted` is checked after every await: a sign-out or account switch
+ * mid-flight means the answer belongs to the wrong reader, and the caller is
+ * told to drop it rather than publish it.
+ */
+export async function readWithSkewRetry<T extends { error: unknown }>(
+  run: () => PromiseLike<T>,
+  stillWanted: () => boolean,
+): Promise<T | typeof ABANDONED> {
+  for (let attempt = 0; ; attempt++) {
+    // Called fresh each time: a Supabase query builder can only be awaited
+    // once, so a retry needs a new one.
+    const answer = await run();
+    if (!stillWanted()) return ABANDONED;
+    if (!answer.error) return answer;
+
+    if (isNotYetValidError(answer.error) && attempt < RETRY_DELAYS_MS.length) {
+      await wait(RETRY_DELAYS_MS[attempt]);
+      if (!stillWanted()) return ABANDONED;
+      continue;
+    }
+    return answer;
+  }
 }
 
 export type RemoteStoreConfig<T> = {
@@ -128,43 +220,52 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
 
     loading = true;
     try {
-      let data: unknown[] | null = null;
+      const data: unknown[] = [];
 
-      for (let attempt = 0; ; attempt++) {
-        const answer = await supabase
-          .from(config.table)
-          .select("*")
-          .order(config.orderBy, { ascending: false });
+      for (let offset = 0; ; offset += PAGE_SIZE) {
+        const answer = await readWithSkewRetry(
+          () =>
+            supabase
+              .from(config.table)
+              .select("*")
+              .order(config.orderBy, { ascending: false })
+              // Paging needs a total order, and `orderBy` is a timestamp that
+              // two rows can share. Without a tie-break the database is free to
+              // order tied rows differently for each page, which would drop some
+              // and repeat others across the boundary. The id settles it.
+              .order("id", { ascending: false })
+              .range(offset, offset + PAGE_SIZE - 1),
+          () => currentUserId() === userId,
+        );
 
         // A sign-out or account switch while the request was in flight: the rows
         // that just arrived belong to the wrong reader, so drop them.
-        if (currentUserId() !== userId) return;
+        if (answer === ABANDONED) return;
 
-        if (!answer.error) {
-          data = answer.data;
-          break;
+        if (answer.error) {
+          // Keep the rows already in hand. A failed read is not evidence the
+          // list is empty, and emptying it here showed the “nothing saved yet”
+          // screen to anyone with a full list whenever a refresh went wrong.
+          // That holds for a failure half way through paging too: the pages
+          // already collected are discarded rather than published as if they
+          // were the whole list.
+          publish({
+            items: snapshot.items,
+            loaded: true,
+            error: `Could not read your list from the database: ${readError(answer.error)}.`,
+          });
+          return;
         }
 
-        // A token the database thinks is from the future settles by itself.
-        // Wait it out rather than telling the reader about it.
-        if (isNotYetValidError(answer.error) && attempt < RETRY_DELAYS_MS.length) {
-          await wait(RETRY_DELAYS_MS[attempt]);
-          if (currentUserId() !== userId) return;
-          continue;
-        }
-
-        // Keep the rows already in hand. A failed read is not evidence the
-        // list is empty, and emptying it here showed the “nothing saved yet”
-        // screen to anyone with a full list whenever a refresh went wrong.
-        publish({
-          items: snapshot.items,
-          loaded: true,
-          error: `Could not read your list from the database: ${readError(answer.error)}.`,
-        });
-        return;
+        const batch = answer.data ?? [];
+        data.push(...batch);
+        // A short page is the last one. A full page means there may be more,
+        // so ask again — including the exact-multiple case, where the next
+        // request comes back empty and ends the loop.
+        if (batch.length < PAGE_SIZE) break;
       }
 
-      const items = (data ?? [])
+      const items = data
         .map((row) => config.fromRow(row as Row))
         .filter((item): item is T => item !== null);
       lastLoadedAt = Date.now();
@@ -215,8 +316,11 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
    * Optimistic write: the cache is already updated by the caller, so this only
    * has to report a failure and put the truth back.
    */
+  /** Writes that have been sent and not yet answered, for `settled`. */
+  const inFlight = new Set<Promise<unknown>>();
+
   function send(work: PromiseLike<{ error: unknown }>): void {
-    void Promise.resolve(work).then(({ error }) => {
+    const settling = Promise.resolve(work).then(({ error }) => {
       if (!error) return;
       // The whole sentence is built here rather than half of it in the banner,
       // because a read failure and a write failure need different second
@@ -227,6 +331,9 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
       );
       reload();
     });
+
+    inFlight.add(settling);
+    void settling.finally(() => inFlight.delete(settling));
   }
 
   function rowFor(item: T, userId: string): Row {
@@ -245,16 +352,7 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
         subscribeToSession(syncToSession);
         syncToSession();
 
-        // Two tabs used to stay in step through the `storage` event, which the
-        // localStorage store got for free. A database has no such event, so
-        // this re-reads the list whenever a tab is looked at again — which is
-        // when a stale list would actually be noticed. It is not live sync: a
-        // second tab sitting visible alongside the first will not update until
-        // it is focused.
-        window.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") refresh();
-        });
-        window.addEventListener("focus", refresh);
+        watchForRefocus(refresh);
       }
 
       return () => {
@@ -337,15 +435,73 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
       }
     },
 
+    /**
+     * The counterpart to `insertMany`, and it exists for the same reason.
+     *
+     * An import that matches three hundred existing rows used to call
+     * `update` three hundred times: three hundred requests, three hundred
+     * full-array rebuilds, and three hundred renders of a page with a modal
+     * open over it — while the new rows beside them went in a single insert.
+     * One `upsert` keyed on the primary key does the whole set in one trip.
+     *
+     * `upsert` rather than `update` because PostgREST has no bulk update; row
+     * level security still applies, and `rowFor` stamps `user_id` from the
+     * session rather than from the file, so this cannot write another
+     * account's rows.
+     */
+    updateMany(items) {
+      const userId = currentUserId();
+      if (!userId || items.length === 0) return;
+
+      const replacements = new Map(items.map((item) => [config.idOf(item), item]));
+      setItems(
+        snapshot.items.map((existing) => replacements.get(config.idOf(existing)) ?? existing),
+      );
+
+      const supabase = getSupabase();
+      if (supabase) {
+        send(
+          supabase
+            .from(config.table)
+            .upsert(
+              items.map((item) => rowFor(item, userId)),
+              { onConflict: "id" },
+            ),
+        );
+      }
+    },
+
     clearError() {
       if (snapshot.error === null) return;
       publish({ items: snapshot.items, loaded: snapshot.loaded, error: null });
     },
+
+    subscribeToError(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+
+    getError: () => snapshot.error,
+
+    async settled() {
+      // A loop rather than one `Promise.all`: a write that fails starts a
+      // reload, and waiting for the set to actually empty covers anything
+      // that joined while we were waiting.
+      while (inFlight.size > 0) await Promise.all([...inFlight]);
+    },
   };
 }
 
-/** Pulls a readable sentence out of whatever Supabase handed back. */
-function readError(error: unknown): string {
+/**
+ * Pulls a readable sentence out of whatever Supabase handed back.
+ *
+ * Exported so every store words a failure the same way. `settings.ts` had its
+ * own copy that coerced non-strings and capitalised the fallback, so the same
+ * underlying error read differently depending on which store hit it.
+ */
+export function readError(error: unknown): string {
   if (typeof error === "object" && error !== null && "message" in error) {
     const { message } = error as { message?: unknown };
     if (typeof message === "string" && message) return message;
@@ -359,4 +515,21 @@ function readError(error: unknown): string {
  */
 export function createId(): string {
   return crypto.randomUUID();
+}
+
+/**
+ * The id an imported row should be saved under.
+ *
+ * Ids in a backup are whatever the exporting version used — the localStorage
+ * store minted short random strings, which the `uuid` primary key will not
+ * accept — and one file can name the same id twice. Anything unusable, or
+ * already spoken for, is replaced with a fresh one.
+ *
+ * It lives here rather than in a store because all three lists import the same
+ * way, and the regex is the load-bearing part: fixing it in one copy and not
+ * the others would silently break importing into whichever list was missed.
+ */
+export function usableId(id: string, taken: Set<string>): string {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  return isUuid && !taken.has(id) ? id : createId();
 }

@@ -1,11 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { AccountMenu } from "@/components/AccountMenu";
-import { asset } from "@/lib/assetPath";
 
 /**
  * The two views behind the Glossary tab. They are one section with two
@@ -63,14 +63,15 @@ export function MainNav() {
             aria-label="Definition Capture — home"
             className="-ml-1 block rounded-md p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
           >
-            {/* A plain <img>, not next/image: the app is a static export with no
-                optimiser behind it, so there is nothing to optimise. Width and
-                height are set to reserve the space before the file loads. */}
-            <img
-              src={asset("/captured-logo.png")}
+            {/* Width and height reserve the space before the file loads, so
+                the nav does not jump. `priority` because this is above the
+                fold on every page and the lazy default would delay it. */}
+            <Image
+              src="/captured-logo.png"
               alt=""
               width={36}
               height={36}
+              priority
               className="size-8 sm:size-9"
             />
           </Link>

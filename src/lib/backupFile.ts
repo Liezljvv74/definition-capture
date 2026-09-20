@@ -1,5 +1,5 @@
 /**
- * Browser file plumbing for exports: turning the two lists into a downloaded
+ * Browser file plumbing for exports: turning the lists into a downloaded
  * file, and reading a chosen file back as text. All of the data rules live in
  * the stores and in `backup.ts` — this module only moves bytes in and out of
  * the page.
@@ -15,7 +15,7 @@
 // is needed only when someone actually asks for a workbook.
 import type { Row, Sheet } from "write-excel-file/browser";
 
-import { buildBackup, type BackupScope } from "@/lib/backup";
+import { buildBackup, type Backup, type BackupScope } from "@/lib/backup";
 import { saveToExportFolder } from "@/lib/exportFolder";
 import { formatDate } from "@/lib/format";
 
@@ -83,7 +83,12 @@ export async function downloadJsonBackup(
   });
   const fileName = backupFileName("json", scope);
   const folder = await deliver(blob, fileName);
-  return { fileName, folder, count: backup.entries.length + backup.phrases.length };
+  return { fileName, folder, count: countOf(backup) };
+}
+
+/** How many items the file carries, across every list in it. */
+function countOf(backup: Backup): number {
+  return backup.entries.length + backup.phrases.length + backup.verbTables.length;
 }
 
 function headerRow(labels: string[]): Row {
@@ -134,14 +139,47 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
     ],
   };
 
-  // A workbook must have at least one sheet, so a scoped export drops the other.
-  const sheets: Sheet<Blob>[] =
-    scope === "terms" ? [terms] : scope === "phrases" ? [phrases] : [terms, phrases];
+  /**
+   * A conjugation table is a grid, and a sheet is a flat list, so each cell
+   * gets its own line: one row per person per tense. Laying the tenses out as
+   * columns instead would need every table in the workbook to share the same
+   * tenses in the same order, which is exactly what they do not do.
+   */
+  const verbs: Sheet<Blob> = {
+    sheet: "Verb tables",
+    columns: [{ width: 22 }, { width: 18 }, { width: 18 }, { width: 28 }, { width: 30 }],
+    data: [
+      headerRow(["Verb", "Person", "Tense", "Conjugation", "Notes"]),
+      ...backup.verbTables.flatMap<Row>((table) =>
+        table.rows.flatMap<Row>((row) =>
+          table.tenses.map<Row>((tense, at) => [
+            { value: table.verb, type: String },
+            { value: row.person, type: String },
+            { value: tense, type: String },
+            { value: row.conjugations[at] ?? "", type: String },
+            { value: row.notes, type: String, wrap: true },
+          ]),
+        ),
+      ),
+    ],
+  };
+
+  // A workbook must have at least one sheet, so a scoped export drops the
+  // others. Listed by what is included rather than excluded, for the reason
+  // `buildBackup` gives.
+  const all: [Exclude<BackupScope, "all">, Sheet<Blob>][] = [
+    ["terms", terms],
+    ["phrases", phrases],
+    ["verbs", verbs],
+  ];
+  const sheets = all
+    .filter(([list]) => scope === "all" || scope === list)
+    .map(([, sheet]) => sheet);
 
   const blob = await writeExcelFile(sheets).toBlob();
   const fileName = backupFileName("xlsx", scope);
   const folder = await deliver(blob, fileName);
-  return { fileName, folder, count: backup.entries.length + backup.phrases.length };
+  return { fileName, folder, count: countOf(backup) };
 }
 
 export function readFileAsText(file: File): Promise<string> {

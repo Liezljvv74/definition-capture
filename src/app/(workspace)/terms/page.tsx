@@ -17,8 +17,11 @@ import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { sourceOrder } from "@/lib/constants";
 import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
+import { foldName } from "@/lib/foldName";
 import { useTerms } from "@/lib/useTerms";
-import { useListSelection, type ListSelection } from "@/lib/useListSelection";
+import { useWideScreen } from "@/lib/useWideScreen";
+import { useListPage } from "@/lib/useListPage";
+import { type ListSelection } from "@/lib/useListSelection";
 import { compareNames, compareText } from "@/lib/sortName";
 import { usePhrases } from "@/lib/usePhrases";
 import { useSettings } from "@/lib/useSettings";
@@ -34,6 +37,11 @@ const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
   { key: "source", label: "Source", className: "w-[12%]" },
   { key: null, label: "Ref", className: "w-[20%]" },
 ];
+
+/** Module scope so their identity is stable across renders; `useListPage`
+ *  memoises against them. */
+const idOfEntry = (entry: Entry) => entry.id;
+const nameOfEntry = (entry: Entry) => entry.term;
 
 function compare(
   a: Entry,
@@ -58,6 +66,7 @@ function compare(
 
 export default function TermsPage() {
   const { entries, loaded } = useTerms();
+  const wide = useWideScreen();
   const { settings } = useSettings();
   const { phrases } = usePhrases();
   const [isAdding, setIsAdding] = useState(false);
@@ -69,10 +78,6 @@ export default function TermsPage() {
   // nouns file under their own first letter. Date added is no longer a
   // column and is now only the tie-breaker.
   const [sort, setSort] = useState<Sort>({ key: "term", direction: "asc" });
-  /** The ids the confirmation dialog is currently asking about, or null. */
-  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
-  /** The entry the edit dialog is open on, or null. */
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   /**
    * Only categories actually in use, so choosing one always shows
@@ -83,44 +88,65 @@ export default function TermsPage() {
     const byKey = new Map<string, string>();
     for (const entry of entries) {
       for (const name of entry.categories) {
-        const key = name.toLocaleLowerCase();
+        const key = foldName(name);
         if (!byKey.has(key)) byKey.set(key, name);
       }
     }
     // A category chosen and then emptied of terms stays listed, so the
     // dropdown never shows a blank while the list explains itself.
-    if (category && !byKey.has(category.toLocaleLowerCase())) {
-      byKey.set(category.toLocaleLowerCase(), category);
+    if (category && !byKey.has(foldName(category))) {
+      byKey.set(foldName(category), category);
     }
     return [...byKey.values()].sort(compareText);
   }, [entries, category]);
 
-  const visible = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase();
-    const wanted = category.toLocaleLowerCase();
-    const filtered = entries.filter((entry) => {
-      if (onlyNeedsDefinition && !entry.needsDefinition) return false;
-      if (wanted && !entry.categories.some((name) => name.toLocaleLowerCase() === wanted)) {
-        return false;
-      }
-      if (!needle) return true;
-      return (
-        entry.term.toLocaleLowerCase().includes(needle) ||
-        entry.definition.toLocaleLowerCase().includes(needle) ||
-        entry.ref.toLocaleLowerCase().includes(needle)
-      );
-    });
-
-    return [...filtered].sort((a, b) => {
+  /**
+   * Sorting and filtering are two memos, not one, and the split is what keeps
+   * typing in the search box quick.
+   *
+   * Sorting is the expensive half — a comparator over the whole list, run
+   * O(n log n) times — and it does not depend on the query at all. Together in
+   * one memo, every keystroke re-sorted everything; apart, a keystroke only
+   * re-runs the filter, which is a single linear pass. `filter` preserves
+   * order, so the result is exactly what it was before.
+   */
+  const sorted = useMemo(() => {
+    return [...entries].sort((a, b) => {
       const result = compare(a, b, sort.key, settings.sources);
       if (result !== 0) return sort.direction === "asc" ? result : -result;
       // Ties fall back to newest-first so the order is always stable.
       return b.dateAdded.localeCompare(a.dateAdded);
     });
-  }, [entries, query, onlyNeedsDefinition, category, sort, settings.sources]);
+  }, [entries, sort, settings.sources]);
 
-  const visibleIds = useMemo(() => visible.map((entry) => entry.id), [visible]);
-  const selection = useListSelection(visibleIds);
+  const visible = useMemo(() => {
+    const needle = foldName(query);
+    const wanted = foldName(category);
+    return sorted.filter((entry) => {
+      if (onlyNeedsDefinition && !entry.needsDefinition) return false;
+      if (wanted && !entry.categories.some((name) => foldName(name) === wanted)) {
+        return false;
+      }
+      if (!needle) return true;
+      return (
+        foldName(entry.term).includes(needle) ||
+        foldName(entry.definition).includes(needle) ||
+        foldName(entry.ref).includes(needle)
+      );
+    });
+  }, [sorted, query, onlyNeedsDefinition, category]);
+
+  // Selection, the row being edited, and the names the delete dialog lists —
+  // the four pieces the phrase page also needs, and the ones where the two
+  // drifting apart would be a bug rather than a choice.
+  const {
+    selection,
+    editing,
+    setEditingId,
+    pendingDelete,
+    setPendingDelete,
+    pendingNames,
+  } = useListPage(visible, idOfEntry, nameOfEntry);
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
@@ -133,17 +159,6 @@ export default function TermsPage() {
         : { key, direction: key === "dateAdded" ? "desc" : "asc" },
     );
   }
-
-  const editing = editingId
-    ? (entries.find((entry) => entry.id === editingId) ?? null)
-    : null;
-
-  /** Names in on-screen order, so the dialog lists what the user is looking at. */
-  const pendingNames = useMemo(() => {
-    if (!pendingDelete) return [];
-    const doomed = new Set(pendingDelete);
-    return entries.filter((entry) => doomed.has(entry.id)).map((entry) => entry.term);
-  }, [pendingDelete, entries]);
 
   return (
     <>
@@ -252,24 +267,30 @@ export default function TermsPage() {
                     onClear={selection.clear}
                   />
                 )}
-                <EntryTable
-                  entries={visible}
-                  sort={sort}
-                  onSort={toggleSort}
-                  onSelectCategory={setCategory}
-                  linkIndex={linkIndex}
-                  selection={selection}
-                  onEdit={setEditingId}
-                  onDelete={(id) => setPendingDelete([id])}
-                />
-                <EntryCards
-                  entries={visible}
-                  onSelectCategory={setCategory}
-                  linkIndex={linkIndex}
-                  selection={selection}
-                  onEdit={setEditingId}
-                  onDelete={(id) => setPendingDelete([id])}
-                />
+                {/* One of the two, once the viewport is known; both, with CSS
+                    choosing, until then. See `useWideScreen`. */}
+                {wide !== false && (
+                  <EntryTable
+                    entries={visible}
+                    sort={sort}
+                    onSort={toggleSort}
+                    onSelectCategory={setCategory}
+                    linkIndex={linkIndex}
+                    selection={selection}
+                    onEdit={setEditingId}
+                    onDelete={(id) => setPendingDelete([id])}
+                  />
+                )}
+                {wide !== true && (
+                  <EntryCards
+                    entries={visible}
+                    onSelectCategory={setCategory}
+                    linkIndex={linkIndex}
+                    selection={selection}
+                    onEdit={setEditingId}
+                    onDelete={(id) => setPendingDelete([id])}
+                  />
+                )}
                 {isFiltered && (
                   <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                     Showing {visible.length} of {entries.length} terms.

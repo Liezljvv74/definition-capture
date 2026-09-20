@@ -7,7 +7,8 @@
  * sort on, so rows carry a `created_at` that the app never shows.
  */
 
-import { createId, createRemoteStore } from "@/lib/remoteStore";
+import { foldName } from "@/lib/foldName";
+import { createId, createRemoteStore, usableId } from "@/lib/remoteStore";
 import {
   NO_IMPORT,
   readString,
@@ -71,6 +72,9 @@ export const subscribe = store.subscribe;
 export const getSnapshot = store.getSnapshot;
 export const getServerSnapshot = store.getServerSnapshot;
 export const clearError = store.clearError;
+export const subscribeToError = store.subscribeToError;
+export const getError = store.getError;
+export const settled = store.settled;
 
 /* --------------------------------------------------------------- mutations */
 
@@ -97,10 +101,6 @@ export function updatePhrase(id: string, input: PhraseInput): Phrase | null {
   return updated;
 }
 
-export function deletePhrase(id: string): void {
-  deletePhrases([id]);
-}
-
 /** The term list's `deleteEntries` for phrases: many removals, one write. */
 export function deletePhrases(ids: readonly string[]): number {
   const present = new Set(store.items().map((phrase) => phrase.id));
@@ -119,12 +119,12 @@ export function getPhrases(): Phrase[] {
 
 /** Case-insensitive lookup, used for the duplicate check before saving. */
 export function findByPhrase(text: string, ignoreId?: string): Phrase | undefined {
-  const needle = text.trim().toLocaleLowerCase();
+  const needle = foldName(text);
   if (!needle) return undefined;
   return store
     .items()
     .find(
-      (phrase) => phrase.id !== ignoreId && phrase.phrase.toLocaleLowerCase() === needle,
+      (phrase) => phrase.id !== ignoreId && foldName(phrase.phrase) === needle,
     );
 }
 
@@ -140,20 +140,18 @@ export function parsePhraseList(list: unknown[]): {
   return { phrases, unreadable: list.length - phrases.length };
 }
 
-/** Backups from the localStorage version carry short ids a `uuid` column will
- * not take, so anything unusable is given a fresh one. */
-function usableId(id: string, taken: Set<string>): string {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  return isUuid && !taken.has(id) ? id : createId();
-}
-
 /** Matches on the phrase text, mirroring how the term list matches on terms. */
 export function importPhrases(incoming: Phrase[], mode: ImportMode): ImportCounts {
   const result: ImportCounts = { ...NO_IMPORT };
 
   if (mode === "replace") {
+    // One row per phrase before anything is sent; see `storage.ts` for why a
+    // duplicate in the file would otherwise empty the list and leave it empty.
+    const byPhrase = new Map<string, Phrase>();
+    for (const phrase of incoming) byPhrase.set(foldName(phrase.phrase), phrase);
+
     const taken = new Set<string>();
-    const restored = incoming.map((phrase) => {
+    const restored = [...byPhrase.values()].map((phrase) => {
       const id = usableId(phrase.id, taken);
       taken.add(id);
       return { ...phrase, id };
@@ -164,20 +162,37 @@ export function importPhrases(incoming: Phrase[], mode: ImportMode): ImportCount
   }
 
   const byPhrase = new Map(
-    store.items().map((phrase) => [phrase.phrase.toLocaleLowerCase(), phrase]),
+    store.items().map((phrase) => [foldName(phrase.phrase), phrase]),
   );
   const taken = new Set(store.items().map((phrase) => phrase.id));
   const added: Phrase[] = [];
+  /** Matched rows, sent as one write after the loop rather than one each. */
+  const updated: Phrase[] = [];
+  /**
+   * Where in `added` a phrase this same file already introduced is waiting.
+   * The new rows are not in the store until the insert below, so a second copy
+   * of the same phrase has to merge into the pending one — sending it through
+   * `store.update` would `PATCH` a row that does not exist yet and lose it
+   * without a word. Same reasoning as the term list; see `storage.ts`.
+   */
+  const pending = new Map<string, number>();
 
   for (const candidate of incoming) {
-    const existing = byPhrase.get(candidate.phrase.toLocaleLowerCase());
+    const key = foldName(candidate.phrase);
+    const existing = byPhrase.get(key);
 
     if (existing) {
       if (mode === "skip") {
         result.skipped += 1;
         continue;
       }
-      store.update({ ...candidate, id: existing.id });
+      const merged: Phrase = { ...candidate, id: existing.id };
+
+      const at = pending.get(key);
+      if (at === undefined) updated.push(merged);
+      else added[at] = merged;
+
+      byPhrase.set(key, merged);
       result.updated += 1;
       continue;
     }
@@ -185,11 +200,13 @@ export function importPhrases(incoming: Phrase[], mode: ImportMode): ImportCount
     const id = usableId(candidate.id, taken);
     taken.add(id);
     const phrase = { ...candidate, id };
+    pending.set(key, added.length);
     added.push(phrase);
-    byPhrase.set(candidate.phrase.toLocaleLowerCase(), phrase);
+    byPhrase.set(key, phrase);
     result.added += 1;
   }
 
+  store.updateMany(updated);
   store.insertMany(added);
   return result;
 }

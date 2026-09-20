@@ -8,6 +8,7 @@
  * both forms offer both lists.
  */
 
+import { foldName } from "@/lib/foldName";
 import type { Entry, Phrase } from "@/lib/types";
 
 export type RefSuggestion = {
@@ -75,7 +76,7 @@ export function activeRefQuery(value: string, caret: number): RefQuery {
 
 /** `[[Clo` and `Clo` should offer the same names, so the brackets come off. */
 function normalise(text: string): string {
-  return text.replace(/^\[+/, "").trimStart().toLocaleLowerCase();
+  return foldName(text.replace(/^\[+/, ""));
 }
 
 /**
@@ -102,15 +103,15 @@ export function suggestRefs(
   // Both the saved name and the one being typed are dropped, so renaming
   // something mid-edit cannot make it offer itself.
   const skip = new Set(
-    exclude.map((name) => name.trim().toLocaleLowerCase()).filter(Boolean),
+    exclude.map(foldName).filter(Boolean),
   );
 
   const byName = new Map<string, RefSuggestion>();
   for (const phrase of phrases) {
-    byName.set(phrase.phrase.toLocaleLowerCase(), { name: phrase.phrase, kind: "phrase" });
+    byName.set(foldName(phrase.phrase), { name: phrase.phrase, kind: "phrase" });
   }
   for (const entry of entries) {
-    byName.set(entry.term.toLocaleLowerCase(), { name: entry.term, kind: "term" });
+    byName.set(foldName(entry.term), { name: entry.term, kind: "term" });
   }
 
   const prefix: RefSuggestion[] = [];

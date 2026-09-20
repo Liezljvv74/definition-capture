@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
 import { MainNav } from "@/components/MainNav";
-import { asset } from "@/lib/assetPath";
 
 import "./globals.css";
 
@@ -41,9 +40,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
  * (`-z-10`) with pointer events off so it can never intercept a click. The
  * cards and headers above it are opaque, which keeps every table row at full
  * contrast — the logo shows through the page margins.
- *
- * The URL goes through `asset()` because a background image is not rewritten
- * for the GitHub Pages base path.
  */
 function PageBackground() {
   return (
@@ -52,7 +48,7 @@ function PageBackground() {
       className="pointer-events-none fixed inset-0 -z-10 bg-center bg-no-repeat
         [--logo-shade:70%] [background-size:min(70vmin,640px)]"
       style={{
-        backgroundImage: `url(${asset("/captured-logo-bg.png")})`,
+        backgroundImage: "url(/captured-logo-bg.png)",
         opacity: "calc(100% - var(--logo-shade))",
       }}
     />

@@ -16,11 +16,12 @@ import { usePhrases } from "@/lib/usePhrases";
 /**
  * Where a `[[Term]]` reference lands, addressed as `/term?id=abc123`.
  *
- * The id is a query parameter rather than a path segment on purpose: this app is
- * exported as static HTML for GitHub Pages, and a path-based `/terms/[id]` route
- * cannot be exported because the ids only exist in each visitor's browser, so
- * there is nothing to pre-render at build time. One static page that reads the
- * id at runtime works everywhere.
+ * The id is a query parameter rather than a path segment. That began as a
+ * static-export constraint — there was no server, and `/terms/[id]` had no
+ * ids to pre-render — which no longer applies now that there is one. The URL
+ * shape is kept because every `[[Term]]` link ever saved points at it; moving
+ * to `/terms/[id]` would mean a redirect for those, and is worth doing only
+ * as a deliberate change rather than as a side effect.
  *
  * This page reads; it does not manage. Adding, editing, and deleting all happen
  * on the term list.
@@ -186,8 +187,9 @@ function TermNotFound() {
       </div>
       <h1 className="text-lg font-semibold">Term not found</h1>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-        There is no entry with that ID in your term list. It may have been deleted, or the link
-        may be from a different browser — entries are saved on this device only.
+        There is no entry with that ID in your term list. It may have been deleted, or the
+        link may point to a term in a different account — your list follows the account you
+        are signed in to.
       </p>
       <Link href="/terms" className="btn btn-primary mt-5">
         Back to Terms
