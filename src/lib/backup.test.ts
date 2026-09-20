@@ -175,6 +175,7 @@ describe("restoresSettings", () => {
     settings: {
       displayName: "",
       categories: ["Grammar"],
+      grammarCategories: ["Cases"],
       sources: ["Manual"],
       verbPersons: [],
       verbTenses: [],

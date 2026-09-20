@@ -16,10 +16,8 @@ import {
 } from "@/lib/types";
 
 export function AddGrammarRuleDialog({
-  knownCategories,
   onClose,
 }: {
-  knownCategories: readonly string[];
   onClose: () => void;
 }) {
   /** The saved rule a new one collided with, if the reader hit one. */
@@ -68,7 +66,6 @@ export function AddGrammarRuleDialog({
             examples: editing.examples,
             ref: editing.ref,
           }}
-          knownCategories={knownCategories}
           submitLabel="Save changes"
           onSubmit={(input) => {
             updateGrammarRule(editing.id, input);
@@ -129,7 +126,6 @@ export function AddGrammarRuleDialog({
     <Modal title="Add a grammar rule" onClose={onClose}>
       <GrammarRuleForm
         initialValue={draft}
-        knownCategories={knownCategories}
         submitLabel="Save rule"
         onSubmit={handleSubmit}
         onCancel={onClose}

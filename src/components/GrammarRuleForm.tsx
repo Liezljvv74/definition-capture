@@ -1,29 +1,40 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useMemo, useState, type FormEvent } from "react";
 
 import { RefField } from "@/components/RefField";
 import { EMPTY_GRAMMAR_RULE_INPUT, type GrammarRuleInput } from "@/lib/types";
+import { useSettings } from "@/lib/useSettings";
 
 export function GrammarRuleForm({
   initialValue = EMPTY_GRAMMAR_RULE_INPUT,
-  knownCategories,
   submitLabel,
   onSubmit,
   onCancel,
   autoFocus = false,
 }: {
   initialValue?: GrammarRuleInput;
-  /** Categories already in use, offered as suggestions rather than a fixed list. */
-  knownCategories: readonly string[];
   submitLabel: string;
   onSubmit: (input: GrammarRuleInput) => void;
   onCancel: () => void;
   autoFocus?: boolean;
 }) {
+  const { settings } = useSettings();
   const [value, setValue] = useState<GrammarRuleInput>(initialValue);
   const [error, setError] = useState<string | null>(null);
   const ids = useId();
+
+  /**
+   * The standing list, plus whatever this rule is already filed under if that
+   * is no longer offered. Without the second part, opening a rule whose
+   * category had since been removed from Settings and saving it would quietly
+   * strip the category — the same guard the term form makes for its own.
+   */
+  const categoryOptions = useMemo(() => {
+    const standing = settings.grammarCategories;
+    const current = initialValue.category.trim();
+    return current && !standing.includes(current) ? [...standing, current] : standing;
+  }, [settings.grammarCategories, initialValue.category]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,28 +77,28 @@ export function GrammarRuleForm({
           Category
         </label>
         {/*
-         * A text box with suggestions rather than a dropdown. The grammar
-         * vocabulary a reader uses is their own and grows as they write, so a
-         * fixed list in Settings would mean a round trip through another page
-         * before a rule could be filed. The list offers what is already in
-         * use, and typing something new files it under that instead.
+         * A dropdown from the list in Settings, the way the term form offers
+         * its own categories. A rule carries one group or none, so this is a
+         * select rather than the checkboxes a term gets.
          */}
-        <input
+        <select
           id={`${ids}-category`}
           className="field"
-          list={`${ids}-categories`}
           value={value.category}
-          autoComplete="off"
-          placeholder="e.g. Cases — or leave blank"
           onChange={(event) =>
             setValue((current) => ({ ...current, category: event.target.value }))
           }
-        />
-        <datalist id={`${ids}-categories`}>
-          {knownCategories.map((name) => (
-            <option key={name} value={name} />
+        >
+          <option value="">No category</option>
+          {categoryOptions.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
           ))}
-        </datalist>
+        </select>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Edit this list under Grammar Categories in Settings.
+        </p>
       </div>
 
       <div>

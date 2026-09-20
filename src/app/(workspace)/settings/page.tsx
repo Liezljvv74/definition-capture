@@ -61,13 +61,30 @@ export default function SettingsPage() {
 
         <PasswordSection />
 
-        <SettingSection title="Categories">
+        {/*
+         * Two category lists, not one. They were a single list while grammar
+         * rules did not exist; sharing it now would offer Food and Travel on
+         * the grammar form and Cases and Word order on the term form. The
+         * names say which is which, because "Categories" alone no longer
+         * answers the question.
+         */}
+        <SettingSection title="Glossary Categories">
           <NameListEditor
-            legend="Categories"
+            legend="Glossary Categories"
             description={`The groups the term form offers. A term can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on any term already filed under it.`}
             names={settings.categories}
             onChange={(categories) => saveSettings({ categories })}
-            placeholder="e.g. Grammar"
+            placeholder="e.g. Travel"
+          />
+        </SettingSection>
+
+        <SettingSection title="Grammar Categories">
+          <NameListEditor
+            legend="Grammar Categories"
+            description="The groups the grammar form offers. A rule carries one, or none at all. Removing one here leaves it on any rule already filed under it."
+            names={settings.grammarCategories}
+            onChange={(grammarCategories) => saveSettings({ grammarCategories })}
+            placeholder="e.g. Cases"
           />
         </SettingSection>
 
