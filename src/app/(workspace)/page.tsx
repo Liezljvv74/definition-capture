@@ -7,10 +7,7 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <>
-      {/* No fill of its own, so the page colour runs behind it. A white bar
-          across the top of a yellow page reads as an accident. The rule stays,
-          because it is what separates this from the nav above it. */}
-      <header className="border-b border-amber-200/70">
+      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Home</h1>
         </div>

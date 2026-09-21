@@ -16,8 +16,7 @@
    * with nothing else claiming it.
    *
    * `-50` means the colour at half strength over white, which is what makes
-   * a card a card rather than a block of paint, and `wash` is the yellow at a
-   * fifth for the page behind them all.
+   * a card a card rather than a block of paint.
    *
    * None of these carries a dark variant, and that is the point rather than
    * an omission: they are light colours whatever the browser is set to, so
@@ -27,7 +26,6 @@
    * slate 500 and 600 they wore while they were white.
    */
   --color-logo-yellow: #fcbd15;
-  --color-logo-wash: #fef2d0;
   --color-logo-teal-50: #86d9e9;
   --color-logo-pink-50: #fcaeca;
   --color-logo-purple-50: #c3b4fc;
@@ -53,8 +51,18 @@ html {
   scroll-padding-top: calc(var(--nav-height) + 5rem);
 }
 
+/*
+ * Slate 100 rather than the slate 50 this was: a light grey the eye reads as
+ * grey, where 50 is close enough to white to read as white. Slate rather than
+ * the neutral grey scale because it is the palette the whole app is drawn in,
+ * and a second family of greys would show wherever the two met.
+ *
+ * Two other places have to hold the same value or they appear as bands: the
+ * filter bar in `StickyFilters.tsx`, which is opaque so rows do not slide
+ * through it, and the nav, which is deliberately one step darker.
+ */
 body {
-  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+  @apply bg-slate-100 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
 }
 
 /*
@@ -80,10 +88,6 @@ body {
  * 40 puts it over the page and the nav, and under the modal overlay at 50,
  * so a dialog on this page would cover it.
  */
-body:has([data-home-page]) {
-  background-color: var(--color-logo-wash);
-}
-
 body:has([data-home-page]) [data-page-backdrop] {
   z-index: 40;
   background-position: right bottom;

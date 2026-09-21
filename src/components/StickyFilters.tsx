@@ -17,6 +17,10 @@
  * through the search box, and the page's backdrop artwork would show between
  * the controls. The negative margins let that background reach the edges of
  * the content column rather than stopping at the padding.
+ *
+ * It has to be the page's own colour, set on `body` in `globals.css`. Any
+ * other value and this reads as a band across the page rather than as part
+ * of it.
  */
 export const STICKY_FILTERS =
-  "sticky top-[var(--nav-height)] z-20 -mx-4 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:-mx-6 sm:px-6 dark:border-slate-800 dark:bg-slate-950";
+  "sticky top-[var(--nav-height)] z-20 -mx-4 border-b border-slate-200 bg-slate-100 px-4 py-3 sm:-mx-6 sm:px-6 dark:border-slate-800 dark:bg-slate-950";
