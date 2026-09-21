@@ -106,11 +106,6 @@ export default function PhrasesPage() {
                   : `${phrases.length} ${phrases.length === 1 ? "phrase" : "phrases"}`}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className="btn btn-primary" onClick={() => setIsAdding(true)}>
-              <span aria-hidden="true">+</span> Add phrase
-            </button>
-          </div>
         </div>
       </header>
 
@@ -121,18 +116,29 @@ export default function PhrasesPage() {
           <EmptyPhrases onAdd={() => setIsAdding(true)} />
         ) : (
           <>
-            <div className={`${STICKY_FILTERS} mb-4`}>
-              <label htmlFor="phrase-search" className="sr-only">
-                Search phrases
-              </label>
-              <input
-                id="phrase-search"
-                type="search"
-                className="field"
-                placeholder="Search phrases, meanings, examples…"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
+            <div
+              className={`${STICKY_FILTERS} mb-4 flex flex-col gap-3 sm:flex-row sm:items-center`}
+            >
+              <div className="flex-1">
+                <label htmlFor="phrase-search" className="sr-only">
+                  Search phrases
+                </label>
+                <input
+                  id="phrase-search"
+                  type="search"
+                  className="field"
+                  placeholder="Search phrases, meanings, examples…"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary shrink-0"
+                onClick={() => setIsAdding(true)}
+              >
+                <span aria-hidden="true">+</span> Add phrase
+              </button>
             </div>
 
             {visible.length === 0 ? (

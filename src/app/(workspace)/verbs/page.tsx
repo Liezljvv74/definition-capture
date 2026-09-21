@@ -43,11 +43,9 @@ export default function VerbsPage() {
  */
 function VerbsShell({
   subtitle,
-  action,
   children,
 }: {
   subtitle?: string;
-  action?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
@@ -60,7 +58,6 @@ function VerbsShell({
               {subtitle ?? "Loading your verbs…"}
             </p>
           </div>
-          {action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">{children}</main>
@@ -148,12 +145,6 @@ function VerbList() {
     setDirty(false);
   }
 
-  const addButton = (
-    <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>
-      <span aria-hidden="true">+</span> Add verb
-    </button>
-  );
-
   if (!loaded || !settingsLoaded) return <VerbsShell />;
 
   // A verb on its way in — from a term, or typed here.
@@ -175,7 +166,7 @@ function VerbList() {
 
   if (tables.length === 0) {
     return (
-      <VerbsShell subtitle="Your conjugation tables" action={addButton}>
+      <VerbsShell subtitle="Your conjugation tables">
         <div className="card mx-auto max-w-xl p-8 text-center">
           <div aria-hidden="true" className="mb-3 text-4xl">
             🧩
@@ -202,7 +193,6 @@ function VerbList() {
   return (
     <VerbsShell
       subtitle={`${tables.length} ${tables.length === 1 ? "verb" : "verbs"}`}
-      action={addButton}
     >
       <div className={`${STICKY_FILTERS} mb-3 flex flex-wrap items-center gap-2`}>
         <div className="w-full sm:w-1/2 lg:w-[12.5%] lg:min-w-44">
@@ -218,6 +208,14 @@ function VerbList() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
+
+        <button
+          type="button"
+          className="btn btn-primary shrink-0 sm:ml-auto"
+          onClick={() => setAdding(true)}
+        >
+          <span aria-hidden="true">+</span> Add verb
+        </button>
       </div>
 
       {/* Only while a search is narrowing things down: the total now lives in

@@ -187,11 +187,6 @@ export default function TermsPage() {
                     }`}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className="btn btn-primary" onClick={() => setIsAdding(true)}>
-              <span aria-hidden="true">+</span> Add term
-            </button>
-          </div>
         </div>
       </header>
 
@@ -251,6 +246,17 @@ export default function TermsPage() {
                 />
                 Needs definition
               </label>
+
+              {/* Last in the row and pushed to the end, so the controls that
+                  narrow the list read left to right and the one that adds to
+                  it sits apart from them. */}
+              <button
+                type="button"
+                className="btn btn-primary shrink-0 sm:ml-auto"
+                onClick={() => setIsAdding(true)}
+              >
+                <span aria-hidden="true">+</span> Add term
+              </button>
             </div>
 
             {visible.length === 0 ? (
