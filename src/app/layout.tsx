@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Definition Capture",
-  description: "A personal list of terms and concepts worth remembering.",
+  description: "A personal language study system.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
