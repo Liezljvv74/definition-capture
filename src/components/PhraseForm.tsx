@@ -1,9 +1,11 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useMemo, useState, type FormEvent } from "react";
 
 import { RefField } from "@/components/RefField";
+import { MAX_CATEGORIES } from "@/lib/constants";
 import { EMPTY_PHRASE_INPUT, type PhraseInput } from "@/lib/types";
+import { useSettings } from "@/lib/useSettings";
 
 type PhraseFormProps = {
   initialValue?: PhraseInput;
@@ -20,9 +22,32 @@ export function PhraseForm({
   onCancel,
   autoFocus = false,
 }: PhraseFormProps) {
+  const { settings } = useSettings();
   const [value, setValue] = useState<PhraseInput>(initialValue);
   const [error, setError] = useState<string | null>(null);
   const ids = useId();
+
+  /**
+   * The standing list, plus anything this phrase already carries that is no
+   * longer offered. Editing a phrase must not quietly strip a category that
+   * has since been removed from Settings, which is the same guard the term
+   * form makes for its own.
+   */
+  const categoryOptions = useMemo(() => {
+    const standing = settings.categories;
+    const extras = initialValue.categories.filter((name) => !standing.includes(name));
+    return [...standing, ...extras];
+  }, [initialValue, settings.categories]);
+
+  function toggleCategory(name: string) {
+    setValue((current) => {
+      if (current.categories.includes(name)) {
+        return { ...current, categories: current.categories.filter((c) => c !== name) };
+      }
+      if (current.categories.length >= MAX_CATEGORIES) return current;
+      return { ...current, categories: [...current.categories, name] };
+    });
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,6 +61,7 @@ export function PhraseForm({
       phrase,
       literalMeaning: value.literalMeaning.trim(),
       usageExample: value.usageExample.trim(),
+      categories: value.categories,
       ref: value.ref.trim(),
     });
   }
@@ -88,6 +114,45 @@ export function PhraseForm({
           }
         />
       </div>
+
+      <fieldset>
+        <legend className="mb-1.5 block text-sm font-medium">Category</legend>
+        <div className="flex flex-wrap gap-1.5">
+          {categoryOptions.map((name) => {
+            const checked = value.categories.includes(name);
+            // At the cap the unchosen ones go quiet rather than vanishing, so
+            // the list does not jump about while you are picking.
+            const blocked = !checked && value.categories.length >= MAX_CATEGORIES;
+            return (
+              <label
+                key={name}
+                className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium transition select-none ${
+                  checked
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-500/40 dark:bg-indigo-500/15 dark:text-indigo-300"
+                    : "border-slate-300 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                } ${
+                  blocked
+                    ? "cursor-not-allowed opacity-40"
+                    : "cursor-pointer hover:border-indigo-400"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={checked}
+                  disabled={blocked}
+                  onChange={() => toggleCategory(name)}
+                />
+                {name}
+              </label>
+            );
+          })}
+        </div>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          The same groups the terms use. Up to {MAX_CATEGORIES}
+          {value.categories.length > 0 && `, ${value.categories.length} chosen`}.
+        </p>
+      </fieldset>
 
       <div>
         <label htmlFor={`${ids}-ref`} className="mb-1 block text-sm font-medium">

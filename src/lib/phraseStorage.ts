@@ -11,6 +11,7 @@ import { foldName } from "@/lib/foldName";
 import { planImport } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
 import {
+  readCategories,
   readString,
   type ImportCounts,
   type ImportMode,
@@ -36,6 +37,7 @@ export function parsePhrase(raw: unknown, allowMissingId = false): Phrase | null
     phrase,
     literalMeaning: readString(value.literalMeaning),
     usageExample: readString(value.usageExample),
+    categories: readCategories(value.categories),
     ref: readString(value.ref),
   };
 }
@@ -56,6 +58,7 @@ const store = createRemoteStore<Phrase>({
       phrase,
       literalMeaning: readString(row.literal_meaning),
       usageExample: readString(row.usage_example),
+      categories: readCategories(row.categories),
       ref: readString(row.ref),
     };
   },
@@ -65,6 +68,7 @@ const store = createRemoteStore<Phrase>({
     phrase: phrase.phrase,
     literal_meaning: phrase.literalMeaning,
     usage_example: phrase.usageExample,
+    categories: phrase.categories,
     ref: phrase.ref,
   }),
 });
@@ -84,6 +88,9 @@ function clean(input: PhraseInput) {
     phrase: input.phrase.trim(),
     literalMeaning: input.literalMeaning.trim(),
     usageExample: input.usageExample.trim(),
+    // Trimmed, de-duplicated and capped here as well as in the form, so a
+    // value arriving from an import obeys the same rule as a typed one.
+    categories: readCategories(input.categories),
     ref: input.ref.trim(),
   };
 }

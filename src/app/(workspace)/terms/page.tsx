@@ -464,7 +464,7 @@ function EntryTable({
                 </td>
                 <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
                   {entry.ref ? (
-                    <span className="line-clamp-2 break-words">
+                    <span className="line-clamp-3 break-words">
                       <RefText value={entry.ref} linkIndex={linkIndex} />
                     </span>
                   ) : (
