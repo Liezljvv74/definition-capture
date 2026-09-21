@@ -56,6 +56,24 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((base) => path === base || path.startsWith(`${base}/`));
 }
 
+/**
+ * A redirect that keeps whatever the session refresh just wrote.
+ *
+ * `setAll` below rebuilds `response` so the browser is told to keep the
+ * rotated cookies, but a redirect is a different response and starts out with
+ * none of them. Returning one directly threw the refresh away: a token that
+ * happened to rotate on a request to a moved path, or to `/sign-in` while
+ * already signed in, never reached the browser, and once the old refresh
+ * token fell outside Supabase's reuse window the reader was signed out for no
+ * reason they could see. That is the same failure the note above `getClaims`
+ * warns about, arriving through a different door.
+ */
+function redirectKeeping(response: NextResponse, target: URL): NextResponse {
+  const redirect = NextResponse.redirect(target);
+  for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+  return redirect;
+}
+
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey =
@@ -107,21 +125,21 @@ export async function proxy(request: NextRequest) {
   if (moved) {
     const target = request.nextUrl.clone();
     target.pathname = moved;
-    return NextResponse.redirect(target);
+    return redirectKeeping(response, target);
   }
 
   if (!signedIn && !isPublic(pathname)) {
     const target = request.nextUrl.clone();
     target.pathname = "/sign-in";
     target.search = "";
-    return NextResponse.redirect(target);
+    return redirectKeeping(response, target);
   }
 
   if (signedIn && SIGNED_OUT_ONLY.includes(normalise(pathname))) {
     const target = request.nextUrl.clone();
     target.pathname = "/";
     target.search = "";
-    return NextResponse.redirect(target);
+    return redirectKeeping(response, target);
   }
 
   return response;

@@ -111,7 +111,31 @@ const RETRY_DELAYS_MS = [400, 1500];
  */
 const PAGE_SIZE = 1000;
 
+/**
+ * How many ids one delete may name.
+ *
+ * `.in("id", [...])` is serialised into the query string rather than a body,
+ * and `delete()` is an HTTP DELETE, so every id travels in the URL at about 37
+ * bytes apiece. "Select all, delete" on a list of a thousand built a 37 KB
+ * request line, which a gateway refuses long before Postgres sees it, and
+ * because the write is optimistic the reader watched every row disappear
+ * before the banner arrived to say it had not worked.
+ *
+ * 200 keeps a batch near 7 KB, comfortably inside any limit, and the whole
+ * delete still counts as one write: see `removeIds`.
+ */
+const DELETE_BATCH = 200;
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Splits a list into runs of at most `size`, for a request that has a limit. */
+function inBatches<V>(values: readonly V[], size: number): V[][] {
+  const batches: V[][] = [];
+  for (let at = 0; at < values.length; at += size) {
+    batches.push(values.slice(at, at + size));
+  }
+  return batches;
+}
 
 /**
  * Calls back when the reader returns to the tab.
@@ -367,7 +391,20 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
     setItems(snapshot.items.filter((item) => !doomed.has(config.idOf(item))));
 
     const supabase = getSupabase();
-    if (supabase) send(supabase.from(config.table).delete().in("id", [...doomed]));
+    if (!supabase) return;
+
+    // Several requests, but still one `send`, so the optimistic story is
+    // unchanged: the reader sees one banner if any batch fails, and the reload
+    // that follows shows exactly which rows really went. The batches are sent
+    // together rather than in sequence because they are independent, and a
+    // partial delete is already the failure mode `send` exists to report.
+    send(
+      Promise.all(
+        inBatches([...doomed], DELETE_BATCH).map((batch) =>
+          supabase.from(config.table).delete().in("id", batch),
+        ),
+      ).then((answers) => ({ error: answers.find((answer) => answer.error)?.error ?? null })),
+    );
   }
 
   function rowFor(item: T, userId: string): Row {

@@ -15,12 +15,31 @@ import { config, proxy } from "@/proxy";
  */
 let signedIn = false;
 
+/**
+ * Whether `getClaims` rotates the session while it is asked.
+ *
+ * Supabase refreshes an expiring token as a side effect of that call and hands
+ * the new pair back through `setAll`, which is how the cookie half of this
+ * file's job actually happens. The mock ignored `setAll` entirely, so nothing
+ * here reached that path and a redirect could quietly drop the refresh.
+ */
+let rotatesSession = false;
+
 vi.mock("@supabase/ssr", () => ({
-  createServerClient: () => ({
+  createServerClient: (
+    _url: string,
+    _key: string,
+    options: { cookies: { setAll: (cookies: { name: string; value: string; options: object }[]) => void } },
+  ) => ({
     auth: {
-      getClaims: async () => ({
-        data: signedIn ? { claims: { sub: "user-1" } } : null,
-      }),
+      getClaims: async () => {
+        if (rotatesSession) {
+          options.cookies.setAll([
+            { name: "sb-access-token", value: "rotated", options: {} },
+          ]);
+        }
+        return { data: signedIn ? { claims: { sub: "user-1" } } : null };
+      },
     },
   }),
 }));
@@ -66,6 +85,7 @@ const protectedPaths = routesUnder("src/app/(workspace)");
 
 beforeEach(() => {
   signedIn = false;
+  rotatesSession = false;
   // Without these the proxy lets everything through by design, so every
   // assertion below would pass for the wrong reason.
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
@@ -85,6 +105,52 @@ describe("the route table this file tests", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     const response = await ask("/vocabulary/");
     expect(response.status).toBe(200);
+  });
+});
+
+/**
+ * Refreshing the session cookies is the first of the two jobs this file's own
+ * header names, and the only one with no visible symptom when it stops: the
+ * reader is simply signed out an hour later, at a moment unconnected to
+ * anything they did.
+ *
+ * A redirect is a fresh response and carries nothing the refresh wrote unless
+ * it is copied across, so each of the three redirect paths needs its own
+ * assertion. The `/` case covers a signed-in reader bounced off `/sign-in`.
+ */
+describe("a refreshed session survives the response it is refreshed on", () => {
+  const rotated = (response: Response) =>
+    (response.headers.get("set-cookie") ?? "").includes("sb-access-token=rotated");
+
+  it("keeps the new cookies on a page it simply lets through", async () => {
+    signedIn = true;
+    rotatesSession = true;
+    const response = await ask("/vocabulary/");
+    expect(response.status).toBe(200);
+    expect(rotated(response)).toBe(true);
+  });
+
+  it("keeps them on the redirect away from a path that moved", async () => {
+    signedIn = true;
+    rotatesSession = true;
+    const response = await ask("/terms/");
+    expect(redirectPath(response)).toBe("/vocabulary");
+    expect(rotated(response)).toBe(true);
+  });
+
+  it("keeps them on the bounce to sign-in", async () => {
+    rotatesSession = true;
+    const response = await ask("/vocabulary/");
+    expect(redirectPath(response)).toBe("/sign-in");
+    expect(rotated(response)).toBe(true);
+  });
+
+  it("keeps them on the bounce away from sign-in", async () => {
+    signedIn = true;
+    rotatesSession = true;
+    const response = await ask("/sign-in/");
+    expect(redirectPath(response)).toBe("/");
+    expect(rotated(response)).toBe(true);
   });
 });
 
