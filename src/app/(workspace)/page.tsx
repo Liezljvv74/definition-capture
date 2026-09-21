@@ -23,31 +23,6 @@ export default function HomePage() {
             <h2 className="max-w-3xl whitespace-nowrap text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
               Welcome to your personal language study system
             </h2>
-
-            <div className="mt-5 max-w-3xl space-y-4 text-base leading-7 text-slate-700 dark:text-slate-300">
-              <p>
-                This app is an extension of <span className="font-semibold text-slate-900 dark:text-slate-100">The Ultimate Language Learning Companion</span>.
-                It was born from my own experience as a language learner.
-              </p>
-
-              <p>
-                Despite my best efforts to stay organised, I often found myself frustrated by
-                scattered notes, unfinished ideas, and study materials spread across too many places.
-                I kept thinking, “There must be a better way to bring all of this together.”
-              </p>
-
-              <p>
-                I realised that many students — especially those learning through online courses,
-                self-study, or mixed study routines — are dealing with the same problem. The system
-                I built to make my own learning easier felt like something worth sharing, so others
-                could have a clearer, calmer, and more focused path to progress.
-              </p>
-
-              <p>
-                The goal is simple: help you capture what matters, keep your vocabulary and phrases
-                organised, and build a study routine that feels manageable instead of overwhelming.
-              </p>
-            </div>
           </section>
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -86,7 +61,7 @@ export default function HomePage() {
               </p>
               <h3 className="mt-3 text-xl font-semibold text-slate-900 dark:text-slate-50">Verbs</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                Track conjugation patterns and keep the grammar pieces that matter most close at hand.
+                Track conjugation patterns.
               </p>
             </Link>
           </section>
