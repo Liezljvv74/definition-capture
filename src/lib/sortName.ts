@@ -4,7 +4,7 @@
  * German nouns are saved with their article — `die Tür`, `der Tisch`,
  * `das Buch` — so sorting the raw strings piles most of the list under D and
  * hides the word you are actually looking for. The article is skipped for the
- * comparison only: nothing about the stored value changes, and a term that is
+ * comparison only: nothing about the stored value changes, and a word that is
  * itself just `der`, `die`, or `das` keeps its whole name, since there is
  * nothing after it to sort on.
  */

@@ -23,7 +23,7 @@ import { useSettings } from "@/lib/useSettings";
  * tabs, which belong to the two lists.
  *
  * Every section is rolled up to its name and what it is currently set to, so
- * the page reads as a summary and opens only what you came to change. The two
+ * the page reads as a summary and opens only what you came to change. The
  * list sections show their name alone: spelling out eight categories on a row
  * meant to be skimmed would defeat the point of rolling it up.
  *
@@ -63,7 +63,7 @@ export default function SettingsPage() {
 
         {/*
          * "Glossary Categories" rather than "Categories": the one list is
-         * offered on the term form and the phrase form alike, and naming the
+         * offered on the word form and the phrase form alike, and naming the
          * section after the tab those two share says so without spelling out
          * both.
          */}

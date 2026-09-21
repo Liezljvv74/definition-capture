@@ -8,12 +8,12 @@ import { findByWord, updateEntry } from "@/lib/storage";
 import type { Entry, EntryInput } from "@/lib/types";
 
 /**
- * Edits a term without leaving the list — the counterpart to
+ * Edits a word without leaving the list — the counterpart to
  * `AddWordDialog`, and the twin of `EditPhraseDialog`.
  *
  * Every editable field lives in this one form, Source included. There is no
  * second screen for changing a single attribute, and saving drops you straight
- * back on the term list.
+ * back on the word list.
  */
 export function EditWordDialog({
   entry,
@@ -29,7 +29,7 @@ export function EditWordDialog({
    */
   onSaved?: () => void;
 }) {
-  /** Set when the new wording collides with a *different* saved term. */
+  /** Set when the new wording collides with a *different* saved word. */
   const [clash, setClash] = useState<Entry | null>(null);
   // The clash screen replaces the form rather than sitting on top of it, so
   // the form unmounts and its state goes with it. Holding the draft here
@@ -46,7 +46,7 @@ export function EditWordDialog({
   function handleSubmit(input: EntryInput) {
     const existing = findByWord(input.word, entry.id);
     if (existing) {
-      // Renaming onto another term would leave two identical entries.
+      // Renaming onto another word would leave two identical entries.
       setDraft(input);
       setClash(existing);
       return;

@@ -1,11 +1,11 @@
 /**
  * The conjugation tables, one per verb.
  *
- * Built on the same factory as the term and phrase lists, so it reads
+ * Built on the same factory as the word and phrase lists, so it reads
  * synchronously, writes optimistically, and reports a failed write the same
  * way they do. Nothing new is invented here — see `remoteStore.ts`.
  *
- * A table belongs to a verb by name. That is what lets the Edit term screen
+ * A table belongs to a verb by name. That is what lets the Edit word screen
  * ask "does this word have a table yet?" without storing a second key, and it
  * is the same rule `[[Name]]` links already follow.
  */
@@ -67,7 +67,7 @@ export function getVerbTables(): VerbTable[] {
   return store.items();
 }
 
-/** The table for a verb, matched the way the term list matches its names. */
+/** The table for a verb, matched the way the word list matches its names. */
 const findVerbTable = store.findByName;
 
 /* --------------------------------------------------------------- mutations */

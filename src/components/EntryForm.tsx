@@ -14,11 +14,11 @@ type EntryFormProps = {
   submitLabel: string;
   onSubmit: (input: EntryInput) => void;
   onCancel: () => void;
-  /** Only the "add" form splits pasted "term: definition" text. */
+  /** Only the "add" form splits pasted "word: definition" text. */
   autoSplit?: boolean;
   autoFocus?: boolean;
   /**
-   * The saved term this form is editing. Only an entry that exists can
+   * The saved word this form is editing. Only an entry that exists can
    * have a conjugation table hung off it, so the add form passes nothing
    * and the control does not appear there.
    */
@@ -41,7 +41,7 @@ export function EntryForm({
   const ids = useId();
 
   /**
-   * Split "term: definition" into both fields. Only fills Definition when it is
+   * Split "word: definition" into both fields. Only fills Definition when it is
    * still empty, so text already typed there is never overwritten.
    */
   function tryAutoSplit(text: string): boolean {
@@ -57,7 +57,7 @@ export function EntryForm({
     const pasted = event.clipboardData.getData("text");
     const input = event.currentTarget;
     // Only intercept a paste that replaces the whole field, so a paste into the
-    // middle of an existing term behaves normally.
+    // middle of an existing word behaves normally.
     const replacesAll =
       input.selectionStart === 0 && input.selectionEnd === input.value.length;
     if (!replacesAll) return;
@@ -66,7 +66,7 @@ export function EntryForm({
 
   /**
    * The standing list, plus any name this entry already carries that is no
-   * longer offered — editing a term must not quietly strip a category just
+   * longer offered — editing a word must not quietly strip a category just
    * because the list in `constants.ts` has moved on since it was filed.
    */
   const categoryOptions = useMemo(() => {
@@ -77,7 +77,7 @@ export function EntryForm({
 
   /**
    * Same rule for sources: the configured list, plus this entry's own
-   * source if it has since been taken off. Saving a term must not quietly
+   * source if it has since been taken off. Saving a word must not quietly
    * relabel where it came from.
    */
   const sourceOptions = useMemo(() => {
@@ -223,7 +223,7 @@ export function EntryForm({
             value={value.ref}
             placeholder="Notes, a link, or [[Another Word]]"
             onChange={(ref) => setValue((current) => ({ ...current, ref }))}
-            // A term referring to itself is a link back to the page you are
+            // A word referring to itself is a link back to the page you are
             // already on. Both names are excluded so a rename mid-edit cannot
             // make the old one selectable again.
             exclude={[initialValue.word, value.word]}

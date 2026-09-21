@@ -14,7 +14,7 @@ import { usePhrases } from "@/lib/usePhrases";
 /**
  * Where a `[[Phrase]]` reference lands, addressed as `/phrase?id=abc123`.
  *
- * Query parameter rather than path segment for the same reason as `/term`,
+ * Query parameter rather than path segment for the same reason as `/word`,
  * which explains it: a constraint of the static-export era that the saved
  * links now outlive. The singular path also keeps this clear of `/phrases`,
  * which is the list.

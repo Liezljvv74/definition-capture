@@ -32,20 +32,20 @@ type State =
 /**
  * Choose what to export and in which format.
  *
- * The scope is named outright — Everything, Terms, Phrases, Verb tables —
+ * The scope is named outright — Everything, Words, Phrases, Verb tables —
  * rather than offered as "everything or this page". It used to read the
  * current path, which worked while these controls only appeared on the two
  * list pages. From the nav bar there is no such thing as "this page": on
  * Settings it names no list at all, and on Verbs it named the wrong one.
  */
 export function ExportDialog({ onClose }: { onClose: () => void }) {
-  const { entries, loaded: termsLoaded } = useWords();
+  const { entries, loaded: wordsLoaded } = useWords();
   const { phrases, loaded: phrasesLoaded } = usePhrases();
   const { tables, loaded: tablesLoaded } = useVerbTables();
   const [scope, setScope] = useState<BackupScope>("all");
   const [state, setState] = useState<State>({ step: "choosing" });
 
-  const ready = termsLoaded && phrasesLoaded && tablesLoaded;
+  const ready = wordsLoaded && phrasesLoaded && tablesLoaded;
   const busy = state.step === "working";
 
   const counts: Record<BackupScope, number> = {

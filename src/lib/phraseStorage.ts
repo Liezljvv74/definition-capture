@@ -1,5 +1,5 @@
 /**
- * The phrase store — the term list's sibling, built on the same plumbing.
+ * The phrase store — the word list's sibling, built on the same plumbing.
  *
  * Phrases carry no dates: they are looked up by wording, not by when they were
  * captured, so the list keeps the order they were added in (newest first) and
@@ -166,7 +166,7 @@ export function parsePhraseList(list: unknown[]): {
   return { phrases, unreadable: list.length - phrases.length };
 }
 
-/** Matches on the phrase text, mirroring how the term list matches on terms. */
+/** Matches on the phrase text, mirroring how the word list matches on words. */
 export function importPhrases(incoming: Phrase[], mode: ImportMode): ImportCounts {
   const plan = planImport(store.items(), incoming, mode, {
     keyOf: (phrase) => foldName(phrase.phrase),

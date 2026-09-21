@@ -1,7 +1,7 @@
 import { DEFAULT_SOURCE, MAX_CATEGORIES, type Source } from "@/lib/constants";
 import { foldName } from "@/lib/foldName";
 
-/* ----------------------------------------------------------- term entries  */
+/* ----------------------------------------------------------- word entries  */
 
 /** A single word entry as it is stored and displayed. */
 export type Entry = {
@@ -10,7 +10,7 @@ export type Entry = {
   definition: string;
   /** Free-text reference; `parseRef` turns any links inside it into anchors. */
   ref: string;
-  /** Up to `MAX_CATEGORIES` group names; empty when the term is unfiled. */
+  /** Up to `MAX_CATEGORIES` group names; empty when the word is unfiled. */
   categories: string[];
   source: Source;
   /** ISO timestamp, set once at creation and never changed by edits. */
@@ -49,9 +49,9 @@ export type Phrase = {
   phrase: string;
   literalMeaning: string;
   usageExample: string;
-  /** Up to `MAX_CATEGORIES` group names, shared with the term list. */
+  /** Up to `MAX_CATEGORIES` group names, shared with the word list. */
   categories: string[];
-  /** Where it came from, from the same list the terms draw on. */
+  /** Where it came from, from the same list the words draw on. */
   source: Source;
   ref: string;
 };
@@ -86,7 +86,7 @@ export type VerbRow = {
 };
 
 /**
- * A verb's conjugation table. Tied to its term by name rather than by id,
+ * A verb's conjugation table. Tied to its word by name rather than by id,
  * the same way a `[[Name]]` reference resolves.
  */
 export type VerbTable = {
@@ -207,9 +207,9 @@ export function readNameList(value: unknown, limit: number): string[] {
 }
 
 /**
- * The categories on one term. Never a union of the configured names: a
+ * The categories on one word. Never a union of the configured names: a
  * category saved before the list was edited is still a real category on that
- * term, and dropping it silently would lose data.
+ * word, and dropping it silently would lose data.
  */
 export function readCategories(value: unknown): string[] {
   return readNameList(value, MAX_CATEGORIES);

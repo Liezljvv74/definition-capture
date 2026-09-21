@@ -28,7 +28,7 @@ const LIST_GAP = 4;
 
 /**
  * The Ref input, with an inline lookup over everything you have saved. Typing
- * a name offers the terms and phrases it matches; picking one writes it in as
+ * a name offers the words and phrases it matches; picking one writes it in as
  * `[[Name]]`. Everything else — notes, URLs, `/word?id=…`, `#anchor` — is
  * typed exactly as before, and the value handed back is always a plain string.
  *

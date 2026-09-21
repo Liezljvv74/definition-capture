@@ -9,7 +9,7 @@ export function SourceBadge({ source }: { source: Source }) {
 }
 
 /**
- * One of a term's groups. Given `onSelect` it becomes a button that filters
+ * One of a word's groups. Given `onSelect` it becomes a button that filters
  * the list down to that category, which is the quickest way in: you are
  * looking at the word already.
  */

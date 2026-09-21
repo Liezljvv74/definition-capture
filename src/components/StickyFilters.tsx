@@ -2,9 +2,9 @@
  * The classes that pin a page's filter row under the nav.
  *
  * A string rather than a wrapper component, so each page keeps the layout it
- * already had for its own controls and only gains the sticking. Terms lays
- * three of them out in a row, Phrases has a single search box, and wrapping
- * would have meant restructuring four pages to share one behaviour.
+ * already had for its own controls and only gains the sticking. Vocabulary
+ * lays three of them out in a row, Phrases has a single search box, and
+ * wrapping would have meant restructuring three pages to share one behaviour.
  *
  * `top` is the nav's measured height, published as `--nav-height` by
  * `MainNav`, so the bar sits against the nav at any width instead of at one

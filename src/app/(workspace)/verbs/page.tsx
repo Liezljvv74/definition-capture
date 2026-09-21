@@ -21,7 +21,7 @@ import { createVerbTable } from "@/lib/verbTables";
  * The conjugation tables. Each is rolled up to its verb until opened, so the
  * page reads as a list of verbs rather than a wall of conjugations.
  *
- * Tables are made from a term's Edit screen, which sends the reader here with
+ * Tables are made from a word's Edit screen, which sends the reader here with
  * `?new=<verb>`. Everything then happens on this page — the tense, and the
  * persons if they have never been given — because a question about verbs in
  * general does not belong in a dialog about one word.
@@ -36,7 +36,7 @@ export default function VerbsPage() {
 }
 
 /**
- * Title, count and the Add button, laid out the way Terms and Phrases lay
+ * Title, count and the Add button, laid out the way Vocabulary and Phrases lay
  * theirs out. The action is a prop rather than fixed here because the shell
  * is also what the loading and Suspense states render, and there is nothing
  * to add to a page that has not arrived yet.
@@ -70,7 +70,7 @@ function VerbList() {
   const { tables, loaded } = useVerbTables();
   const { loaded: settingsLoaded } = useSettings();
   const [query, setQuery] = useState("");
-  /** True while a verb is being added from this page rather than a term. */
+  /** True while a verb is being added from this page rather than a word. */
   const [adding, setAdding] = useState(false);
   /**
    * The one table that is open, if any. Undefined until the reader opens or
@@ -86,7 +86,7 @@ function VerbList() {
    */
   const [waiting, setWaiting] = useState<string | null | undefined>(undefined);
 
-  /** A verb arriving from the Edit term screen, still to be made. */
+  /** A verb arriving from the Edit word screen, still to be made. */
   const pending = (params.get("new") ?? "").trim();
   /** Either the verb just made, or one a link asked to open. */
   const wanted = foldName(params.get("verb") ?? pending);
@@ -147,7 +147,7 @@ function VerbList() {
 
   if (!loaded || !settingsLoaded) return <VerbsShell />;
 
-  // A verb on its way in — from a term, or typed here.
+  // A verb on its way in — from a word, or typed here.
   if (pending !== "" && !has(pending)) {
     return (
       <VerbsShell subtitle="Adding a verb">
@@ -275,7 +275,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
   const { settings } = useSettings();
   const { tables } = useVerbTables();
 
-  /** Empty when the verb is being typed here rather than opened from a term. */
+  /** Empty when the verb is being typed here rather than opened from a word. */
   const [typedVerb, setTypedVerb] = useState("");
   const name = (verb || typedVerb).trim();
   const asksForVerb = verb === "";
@@ -310,10 +310,10 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
       needsPersons ? { verbTenses: tenses, verbPersons: persons } : { verbTenses: tenses },
     );
 
-    // A verb typed here may not be in the term list at all. Add it, empty,
+    // A verb typed here may not be in the word list at all. Add it, empty,
     // rather than leaving a conjugation table for a word the glossary has
     // never heard of — the two are matched by name, and a table with no
-    // term behind it is a dead end. A verb that is already there is left
+    // word behind it is a dead end. A verb that is already there is left
     // exactly as it is.
     if (!findByWord(name)) createEntry({ ...EMPTY_ENTRY_INPUT, word: name });
 

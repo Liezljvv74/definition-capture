@@ -7,12 +7,12 @@ import { MAX_LIST_LENGTH } from "@/lib/constants";
 
 /**
  * Add, remove, and reorder a short list of names — the categories and the
- * sources the term form offers. Order is kept rather than sorted, because the
+ * sources the word form offers. Order is kept rather than sorted, because the
  * source list is a rough order of trust and the Source column sorts by it.
  *
- * Editing here never touches what is already saved on a term: a term filed
+ * Editing here never touches what is already saved on a word: a word filed
  * under a category that is removed keeps it, and the form still offers that
- * one name while you are editing that term. Removing a name stops it being
+ * one name while you are editing that word. Removing a name stops it being
  * suggested; it does not go back through the data.
  */
 export function NameListEditor({

@@ -72,7 +72,7 @@ body {
 /*
  * On the home page the logo is a small mark in the bottom right corner, in
  * front of the page rather than behind it. Everywhere else it stays a large
- * centred backdrop: a watermark across a term table would sit on top of the
+ * centred backdrop: a watermark across a list of words would sit on top of the
  * text people are there to read.
  *
  * Centred and full size in front did not work. At that size it lay across the

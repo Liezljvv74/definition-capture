@@ -1,7 +1,7 @@
 /**
  * Stands in for a table cell with nothing in it.
  *
- * The term list inlined this markup twice and the phrase list kept its own
+ * The word list inlined this markup twice and the phrase list kept its own
  * copy of it, which is three places to change the day the placeholder should
  * look different. It is one place now.
  *

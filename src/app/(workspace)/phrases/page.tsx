@@ -18,20 +18,19 @@ import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { deletePhrases } from "@/lib/phraseStorage";
 import { compareText } from "@/lib/sortName";
-import { useSettings } from "@/lib/useSettings";
+import { categoryOptions } from "@/lib/categoryOptions";
+import { foldName } from "@/lib/foldName";
 import type { Phrase } from "@/lib/types";
+import { useListPage } from "@/lib/useListPage";
+import { type ListSelection } from "@/lib/useListSelection";
+import { usePhrases } from "@/lib/usePhrases";
+import { useWideScreen } from "@/lib/useWideScreen";
+import { useWords } from "@/lib/useWords";
 
 /** Module scope so their identity is stable across renders; `useListPage`
  *  memoises against them. */
 const idOfPhrase = (phrase: Phrase) => phrase.id;
 const nameOfPhrase = (phrase: Phrase) => phrase.phrase;
-
-import { useWords } from "@/lib/useWords";
-import { useListPage } from "@/lib/useListPage";
-import { type ListSelection } from "@/lib/useListSelection";
-import { foldName } from "@/lib/foldName";
-import { usePhrases } from "@/lib/usePhrases";
-import { useWideScreen } from "@/lib/useWideScreen";
 
 type PhraseSortKey = "phrase" | "literalMeaning";
 /** null keeps the order phrases were added in, newest first. */
@@ -55,27 +54,17 @@ export default function PhrasesPage() {
   const { phrases, loaded } = usePhrases();
   const wide = useWideScreen();
   const { entries } = useWords();
-  const { settings } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   /** Empty means every category; otherwise the one being shown. */
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState<PhraseSort>(null);
 
-  /**
-   * The standing list, plus any category actually in use that is no longer on
-   * it, so a phrase filed under a since-removed name can still be filtered to.
-   */
-  const categoryOptions = useMemo(() => {
-    const byKey = new Map<string, string>();
-    for (const name of settings.categories) byKey.set(foldName(name), name);
-    for (const phrase of phrases) {
-      for (const name of phrase.categories) {
-        if (!byKey.has(foldName(name))) byKey.set(foldName(name), name);
-      }
-    }
-    return [...byKey.values()].sort(compareText);
-  }, [phrases, settings.categories]);
+  /** The same rule the vocabulary page uses; see `categoryOptions`. */
+  const categories = useMemo(
+    () => categoryOptions(phrases, category),
+    [phrases, category],
+  );
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
 
@@ -109,7 +98,7 @@ export default function PhrasesPage() {
     });
   }, [phrases, deferredQuery, category, sort]);
 
-  // The same four pieces the term page uses; see `useListPage`.
+  // The same four pieces the word page uses; see `useListPage`.
   const {
     selection,
     editing,
@@ -161,7 +150,7 @@ export default function PhrasesPage() {
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </div>
-              {categoryOptions.length > 0 && (
+              {categories.length > 0 && (
                 <div className="w-full sm:w-44">
                   <label htmlFor="phrase-category" className="sr-only">
                     Filter by category
@@ -173,7 +162,7 @@ export default function PhrasesPage() {
                     onChange={(event) => setCategory(event.target.value)}
                   >
                     <option value="">All categories</option>
-                    {categoryOptions.map((name) => (
+                    {categories.map((name) => (
                       <option key={name} value={name}>
                         {name}
                       </option>
@@ -555,10 +544,15 @@ function EmptyPhrases({ onAdd }: { onAdd: () => void }) {
 function NoMatches({ onClear }: { onClear: () => void }) {
   return (
     <div className="card p-8 text-center">
-      <h2 className="font-semibold">No phrases match that search</h2>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Try different wording.</p>
+      {/* "Filters" rather than "search": the button clears the category too,
+          and filtering by category alone produced copy about a search nobody
+          had typed. The vocabulary page's twin says the same thing. */}
+      <h2 className="font-semibold">No phrases match those filters</h2>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        Try different wording, or another category.
+      </p>
       <button type="button" className="btn btn-secondary mt-4" onClick={onClear}>
-        Clear search
+        Clear filters
       </button>
     </div>
   );

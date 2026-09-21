@@ -1,10 +1,29 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRef, useState, type ChangeEvent } from "react";
 
-import { ExportDialog } from "@/components/backup/ExportDialog";
-import { ImportDialog } from "@/components/backup/ImportDialog";
 import { MENU_ITEM, NavMenu } from "@/components/NavMenu";
+
+/**
+ * Fetched when one is opened, not when the nav renders.
+ *
+ * This menu sits in the workspace layout, so a static import put both dialogs
+ * and all of `backup.ts` into a chunk every one of the seven workspace pages
+ * loads, for a feature most sessions never touch. The same reasoning as
+ * `backupFile.ts` deferring `write-excel-file`, one level up.
+ *
+ * `ssr: false` because there is nothing to pre-render: a dialog only exists
+ * after a click, and both read browser-only stores.
+ */
+const ExportDialog = dynamic(
+  () => import("@/components/backup/ExportDialog").then((module) => module.ExportDialog),
+  { ssr: false },
+);
+const ImportDialog = dynamic(
+  () => import("@/components/backup/ImportDialog").then((module) => module.ImportDialog),
+  { ssr: false },
+);
 
 /** Nothing open, exporting, or importing a file already chosen. */
 type Task = null | { kind: "export" } | { kind: "import"; file: File };
@@ -12,7 +31,7 @@ type Task = null | { kind: "export" } | { kind: "import"; file: File };
 /**
  * Export and Import, in the nav bar rather than on the list pages.
  *
- * They used to be a pair of buttons in the Terms and Phrases headers, which
+ * They used to be a pair of buttons in the Vocabulary and Phrases headers, which
  * meant Verbs never had them, and the export they offered was scoped to "this
  * page", a question the nav bar cannot ask. Backing up is about the account,
  * so it belongs beside the other account-wide controls.

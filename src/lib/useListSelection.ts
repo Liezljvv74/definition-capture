@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 /**
- * Row selection for a list page, shared by the term list and the phrase list so
+ * Row selection for a list page, shared by the word list and the phrase list so
  * every list in the app selects and deletes the same way.
  *
  * The hook is handed the ids that are on screen right now (already searched,
@@ -62,14 +62,28 @@ export function useListSelection(visibleIds: readonly string[]): ListSelection {
 
   const clear = useCallback(() => setSelected(new Set()), []);
 
-  return {
-    selectedIds,
-    count: selectedIds.length,
-    isSelected: (id) => selected.has(id),
-    toggle,
-    allSelected,
-    partiallySelected: selectedIds.length > 0 && !allSelected,
-    toggleAll,
-    clear,
-  };
+  const isSelected = useCallback((id: string) => selected.has(id), [selected]);
+
+  /**
+   * Memoised, and the object itself matters as much as its parts.
+   *
+   * Every callback above is already stable, and then a fresh object literal
+   * wrapped them on each render, so anything downstream comparing this prop
+   * saw a new value every time. Nothing measurable today, because no row is
+   * memoised yet — but it is exactly the trap that makes someone add `memo`
+   * to a row, see no improvement, and conclude memoising does not help here.
+   */
+  return useMemo(
+    () => ({
+      selectedIds,
+      count: selectedIds.length,
+      isSelected,
+      toggle,
+      allSelected,
+      partiallySelected: selectedIds.length > 0 && !allSelected,
+      toggleAll,
+      clear,
+    }),
+    [selectedIds, isSelected, toggle, allSelected, toggleAll, clear],
+  );
 }

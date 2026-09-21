@@ -18,6 +18,7 @@ import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
+import { categoryOptions } from "@/lib/categoryOptions";
 import { foldName } from "@/lib/foldName";
 import { useWords } from "@/lib/useWords";
 import { useWideScreen } from "@/lib/useWideScreen";
@@ -47,7 +48,7 @@ function compare(a: Entry, b: Entry, key: SortKey): number {
     case "word":
       return compareNames(a.word, b.word);
     case "definition":
-      // No article convention here, and a term still waiting for its
+      // No article convention here, and a word still waiting for its
       // definition sorts to the top of the ascending list, which is where
       // you would go looking for it.
       return compareText(a.definition, b.definition);
@@ -56,7 +57,7 @@ function compare(a: Entry, b: Entry, key: SortKey): number {
   }
 }
 
-export default function TermsPage() {
+export default function VocabularyPage() {
   const { entries, loaded } = useWords();
   const wide = useWideScreen();
   const { phrases } = usePhrases();
@@ -65,31 +66,16 @@ export default function TermsPage() {
   const [onlyNeedsDefinition, setOnlyNeedsDefinition] = useState(false);
   /** Empty means every category; otherwise the one being shown. */
   const [category, setCategory] = useState("");
-  // Alphabetical by term, ignoring a leading der/die/das so the German
+  // Alphabetical by word, ignoring a leading der/die/das so the German
   // nouns file under their own first letter. Date added is no longer a
   // column and is now only the tie-breaker.
   const [sort, setSort] = useState<Sort>({ key: "word", direction: "asc" });
 
-  /**
-   * Only categories actually in use, so choosing one always shows
-   * something. Built from the saved terms rather than from the standing
-   * list, which means a name left over from an older list still filters.
-   */
-  const categoryOptions = useMemo(() => {
-    const byKey = new Map<string, string>();
-    for (const entry of entries) {
-      for (const name of entry.categories) {
-        const key = foldName(name);
-        if (!byKey.has(key)) byKey.set(key, name);
-      }
-    }
-    // A category chosen and then emptied of terms stays listed, so the
-    // dropdown never shows a blank while the list explains itself.
-    if (category && !byKey.has(foldName(category))) {
-      byKey.set(foldName(category), category);
-    }
-    return [...byKey.values()].sort(compareText);
-  }, [entries, category]);
+  /** See `categoryOptions`: in use only, plus whatever is being filtered by. */
+  const categories = useMemo(
+    () => categoryOptions(entries, category),
+    [entries, category],
+  );
 
   /**
    * Sorting and filtering are two memos, not one, and the split is what keeps
@@ -192,7 +178,7 @@ export default function TermsPage() {
         {!loaded ? (
           <div className="card h-64 animate-pulse" aria-hidden="true" />
         ) : entries.length === 0 ? (
-          <EmptyTerms onAdd={() => setIsAdding(true)} />
+          <EmptyVocabulary onAdd={() => setIsAdding(true)} />
         ) : (
           <>
             <div
@@ -220,7 +206,7 @@ export default function TermsPage() {
 
               {/* Width sits on the wrapper, not the select: `field` already sets
                   w-full, and two utilities of equal weight would be a coin toss. */}
-              {categoryOptions.length > 0 && (
+              {categories.length > 0 && (
                 <div className="w-full sm:w-44">
                   <label htmlFor="category" className="sr-only">
                     Filter by category
@@ -232,7 +218,7 @@ export default function TermsPage() {
                     onChange={(event) => setCategory(event.target.value)}
                   >
                     <option value="">All categories</option>
-                    {categoryOptions.map((name) => (
+                    {categories.map((name) => (
                       <option key={name} value={name}>
                         {name}
                       </option>
@@ -572,7 +558,7 @@ function EntryCards({
 
 /* ------------------------------------------------------------- empty states */
 
-function EmptyTerms({ onAdd }: { onAdd: () => void }) {
+function EmptyVocabulary({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="card mx-auto max-w-xl p-8 text-center">
       <div aria-hidden="true" className="mb-3 text-4xl">

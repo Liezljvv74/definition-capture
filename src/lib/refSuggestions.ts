@@ -3,7 +3,7 @@
  * only offers the `[[Name]]` form of an internal link while you are typing a
  * name, and never rewrites anything on its own.
  *
- * Terms and phrases share one namespace here, exactly as they do in
+ * Words and phrases share one namespace here, exactly as they do in
  * `buildLinkIndex`: a Ref written in either form can point at either list, so
  * both forms offer both lists.
  */
@@ -31,7 +31,7 @@ const SUGGESTION_LIMIT = 8;
 
 /**
  * Anything with a scheme, a `www.` start, or a bare `host/path`. Note what is
- * deliberately *not* here: a bare dotted word. `Node.js` is a plausible term
+ * deliberately *not* here: a bare dotted word. `Node.js` is a plausible word
  * name, and treating it as a domain would silently switch the suggestions off
  * for it.
  */
@@ -84,7 +84,7 @@ function normalise(text: string): string {
  * alphabetical order, so the list only ever shrinks as more is typed. Names
  * in `exclude` are left out entirely.
  *
- * Terms win a name clash, the same rule `buildLinkIndex` follows when it
+ * Words win a name clash, the same rule `buildLinkIndex` follows when it
  * resolves `[[Name]]` back to a page — offering a phrase that the link would
  * not actually reach would be a lie.
  */

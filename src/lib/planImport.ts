@@ -34,8 +34,8 @@ export type ImportRules<T> = {
  * wrapped around calls to a module-scope store, which made it reachable only
  * through a live Supabase session — and under test every one of those writes
  * is a silent no-op, so the functions would have reported counts for writes
- * that never happened. That is exactly the blind spot the duplicate-term bug
- * lived in: a second copy of a term in one file matched a row that had not
+ * that never happened. That is exactly the blind spot the duplicate-word bug
+ * lived in: a second copy of a word in one file matched a row that had not
  * been inserted yet, so the update patched nothing, and the count said one.
  *
  * Two rules carry that history and are the reason this is worth testing:

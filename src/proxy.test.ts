@@ -63,7 +63,7 @@ const redirectPath = (response: Response) => {
 /**
  * Every protected route, read off the filesystem rather than typed out.
  *
- * This is the point of the file. A ninth page added under `(workspace)`
+ * This is the point of the file. An eighth page added under `(workspace)`
  * tomorrow is covered by these tests the moment it exists — which is the
  * failure the layout's own comment warns about, a check that stops being
  * true because somebody added a page and nobody added a test.

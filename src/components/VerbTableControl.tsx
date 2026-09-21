@@ -6,7 +6,7 @@ import { foldName } from "@/lib/foldName";
 import { useVerbTables } from "@/lib/useVerbTables";
 
 /**
- * Points at a verb's conjugation table, from the term it belongs to — either
+ * Points at a verb's conjugation table, from the word it belongs to — either
  * to the table that exists, or to making one.
  *
  * Neither case does any work here. Making a table lands on the Verbs page

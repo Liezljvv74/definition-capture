@@ -23,7 +23,7 @@ export function SelectRowCheckbox({
 }: {
   checked: boolean;
   onChange: () => void;
-  /** What is being selected, e.g. the term itself — read out by screen readers. */
+  /** What is being selected, e.g. the word itself — read out by screen readers. */
   label: string;
 }) {
   return (

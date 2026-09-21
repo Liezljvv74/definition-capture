@@ -14,7 +14,7 @@ export type LinkIndex = Map<string, string>;
  * Both lists share one namespace, so a `[[Name]]` can point at either of them.
  *
  * Built lowest precedence first, because a later `set` wins a name clash:
- * phrases, then terms. Terms stay on top, being the most specific thing
+ * phrases, then words. Words stay on top, being the most specific thing
  * to link to, so a list added later must not quietly re-point existing links.
  */
 export function buildLinkIndex(entries: Entry[], phrases: Phrase[] = []): LinkIndex {

@@ -22,7 +22,7 @@ function subscribe(listener: () => void): () => void {
  * The two list pages each render a table and a card list, with CSS hiding one
  * of them. That means every row is built, reconciled and held in the DOM
  * twice, and every keystroke in the search box re-renders both halves. At a
- * few hundred terms that is thousands of nodes of pure waste.
+ * few hundred words that is thousands of nodes of pure waste.
  *
  * Picking one in JavaScript instead would normally trade that for a flash:
  * the server has no viewport, so it has to guess, and a phone would draw the

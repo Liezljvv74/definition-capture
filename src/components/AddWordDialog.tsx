@@ -70,7 +70,7 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
     );
   }
 
-  // A term is saved once. The unique index on (user_id, lower(term)) refuses
+  // A word is saved once. The unique index on (user_id, lower(word)) refuses
   // a second one outright, and `[[Name]]` links, this duplicate check, and
   // import matching all resolve a name to exactly one entry — so there is no
   // “keep both” on offer here. Offering it meant drawing a row optimistically

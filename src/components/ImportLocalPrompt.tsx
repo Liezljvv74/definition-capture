@@ -13,13 +13,13 @@ import {
   parsePhrase,
   settled as phrasesSettled,
 } from "@/lib/phraseStorage";
-import { importEntries, parseEntry, settled as termsSettled } from "@/lib/storage";
+import { importEntries, parseEntry, settled as wordsSettled } from "@/lib/storage";
 import type { Entry, Phrase } from "@/lib/types";
 import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
- * Offers the pre-account term list — the one still sitting in this browser's
+ * Offers the pre-account word list — the one still sitting in this browser's
  * `localStorage` — to the signed-in account.
  *
  * This is the last thread back to the browser-only version of the app, and the
@@ -48,7 +48,7 @@ export function ImportLocalPrompt() {
 
   // The store hooks live in the inner component, not here, and that split is
   // the whole point of it. Subscribing to a store is what tells it to fetch,
-  // and this prompt is mounted in the workspace layout — so reading the term
+  // and this prompt is mounted in the workspace layout — so reading the word
   // and phrase lists at this level made every page fetch both, for every
   // reader, to answer a question that only matters to someone migrating off
   // the browser-only version once. Almost nobody has legacy data; those who
@@ -70,7 +70,7 @@ function LegacyOffer({
   const words = useWords();
   const phraseList = usePhrases();
   // Both lists have to be fetched before importing: the "already have this
-  // one" check runs against them, and a duplicate term would be rejected by
+  // one" check runs against them, and a duplicate word would be rejected by
   // the database's unique index rather than quietly merged.
   const ready = words.loaded && phraseList.loaded;
 
@@ -95,7 +95,7 @@ function LegacyOffer({
 
     // The counts above describe what was asked for. This is where we find out
     // whether it happened.
-    await Promise.all([termsSettled(), phrasesSettled()]);
+    await Promise.all([wordsSettled(), phrasesSettled()]);
     setStep("copied");
   }
 

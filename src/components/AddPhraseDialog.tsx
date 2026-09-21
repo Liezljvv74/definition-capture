@@ -67,7 +67,7 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
     );
   }
 
-  // Saved once, for the same reasons as a term: the unique index refuses a
+  // Saved once, for the same reasons as a word: the unique index refuses a
   // second, and a `[[Name]]` link resolves to exactly one phrase.
   if (duplicate) {
     const existing = duplicate;

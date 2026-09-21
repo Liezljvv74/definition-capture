@@ -25,7 +25,7 @@ import { readNameList, readString } from "@/lib/types";
 
 export type Settings = {
   displayName: string;
-  /** The groups the term and phrase forms offer. One entry may carry three. */
+  /** The groups the word and phrase forms offer. One entry may carry three. */
   categories: string[];
   /** In the reader's own order, which is what the Source column sorts by. */
   sources: string[];

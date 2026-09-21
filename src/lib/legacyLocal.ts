@@ -36,18 +36,6 @@ export function readLegacyList<T>(
   }
 }
 
-/** True when this browser still holds either of the old lists. */
-export function hasLegacyData(): boolean {
-  try {
-    return (
-      window.localStorage.getItem(LEGACY_ENTRIES_KEY) !== null ||
-      window.localStorage.getItem(LEGACY_PHRASES_KEY) !== null
-    );
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Removes the old keys. Called only after the rows have been accepted by the
  * database, or when the reader explicitly declines the import — never

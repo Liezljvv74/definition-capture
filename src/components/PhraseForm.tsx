@@ -30,7 +30,7 @@ export function PhraseForm({
   /**
    * The standing list, plus anything this phrase already carries that is no
    * longer offered. Editing a phrase must not quietly strip a category that
-   * has since been removed from Settings, which is the same guard the term
+   * has since been removed from Settings, which is the same guard the word
    * form makes for its own.
    */
   const categoryOptions = useMemo(() => {

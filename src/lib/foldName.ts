@@ -2,7 +2,7 @@
  * The one way this app decides that two names are the same name.
  *
  * Used by every duplicate check, every `[[Name]]` lookup, the autocomplete,
- * the import matchers, and the search filters. They all have to agree: a term
+ * the import matchers, and the search filters. They all have to agree: a word
  * the add form calls a duplicate must also be the one a link resolves to and
  * the one an import updates, or the same word ends up saved twice and only
  * one copy is reachable.

@@ -70,7 +70,7 @@ export type RemoteStore<T> = {
    * it", which is right for a page showing the list and wrong for the banner.
    * The banner sits in the workspace layout and only ever reads `error`, so
    * subscribing normally made every page, Settings and Verbs included,
-   * fetch the terms and phrases it had no intention of showing.
+   * fetch the words and phrases it had no intention of showing.
    */
   subscribeToError: (listener: () => void) => () => void;
   getError: () => string | null;
@@ -226,9 +226,9 @@ export type RemoteStoreConfig<T> = {
   /** Reads the id off an app object. */
   idOf: (item: T) => string;
   /**
-   * Reads the name an item is known by: the term, the phrase, the verb, the
-   * rule's title. Every list has one, and every list matches on it the same
-   * way, which is what lets `findByName` live here instead of four times over.
+   * Reads the name an item is known by: the word, the phrase, the verb. Every
+   * list has one, and every list matches on it the same way, which is what
+   * lets `findByName` live here instead of three times over.
    */
   nameOf: (item: T) => string;
 };
@@ -344,8 +344,8 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
   /**
    * The catch-up read for coming back to the tab. Unlike `reload`, this one
    * is allowed to decline: `visibilitychange` and `focus` both fire on the
-   * same return, and with a store per list that was six identical round
-   * trips for one alt-tab.
+   * same return, and with a store per list that was a pair of identical round
+   * trips per list for one alt-tab.
    */
   function refresh(): void {
     // Nobody is showing this list, so there is nothing on screen to be stale.
@@ -370,13 +370,13 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
     void load(userId);
   }
 
+  /** Writes that have been sent and not yet answered, for `settled`. */
+  const inFlight = new Set<Promise<unknown>>();
+
   /**
    * Optimistic write: the cache is already updated by the caller, so this only
    * has to report a failure and put the truth back.
    */
-  /** Writes that have been sent and not yet answered, for `settled`. */
-  const inFlight = new Set<Promise<unknown>>();
-
   function send(work: PromiseLike<{ error: unknown }>): void {
     const settling = Promise.resolve(work).then(({ error }) => {
       if (!error) return;

@@ -1,5 +1,5 @@
 /**
- * What the term form offers before anyone has changed anything.
+ * What the word form offers before anyone has changed anything.
  *
  * These used to be *the* lists, edited here and redeployed. They are now the
  * starting point: Settings keeps a per-account copy of each in
@@ -19,7 +19,7 @@ export type Source = string;
 
 export const DEFAULT_SOURCE: Source = "Manual";
 
-/** The groups a term can be filed under, before Settings has been touched. */
+/** The groups a word can be filed under, before Settings has been touched. */
 export const DEFAULT_CATEGORIES = [
   "Nature",
   "Home",
@@ -31,7 +31,7 @@ export const DEFAULT_CATEGORIES = [
   "Health",
 ] as const;
 
-/** How many categories one term may carry. Not the size of the list to pick from. */
+/** How many categories one word may carry. Not the size of the list to pick from. */
 export const MAX_CATEGORIES = 3;
 
 /** A guard against a runaway list, matching the check constraint on the table. */

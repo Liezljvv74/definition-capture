@@ -7,7 +7,7 @@ import { useSettings } from "@/lib/useSettings";
 
 /**
  * Sits at the right-hand end of the main nav so it is always clear whose
- * terms are on screen — with two accounts and one browser, that matters more
+ * words are on screen — with two accounts and one browser, that matters more
  * than the space it costs.
  *
  * Signing out lives in Settings rather than here. It is a rare, destructive-
@@ -15,9 +15,11 @@ import { useSettings } from "@/lib/useSettings";
  * the gear is the way to it.
  *
  * Renders nothing while the session is still loading or when nobody is signed
- * in. The second case is close to unreachable now — `src/proxy.ts` redirects a
- * request with no session before any workspace page renders — but this nav
- * sits in the root layout, above that boundary, so it still has to cope.
+ * in. The second case is close to unreachable: this sits in `MainNav`, which
+ * the workspace layout mounts below its own session check, and `src/proxy.ts`
+ * has already turned away a request with no session. What is left is the
+ * first case, the hydration pass before the session hook has read anything,
+ * which is a real state and the one the guard is actually for.
  */
 export function AccountMenu() {
   const { user, loaded } = useSession();

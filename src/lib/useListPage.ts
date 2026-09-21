@@ -7,7 +7,7 @@ import { useListSelection, type ListSelection } from "@/lib/useListSelection";
 /**
  * The bookkeeping every list page does around its rows.
  *
- * The term and phrase pages are not the same page and should not be forced
+ * The word and phrase pages are not the same page and should not be forced
  * into one — they sort on different keys, filter on different things, and
  * their tables share almost no columns. But four small pieces were identical
  * in both, character for character apart from the noun: deriving the visible

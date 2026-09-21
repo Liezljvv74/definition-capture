@@ -174,7 +174,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
         { value: phrase.literalMeaning, type: String, wrap: true },
         { value: phrase.usageExample, type: String, wrap: true },
         // A spreadsheet cell cannot hold a list, so the names are joined the
-        // way a reader would write them, as the Terms sheet does.
+        // way a reader would write them, as the Words sheet does.
         { value: phrase.categories.join(", "), type: String },
         { value: phrase.source, type: String },
         { value: phrase.ref, type: String },

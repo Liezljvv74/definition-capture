@@ -49,13 +49,13 @@ type State =
  * would report every row in the file as new.
  */
 export function ImportDialog({ file, onClose }: { file: File; onClose: () => void }) {
-  const { entries, loaded: termsLoaded } = useWords();
+  const { entries, loaded: wordsLoaded } = useWords();
   const { phrases, loaded: phrasesLoaded } = usePhrases();
   const { tables, loaded: tablesLoaded } = useVerbTables();
   const [state, setState] = useState<State>({ step: "reading" });
   const [mode, setMode] = useState<ImportMode>("skip");
 
-  const ready = termsLoaded && phrasesLoaded && tablesLoaded;
+  const ready = wordsLoaded && phrasesLoaded && tablesLoaded;
 
   useEffect(() => {
     if (!ready) return;
@@ -237,9 +237,9 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
     );
   }
 
-  const words = contents.words.length;
+  const wordCount = contents.words.length;
   const phraseCount = contents.phrases.length;
-  const verbTables = contents.verbTables.length;
+  const verbTableCount = contents.verbTables.length;
 
   return (
     <Modal title="Import a backup" onClose={onClose}>
@@ -248,8 +248,9 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
           <p className="font-medium break-all">{file.name}</p>
           <ul className="mt-1 space-y-0.5 text-slate-600 dark:text-slate-300">
             <li>
-              {words} {words === 1 ? "word" : "words"}: {words - preview.matchingWords} new
-              to you, {preview.matchingWords} of your {entries.length} already saved.
+              {wordCount} {wordCount === 1 ? "word" : "words"}:{" "}
+              {wordCount - preview.matchingWords} new to you,{" "}
+              {preview.matchingWords} of your {entries.length} already saved.
             </li>
             <li>
               {phraseCount} {phraseCount === 1 ? "phrase" : "phrases"}:{" "}
@@ -257,8 +258,8 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
               {preview.matchingPhrases} of your {phrases.length} already saved.
             </li>
             <li>
-              {verbTables} {verbTables === 1 ? "verb table" : "verb tables"}:{" "}
-              {verbTables - preview.matchingVerbTables} new to you,{" "}
+              {verbTableCount} {verbTableCount === 1 ? "verb table" : "verb tables"}:{" "}
+              {verbTableCount - preview.matchingVerbTables} new to you,{" "}
               {preview.matchingVerbTables} of your {tables.length} already saved.
             </li>
             <li>

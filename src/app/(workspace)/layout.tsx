@@ -10,8 +10,8 @@ import { serverUserId } from "@/lib/supabaseServer";
  * until the server has said who is asking.
  *
  * `(workspace)` is a route group: the brackets keep it out of the URL, so
- * `/terms` is still `/terms`. What it buys is a single place to put the check,
- * instead of repeating it in eight pages or pushing the whole app behind a
+ * `/vocabulary` is still `/vocabulary`. What it buys is a single place to put the check,
+ * instead of repeating it in seven pages or pushing the whole app behind a
  * client component that can only hide things after they have been sent.
  *
  * `src/proxy.ts` already turns an unsigned request away before it reaches
