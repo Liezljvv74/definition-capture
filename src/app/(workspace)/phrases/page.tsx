@@ -13,6 +13,7 @@ import {
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { EmptyCell } from "@/components/EmptyCell";
+import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { deletePhrases } from "@/lib/phraseStorage";
 import { compareText } from "@/lib/sortName";
@@ -120,7 +121,7 @@ export default function PhrasesPage() {
           <EmptyPhrases onAdd={() => setIsAdding(true)} />
         ) : (
           <>
-            <div className="mb-4">
+            <div className={`${STICKY_FILTERS} mb-4`}>
               <label htmlFor="phrase-search" className="sr-only">
                 Search phrases
               </label>

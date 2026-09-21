@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useId, useMemo, useState } from "react";
 
+import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { VerbTableCard } from "@/components/VerbTableCard";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
 import { saveSettings } from "@/lib/settings";
@@ -203,7 +204,7 @@ function VerbList() {
       subtitle={`${tables.length} ${tables.length === 1 ? "verb" : "verbs"}`}
       action={addButton}
     >
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className={`${STICKY_FILTERS} mb-3 flex flex-wrap items-center gap-2`}>
         <div className="w-full sm:w-1/2 lg:w-[12.5%] lg:min-w-44">
           <label htmlFor="verb-search" className="sr-only">
             Search verbs

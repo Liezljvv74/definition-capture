@@ -9,12 +9,20 @@ html {
   color-scheme: light dark;
 
   /*
+   * The nav's height. `MainNav` overwrites this with the measured value on
+   * mount; the figure here is only what the filter bars use for the first
+   * paint, before that runs.
+   */
+  --nav-height: 3rem;
+
+  /*
    * Room for the sticky nav when the browser scrolls something into view.
    * Without it, an anchor in a Ref field, or the row a [[Name]] link points
    * at, lands underneath the bar and reads as though the link went nowhere.
-   * Slightly more than the bar is tall, so the target clears it.
+   * Both bars, since the filter row sticks under the nav, plus a little
+   * room so the target is not flush against them.
    */
-  scroll-padding-top: 4.5rem;
+  scroll-padding-top: calc(var(--nav-height) + 5rem);
 }
 
 body {

@@ -14,6 +14,7 @@ import {
 import { EditTermDialog } from "@/components/EditTermDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { EmptyCell } from "@/components/EmptyCell";
+import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { sourceOrder } from "@/lib/constants";
 import { deleteEntries } from "@/lib/storage";
@@ -201,7 +202,9 @@ export default function TermsPage() {
           <EmptyTerms onAdd={() => setIsAdding(true)} />
         ) : (
           <>
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div
+              className={`${STICKY_FILTERS} mb-4 flex flex-col gap-3 sm:flex-row sm:items-center`}
+            >
               <div className="flex-1">
                 <label htmlFor="search" className="sr-only">
                   Search terms and definitions
