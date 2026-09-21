@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { AddPhraseDialog } from "@/components/AddPhraseDialog";
+import { CategoryBadge } from "@/components/Badges";
 import {
   ConfirmDeleteDialog,
   RowDeleteButton,
@@ -17,6 +18,7 @@ import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { deletePhrases } from "@/lib/phraseStorage";
 import { compareText } from "@/lib/sortName";
+import { useSettings } from "@/lib/useSettings";
 import type { Phrase } from "@/lib/types";
 
 /** Module scope so their identity is stable across renders; `useListPage`
@@ -37,10 +39,17 @@ type PhraseSortKey = "phrase" | "literalMeaning";
 type PhraseSort = { key: PhraseSortKey; direction: "asc" | "desc" } | null;
 
 const COLUMNS: { key?: PhraseSortKey; label: string; className?: string }[] = [
-  { key: "phrase", label: "Phrase", className: "w-[24%]" },
+  // Phrase gives up the most, from 24%, because a phrase is a line of text
+  // and the two columns beside it are paragraphs.
+  { key: "phrase", label: "Phrase", className: "w-[16%]" },
+  // Literal Meaning and Usage Example are both left unsized on purpose, so
+  // they split whatever is left in equal halves. Pinning one of them would
+  // hand the whole remainder to the other, which is what a first attempt at
+  // this did: it cut Usage Example to 188px while widening its neighbour.
   { key: "literalMeaning", label: "Literal Meaning" },
   { label: "Usage Example" },
-  { label: "Ref", className: "w-[18%]" },
+  { label: "Category", className: "w-[12%]" },
+  { label: "Ref", className: "w-[16%]" },
 ];
 
 export default function PhrasesPage() {
@@ -48,9 +57,27 @@ export default function PhrasesPage() {
   const { rules } = useGrammarRules();
   const wide = useWideScreen();
   const { entries } = useTerms();
+  const { settings } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
+  /** Empty means every category; otherwise the one being shown. */
+  const [category, setCategory] = useState("");
   const [sort, setSort] = useState<PhraseSort>(null);
+
+  /**
+   * The standing list, plus any category actually in use that is no longer on
+   * it, so a phrase filed under a since-removed name can still be filtered to.
+   */
+  const categoryOptions = useMemo(() => {
+    const byKey = new Map<string, string>();
+    for (const name of settings.categories) byKey.set(foldName(name), name);
+    for (const phrase of phrases) {
+      for (const name of phrase.categories) {
+        if (!byKey.has(foldName(name))) byKey.set(foldName(name), name);
+      }
+    }
+    return [...byKey.values()].sort(compareText);
+  }, [phrases, settings.categories]);
 
   const linkIndex = useMemo(
     () => buildLinkIndex(entries, phrases, rules),
@@ -59,13 +86,16 @@ export default function PhrasesPage() {
 
   const visible = useMemo(() => {
     const needle = foldName(query);
-    const filtered = needle
-      ? phrases.filter((phrase) =>
-          [phrase.phrase, phrase.literalMeaning, phrase.usageExample, phrase.ref].some(
-            (field) => foldName(field).includes(needle),
-          ),
-        )
-      : phrases;
+    const wanted = foldName(category);
+    const filtered = phrases.filter((phrase) => {
+      if (wanted && !phrase.categories.some((name) => foldName(name) === wanted)) {
+        return false;
+      }
+      if (!needle) return true;
+      return [phrase.phrase, phrase.literalMeaning, phrase.usageExample, phrase.ref].some(
+        (field) => foldName(field).includes(needle),
+      );
+    });
 
     if (!sort) return filtered;
     return [...filtered].sort((a, b) => {
@@ -78,7 +108,7 @@ export default function PhrasesPage() {
       // ties keep the newest-first order the list has underneath.
       return 0;
     });
-  }, [phrases, query, sort]);
+  }, [phrases, query, category, sort]);
 
   // The same four pieces the term page uses; see `useListPage`.
   const {
@@ -117,9 +147,9 @@ export default function PhrasesPage() {
         ) : (
           <>
             <div
-              className={`${STICKY_FILTERS} mb-4 flex flex-col gap-3 sm:flex-row sm:items-center`}
+              className={`${STICKY_FILTERS} mb-4 flex flex-wrap items-center gap-2`}
             >
-              <div className="flex-1">
+              <div className="w-full sm:w-1/3 lg:min-w-64">
                 <label htmlFor="phrase-search" className="sr-only">
                   Search phrases
                 </label>
@@ -132,9 +162,30 @@ export default function PhrasesPage() {
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </div>
+              {categoryOptions.length > 0 && (
+                <div className="w-full sm:w-44">
+                  <label htmlFor="phrase-category" className="sr-only">
+                    Filter by category
+                  </label>
+                  <select
+                    id="phrase-category"
+                    className="field"
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                  >
+                    <option value="">All categories</option>
+                    {categoryOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <button
                 type="button"
-                className="btn btn-primary shrink-0"
+                className="btn btn-primary shrink-0 sm:ml-auto"
                 onClick={() => setIsAdding(true)}
               >
                 <span aria-hidden="true">+</span> Add phrase
@@ -142,7 +193,12 @@ export default function PhrasesPage() {
             </div>
 
             {visible.length === 0 ? (
-              <NoMatches onClear={() => setQuery("")} />
+              <NoMatches
+                onClear={() => {
+                  setQuery("");
+                  setCategory("");
+                }}
+              />
             ) : (
               <>
                 <p className="sr-only" aria-live="polite">
@@ -161,6 +217,7 @@ export default function PhrasesPage() {
                 {wide !== false && (
                 <PhraseTable
                   phrases={visible}
+                  onSelectCategory={setCategory}
                   sort={sort}
                   onToggleSort={(key) =>
                     setSort((current) =>
@@ -225,6 +282,7 @@ export default function PhrasesPage() {
 
 function PhraseTable({
   phrases,
+  onSelectCategory,
   sort,
   onToggleSort,
   linkIndex,
@@ -233,6 +291,7 @@ function PhraseTable({
   onDelete,
 }: {
   phrases: Phrase[];
+  onSelectCategory: (name: string) => void;
   sort: PhraseSort;
   onToggleSort: (key: PhraseSortKey) => void;
   linkIndex: LinkIndex;
@@ -323,12 +382,12 @@ function PhraseTable({
                     onClick={() => onEdit(phrase.id)}
                     className="cursor-pointer text-left font-medium text-indigo-700 hover:underline dark:text-indigo-300"
                   >
-                    {phrase.phrase}
+                    <span className="line-clamp-3 break-words">{phrase.phrase}</span>
                   </button>
                 </td>
                 <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
                   {phrase.literalMeaning ? (
-                    <span className="line-clamp-3">{phrase.literalMeaning}</span>
+                    <span className="line-clamp-3 break-words">{phrase.literalMeaning}</span>
                   ) : (
                     <EmptyCell />
                   )}
@@ -340,9 +399,20 @@ function PhraseTable({
                     <EmptyCell />
                   )}
                 </td>
+                <td className="px-4 py-3 align-top">
+                  {phrase.categories.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {phrase.categories.map((name) => (
+                        <CategoryBadge key={name} name={name} onSelect={onSelectCategory} />
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyCell />
+                  )}
+                </td>
                 <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
                   {phrase.ref ? (
-                    <span className="line-clamp-2 break-words">
+                    <span className="line-clamp-3 break-words">
                       <RefText value={phrase.ref} linkIndex={linkIndex} />
                     </span>
                   ) : (
@@ -430,6 +500,13 @@ function PhraseCards({
                     />
                   </div>
                 </div>
+                {phrase.categories.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {phrase.categories.map((name) => (
+                      <CategoryBadge key={name} name={name} />
+                    ))}
+                  </div>
+                )}
                 {phrase.literalMeaning && (
                   <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">
                     {phrase.literalMeaning}

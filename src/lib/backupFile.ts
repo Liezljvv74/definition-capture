@@ -132,13 +132,28 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
 
   const phrases: Sheet<Blob> = {
     sheet: "Phrases",
-    columns: [{ width: 30 }, { width: 45 }, { width: 45 }, { width: 30 }],
+    columns: [
+      { width: 30 },
+      { width: 45 },
+      { width: 45 },
+      { width: 24 },
+      { width: 30 },
+    ],
     data: [
-      headerRow(["Phrase", "Literal meaning", "Usage example", "Ref"]),
+      headerRow([
+        "Phrase",
+        "Literal meaning",
+        "Usage example",
+        "Category",
+        "Ref",
+      ]),
       ...backup.phrases.map<Row>((phrase) => [
         { value: phrase.phrase, type: String },
         { value: phrase.literalMeaning, type: String, wrap: true },
         { value: phrase.usageExample, type: String, wrap: true },
+        // A spreadsheet cell cannot hold a list, so the names are joined the
+        // way a reader would write them, as the Terms sheet does.
+        { value: phrase.categories.join(", "), type: String },
         { value: phrase.ref, type: String },
       ]),
     ],

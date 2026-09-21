@@ -49,6 +49,8 @@ export type Phrase = {
   phrase: string;
   literalMeaning: string;
   usageExample: string;
+  /** Up to `MAX_CATEGORIES` group names, shared with the term list. */
+  categories: string[];
   ref: string;
 };
 
@@ -56,6 +58,7 @@ export type PhraseInput = {
   phrase: string;
   literalMeaning: string;
   usageExample: string;
+  categories: string[];
   ref: string;
 };
 
@@ -63,6 +66,7 @@ export const EMPTY_PHRASE_INPUT: PhraseInput = {
   phrase: "",
   literalMeaning: "",
   usageExample: "",
+  categories: [],
   ref: "",
 };
 

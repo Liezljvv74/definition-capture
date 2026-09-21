@@ -41,6 +41,7 @@ const phrase = (text: string): Phrase => ({
   phrase: text,
   literalMeaning: "",
   usageExample: "",
+  categories: [],
   ref: "",
 });
 

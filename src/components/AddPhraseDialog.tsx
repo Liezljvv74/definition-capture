@@ -51,6 +51,7 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
             phrase: editing.phrase,
             literalMeaning: editing.literalMeaning,
             usageExample: editing.usageExample,
+            categories: editing.categories,
             ref: editing.ref,
           }}
           submitLabel="Save changes"

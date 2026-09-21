@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
+import { CategoryBadge } from "@/components/Badges";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import type { Phrase } from "@/lib/types";
@@ -105,6 +106,16 @@ function PhraseDetailCard({
             <p className="whitespace-pre-wrap text-slate-800 italic dark:text-slate-200">
               “{phrase.usageExample}”
             </p>
+          )}
+        </Field>
+
+        <Field label="Category" empty="None">
+          {phrase.categories.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {phrase.categories.map((name) => (
+                <CategoryBadge key={name} name={name} />
+              ))}
+            </div>
           )}
         </Field>
 
