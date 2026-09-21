@@ -148,15 +148,6 @@ function GrammarList() {
                   : `${rules.length} ${rules.length === 1 ? "rule" : "rules"}`}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setIsAdding(true)}
-            >
-              <span aria-hidden="true">+</span> Add rule
-            </button>
-          </div>
         </div>
       </header>
 
@@ -202,6 +193,14 @@ function GrammarList() {
                   </select>
                 </div>
               )}
+
+              <button
+                type="button"
+                className="btn btn-primary shrink-0 sm:ml-auto"
+                onClick={() => setIsAdding(true)}
+              >
+                <span aria-hidden="true">+</span> Add rule
+              </button>
             </div>
 
             <p aria-live="polite" className="sr-only">
