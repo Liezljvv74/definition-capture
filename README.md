@@ -31,8 +31,8 @@ single number meant phone access broke each time it moved. Change the pattern in
 
 ## Where the data lives
 
-Both lists live in **Supabase** — Postgres tables `words` and `phrases`, plus a
-`user_settings` row per account for what Settings manages. One private set of
+All three lists live in **Supabase** — Postgres tables `words`, `phrases` and
+`verb_tables`, plus a `user_settings` row per account for what Settings manages. One private set of
 rows per signed-in account: sign in on any browser or device and the same list is there,
 and a `/word?id=…` link opens anywhere you are signed in.
 
@@ -48,9 +48,9 @@ RLS is no longer the *only* thing standing there. `src/proxy.ts` verifies the se
 the server before any page behind a sign-in is rendered, and `src/app/(workspace)/layout.tsx`
 verifies it again before those pages run — see [Where the check happens](#where-the-check-happens).
 
-The two stores are built from one factory in `src/lib/remoteStore.ts` — nothing else in the
-app talks to Supabase directly, so the lists cannot drift apart in how they load, save, or
-report a failure. It keeps the shape the old `localStorage` store had: the whole list is
+The three list stores are built from one factory in `src/lib/remoteStore.ts` — nothing else
+in the app talks to Supabase directly, so the lists cannot drift apart in how they load, save,
+or report a failure. It keeps the shape the old `localStorage` store had: the whole list is
 fetched once into memory and read synchronously, and a write updates the screen immediately
 and goes to the database in the background. That is why adding a word still feels instant,
 and why the forms never had to learn that saving became a network call.
@@ -95,16 +95,19 @@ too. What changes is only what is suggested for new ones.
 
 ## Pages
 
-- **`/`** — the landing page. A heading and nothing on it yet.
+- **`/`** — the landing page, which is a welcome panel in the logo's yellow and a card for each of
+  the three lists, coloured from the logo's own palette. The logo itself sits as a small mark
+  in the bottom right corner of this page rather than as the backdrop it is everywhere else.
 - **`/vocabulary`** and **`/phrases`** together make up **Glossary**, one section with two
   views. The grouping lives entirely in the nav — see below — so both keep their own
   addresses, neither list knows about the other, and nothing about how they store or
   read their rows changed.
 - **`/vocabulary`** — the **Vocabulary** page, which owns adding, editing, and deleting words.
-  Columns are Word, Definition, Category, Source, and Ref. Search covers words,
-  definitions, and refs; a category dropdown narrows the list to one group, and clicking
-  a category pill on any row does the same thing without leaving the list; a "Needs
-  definition" checkbox narrows to unfinished entries; the Word, Definition and Source
+  Columns are Word, Definition, Category, and Ref. Source lives on the entry's own page
+  rather than in the table, where it cost a column and told you little. Search covers
+  words, definitions, and refs; a category dropdown narrows the list to one group, and
+  clicking a category pill on any row does the same thing without leaving the list; a
+  "Needs definition" checkbox narrows to unfinished entries; the Word and Definition
   headers re-sort. A table on laptops, cards on phones. Rows that need a
   definition are flagged in amber. Date Added is not a column — the list is alphabetical
   by word, and a leading `der`, `die`, or `das` is skipped when comparing, so a word
@@ -112,10 +115,11 @@ too. What changes is only what is suggested for new ones.
   as the tie-breaker, and the date itself is shown on the entry's own page.
 - **`/phrases`** — the phrase list: a separate store that mirrors Vocabulary, for multi-word
   expressions that do not fit a single word. Columns are **Phrase**, **Literal Meaning**,
-  **Usage Example**, and **Ref** — no dates, since phrases are looked up by wording rather
-  than by when they were captured. Search covers all four fields, the Phrase and Literal
+  **Usage Example**, **Category**, and **Ref**. There are no dates, since phrases are looked
+  up by wording rather than by when they were captured. Search covers the four text fields, a
+  category dropdown narrows the list the way it does on Vocabulary, the Phrase and Literal
   Meaning headers each cycle A→Z / Z→A / back to newest-first, and only Phrase is
-  required.
+  required. A phrase also carries a Source, shown on its own page.
 - **`/word?id=…`** and **`/phrase?id=…`** — one item per stable URL, safe to reload or paste
   into a fresh tab. This is where a `[[Name]]` reference lands. Both pages read: they show the
   full untruncated text plus, for a word, its Source badge and dates, and offer **Edit** so a
@@ -133,14 +137,14 @@ too. What changes is only what is suggested for new ones.
   from the tabs, which belong to the two lists. Seven sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
   out), **Password** (set one, or change it — an account created from an emailed link has
-  none until this is used), **Categories** and **Sources** (add, remove, and reorder the
-  lists the word form offers — source order is the order the Source column sorts by, so it
+  none until this is used), **Glossary Categories** and **Sources** (add, remove, and reorder
+  the lists the word and phrase forms offer — source order is the order the Source column sorts by, so it
   is kept rather than alphabetised), **Verb persons** and **Verb tenses** (what a new
   conjugation table is built from), and **Export folder** (see Backup below). All but the
   last are per account; the folder is per browser.
 
   Each section is rolled up to its name and what it is currently set to, with a pencil
-  to open the controls. The two list sections show their name alone: spelling eight
+  to open the controls. The list sections show their name alone: spelling eight
   categories across a row meant to be skimmed would defeat the point of folding it up.
 
 The id is a query parameter rather than a path segment for historical reasons: the app was a
@@ -148,16 +152,20 @@ static export, and a `/vocabulary/[id]` route would have had nothing to pre-rend
 ids only exist in each account's own rows. That constraint is gone now that pages are rendered
 on the server, but the shape is kept, because a query parameter is not worth a migration.
 
-These two pages were at `/vocabulary` and `/word?id=…` until the glossary was renamed. `src/proxy.ts`
-redirects both, keeping the query string, so a link written down before the rename still opens
-the right row. A `[[Name]]` reference needs no such help: it is resolved against the list as it
+These two pages were at `/terms` and `/term?id=…` until the glossary was renamed.
+`src/proxy.ts` redirects both, keeping the query string, so a link written down before the
+rename still opens the right row. A `[[Name]]` reference needs no such help: it is resolved against the list as it
 renders, so it followed the rename on its own.
 
-A thin nav bar at the top of every page carries the Captured logo in the top left corner
-and switches between Glossary and Verbs. There is no Home tab: the logo is the
-way home, and two controls for one destination is one too many. Each tab decides for
-itself which paths light it up, so a `/word?id=…` or `/phrase?id=…` page keeps Glossary
-lit.
+A thin nav bar at the top of every page carries the Captured logo in the top left corner and
+switches between Glossary, Verbs and Backup. There is no Home tab: the logo is the way home,
+and two controls for one destination is one too many. Each tab decides for itself which paths
+light it up, so a `/word?id=…` or `/phrase?id=…` page keeps Glossary lit.
+
+The bar sticks to the top of the window, and each list page's search and filter row sticks
+directly beneath it, so both stay reachable however far down a long list you are. The filter
+row is offset by the nav's measured height rather than a written-down one, because the logo
+steps up at wider widths and the browser's own font size moves it again.
 
 Glossary is the two lists under one tab, and that tab opens a menu rather than going
 anywhere: it stands for two pages, so navigating on click would mean quietly preferring
@@ -171,6 +179,9 @@ is in Settings rather than up here: it is rare and feels destructive, and one cl
 a nav bar is closer than it wants to be. On a narrow screen the bar scrolls sideways
 rather than wrapping into two rows.
 
+Pages are a light grey, with the nav one step darker so it reads as a bar without a rule
+doing the work.
+
 The same logo sits behind the app as a backdrop, shaded 70%: the artwork is laid over the page
 colour at 30% strength, which is the same thing as covering it with 70% of that colour but in
 one layer instead of two. It is fixed rather than scrolling, so a long list slides over a still
@@ -178,6 +189,12 @@ backdrop, and the cards and headers above it stay opaque so every table row keep
 contrast — the logo shows through the page margins. `--logo-shade` in the `PageBackground`
 component in `src/app/layout.tsx` is the only number to change: raise it to fade the logo
 further, lower it to bring the artwork forward.
+
+The home page is the exception: there the same element is restyled by one rule in
+`globals.css` into a small mark in the bottom right corner, in front of the page rather than
+behind it. One element rather than a second copy, because two copies of one image at one
+position would add up in the margins and not over the opaque cards, leaving a visible step
+wherever a card edge crossed the artwork.
 
 Dates are shown short — `01 Sep 2026`, no clock time. Hovering shows the exact timestamp, and
 sorting always uses the full stored value, so two words added on the same day still order
@@ -245,8 +262,11 @@ to keep in step.
 Everything happens on the list pages, in a dialog, without navigating away.
 
 - **Add** — the **Add word** / **Add phrase** button at the top right.
-- **Edit** — select the word or phrase itself in the list. Every editable field lives in that
-  one form, Source included; Date Added is preserved. Renaming onto a name another entry
+- **Edit** — the pencil at the end of the row, or the word or phrase itself in the list.
+  The pencil exists because clicking the name is not an affordance anyone finds: it looks
+  like a link to a page, and beside a delete icon with no companion it reads as though
+  deleting were the only thing a row can do. Every editable field lives in that one form,
+  Source included; Date Added is preserved. Renaming onto a name another entry
   already uses is refused rather than leaving two identical entries.
 - **Delete one** — the trash button at the end of the row, behind a confirmation.
 - **Delete several** — tick the checkboxes (or the select-all box in the header), then use
@@ -275,9 +295,11 @@ searchable along with the other fields on both lists, and it is included in back
 
 ## Backup: export and import
 
-**Export** and **Import** sit at the top right of the Vocabulary and Phrases pages and of the
-single-word and single-phrase pages, so there is always a copy you
-hold yourself and a way out of the app entirely.
+**Export** and **Import** live under **Backup** in the nav bar, so there is always a copy you
+hold yourself and a way out of the app entirely. They used to be a pair of buttons in the
+Vocabulary and Phrases headers, which meant Verbs never had them, and the export they offered
+was scoped to "this page", a question a nav bar cannot ask. Backing up is about the account,
+not the page you happen to be standing on.
 
 By default an export goes wherever the browser puts downloads. **Settings → Export
 folder** lets you pick a folder instead, and both formats then write straight into it
@@ -293,21 +315,21 @@ another folder, or to use the download folder for this one.
 
 - **Export** asks two things: how much, and in what format.
 
-  **How much** — *Everything* (both lists), or *Only this page*, which means Phrases while you
-  are on the phrase list or a single phrase, and Words everywhere else. The file name
-  records the choice:
-  `definition-capture-backup-…`, `-words-…`, or `-phrases-…`.
+  **How much** — *Everything*, or one list named outright: *Words*, *Phrases* or *Verb
+  tables*, each shown with how many it holds. The file name records the choice:
+  `definition-capture-backup-…`, `-words-…`, `-phrases-…`, or `-verbs-…`.
 
   **What format** — either one covers whatever you chose above, in a single file:
 
   | Format | What you get |
   | --- | --- |
-  | **Excel workbook** (`.xlsx`) | One sheet per exported list — Words and Phrases when you export everything — with bold headers and sensible column widths. For reading, sorting, or printing outside the app. |
+  | **Excel workbook** (`.xlsx`) | One sheet per exported list: Words, Phrases and Verb tables when you export everything, with bold headers and sensible column widths. A conjugation table is flattened to one row per person per tense, since a sheet is a flat list and a table is a grid. For reading, sorting, or printing outside the app. |
   | **JSON backup** (`.json`) | `{ format, version, exportedAt, words, phrases, verbTables, settings }` — plain, readable, and **the only format Import can read back in**. Each list is written through its own codec, so the file format is a declared shape rather than whatever the app happens to hold in memory. |
 
   The button is disabled while there is nothing saved. The workbook is built in the browser by
   [`write-excel-file`](https://www.npmjs.com/package/write-excel-file), the app's one runtime
-  dependency beyond Next and React.
+  dependency beyond Next, React and the Supabase clients. It is imported on demand rather
+  than bundled, so it costs nothing until someone asks for a workbook.
 - **Import** reads a backup back in. It first shows you what is in the file — how many items
   are new, how many you already have, and how many rows it could not read — then asks what to
   do:
@@ -318,17 +340,19 @@ another folder, or to use the download folder for this one.
   | Add new and update matching | The backup overwrites what you have. |
   | Replace everything with this backup | What is saved now is deleted first — behind a second confirm. |
 
-Words match on the word, phrases on the phrase, both case-insensitively — the same rule the add
-forms use. Imported entries keep their original **Date Added**, which is the point of a backup,
+Words match on the word, phrases on the phrase, verb tables on the verb, all
+case-insensitively — the same rule the add forms use. Imported entries keep their original **Date Added**, which is the point of a backup,
 and IDs that would collide are quietly re-issued so nothing is overwritten by accident.
 
-Older backups still work: a version 1 file (words only) imports fine, as does a bare array of
-entries. **Replace never wipes a list the file carries nothing for** — restoring a words-only
-export leaves your phrases alone, and a phrases-only export leaves your words alone. The
-confirmation spells out, per list, what will be deleted and what will be left as it is.
-Anything unreadable is counted and reported rather than silently dropped.
+Older backups still work, and that is tested rather than hoped for: a version 1 file (words
+only) imports fine, as does a bare array of entries, and so does anything written before the
+glossary was renamed, since those files call the list `entries` and the field `term` and the
+reader accepts either spelling. **Replace never wipes a list the file carries nothing for** —
+restoring a words-only export leaves your phrases and verb tables alone. The confirmation
+spells out, per list, what will be deleted and what will be left as it is. Anything unreadable
+is counted and reported rather than silently dropped.
 
-## Handy behaviors
+## Handy behaviours
 
 - **Paste-to-split.** Pasting `word: definition` or `word - definition` into the Word field
   splits it across both fields. It only fills Definition when that field is still empty, and
@@ -339,7 +363,8 @@ Anything unreadable is counted and reported rather than silently dropped.
   refuses a second, and `[[Name]]` links, the duplicate check itself, and import matching
   all resolve a name to exactly one entry. Phrases work the same way.
 - **Tabs catch up when you look at them.** Switching to another tab, or back to the window,
-  re-reads both lists from the database, so a word added elsewhere is there when you look.
+  re-reads whichever lists the page you are on is showing, so a word added elsewhere is there
+  when you look. Only those: a list nobody is looking at has nothing on screen to be stale.
   It is not live sync — a second tab sitting visible next to the first will not update until
   it is focused. The `localStorage` version got true cross-tab updates free from the
   `storage` event; a database has no equivalent, and Supabase Realtime would mean enabling
@@ -347,7 +372,7 @@ Anything unreadable is counted and reported rather than silently dropped.
 
 ## Setting up Supabase
 
-One project holds both tables. From a clean checkout:
+One project holds every table. From a clean checkout:
 
 ```bash
 npx supabase login                              # opens a browser; needs a real terminal
@@ -406,7 +431,9 @@ weaker implicit flow, which returns tokens in a URL fragment.
 A link that has expired or already been used comes back with an error in the URL rather
 than a session. `src/lib/authLinkError.ts` reads it before anything else can clear it and
 the sign-in screen says so, because the alternative — an unexplained form — invites
-asking for another link, and there are not many to spare.
+asking for another link, and there are not many to spare. What it says is its own
+sentence, chosen by error code from a closed list: repeating back whatever the URL
+carried would have let any link make this app say anything in its own voice.
 
 A second device does not have to wait for an email either: sign in with the same email
 and password anywhere. **Settings → Password** is where a password is set or changed, and
@@ -448,10 +475,10 @@ files with no process behind them, so there was nowhere to ask whether a visitor
 in except the browser, and a check the browser makes is a check the browser can be told to
 skip. Verifying the session on the server means having a server.
 
-So `output: "export"`, the `/definition-capture` basePath, and the `GITHUB_PAGES` flag are
-all gone from `next.config.ts`, and `.github/workflows/deploy.yml` is disabled — its push
-trigger removed, the file kept as a starting point. The committed `out/` directory is the
-last static build and is no longer produced by anything.
+So `output: "export"`, the `/definition-capture` basePath and the `GITHUB_PAGES` flag are all
+gone from `next.config.ts`, the Pages workflow is gone from `.github/`, and the committed
+`out/` directory, which held the last static build, has been deleted. Nothing in the tree is
+designed around the absence of a server any more.
 
 The next host needs to run Node, so that `src/proxy.ts` and the server components actually
 execute. Whatever it is will need `NEXT_PUBLIC_SUPABASE_URL` and
@@ -484,54 +511,67 @@ src/
       verbs/page.tsx        the conjugation tables, one rolled-up card each
       settings/page.tsx     profile, password, the lists, exports
   components/
+    MainNav.tsx           the nav bar: Glossary, Verbs, Backup, and the account menu
+    NavMenu.tsx           the dropdown the Glossary and Backup tabs open
+    AccountMenu.tsx       display name or address, and a gear to Settings
+    BackupMenu.tsx        Export and Import, loading their dialogs on demand
+    backup/
+      ExportDialog.tsx    what to export and in which format
+      ImportDialog.tsx    what a file holds, what restoring it would do, and doing it
+      parts.tsx           the pieces both dialogs share
     AddWordDialog.tsx     add-word flow, including the duplicate prompt
     AddPhraseDialog.tsx   add-phrase flow, including the duplicate prompt
     EditWordDialog.tsx    edit-word flow, including the rename clash
     EditPhraseDialog.tsx  edit-phrase flow
-    DeleteControls.tsx    checkboxes, selection bar, and the delete confirmation
-    BackupButtons.tsx     export / import buttons and their dialogs
     EntryForm.tsx         shared add/edit form for words
     PhraseForm.tsx        shared add/edit form for phrases
     RefField.tsx          the Ref input, with its name suggestions
-    MainNav.tsx           the nav bar, including the Glossary dropdown
-    AccountMenu.tsx       display name or address, and a gear to Settings
+    RefText.tsx           renders a parsed Ref value
+    DeleteControls.tsx    checkboxes, selection bar, and the delete confirmation
+    RowEditButton.tsx     the pencil at the end of a row, beside the bin
+    StickyFilters.tsx     the classes that pin a page's filter row under the nav
+    EmptyCell.tsx         the dash a blank cell shows instead of nothing
     ImportLocalPrompt.tsx offers a pre-account localStorage list to the account
     StoreErrorBanner.tsx  says so when a read or a save did not reach the database
     NameListEditor.tsx    add / remove / reorder a list of names in Settings
     VerbTableControl.tsx  links to a verb's table, or to making one, from Edit word
     VerbTableCard.tsx     one conjugation table, rolled up until opened
+    TenseChoice.tsx       picking a tense, or naming a new one
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
-    RefText.tsx           renders a parsed Ref value
   lib/
-    remoteStore.ts        the Supabase factory both stores are built on
+    remoteStore.ts        the Supabase factory all three list stores are built on
     supabaseClient.ts     the browser client, session kept in cookies
     supabaseServer.ts     the server client, and the verified "who is asking?"
     session.ts            who is signed in, plus sign-in, sign-up, and sign-out
     authLinkError.ts      why a sign-in link did not sign you in
     legacyLocal.ts        read-only access to the pre-account localStorage keys
     constants.ts          what a new account's lists start out as
-    types.ts              Entry and Phrase shapes plus validators
-    storage.ts            the word store
-    phraseStorage.ts      the phrase store
-    verbTables.ts         the conjugation tables
-    useVerbTables.ts      React binding for the conjugation tables
-    backup.ts             one backup file covering both lists
+    types.ts              Entry, Phrase and VerbTable shapes plus validators
+    storage.ts            the word store, and how a word is written to a file
+    phraseStorage.ts      the phrase store, and the same for a phrase
+    verbTables.ts         the conjugation tables, and the same for a table
+    backup.ts             one backup file covering all three lists
     backupFile.ts         download plumbing: builds the .xlsx and .json files
+    planImport.ts         what merging a backup into a list means, as a pure function
     settings.ts           the account's display name and editable lists
-    useSettings.ts        React binding for the settings row
     exportFolder.ts       the chosen export folder, held in IndexedDB
-    useExportFolder.ts    React binding for the export folder
     useWords.ts           React binding for the word store
     usePhrases.ts         React binding for the phrase store
+    useVerbTables.ts      React binding for the conjugation tables
+    useSettings.ts        React binding for the settings row
     useSession.ts         React binding for the session store
+    useExportFolder.ts    React binding for the export folder
+    useListPage.ts        the bookkeeping every list page does around its rows
     useListSelection.ts   row selection shared by both list pages
+    useWideScreen.ts      table or cards, decided once rather than per row
+    categoryOptions.ts    the categories a list's filter offers
     refSuggestions.ts     the names a Ref field offers to complete
+    foldName.ts           the one way a name is folded before it is compared
     sortName.ts           the comparison that skips a leading der / die / das
     parseWord.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting
-    assetPath.ts          builds a public/ URL; a no-op without a base path
   types/
     file-system-access.d.ts  the folder picker, which lib.dom does not describe
 assets/
@@ -547,15 +587,18 @@ supabase/
 
 `assets/` holds source art that is not served; `public/` holds what the browser downloads, so
 the logo is kept there at the size it is actually shown rather than at full resolution. The nav
-uses a plain `<img>` whose URL goes through `asset()` — a no-op now that there is no base path,
-kept as the one place to reinstate one if the app is ever served from a sub-path again.
+loads it through `next/image`, with width and height given so the bar does not jump while the
+file arrives.
 
 Built with Next.js (App Router), TypeScript, Tailwind CSS, and Supabase.
 
 ## What it looks like
 
-![The word list with the Captured logo in the nav bar, Export, Import and Add word at the top right, and the shaded logo backdrop showing around the empty-list card](assets/app-screenshot.jpg)
+![An empty glossary: the Captured logo in the nav bar, Glossary and Phrases tabs, Export, Import and Add buttons at the top right, and the shaded logo backdrop showing around the empty-list card](assets/app-screenshot.jpg)
 
-An empty list on first run — the state the app opens in before anything is saved. The
-screenshot predates the rename, so the nav in it still reads "Glossary" and the column
-headings are still in capitals.
+An empty list on first run — the state the app opens in before anything is saved.
+
+The picture is older than the app around it, and it is kept for what it shows rather than
+for being current: Glossary and Phrases were still two top-level tabs, Export and Import were
+still buttons on the page, and the list was still called Terms. There is no Verbs tab, no
+Backup menu and no account menu in it.

@@ -14,7 +14,8 @@ owner.
 | UI | React 19.2.8, TypeScript 5, Tailwind CSS 4 |
 | Data and auth | Supabase — Postgres with row level security, and Supabase Auth |
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
-| Exports | `write-excel-file` for the .xlsx backup |
+| Exports | `write-excel-file` for the .xlsx backup, imported on demand |
+| Tests | Vitest 3, in the node environment; `npx vitest run` |
 | Tooling | Supabase CLI 2.117, ESLint 9 |
 
 `npm run dev` serves on **port 3000**, pinned in `package.json`. The port is not
@@ -93,9 +94,27 @@ including `with check` on insert and update. A new table gets the same treatment
 in the same migration that creates it.
 
 **`src/lib/remoteStore.ts` is the only thing that talks to Supabase for list
-data.** Both stores are built from that one factory, so they cannot drift apart in
-how they load, save, or report failure. Writes are optimistic: the screen updates
-first, and a failure reloads the list and puts a message in the banner.
+data.** All three list stores are built from that one factory, so they cannot drift
+apart in how they load, save, or report failure. `src/lib/settings.ts` deliberately
+does not use it, being one row with no id and no order, but it shares the functions
+where drifting would be a bug. Writes are optimistic: the screen updates first, and
+a failure reloads the list and puts a message in the banner.
+
+**A backup file has a declared shape, and the old spellings still have to
+read.** Each list has a `toWire` beside its `parse`, and `buildBackup` maps
+through them, so renaming a field on a domain type is a compile error rather
+than a silent change to the format everyone's saved files use. Two things that
+look like leftovers are not: `parseBackup` accepting `entries` as well as
+`words`, and `parseEntry` accepting `term` as well as `word`. Every backup
+written before version 6, and every pre-account `localStorage` list, spells them
+the old way. There is a test that fails if either is dropped.
+
+**The glossary is called Vocabulary and its items are words.** The label and the
+identifiers behind it do not all agree, deliberately. The table is `words` with a
+`word` column and the routes are `/vocabulary` and `/word?id=`, but `/terms` and
+`/term?id=` still redirect to them, `parseEntry` still reads a `term` field, and
+the `Entry` type keeps the name it had two renames ago, from when the table was
+`entries`. Check what a name actually reaches before renaming it.
 
 **Migrations are imperative and hand-written.** Create one with
 `npx supabase migration new <name>` — never invent a filename — and apply with
@@ -108,7 +127,12 @@ Comments explain *why*, not *what*, and are written in full sentences. The
 existing code is dense with them; match that. A comment that records a decision
 and the alternative it rejected is worth keeping.
 
-Check work with `npx tsc --noEmit` and `npx eslint src/`, and `npm run build` when
-routing or rendering changed — the build's route table shows which routes are
-static and which are server-rendered, which is how you confirm a protected page is
-still dynamic.
+Check work with `npx tsc --noEmit`, `npx eslint src/` and `npx vitest run`, and
+`npm run build` when routing or rendering changed: the build's route table shows
+which routes are static and which are server-rendered, which is how you confirm a
+protected page is still dynamic.
+
+A test for anything that can lose data is worth breaking on purpose before you
+trust it. The suites around importing and around `remoteStore`'s write path exist
+because the behaviour they cover fails silently, and each was checked by mutating
+the source and confirming the tests noticed.
