@@ -31,7 +31,10 @@ type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
 
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
-  { key: "term", label: "Term", className: "w-[22%]" },
+  // "Word" in the heading, `term` as the key. The key is the sort field and
+  // the property on `Entry`, which the database and every backup file also
+  // spell `term`, so the heading is free to change and the key is not.
+  { key: "term", label: "Word", className: "w-[22%]" },
   { key: "definition", label: "Definition" },
   { key: null, label: "Category", className: "w-[14%]" },
   { key: null, label: "Ref", className: "w-[20%]" },
@@ -156,13 +159,15 @@ export default function TermsPage() {
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Terms</h1>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+              Vocabulary
+            </h1>
             <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
               {!loaded
-                ? "Loading your terms…"
+                ? "Loading your vocabulary…"
                 : entries.length === 0
-                  ? "Your personal term list"
-                  : `${entries.length} ${entries.length === 1 ? "term" : "terms"}${
+                  ? "Your personal word list"
+                  : `${entries.length} ${entries.length === 1 ? "word" : "words"}${
                       missingCount > 0
                         ? ` · ${missingCount} still ${
                             missingCount === 1 ? "needs" : "need"
