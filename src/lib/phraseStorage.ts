@@ -10,6 +10,7 @@
 import { foldName } from "@/lib/foldName";
 import { planImport } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
+import type { Source } from "@/lib/constants";
 import {
   readCategories,
   readSource,
@@ -24,6 +25,34 @@ import {
  * Turns unknown JSON into a Phrase, or null if it is unusable. This reads the
  * camelCase shape a backup file uses; database rows go through `fromRow`.
  */
+/**
+ * A phrase as a backup file spells it. Declared for the reason `WireWord` is:
+ * so that renaming a field on `Phrase` is a compile error here instead of a
+ * silent change to the file format.
+ */
+export type WirePhrase = {
+  id: string;
+  phrase: string;
+  literalMeaning: string;
+  usageExample: string;
+  categories: string[];
+  source: Source;
+  ref: string;
+};
+
+/** The counterpart to `parsePhrase`: one phrase on its way into a file. */
+export function toWirePhrase(phrase: Phrase): WirePhrase {
+  return {
+    id: phrase.id,
+    phrase: phrase.phrase,
+    literalMeaning: phrase.literalMeaning,
+    usageExample: phrase.usageExample,
+    categories: phrase.categories,
+    source: phrase.source,
+    ref: phrase.ref,
+  };
+}
+
 export function parsePhrase(raw: unknown, allowMissingId = false): Phrase | null {
   if (typeof raw !== "object" || raw === null) return null;
   const value = raw as Record<string, unknown>;

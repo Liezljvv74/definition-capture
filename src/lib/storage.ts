@@ -13,6 +13,7 @@
 import { foldName } from "@/lib/foldName";
 import { planImport } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
+import type { Source } from "@/lib/constants";
 import {
   needsDefinition,
   readCategories,
@@ -55,6 +56,47 @@ export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
     dateAdded: readString(value.dateAdded) || new Date().toISOString(),
     dateUpdated: typeof value.dateUpdated === "string" ? value.dateUpdated : null,
     needsDefinition: needsDefinition(definition),
+  };
+}
+
+/**
+ * A word as a backup file spells it.
+ *
+ * Declared rather than inferred, and this is the point of the type: until it
+ * existed, `buildBackup` handed `Entry` objects straight to `JSON.stringify`,
+ * so the file's format was whatever the domain type happened to be that week.
+ * Renaming `Entry.term` to `Entry.word` silently changed every future export
+ * and the reader had to be patched by hand afterwards to keep old files
+ * working. With the shape written down, a domain rename is a compile error
+ * here and a decision rather than an accident.
+ *
+ * `needsDefinition` is deliberately absent. It is derived from `definition`
+ * and `parseEntry` recomputes it on the way back in, never trusting the file,
+ * so writing it only made every backup larger and invited someone to believe
+ * it.
+ */
+export type WireWord = {
+  id: string;
+  word: string;
+  definition: string;
+  ref: string;
+  categories: string[];
+  source: Source;
+  dateAdded: string;
+  dateUpdated: string | null;
+};
+
+/** The counterpart to `parseEntry`: one word on its way into a file. */
+export function toWireWord(entry: Entry): WireWord {
+  return {
+    id: entry.id,
+    word: entry.word,
+    definition: entry.definition,
+    ref: entry.ref,
+    categories: entry.categories,
+    source: entry.source,
+    dateAdded: entry.dateAdded,
+    dateUpdated: entry.dateUpdated,
   };
 }
 

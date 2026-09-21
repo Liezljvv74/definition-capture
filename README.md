@@ -303,7 +303,7 @@ another folder, or to use the download folder for this one.
   | Format | What you get |
   | --- | --- |
   | **Excel workbook** (`.xlsx`) | One sheet per exported list — Words and Phrases when you export everything — with bold headers and sensible column widths. For reading, sorting, or printing outside the app. |
-  | **JSON backup** (`.json`) | `{ format, version, exportedAt, words, phrases }` — plain, readable, and **the only format Import can read back in**. |
+  | **JSON backup** (`.json`) | `{ format, version, exportedAt, words, phrases, verbTables, settings }` — plain, readable, and **the only format Import can read back in**. Each list is written through its own codec, so the file format is a declared shape rather than whatever the app happens to hold in memory. |
 
   The button is disabled while there is nothing saved. The workbook is built in the browser by
   [`write-excel-file`](https://www.npmjs.com/package/write-excel-file), the app's one runtime

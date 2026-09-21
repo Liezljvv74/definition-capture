@@ -52,7 +52,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     all: entries.length + phrases.length + tables.length,
     words: entries.length,
     phrases: phrases.length,
-    verbs: tables.length,
+    verbTables: tables.length,
   };
 
   async function runExport(format: ExportFormat) {
@@ -207,10 +207,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               />
               <ScopeChoice
                 label="Verb tables"
-                detail={`${counts.verbs} ${counts.verbs === 1 ? "table" : "tables"}`}
-                checked={scope === "verbs"}
+                detail={`${counts.verbTables} ${counts.verbTables === 1 ? "table" : "tables"}`}
+                checked={scope === "verbTables"}
                 disabled={busy}
-                onSelect={() => setScope("verbs")}
+                onSelect={() => setScope("verbTables")}
               />
             </div>
           </fieldset>

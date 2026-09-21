@@ -121,6 +121,37 @@ export function deleteVerbTable(id: string): void {
  * depends on — one conjugation per column, no more and no fewer — holds for a
  * hand-edited backup exactly as it does for a row out of the database.
  */
+/**
+ * A conjugation table as a backup file spells it. Declared for the reason
+ * `WireWord` is.
+ *
+ * The rows are copied one by one rather than passed through, so that a field
+ * added to `VerbRow` for the screen's benefit does not silently start
+ * appearing in every reader's backups.
+ */
+export type WireVerbTable = {
+  id: string;
+  verb: string;
+  tenses: string[];
+  rows: { person: string; conjugations: string[]; notes: string }[];
+  createdAt: string;
+};
+
+/** The counterpart to `parseVerbTable`: one table on its way into a file. */
+export function toWireVerbTable(table: VerbTable): WireVerbTable {
+  return {
+    id: table.id,
+    verb: table.verb,
+    tenses: table.tenses,
+    rows: table.rows.map((row) => ({
+      person: row.person,
+      conjugations: row.conjugations,
+      notes: row.notes,
+    })),
+    createdAt: table.createdAt,
+  };
+}
+
 export function parseVerbTable(raw: unknown, allowMissingId = false): VerbTable | null {
   if (typeof raw !== "object" || raw === null) return null;
   const value = raw as Record<string, unknown>;

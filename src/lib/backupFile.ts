@@ -15,11 +15,26 @@
 // is needed only when someone actually asks for a workbook.
 import type { Row, Sheet } from "write-excel-file/browser";
 
-import { buildBackup, type Backup, type BackupScope } from "@/lib/backup";
+import { buildBackup, type Backup, type BackupList, type BackupScope } from "@/lib/backup";
 import { saveToExportFolder } from "@/lib/exportFolder";
 import { formatDate } from "@/lib/format";
 
 export type ExportFormat = "json" | "xlsx";
+
+/**
+ * What each scope is called in a file name.
+ *
+ * A `Record` rather than the scope itself, so the list keys stay the ones the
+ * file format uses while the names people read stay readable: `verbTables` is
+ * the key inside the JSON and `-verbs-` is what belongs in a file name. A new
+ * scope with no name here is a build error.
+ */
+const SCOPE_FILE_WORD: Record<BackupScope, string> = {
+  all: "backup",
+  words: "words",
+  phrases: "phrases",
+  verbTables: "verbs",
+};
 
 /** The file name says what is inside, so scoped exports are told apart later. */
 export function backupFileName(
@@ -32,8 +47,7 @@ export function backupFileName(
     String(date.getMonth() + 1).padStart(2, "0"),
     String(date.getDate()).padStart(2, "0"),
   ].join("-");
-  const what = scope === "all" ? "backup" : scope;
-  return `definition-capture-${what}-${stamp}.${format}`;
+  return `definition-capture-${SCOPE_FILE_WORD[scope]}-${stamp}.${format}`;
 }
 
 /** Hands a finished blob to the browser as a download. */
@@ -86,13 +100,20 @@ export async function downloadJsonBackup(
   return { fileName, folder, count: countOf(backup) };
 }
 
-/** How many items the file carries, across every list in it. */
+/**
+ * How many items the file carries, across every list in it.
+ *
+ * Keyed on `BackupList` rather than adding three lengths by hand, so a list
+ * left out is a build error instead of a success screen quietly under-counting
+ * what it just wrote.
+ */
 function countOf(backup: Backup): number {
-  return (
-    backup.words.length +
-    backup.phrases.length +
-    backup.verbTables.length
-  );
+  const lists: Record<BackupList, readonly unknown[]> = {
+    words: backup.words,
+    phrases: backup.phrases,
+    verbTables: backup.verbTables,
+  };
+  return Object.values(lists).reduce((total, list) => total + list.length, 0);
 }
 
 function headerRow(labels: string[]): Row {
@@ -187,16 +208,15 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
   };
 
   // A workbook must have at least one sheet, so a scoped export drops the
-  // others. Listed by what is included rather than excluded, for the reason
+  // others. A `Record` rather than an array literal: this is the exact spot
+  // the header of `backup.ts` warns about, where a third list was added and
+  // this module was not widened, and an array would still compile with one
+  // missing. Listed by what is included rather than excluded, for the reason
   // `buildBackup` gives.
-  const all: [Exclude<BackupScope, "all">, Sheet<Blob>][] = [
-    ["words", words],
-    ["phrases", phrases],
-    ["verbs", verbs],
-  ];
-  const sheets = all
-    .filter(([list]) => scope === "all" || scope === list)
-    .map(([, sheet]) => sheet);
+  const all: Record<BackupList, Sheet<Blob>> = { words, phrases, verbTables: verbs };
+  const sheets = (Object.keys(all) as BackupList[])
+    .filter((list) => scope === "all" || scope === list)
+    .map((list) => all[list]);
 
   const blob = await writeExcelFile(sheets).toBlob();
   const fileName = backupFileName("xlsx", scope);

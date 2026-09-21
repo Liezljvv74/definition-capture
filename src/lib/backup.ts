@@ -9,14 +9,26 @@
  * list means adding it here.
  */
 
-import { getPhrases, importPhrases, parsePhraseList } from "@/lib/phraseStorage";
+import {
+  getPhrases,
+  importPhrases,
+  parsePhraseList,
+  toWirePhrase,
+  type WirePhrase,
+} from "@/lib/phraseStorage";
 import {
   currentSettings,
   parseSettings,
   saveSettings,
   type Settings,
 } from "@/lib/settings";
-import { getEntries, importEntries, parseEntryList } from "@/lib/storage";
+import {
+  getEntries,
+  importEntries,
+  parseEntryList,
+  toWireWord,
+  type WireWord,
+} from "@/lib/storage";
 import {
   NO_IMPORT,
   type Entry,
@@ -29,6 +41,8 @@ import {
   getVerbTables,
   importVerbTables,
   parseVerbTableList,
+  toWireVerbTable,
+  type WireVerbTable,
 } from "@/lib/verbTables";
 
 export const BACKUP_FORMAT = "definition-capture-backup";
@@ -45,18 +59,46 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * list key and `parseEntry` reads either name field, so a file from before
  * the rename restores exactly as it used to.
  *
+ * 7 is the first version written through an explicit codec rather than by
+ * handing the domain objects to `JSON.stringify`. The only visible difference
+ * is that a word no longer carries `needsDefinition`, which was derived from
+ * its definition and recomputed on the way back in regardless. A version 6
+ * file and a version 7 file each read as the other.
+ *
  * A missing list reads as an absent one, not an empty one, which is what
  * keeps Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 6;
+export const BACKUP_VERSION = 7;
+
+/**
+ * The lists a backup carries, named once.
+ *
+ * Everything that has to cover "every list" is keyed on this, so adding a
+ * fourth is a compile error in each of those places rather than a list that
+ * quietly goes unexported, unread or uncounted. That is not hypothetical: the
+ * note at the top of this file records conjugation tables being added as a
+ * third list and this module never being widened, so Export left them out and
+ * a Replace import then deleted them.
+ */
+export type BackupList = "words" | "phrases" | "verbTables";
 
 export type Backup = {
   format: typeof BACKUP_FORMAT;
   version: number;
   exportedAt: string;
-  words: Entry[];
-  phrases: Phrase[];
-  verbTables: VerbTable[];
+  /**
+   * The wire shapes, not the domain ones. `buildBackup` maps through each
+   * store's `toWire`, so what lands in the file is written down in a type
+   * somebody has to change on purpose.
+   *
+   * `settings` below is still written straight out, which is a smaller risk
+   * for the one reason worth recording: its fields are its own vocabulary
+   * rather than derived from anything, and `parseSettings` already reads that
+   * shape explicitly.
+   */
+  words: WireWord[];
+  phrases: WirePhrase[];
+  verbTables: WireVerbTable[];
   /**
    * Categories, sources, persons, tenses and the display name. Not a list, so
    * it has no scope of its own: a full backup carries it and a scoped export
@@ -67,7 +109,7 @@ export type Backup = {
 };
 
 /** Which lists an export should carry. */
-export type BackupScope = "all" | "words" | "phrases" | "verbs";
+export type BackupScope = "all" | BackupList;
 
 export function buildBackup(scope: BackupScope = "all"): Backup {
   // Asking what is included, rather than what is excluded: a chain of "not
@@ -78,9 +120,9 @@ export function buildBackup(scope: BackupScope = "all"): Backup {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    words: wants("words") ? getEntries() : [],
-    phrases: wants("phrases") ? getPhrases() : [],
-    verbTables: wants("verbs") ? getVerbTables() : [],
+    words: wants("words") ? getEntries().map(toWireWord) : [],
+    phrases: wants("phrases") ? getPhrases().map(toWirePhrase) : [],
+    verbTables: wants("verbTables") ? getVerbTables().map(toWireVerbTable) : [],
     settings: scope === "all" ? currentSettings() : null,
   };
 }
@@ -151,14 +193,6 @@ export function parseBackup(text: string): BackupParse {
   const phraseList = asArray(rawPhrases);
   const verbTableList = asArray(rawVerbTables);
 
-  if (!entryList && !phraseList && !verbTableList) {
-    return {
-      ok: false,
-      error:
-        "That file does not look like a Definition Capture backup: it has no list of words.",
-    };
-  }
-
   const parsedEntries = entryList
     ? parseEntryList(entryList)
     : { entries: [], unreadable: 0 };
@@ -169,11 +203,42 @@ export function parseBackup(text: string): BackupParse {
     ? parseVerbTableList(verbTableList)
     : { tables: [], unreadable: 0 };
 
-  if (
-    parsedEntries.entries.length === 0 &&
-    parsedPhrases.phrases.length === 0 &&
-    parsedVerbTables.tables.length === 0
-  ) {
+  /**
+   * What each list turned out to be, one row per list.
+   *
+   * The two questions below used to be written out by hand — three `&&`s and
+   * three more — so a fourth list would have compiled while being left out of
+   * both. Keyed on `BackupList`, leaving one out is a build error.
+   */
+  const lists: Record<BackupList, { present: boolean; readable: number; unreadable: number }> =
+    {
+      words: {
+        present: entryList !== null,
+        readable: parsedEntries.entries.length,
+        unreadable: parsedEntries.unreadable,
+      },
+      phrases: {
+        present: phraseList !== null,
+        readable: parsedPhrases.phrases.length,
+        unreadable: parsedPhrases.unreadable,
+      },
+      verbTables: {
+        present: verbTableList !== null,
+        readable: parsedVerbTables.tables.length,
+        unreadable: parsedVerbTables.unreadable,
+      },
+    };
+  const found = Object.values(lists);
+
+  if (!found.some((list) => list.present)) {
+    return {
+      ok: false,
+      error:
+        "That file does not look like a Definition Capture backup: it has no list of words.",
+    };
+  }
+
+  if (!found.some((list) => list.readable > 0)) {
     return {
       ok: false,
       error: "That backup contains nothing readable.",
@@ -186,8 +251,7 @@ export function parseBackup(text: string): BackupParse {
     phrases: parsedPhrases.phrases,
     verbTables: parsedVerbTables.tables,
     settings: parseSettings(rawSettings),
-    unreadable:
-      parsedEntries.unreadable + parsedPhrases.unreadable + parsedVerbTables.unreadable,
+    unreadable: found.reduce((total, list) => total + list.unreadable, 0),
   };
 }
 
@@ -198,9 +262,6 @@ export type ImportResult = {
   /** Whether the file's settings were written over the reader's own. */
   settingsRestored: boolean;
 };
-
-/** The lists a backup carries, named as `BackupContents` names them. */
-export type BackupList = "words" | "phrases" | "verbTables";
 
 /**
  * True when Replace would wipe a list the file carries nothing for.
