@@ -14,6 +14,7 @@ import {
 } from "@/components/DeleteControls";
 import { EditGrammarRuleDialog } from "@/components/EditGrammarRuleDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { foldName } from "@/lib/foldName";
 import { deleteGrammarRules } from "@/lib/grammarRules";
@@ -166,7 +167,7 @@ function GrammarList() {
           <EmptyGrammar onAdd={() => setIsAdding(true)} />
         ) : (
           <>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className={`${STICKY_FILTERS} mb-3 flex flex-wrap items-center gap-2`}>
               <div className="w-full sm:w-1/2 lg:w-1/4 lg:min-w-52">
                 <label htmlFor="grammar-search" className="sr-only">
                   Search grammar rules

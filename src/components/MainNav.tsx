@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 import { AccountMenu } from "@/components/AccountMenu";
 import { BackupMenu } from "@/components/BackupMenu";
@@ -57,9 +58,36 @@ const LINKS = [
  */
 export function MainNav() {
   const pathname = usePathname();
+  const bar = useRef<HTMLElement>(null);
+
+  /**
+   * Publishes the bar's real height as `--nav-height`, for the filter rows
+   * that stick directly underneath it.
+   *
+   * Measured rather than written down, because the height is not one number:
+   * the logo steps up at the `sm` breakpoint, and a browser's own font size
+   * moves it again. A hardcoded offset would be right at one width and leave
+   * either a gap or an overlap at every other.
+   */
+  useEffect(() => {
+    const element = bar.current;
+    if (!element) return;
+
+    const publish = () =>
+      document.documentElement.style.setProperty(
+        "--nav-height",
+        `${element.offsetHeight}px`,
+      );
+
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <nav
+      ref={bar}
       aria-label="Main"
       /*
        * Stuck to the top, so the tabs and the Backup menu stay reachable from
