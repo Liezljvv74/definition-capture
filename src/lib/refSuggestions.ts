@@ -13,7 +13,7 @@ import type { Entry, Phrase } from "@/lib/types";
 
 export type RefSuggestion = {
   name: string;
-  kind: "term" | "phrase";
+  kind: "word" | "phrase";
 };
 
 /** The stretch of the field a completion would replace. */
@@ -42,7 +42,7 @@ const URL_LIKE = [
   /^[a-z0-9-]+(?:\.[a-z0-9-]+)+\//i,
 ];
 
-/** `/term?id=…` and `#anchor` are the other two Ref forms; neither is a name. */
+/** `/word?id=…` and `#anchor` are the other two Ref forms; neither is a name. */
 const OTHER_REF_FORMS = /^[/#]/;
 
 /**
@@ -111,7 +111,7 @@ export function suggestRefs(
     byName.set(foldName(phrase.phrase), { name: phrase.phrase, kind: "phrase" });
   }
   for (const entry of entries) {
-    byName.set(foldName(entry.term), { name: entry.term, kind: "term" });
+    byName.set(foldName(entry.word), { name: entry.word, kind: "word" });
   }
 
   const prefix: RefSuggestion[] = [];

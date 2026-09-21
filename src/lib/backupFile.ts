@@ -89,7 +89,7 @@ export async function downloadJsonBackup(
 /** How many items the file carries, across every list in it. */
 function countOf(backup: Backup): number {
   return (
-    backup.entries.length +
+    backup.words.length +
     backup.phrases.length +
     backup.verbTables.length
   );
@@ -104,7 +104,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
   const { default: writeExcelFile } = await import("write-excel-file/browser");
   const backup = buildBackup(scope);
 
-  const terms: Sheet<Blob> = {
+  const words: Sheet<Blob> = {
     sheet: "Words",
     columns: [
       { width: 26 },
@@ -116,8 +116,8 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
     ],
     data: [
       headerRow(["Word", "Definition", "Category", "Source", "Ref", "Date added"]),
-      ...backup.entries.map<Row>((entry) => [
-        { value: entry.term, type: String },
+      ...backup.words.map<Row>((entry) => [
+        { value: entry.word, type: String },
         { value: entry.definition, type: String, wrap: true },
         // A spreadsheet cell cannot hold a list, so the three names are
         // joined the way a reader would write them.
@@ -190,7 +190,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
   // others. Listed by what is included rather than excluded, for the reason
   // `buildBackup` gives.
   const all: [Exclude<BackupScope, "all">, Sheet<Blob>][] = [
-    ["terms", terms],
+    ["words", words],
     ["phrases", phrases],
     ["verbs", verbs],
   ];

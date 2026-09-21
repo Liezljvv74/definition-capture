@@ -4,7 +4,7 @@ import { useId, useMemo, useState, type ClipboardEvent, type FormEvent } from "r
 
 import { RefField } from "@/components/RefField";
 import { MAX_CATEGORIES } from "@/lib/constants";
-import { splitTermAndDefinition } from "@/lib/parseTerm";
+import { splitWordAndDefinition } from "@/lib/parseWord";
 import { EMPTY_ENTRY_INPUT, type EntryInput } from "@/lib/types";
 import { VerbTableControl } from "@/components/VerbTableControl";
 import { useSettings } from "@/lib/useSettings";
@@ -46,14 +46,14 @@ export function EntryForm({
    */
   function tryAutoSplit(text: string): boolean {
     if (!autoSplit || value.definition.trim()) return false;
-    const split = splitTermAndDefinition(text);
+    const split = splitWordAndDefinition(text);
     if (!split) return false;
     setValue((current) => ({ ...current, ...split }));
     setDidSplit(true);
     return true;
   }
 
-  function handleTermPaste(event: ClipboardEvent<HTMLInputElement>) {
+  function handleWordPaste(event: ClipboardEvent<HTMLInputElement>) {
     const pasted = event.clipboardData.getData("text");
     const input = event.currentTarget;
     // Only intercept a paste that replaces the whole field, so a paste into the
@@ -99,37 +99,37 @@ export function EntryForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const term = value.term.trim();
-    if (!term) {
+    const word = value.word.trim();
+    if (!word) {
       setError("A word is required.");
       return;
     }
     setError(null);
-    onSubmit({ ...value, term, definition: value.definition.trim() });
+    onSubmit({ ...value, word, definition: value.definition.trim() });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div>
-        <label htmlFor={`${ids}-term`} className="mb-1 block text-sm font-medium">
+        <label htmlFor={`${ids}-word`} className="mb-1 block text-sm font-medium">
           Word <span className="text-red-600 dark:text-red-400">*</span>
         </label>
         <input
-          id={`${ids}-term`}
+          id={`${ids}-word`}
           className="field"
-          value={value.term}
+          value={value.word}
           autoFocus={autoFocus}
           autoComplete="off"
           placeholder="e.g. Idempotent"
-          onPaste={handleTermPaste}
+          onPaste={handleWordPaste}
           onChange={(event) => {
             setDidSplit(false);
-            setValue((current) => ({ ...current, term: event.target.value }));
+            setValue((current) => ({ ...current, word: event.target.value }));
           }}
           onBlur={(event) => tryAutoSplit(event.target.value)}
-          aria-describedby={`${ids}-term-hint`}
+          aria-describedby={`${ids}-word-hint`}
         />
-        <p id={`${ids}-term-hint`} className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        <p id={`${ids}-word-hint`} className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           {autoSplit
             ? didSplit
               ? "Split into Word and Definition. Edit either field if that isn't right."
@@ -226,7 +226,7 @@ export function EntryForm({
             // A term referring to itself is a link back to the page you are
             // already on. Both names are excluded so a rename mid-edit cannot
             // make the old one selectable again.
-            exclude={[initialValue.term, value.term]}
+            exclude={[initialValue.word, value.word]}
           />
         </div>
       </div>

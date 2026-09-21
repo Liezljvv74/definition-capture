@@ -32,7 +32,7 @@ export default function HomePage() {
            */}
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Link
-              href="/terms"
+              href="/vocabulary"
               className="rounded-2xl bg-logo-teal-50 p-5 transition hover:brightness-95"
             >
               <h3 className="text-xl font-semibold text-slate-900">Vocabulary</h3>

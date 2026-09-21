@@ -5,21 +5,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
 import { CategoryBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
-import { EditTermDialog } from "@/components/EditTermDialog";
+import { EditWordDialog } from "@/components/EditWordDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Entry } from "@/lib/types";
-import { useTerms } from "@/lib/useTerms";
+import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
- * Where a `[[Term]]` reference lands, addressed as `/term?id=abc123`.
+ * Where a `[[Term]]` reference lands, addressed as `/word?id=abc123`.
  *
  * The id is a query parameter rather than a path segment. That began as a
- * static-export constraint — there was no server, and `/terms/[id]` had no
+ * static-export constraint — there was no server, and `/vocabulary/[id]` had no
  * ids to pre-render — which no longer applies now that there is one. The URL
  * shape is kept because every `[[Term]]` link ever saved points at it; moving
- * to `/terms/[id]` would mean a redirect for those, and is worth doing only
+ * to `/vocabulary/[id]` would mean a redirect for those, and is worth doing only
  * as a deliberate change rather than as a side effect.
  *
  * This page reads; it does not manage. Adding, editing, and deleting all happen
@@ -44,7 +44,7 @@ function DetailSkeleton() {
 
 function TermDetail() {
   const id = useSearchParams().get("id") ?? "";
-  const { entries, loaded } = useTerms();
+  const { entries, loaded } = useWords();
   const { phrases } = usePhrases();
   const entry = entries.find((candidate) => candidate.id === id);
 
@@ -55,7 +55,7 @@ function TermDetail() {
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link
-            href="/terms"
+            href="/vocabulary"
             className="text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-300"
           >
             ← Back to Vocabulary
@@ -84,7 +84,7 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
     <>
       <article className="card p-5 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{entry.term}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{entry.word}</h1>
           {entry.needsDefinition && <NeedsDefinitionBadge />}
         </div>
 
@@ -156,7 +156,7 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
         </dl>
 
         {/* Editing is offered here so a cross-link that lands on a typo can fix
-            it on the spot. Deleting is not — the term list owns that. */}
+            it on the spot. Deleting is not — the word list owns that. */}
         <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
           <button type="button" className="btn btn-primary" onClick={() => setIsEditing(true)}>
             Edit
@@ -165,10 +165,10 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
       </article>
 
       {isEditing && (
-        <EditTermDialog
+        <EditWordDialog
           entry={entry}
           onClose={() => setIsEditing(false)}
-          onSaved={() => router.push("/terms")}
+          onSaved={() => router.push("/vocabulary")}
         />
       )}
     </>
@@ -187,7 +187,7 @@ function TermNotFound() {
         link may point to a word in a different account, since your list follows the account you
         are signed in to.
       </p>
-      <Link href="/terms" className="btn btn-primary mt-5">
+      <Link href="/vocabulary" className="btn btn-primary mt-5">
         Back to Vocabulary
       </Link>
     </div>

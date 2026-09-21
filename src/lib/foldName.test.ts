@@ -56,7 +56,7 @@ describe("foldName", () => {
   });
 
   it("folds an empty or whitespace-only name to the empty string", () => {
-    // Callers lean on this: `findByTerm` and friends bail on a falsy needle
+    // Callers lean on this: `findByWord` and friends bail on a falsy needle
     // rather than matching the first entry with a blank name.
     expect(foldName("")).toBe("");
     expect(foldName("   ")).toBe("");

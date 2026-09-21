@@ -31,10 +31,10 @@ single number meant phone access broke each time it moved. Change the pattern in
 
 ## Where the data lives
 
-Both lists live in **Supabase** — Postgres tables `terms` and `phrases`, plus a
+Both lists live in **Supabase** — Postgres tables `words` and `phrases`, plus a
 `user_settings` row per account for what Settings manages. One private set of
 rows per signed-in account: sign in on any browser or device and the same list is there,
-and a `/term?id=…` link opens anywhere you are signed in.
+and a `/word?id=…` link opens anywhere you are signed in.
 
 List queries run in the browser under the publishable key, which is compiled into the
 JavaScript bundle and readable by anyone who views source. That is what that key is for,
@@ -96,11 +96,11 @@ too. What changes is only what is suggested for new ones.
 ## Pages
 
 - **`/`** — the landing page. A heading and nothing on it yet.
-- **`/terms`** and **`/phrases`** together make up **Glossary**, one section with two
+- **`/vocabulary`** and **`/phrases`** together make up **Glossary**, one section with two
   views. The grouping lives entirely in the nav — see below — so both keep their own
   addresses, neither list knows about the other, and nothing about how they store or
   read their rows changed.
-- **`/terms`** — the **Vocabulary** page, which owns adding, editing, and deleting words.
+- **`/vocabulary`** — the **Vocabulary** page, which owns adding, editing, and deleting words.
   Columns are Word, Definition, Category, Source, and Ref. Search covers words,
   definitions, and refs; a category dropdown narrows the list to one group, and clicking
   a category pill on any row does the same thing without leaving the list; a "Needs
@@ -116,7 +116,7 @@ too. What changes is only what is suggested for new ones.
   than by when they were captured. Search covers all four fields, the Phrase and Literal
   Meaning headers each cycle A→Z / Z→A / back to newest-first, and only Phrase is
   required.
-- **`/term?id=…`** and **`/phrase?id=…`** — one item per stable URL, safe to reload or paste
+- **`/word?id=…`** and **`/phrase?id=…`** — one item per stable URL, safe to reload or paste
   into a fresh tab. This is where a `[[Name]]` reference lands. Both pages read: they show the
   full untruncated text plus, for a word, its Source badge and dates, and offer **Edit** so a
   cross-link onto a typo can be fixed on the spot. Saving from here returns you to the list.
@@ -144,15 +144,19 @@ too. What changes is only what is suggested for new ones.
   categories across a row meant to be skimmed would defeat the point of folding it up.
 
 The id is a query parameter rather than a path segment for historical reasons: the app was a
-static export, and a `/terms/[id]` route would have had nothing to pre-render, since the ids
-only exist in each account's own rows. That constraint is gone now that pages are rendered on
-the server, but the URLs are kept — they are saved in `[[Name]]` refs and pasted into notes,
-and breaking them to gain a tidier path would be a poor trade.
+static export, and a `/vocabulary/[id]` route would have had nothing to pre-render, since the
+ids only exist in each account's own rows. That constraint is gone now that pages are rendered
+on the server, but the shape is kept, because a query parameter is not worth a migration.
+
+These two pages were at `/vocabulary` and `/word?id=…` until the glossary was renamed. `src/proxy.ts`
+redirects both, keeping the query string, so a link written down before the rename still opens
+the right row. A `[[Name]]` reference needs no such help: it is resolved against the list as it
+renders, so it followed the rename on its own.
 
 A thin nav bar at the top of every page carries the Captured logo in the top left corner
 and switches between Glossary and Verbs. There is no Home tab: the logo is the
 way home, and two controls for one destination is one too many. Each tab decides for
-itself which paths light it up, so a `/term?id=…` or `/phrase?id=…` page keeps Glossary
+itself which paths light it up, so a `/word?id=…` or `/phrase?id=…` page keeps Glossary
 lit.
 
 Glossary is the two lists under one tab, and that tab opens a menu rather than going
@@ -261,7 +265,7 @@ field:
 | Write | Links to |
 | --- | --- |
 | `[[Closure]]` | Whatever is saved under that name — a word **or** a phrase, since the two share one namespace. Words win a name clash. A name that matches nothing is shown plainly rather than as a dead link. |
-| `/term?id=abc123`, `/` | A page inside this app. |
+| `/word?id=abc123`, `/` | A page inside this app. |
 | `https://example.com/docs` | Any web page — opens in a new tab. The scheme is hidden in the display so the column stays readable. |
 | `www.example.com` | The same, with `https://` assumed. |
 | `#definition` | A spot on the page you are already on. |
@@ -292,14 +296,14 @@ another folder, or to use the download folder for this one.
   **How much** — *Everything* (both lists), or *Only this page*, which means Phrases while you
   are on the phrase list or a single phrase, and Words everywhere else. The file name
   records the choice:
-  `definition-capture-backup-…`, `-terms-…`, or `-phrases-…`.
+  `definition-capture-backup-…`, `-words-…`, or `-phrases-…`.
 
   **What format** — either one covers whatever you chose above, in a single file:
 
   | Format | What you get |
   | --- | --- |
   | **Excel workbook** (`.xlsx`) | One sheet per exported list — Words and Phrases when you export everything — with bold headers and sensible column widths. For reading, sorting, or printing outside the app. |
-  | **JSON backup** (`.json`) | `{ format, version, exportedAt, entries, phrases }` — plain, readable, and **the only format Import can read back in**. |
+  | **JSON backup** (`.json`) | `{ format, version, exportedAt, words, phrases }` — plain, readable, and **the only format Import can read back in**. |
 
   The button is disabled while there is nothing saved. The workbook is built in the browser by
   [`write-excel-file`](https://www.npmjs.com/package/write-excel-file), the app's one runtime
@@ -331,7 +335,7 @@ Anything unreadable is counted and reported rather than silently dropped.
   leaves URLs and long sentences alone.
 - **Duplicate check.** A word is saved once. Saving one that already exists
   (case-insensitively) offers to update it, or to go back and change the wording — there
-  is no “keep both”, because there cannot be: the unique index on `(user_id, lower(term))`
+  is no “keep both”, because there cannot be: the unique index on `(user_id, lower(word))`
   refuses a second, and `[[Name]]` links, the duplicate check itself, and import matching
   all resolve a name to exactly one entry. Phrases work the same way.
 - **Tabs catch up when you look at them.** Switching to another tab, or back to the window,
@@ -470,19 +474,19 @@ src/
     sign-up/page.tsx      making an account
     auth/callback/route.ts  trades a sign-in link's ?code= for a session
     (workspace)/          everything behind a sign-in. The brackets keep the
-      layout.tsx            group out of the URL, so /terms is still /terms;
+      layout.tsx            group out of the URL, so /vocabulary is still /vocabulary;
                             the layout re-checks the session on the server
       page.tsx              the landing page, a heading for now
-      terms/page.tsx        Vocabulary page: add, edit, delete, search, sort
-      phrases/page.tsx      phrase list, the same shape as Terms
-      term/page.tsx         one word by ?id=, read-only plus Edit
+      vocabulary/page.tsx   Vocabulary page: add, edit, delete, search, sort
+      phrases/page.tsx      phrase list, the same shape as Vocabulary
+      word/page.tsx         one word by ?id=, read-only plus Edit
       phrase/page.tsx       one phrase by ?id=, read-only plus Edit
       verbs/page.tsx        the conjugation tables, one rolled-up card each
       settings/page.tsx     profile, password, the lists, exports
   components/
-    AddTermDialog.tsx     add-term flow, including the duplicate prompt
+    AddWordDialog.tsx     add-word flow, including the duplicate prompt
     AddPhraseDialog.tsx   add-phrase flow, including the duplicate prompt
-    EditTermDialog.tsx    edit-term flow, including the rename clash
+    EditWordDialog.tsx    edit-word flow, including the rename clash
     EditPhraseDialog.tsx  edit-phrase flow
     DeleteControls.tsx    checkboxes, selection bar, and the delete confirmation
     BackupButtons.tsx     export / import buttons and their dialogs
@@ -494,7 +498,7 @@ src/
     ImportLocalPrompt.tsx offers a pre-account localStorage list to the account
     StoreErrorBanner.tsx  says so when a read or a save did not reach the database
     NameListEditor.tsx    add / remove / reorder a list of names in Settings
-    VerbTableControl.tsx  links to a verb's table, or to making one, from Edit term
+    VerbTableControl.tsx  links to a verb's table, or to making one, from Edit word
     VerbTableCard.tsx     one conjugation table, rolled up until opened
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
@@ -508,7 +512,7 @@ src/
     legacyLocal.ts        read-only access to the pre-account localStorage keys
     constants.ts          what a new account's lists start out as
     types.ts              Entry and Phrase shapes plus validators
-    storage.ts            the term store
+    storage.ts            the word store
     phraseStorage.ts      the phrase store
     verbTables.ts         the conjugation tables
     useVerbTables.ts      React binding for the conjugation tables
@@ -518,13 +522,13 @@ src/
     useSettings.ts        React binding for the settings row
     exportFolder.ts       the chosen export folder, held in IndexedDB
     useExportFolder.ts    React binding for the export folder
-    useTerms.ts           React binding for the term store
+    useWords.ts           React binding for the word store
     usePhrases.ts         React binding for the phrase store
     useSession.ts         React binding for the session store
     useListSelection.ts   row selection shared by both list pages
     refSuggestions.ts     the names a Ref field offers to complete
     sortName.ts           the comparison that skips a leading der / die / das
-    parseTerm.ts          the paste-to-split rule
+    parseWord.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting
     assetPath.ts          builds a public/ URL; a no-op without a base path

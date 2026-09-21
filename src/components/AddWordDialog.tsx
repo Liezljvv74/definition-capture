@@ -6,10 +6,10 @@ import { EntryForm } from "@/components/EntryForm";
 import { SourceBadge } from "@/components/Badges";
 import { Modal } from "@/components/Modal";
 import { formatDate } from "@/lib/format";
-import { createEntry, findByTerm, updateEntry } from "@/lib/storage";
+import { createEntry, findByWord, updateEntry } from "@/lib/storage";
 import { EMPTY_ENTRY_INPUT, type Entry, type EntryInput } from "@/lib/types";
 
-export function AddTermDialog({ onClose }: { onClose: () => void }) {
+export function AddWordDialog({ onClose }: { onClose: () => void }) {
   /** The saved entry a new one collided with, if the reader hit one. */
   const [duplicate, setDuplicate] = useState<Entry | null>(null);
   // The prompt below replaces the form rather than sitting on top of it, so
@@ -21,7 +21,7 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
   const [editing, setEditing] = useState<Entry | null>(null);
 
   function handleSubmit(input: EntryInput) {
-    const existing = findByTerm(input.term);
+    const existing = findByWord(input.word);
     if (existing) {
       // Never silently duplicate — ask what the user meant.
       setDraft(input);
@@ -34,7 +34,7 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
 
   if (editing) {
     return (
-      <Modal title={`Edit ${editing.term}`} onClose={onClose}>
+      <Modal title={`Edit ${editing.word}`} onClose={onClose}>
         {/* What was typed on the add form is shown rather than applied.
             Updating used to mean overwriting this entry with it sight
             unseen, which is not a decision the reader had made — they had
@@ -52,7 +52,7 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
         )}
         <EntryForm
           initialValue={{
-            term: editing.term,
+            word: editing.word,
             definition: editing.definition,
             ref: editing.ref,
             categories: editing.categories,
@@ -81,7 +81,7 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
       <Modal title="That word is already saved" onClose={onClose}>
         <div className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            You already saved <strong className="font-semibold">{existing.term}</strong>. Open
+            You already saved <strong className="font-semibold">{existing.word}</strong>. Open
             it to edit, or go back and change the wording?
           </p>
 

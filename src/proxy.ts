@@ -29,6 +29,23 @@ const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/auth"];
 /** The two that make no sense to somebody who is already signed in. */
 const SIGNED_OUT_ONLY = ["/sign-in", "/sign-up"];
 
+/**
+ * The paths these two pages used to live at.
+ *
+ * `/terms` and `/term?id=` were the glossary's addresses for most of this
+ * app's life, and a `?id=` link is exactly the kind of thing that gets pasted
+ * into a note outside the app. A `[[Name]]` reference inside the app needs no
+ * help: it is resolved against the list as it renders, so it already points at
+ * the new path. This is for everything that was written down elsewhere.
+ *
+ * The query string survives the redirect, which is the whole point for
+ * `/term?id=…`.
+ */
+const MOVED: Record<string, string> = {
+  "/terms": "/vocabulary",
+  "/term": "/word",
+};
+
 /** `trailingSlash: true` means paths arrive as `/sign-in/`; compare without it. */
 function normalise(pathname: string): string {
   return pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
@@ -82,6 +99,16 @@ export async function proxy(request: NextRequest) {
   const signedIn = Boolean(data?.claims?.sub);
 
   const { pathname } = request.nextUrl;
+
+  // Ahead of the session check so the rule lives in one place and applies
+  // whoever is asking. A signed-out reader still loses the `?id=` at the
+  // sign-in bounce below, exactly as they did before the rename.
+  const moved = MOVED[normalise(pathname)];
+  if (moved) {
+    const target = request.nextUrl.clone();
+    target.pathname = moved;
+    return NextResponse.redirect(target);
+  }
 
   if (!signedIn && !isPublic(pathname)) {
     const target = request.nextUrl.clone();

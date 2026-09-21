@@ -1,5 +1,5 @@
 /**
- * The term store. All reads and writes go through `remoteStore`, so no
+ * The word store. All reads and writes go through `remoteStore`, so no
  * component ever talks to Supabase directly.
  *
  * Every function below keeps the signature it had when this was a localStorage
@@ -38,14 +38,16 @@ export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
 
   const rawId = readString(value.id).trim();
   const id = rawId || (allowMissingId ? "" : null);
-  const term = readString(value.term).trim() || null;
-  if (id === null || !term) return null;
+  // `word` is the current spelling and `term` is what every backup written
+  // before version 6 used. Both are read, so a file already on disk imports.
+  const word = readString(value.word ?? value.term).trim() || null;
+  if (id === null || !word) return null;
 
   const definition = readString(value.definition);
 
   return {
     id,
-    term,
+    word,
     definition,
     ref: readString(value.ref),
     categories: readCategories(value.categories),
@@ -57,20 +59,20 @@ export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
 }
 
 const store = createRemoteStore<Entry>({
-  table: "terms",
+  table: "words",
   orderBy: "date_added",
   idOf: (entry) => entry.id,
-  nameOf: (entry) => entry.term,
+  nameOf: (entry) => entry.word,
 
   fromRow(row) {
     const id = readString(row.id);
-    const term = readString(row.term).trim();
-    if (!id || !term) return null;
+    const word = readString(row.word).trim();
+    if (!id || !word) return null;
 
     const definition = readString(row.definition);
     return {
       id,
-      term,
+      word,
       definition,
       ref: readString(row.ref),
       categories: readCategories(row.categories),
@@ -84,7 +86,7 @@ const store = createRemoteStore<Entry>({
 
   toRow: (entry) => ({
     id: entry.id,
-    term: entry.term,
+    word: entry.word,
     definition: entry.definition,
     ref: entry.ref,
     categories: entry.categories,
@@ -107,7 +109,7 @@ export const settled = store.settled;
 function clean(input: EntryInput) {
   const definition = input.definition.trim();
   return {
-    term: input.term.trim(),
+    word: input.word.trim(),
     definition,
     ref: input.ref.trim(),
     // Trimmed, de-duplicated and capped here as well as in the form, so a
@@ -146,7 +148,7 @@ export function updateEntry(id: string, input: EntryInput): Entry | null {
 /**
  * Removes every entry whose id is listed, in one write — so a bulk delete is a
  * single round trip and a single re-render, not one per row. Returns how many
- * were actually removed; ids that are not in the term list are ignored.
+ * were actually removed; ids that are not in the word list are ignored.
  */
 export const deleteEntries = store.removeMany;
 
@@ -156,8 +158,8 @@ export function getEntries(): Entry[] {
   return store.items();
 }
 
-/** Case-insensitive term lookup, used for the duplicate check before saving. */
-export const findByTerm = store.findByName;
+/** Case-insensitive word lookup, used for the duplicate check before saving. */
+export const findByWord = store.findByName;
 
 /* ------------------------------------------------------------------ import */
 
@@ -173,8 +175,8 @@ function newestFirst(entries: Entry[]): Entry[] {
 }
 
 /**
- * Merges imported entries into the term list. Existing entries are matched by
- * term, case- and accent-insensitively — the same rule the add form uses.
+ * Merges imported entries into the word list. Existing entries are matched by
+ * word, case- and accent-insensitively — the same rule the add form uses.
  * Imported entries keep their original `dateAdded`, which is the point of a
  * backup.
  *
@@ -185,12 +187,12 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts
   const now = new Date().toISOString();
 
   const plan = planImport(store.items(), incoming, mode, {
-    keyOf: (entry) => foldName(entry.term),
+    keyOf: (entry) => foldName(entry.word),
     idOf: (entry) => entry.id,
     withId: (entry, id) => ({ ...entry, id }),
     merge: (existing, candidate) => ({
       ...existing,
-      term: candidate.term,
+      word: candidate.word,
       definition: candidate.definition,
       ref: candidate.ref,
       // Categories are part of the entry the backup is restoring. Leaving

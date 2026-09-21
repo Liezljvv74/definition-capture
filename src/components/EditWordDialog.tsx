@@ -4,18 +4,18 @@ import { useState } from "react";
 
 import { EntryForm } from "@/components/EntryForm";
 import { Modal } from "@/components/Modal";
-import { findByTerm, updateEntry } from "@/lib/storage";
+import { findByWord, updateEntry } from "@/lib/storage";
 import type { Entry, EntryInput } from "@/lib/types";
 
 /**
  * Edits a term without leaving the list — the counterpart to
- * `AddTermDialog`, and the twin of `EditPhraseDialog`.
+ * `AddWordDialog`, and the twin of `EditPhraseDialog`.
  *
  * Every editable field lives in this one form, Source included. There is no
  * second screen for changing a single attribute, and saving drops you straight
  * back on the term list.
  */
-export function EditTermDialog({
+export function EditWordDialog({
   entry,
   onClose,
   onSaved,
@@ -36,7 +36,7 @@ export function EditTermDialog({
   // means “Back to editing” returns the rename in progress, rather than
   // reverting to what is saved — which is what it used to do.
   const [draft, setDraft] = useState<EntryInput>({
-    term: entry.term,
+    word: entry.word,
     definition: entry.definition,
     ref: entry.ref,
     categories: entry.categories,
@@ -44,7 +44,7 @@ export function EditTermDialog({
   });
 
   function handleSubmit(input: EntryInput) {
-    const existing = findByTerm(input.term, entry.id);
+    const existing = findByWord(input.word, entry.id);
     if (existing) {
       // Renaming onto another term would leave two identical entries.
       setDraft(input);
@@ -59,7 +59,7 @@ export function EditTermDialog({
     return (
       <Modal title="Another word already has that name" onClose={onClose}>
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          <strong className="font-semibold">{clash.term}</strong> is already saved separately.
+          <strong className="font-semibold">{clash.word}</strong> is already saved separately.
           Change the wording, or delete one of the two from your word list.
         </p>
         <div className="mt-5 flex justify-end">
@@ -76,7 +76,7 @@ export function EditTermDialog({
       <EntryForm
         initialValue={draft}
         submitLabel="Save changes"
-        verbTableFor={entry.term}
+        verbTableFor={entry.word}
         onSubmit={handleSubmit}
         onCancel={onClose}
         autoFocus

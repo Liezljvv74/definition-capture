@@ -3,7 +3,7 @@
  * links. Nothing is required — plain notes stay plain.
  *
  *   [[Closure]]                 → the term called "Closure"
- *   /term?id=abc123, /          → a page inside this app
+ *   /word?id=abc123, /          → a page inside this app
  *   https://example.com/docs    → any web page, opened in a new tab
  *   #definition                 → a spot on the page you are already on
  *
@@ -13,7 +13,7 @@
 export type RefToken =
   | { kind: "text"; value: string }
   /** A term by name; resolved to an id at render time. */
-  | { kind: "term"; name: string }
+  | { kind: "word"; name: string }
   | { kind: "url"; href: string; label: string }
   | { kind: "internal"; href: string; label: string }
   | { kind: "anchor"; href: string; label: string };
@@ -77,7 +77,7 @@ export function parseRef(text: string): RefToken[] {
 
     if (TERM_LINK_ONLY.test(segment)) {
       const name = segment.slice(2, -2).trim();
-      if (name) tokens.push({ kind: "term", name });
+      if (name) tokens.push({ kind: "word", name });
       else appendText(tokens, segment);
       continue;
     }

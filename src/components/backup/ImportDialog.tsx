@@ -20,14 +20,14 @@ import {
 import { readFileAsText } from "@/lib/backupFile";
 import { foldName } from "@/lib/foldName";
 import type { ImportMode } from "@/lib/types";
-import { useTerms } from "@/lib/useTerms";
+import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
 import { useVerbTables } from "@/lib/useVerbTables";
 
 type Preview = {
   contents: BackupContents;
   /** How many of the file's items already exist here, by name. */
-  matchingTerms: number;
+  matchingWords: number;
   matchingPhrases: number;
   matchingVerbTables: number;
 };
@@ -49,7 +49,7 @@ type State =
  * would report every row in the file as new.
  */
 export function ImportDialog({ file, onClose }: { file: File; onClose: () => void }) {
-  const { entries, loaded: termsLoaded } = useTerms();
+  const { entries, loaded: termsLoaded } = useWords();
   const { phrases, loaded: phrasesLoaded } = usePhrases();
   const { tables, loaded: tablesLoaded } = useVerbTables();
   const [state, setState] = useState<State>({ step: "reading" });
@@ -77,7 +77,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
         return;
       }
 
-      const savedTerms = new Set(entries.map((entry) => foldName(entry.term)));
+      const savedWords = new Set(entries.map((entry) => foldName(entry.word)));
       const savedPhrases = new Set(phrases.map((phrase) => foldName(phrase.phrase)));
       const savedVerbs = new Set(tables.map((table) => foldName(table.verb)));
 
@@ -85,14 +85,14 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
         step: "preview",
         preview: {
           contents: {
-            entries: parsed.entries,
+            words: parsed.words,
             phrases: parsed.phrases,
             verbTables: parsed.verbTables,
             settings: parsed.settings,
             unreadable: parsed.unreadable,
           },
-          matchingTerms: parsed.entries.filter((entry) =>
-            savedTerms.has(foldName(entry.term)),
+          matchingWords: parsed.words.filter((entry) =>
+            savedWords.has(foldName(entry.word)),
           ).length,
           matchingPhrases: parsed.phrases.filter((phrase) =>
             savedPhrases.has(foldName(phrase.phrase)),
@@ -145,7 +145,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
     return (
       <Modal title="Import finished" onClose={onClose}>
         <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
-          <ResultBlock label="Words" counts={state.result.terms} mode={state.mode} />
+          <ResultBlock label="Words" counts={state.result.words} mode={state.mode} />
           <ResultBlock label="Phrases" counts={state.result.phrases} mode={state.mode} />
           <ResultBlock
             label="Verb tables"
@@ -183,8 +183,8 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
           <ReplaceLine
             label="Words"
             saved={entries.length}
-            incoming={contents.entries.length}
-            untouched={leavesListAlone(contents, "entries", "replace")}
+            incoming={contents.words.length}
+            untouched={leavesListAlone(contents, "words", "replace")}
           />
           <ReplaceLine
             label="Phrases"
@@ -237,7 +237,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
     );
   }
 
-  const terms = contents.entries.length;
+  const words = contents.words.length;
   const phraseCount = contents.phrases.length;
   const verbTables = contents.verbTables.length;
 
@@ -248,8 +248,8 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
           <p className="font-medium break-all">{file.name}</p>
           <ul className="mt-1 space-y-0.5 text-slate-600 dark:text-slate-300">
             <li>
-              {terms} {terms === 1 ? "word" : "words"}: {terms - preview.matchingTerms} new
-              to you, {preview.matchingTerms} of your {entries.length} already saved.
+              {words} {words === 1 ? "word" : "words"}: {words - preview.matchingWords} new
+              to you, {preview.matchingWords} of your {entries.length} already saved.
             </li>
             <li>
               {phraseCount} {phraseCount === 1 ? "phrase" : "phrases"}:{" "}

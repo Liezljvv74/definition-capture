@@ -3,10 +3,10 @@ import { foldName } from "@/lib/foldName";
 
 /* ----------------------------------------------------------- term entries  */
 
-/** A single term entry as it is stored and displayed. */
+/** A single word entry as it is stored and displayed. */
 export type Entry = {
   id: string;
-  term: string;
+  word: string;
   definition: string;
   /** Free-text reference; `parseRef` turns any links inside it into anchors. */
   ref: string;
@@ -23,7 +23,7 @@ export type Entry = {
 
 /** The editable fields a form hands back; everything else is managed for you. */
 export type EntryInput = {
-  term: string;
+  word: string;
   definition: string;
   ref: string;
   categories: string[];
@@ -31,7 +31,7 @@ export type EntryInput = {
 };
 
 export const EMPTY_ENTRY_INPUT: EntryInput = {
-  term: "",
+  word: "",
   definition: "",
   ref: "",
   categories: [],

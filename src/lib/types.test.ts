@@ -74,7 +74,7 @@ describe("readNameList", () => {
 });
 
 describe("readCategories", () => {
-  it("caps at three, which is the limit a term may carry", () => {
+  it("caps at three, which is the limit a word may carry", () => {
     expect(readCategories(["a", "b", "c", "d"])).toEqual(["a", "b", "c"]);
   });
 });

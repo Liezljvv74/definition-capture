@@ -8,7 +8,7 @@ import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { VerbTableCard } from "@/components/VerbTableCard";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
 import { saveSettings } from "@/lib/settings";
-import { createEntry, findByTerm } from "@/lib/storage";
+import { createEntry, findByWord } from "@/lib/storage";
 import { compareText } from "@/lib/sortName";
 import { EMPTY_ENTRY_INPUT, readNameList } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
@@ -175,7 +175,7 @@ function VerbList() {
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
             Tables are made from a word you have already saved. Open a verb on{" "}
             <Link
-              href="/terms"
+              href="/vocabulary"
               className="text-indigo-700 underline underline-offset-2 dark:text-indigo-300"
             >
               Vocabulary
@@ -315,7 +315,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
     // never heard of — the two are matched by name, and a table with no
     // term behind it is a dead end. A verb that is already there is left
     // exactly as it is.
-    if (!findByTerm(name)) createEntry({ ...EMPTY_ENTRY_INPUT, term: name });
+    if (!findByWord(name)) createEntry({ ...EMPTY_ENTRY_INPUT, word: name });
 
     createVerbTable(name, persons, tense);
     // The address should describe what is on screen, not the act that got
@@ -400,7 +400,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
             Cancel
           </button>
         ) : (
-          <Link href="/terms" className="btn btn-secondary">
+          <Link href="/vocabulary" className="btn btn-secondary">
             Cancel
           </Link>
         )}

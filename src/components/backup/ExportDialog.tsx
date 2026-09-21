@@ -16,7 +16,7 @@ import {
   clearExportFolder,
   ExportFolderError,
 } from "@/lib/exportFolder";
-import { useTerms } from "@/lib/useTerms";
+import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
 import { useVerbTables } from "@/lib/useVerbTables";
 
@@ -39,7 +39,7 @@ type State =
  * Settings it names no list at all, and on Verbs it named the wrong one.
  */
 export function ExportDialog({ onClose }: { onClose: () => void }) {
-  const { entries, loaded: termsLoaded } = useTerms();
+  const { entries, loaded: termsLoaded } = useWords();
   const { phrases, loaded: phrasesLoaded } = usePhrases();
   const { tables, loaded: tablesLoaded } = useVerbTables();
   const [scope, setScope] = useState<BackupScope>("all");
@@ -50,7 +50,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
 
   const counts: Record<BackupScope, number> = {
     all: entries.length + phrases.length + tables.length,
-    terms: entries.length,
+    words: entries.length,
     phrases: phrases.length,
     verbs: tables.length,
   };
@@ -193,10 +193,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               />
               <ScopeChoice
                 label="Words"
-                detail={`${counts.terms} ${counts.terms === 1 ? "word" : "words"}`}
-                checked={scope === "terms"}
+                detail={`${counts.words} ${counts.words === 1 ? "word" : "words"}`}
+                checked={scope === "words"}
                 disabled={busy}
-                onSelect={() => setScope("terms")}
+                onSelect={() => setScope("words")}
               />
               <ScopeChoice
                 label="Phrases"

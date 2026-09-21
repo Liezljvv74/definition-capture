@@ -15,7 +15,7 @@ const ok = (text: string) => {
 };
 
 const contents = (over: Partial<BackupContents> = {}): BackupContents => ({
-  entries: [],
+  words: [],
   phrases: [],
   verbTables: [],
   settings: null,
@@ -23,9 +23,9 @@ const contents = (over: Partial<BackupContents> = {}): BackupContents => ({
   ...over,
 });
 
-const entry = (term: string): Entry => ({
+const entry = (word: string): Entry => ({
   id: crypto.randomUUID(),
-  term,
+  word,
   definition: "d",
   ref: "",
   categories: [],
@@ -64,17 +64,17 @@ describe("parseBackup — rejects", () => {
 });
 
 describe("parseBackup — reads", () => {
-  it("a bare array as a list of terms", () => {
+  it("a bare array as a list of words", () => {
     // What a hand-written file or a very early export looks like.
     const parsed = ok(JSON.stringify([entry("Tür")]));
-    expect(parsed.entries.map((e) => e.term)).toEqual(["Tür"]);
+    expect(parsed.words.map((e) => e.word)).toEqual(["Tür"]);
     expect(parsed.phrases).toEqual([]);
     expect(parsed.verbTables).toEqual([]);
   });
 
   it("counts rows it could not read rather than failing on them", () => {
     const parsed = ok(JSON.stringify({ entries: [entry("Tür"), null, 42, {}] }));
-    expect(parsed.entries).toHaveLength(1);
+    expect(parsed.words).toHaveLength(1);
     expect(parsed.unreadable).toBe(3);
   });
 
@@ -127,10 +127,27 @@ describe("parseBackup — reads", () => {
   });
 
   it("survives a round trip through JSON with accented and non-Latin text", () => {
-    const original = { id: crypto.randomUUID(), term: "Tür", definition: "ある 🇩🇪" };
-    const parsed = ok(JSON.stringify({ entries: [original] }));
-    expect(parsed.entries[0].term).toBe("Tür");
-    expect(parsed.entries[0].definition).toBe("ある 🇩🇪");
+    const original = { id: crypto.randomUUID(), word: "Tür", definition: "ある 🇩🇪" };
+    const parsed = ok(JSON.stringify({ words: [original] }));
+    expect(parsed.words[0].word).toBe("Tür");
+    expect(parsed.words[0].definition).toBe("ある 🇩🇪");
+  });
+
+  /**
+   * Version 5 and earlier called the list `entries` and its name field `term`.
+   * Every backup anyone already holds is one of those, so both spellings are
+   * read. This is the test that stops a later tidy-up from quietly making
+   * those files unreadable.
+   */
+  it("reads a pre-version-6 file, which called them entries and terms", () => {
+    const parsed = ok(
+      JSON.stringify({
+        version: 5,
+        entries: [{ id: crypto.randomUUID(), term: "Tür", definition: "door" }],
+      }),
+    );
+    expect(parsed.words.map((w) => w.word)).toEqual(["Tür"]);
+    expect(parsed.words[0].definition).toBe("door");
   });
 });
 
@@ -141,9 +158,9 @@ describe("parseBackup — reads", () => {
  * before conjugation tables existed, silently destroys everything else.
  */
 describe("Replace only touches the lists the file carries", () => {
-  it("leaves every other list alone when the file has terms only", () => {
-    const only = contents({ entries: [entry("Tür")] });
-    expect(leavesListAlone(only, "entries", "replace")).toBe(false);
+  it("leaves every other list alone when the file has words only", () => {
+    const only = contents({ words: [entry("Tür")] });
+    expect(leavesListAlone(only, "words", "replace")).toBe(false);
     expect(leavesListAlone(only, "phrases", "replace")).toBe(true);
     expect(leavesListAlone(only, "verbTables", "replace")).toBe(true);
     expect(restoresSettings(only, "replace")).toBe(false);
@@ -151,10 +168,10 @@ describe("Replace only touches the lists the file carries", () => {
 
   it("wipes a list the file does carry", () => {
     const both = contents({
-      entries: [entry("Tür")],
+      words: [entry("Tür")],
       phrases: [phrase("guten Tag")],
     });
-    expect(leavesListAlone(both, "entries", "replace")).toBe(false);
+    expect(leavesListAlone(both, "words", "replace")).toBe(false);
     expect(leavesListAlone(both, "phrases", "replace")).toBe(false);
   });
 
@@ -162,7 +179,7 @@ describe("Replace only touches the lists the file carries", () => {
     // "Leaves alone" is a Replace concept; skip and update never delete.
     const empty = contents();
     for (const mode of ["skip", "update"] as const) {
-      expect(leavesListAlone(empty, "entries", mode)).toBe(false);
+      expect(leavesListAlone(empty, "words", mode)).toBe(false);
       expect(leavesListAlone(empty, "phrases", mode)).toBe(false);
       expect(leavesListAlone(empty, "verbTables", mode)).toBe(false);
     }

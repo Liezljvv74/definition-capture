@@ -22,16 +22,21 @@ import {
  * how you get between them.
  */
 const GLOSSARY_VIEWS = [
-  // "Vocabulary" in the menu, `/terms` in the URL. The route is what a saved
-  // `[[Name]]` ref and a pasted link point at, so the label is free to change
-  // and the path is not.
-  { href: "/terms", label: "Vocabulary", prefix: "/term" },
-  { href: "/phrases", label: "Phrases", prefix: "/phrase" },
+  // A list of prefixes rather than one. A view's list page and its detail page
+  // used to share a stem, `/term` covering `/terms` as well, and `/vocabulary`
+  // and `/word` share nothing, so each view names both of its paths.
+  { href: "/vocabulary", label: "Vocabulary", prefixes: ["/vocabulary", "/word"] },
+  { href: "/phrases", label: "Phrases", prefixes: ["/phrases", "/phrase"] },
 ] as const;
 
-/** True anywhere in the section, including a single term or phrase page. */
+/** True of any of a view's paths, so a detail page counts as its list. */
+function inView(view: (typeof GLOSSARY_VIEWS)[number], path: string): boolean {
+  return view.prefixes.some((prefix) => path.startsWith(prefix));
+}
+
+/** True anywhere in the section, including a single word or phrase page. */
 function inGlossary(path: string): boolean {
-  return GLOSSARY_VIEWS.some((view) => path.startsWith(view.prefix));
+  return GLOSSARY_VIEWS.some((view) => inView(view, path));
 }
 
 /**
@@ -134,7 +139,7 @@ export function MainNav() {
         <NavMenu label="Glossary" active={inGlossary(pathname)}>
           {(close) =>
             GLOSSARY_VIEWS.map((view) => {
-              const current = pathname.startsWith(view.prefix);
+              const current = inView(view, pathname);
               return (
                 <li key={view.href} role="none">
                   <Link

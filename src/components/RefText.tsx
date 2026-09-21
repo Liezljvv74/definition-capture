@@ -23,7 +23,7 @@ export function buildLinkIndex(entries: Entry[], phrases: Phrase[] = []): LinkIn
     index.set(foldName(phrase.phrase), `/phrase?id=${phrase.id}`);
   }
   for (const entry of entries) {
-    index.set(foldName(entry.term), `/term?id=${entry.id}`);
+    index.set(foldName(entry.word), `/word?id=${entry.id}`);
   }
   return index;
 }
@@ -45,7 +45,7 @@ export function RefText({ value, linkIndex }: { value: string; linkIndex: LinkIn
           case "text":
             return <span key={index}>{token.value}</span>;
 
-          case "term": {
+          case "word": {
             const href = linkIndex.get(foldName(token.name));
             if (!href) {
               return (

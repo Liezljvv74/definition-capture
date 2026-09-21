@@ -14,7 +14,7 @@ import { MainNav } from "@/components/MainNav";
  * publishes as `--nav-height` is a browser measurement and not what is under
  * test here.
  */
-let pathname = "/terms";
+let pathname = "/vocabulary";
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
 
 const html = (path: string) => {
@@ -24,7 +24,7 @@ const html = (path: string) => {
 
 describe("MainNav", () => {
   it("offers Glossary and Verbs, and nothing that has been taken out", () => {
-    const markup = html("/terms");
+    const markup = html("/vocabulary");
     expect(markup).toContain("Glossary");
     expect(markup).toContain("Verbs");
     expect(markup).toContain('href="/verbs"');
@@ -35,9 +35,9 @@ describe("MainNav", () => {
   });
 
   it("lights the tab that owns the current path, detail pages included", () => {
-    // A term or phrase page counts as its list, which is why the nav matches
+    // A word or phrase page counts as its list, which is why the nav matches
     // on prefixes rather than on equality.
-    expect(html("/term")).toContain('aria-current="page"');
+    expect(html("/word")).toContain('aria-current="page"');
     expect(html("/phrase")).toContain('aria-current="page"');
     expect(html("/verbs")).toContain('aria-current="page"');
   });

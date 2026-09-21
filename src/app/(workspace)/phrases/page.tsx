@@ -26,7 +26,7 @@ import type { Phrase } from "@/lib/types";
 const idOfPhrase = (phrase: Phrase) => phrase.id;
 const nameOfPhrase = (phrase: Phrase) => phrase.phrase;
 
-import { useTerms } from "@/lib/useTerms";
+import { useWords } from "@/lib/useWords";
 import { useListPage } from "@/lib/useListPage";
 import { type ListSelection } from "@/lib/useListSelection";
 import { foldName } from "@/lib/foldName";
@@ -54,7 +54,7 @@ const COLUMNS: { key?: PhraseSortKey; label: string; className?: string }[] = [
 export default function PhrasesPage() {
   const { phrases, loaded } = usePhrases();
   const wide = useWideScreen();
-  const { entries } = useTerms();
+  const { entries } = useWords();
   const { settings } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");

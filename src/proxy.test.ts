@@ -75,7 +75,7 @@ beforeEach(() => {
 describe("the route table this file tests", () => {
   it("found the workspace pages, so the tests below are not vacuous", () => {
     expect(protectedPaths.length).toBeGreaterThanOrEqual(7);
-    expect(protectedPaths).toContain("/terms/");
+    expect(protectedPaths).toContain("/vocabulary/");
     expect(protectedPaths).toContain("/settings/");
   });
 
@@ -83,8 +83,40 @@ describe("the route table this file tests", () => {
     // The bail-out at the top of the proxy: a build with no credentials must
     // not bounce between two pages that both need a Supabase that is absent.
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
-    const response = await ask("/terms/");
+    const response = await ask("/vocabulary/");
     expect(response.status).toBe(200);
+  });
+});
+
+/**
+ * `/terms` and `/term?id=…` were the glossary's addresses for most of this
+ * app's life, and a `?id=` link is exactly the sort of thing that ends up in
+ * a note outside the app. These redirects are all that keeps those working,
+ * and nothing else in the app would fail if they stopped.
+ */
+describe("the paths these pages used to live at", () => {
+  it("sends /terms to /vocabulary, signed in or not", async () => {
+    for (const state of [false, true]) {
+      signedIn = state;
+      const response = await ask("/terms/");
+      expect(response.status).toBe(307);
+      expect(redirectPath(response)).toBe("/vocabulary");
+    }
+  });
+
+  it("sends /term to /word and keeps the id, which is the whole point", async () => {
+    signedIn = true;
+    const response = await ask("/term/?id=abc123");
+    expect(response.status).toBe(307);
+    expect(redirectPath(response)).toBe("/word");
+    expect(locationOf(response)).toContain("id=abc123");
+  });
+
+  it("leaves the pages that did not move alone", async () => {
+    signedIn = true;
+    for (const path of ["/vocabulary/", "/word/", "/phrases/", "/verbs/"]) {
+      expect((await ask(path)).status).toBe(200);
+    }
   });
 });
 
@@ -98,9 +130,9 @@ describe("signed out", () => {
   }
 
   it("does not carry the query string into the redirect", async () => {
-    // `/term/?id=…` names a row. The sign-in page has no use for it and the
+    // `/word/?id=…` names a row. The sign-in page has no use for it and the
     // referer would carry it onwards.
-    const response = await ask("/term/?id=secret-term-id");
+    const response = await ask("/word/?id=secret-word-id");
     expect(redirectPath(response)).toBe("/sign-in");
     expect(locationOf(response)).not.toContain("secret");
   });
@@ -129,8 +161,8 @@ describe("signed out — a public prefix is not a public page", () => {
     "/sign-inx",
     "/authx/",
     "/authentication/",
-    "/terms/sign-in/",
-    "/terms//",
+    "/vocabulary/sign-in/",
+    "/vocabulary//",
   ]) {
     it(`redirects ${path}`, async () => {
       signedIn = false;
@@ -148,13 +180,13 @@ describe("signed out — a public prefix is not a public page", () => {
   });
 
   it("normalises traversal before deciding", async () => {
-    const response = await ask("/sign-in/../terms/");
+    const response = await ask("/sign-in/../vocabulary/");
     expect(response.status).toBe(307);
     expect(redirectPath(response)).toBe("/sign-in");
   });
 
   it("does not accept a percent-encoded slash as a segment break", async () => {
-    const response = await ask("/sign-in%2f..%2fterms/");
+    const response = await ask("/sign-in%2f..%2fvocabulary/");
     expect(response.status).toBe(307);
   });
 });
@@ -194,7 +226,7 @@ describe("the matcher", () => {
   it("runs on pages, route handlers and anything else with an extension", () => {
     // The old pattern excluded every path ending in a static-looking
     // extension, at any depth — so "runs before every request" was not true.
-    for (const path of ["/terms/", "/", "/api/export.js", "/terms/notes.txt"]) {
+    for (const path of ["/vocabulary/", "/", "/api/export.js", "/vocabulary/notes.txt"]) {
       expect(matches(path)).toBe(true);
     }
   });

@@ -31,12 +31,12 @@ describe("parseRef — link safety", () => {
   });
 
   it("still recognises ordinary internal paths", () => {
-    expect(only("/terms")).toEqual({
+    expect(only("/vocabulary")).toEqual({
       kind: "internal",
-      href: "/terms",
-      label: "/terms",
+      href: "/vocabulary",
+      label: "/vocabulary",
     });
-    expect(only("/term?id=abc123")).toMatchObject({ kind: "internal" });
+    expect(only("/word?id=abc123")).toMatchObject({ kind: "internal" });
   });
 
   it("refuses every scheme except http and https", () => {
@@ -83,15 +83,15 @@ describe("parseRef — classification", () => {
   });
 });
 
-describe("parseRef — term links", () => {
-  it("reads [[Name]] as a term, keeping the name verbatim", () => {
-    expect(only("[[Closure]]")).toEqual({ kind: "term", name: "Closure" });
+describe("parseRef — word links", () => {
+  it("reads [[Name]] as a word, keeping the name verbatim", () => {
+    expect(only("[[Closure]]")).toEqual({ kind: "word", name: "Closure" });
     // Accents and spaces survive; this is a language app and the name is a key.
-    expect(only("[[der Löwe]]")).toEqual({ kind: "term", name: "der Löwe" });
+    expect(only("[[der Löwe]]")).toEqual({ kind: "word", name: "der Löwe" });
   });
 
   it("trims inside the brackets but leaves an empty one as text", () => {
-    expect(only("[[  Closure  ]]")).toEqual({ kind: "term", name: "Closure" });
+    expect(only("[[  Closure  ]]")).toEqual({ kind: "word", name: "Closure" });
     expect(kinds("[[]]")).toEqual(["text"]);
     expect(kinds("[[   ]]")).toEqual(["text"]);
   });
@@ -101,17 +101,17 @@ describe("parseRef — term links", () => {
     expect(kinds("[[Wort\nzeile]]")).toEqual(["text"]);
   });
 
-  it("keeps adjacent term links separate with nothing between them", () => {
+  it("keeps adjacent word links separate with nothing between them", () => {
     expect(parseRef("[[A]][[B]]")).toEqual([
-      { kind: "term", name: "A" },
-      { kind: "term", name: "B" },
+      { kind: "word", name: "A" },
+      { kind: "word", name: "B" },
     ]);
   });
 
-  it("keeps the text around a term link", () => {
+  it("keeps the text around a word link", () => {
     expect(parseRef("a[[B]]c")).toEqual([
       { kind: "text", value: "a" },
-      { kind: "term", name: "B" },
+      { kind: "word", name: "B" },
       { kind: "text", value: "c" },
     ]);
   });
@@ -151,7 +151,7 @@ describe("parseRef — punctuation and spacing", () => {
         .map((token) =>
           token.kind === "text"
             ? token.value
-            : token.kind === "term"
+            : token.kind === "word"
               ? `[[${token.name}]]`
               : token.href,
         )

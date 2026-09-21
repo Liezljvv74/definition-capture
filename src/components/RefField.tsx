@@ -18,7 +18,7 @@ import {
   type RefQuery,
 } from "@/lib/refSuggestions";
 import { usePhrases } from "@/lib/usePhrases";
-import { useTerms } from "@/lib/useTerms";
+import { useWords } from "@/lib/useWords";
 
 /** Matches `max-h-56` on the list below; used to decide which way it opens. */
 const LIST_MAX_HEIGHT = 224;
@@ -29,7 +29,7 @@ const LIST_GAP = 4;
 /**
  * The Ref input, with an inline lookup over everything you have saved. Typing
  * a name offers the terms and phrases it matches; picking one writes it in as
- * `[[Name]]`. Everything else — notes, URLs, `/term?id=…`, `#anchor` — is
+ * `[[Name]]`. Everything else — notes, URLs, `/word?id=…`, `#anchor` — is
  * typed exactly as before, and the value handed back is always a plain string.
  *
  * The lists come from the same stores the pages read, so there is nothing here
@@ -51,7 +51,7 @@ export function RefField({
   placeholder,
   exclude,
 }: RefFieldProps) {
-  const { entries } = useTerms();
+  const { entries } = useWords();
   const { phrases } = usePhrases();
 
   const listId = useId();
@@ -203,7 +203,7 @@ export function RefField({
             >
               <span className="truncate">{suggestion.name}</span>
               <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {suggestion.kind === "term" ? "Word" : "Phrase"}
+                {suggestion.kind === "word" ? "Word" : "Phrase"}
               </span>
             </li>
           ))}

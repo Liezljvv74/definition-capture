@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { AddTermDialog } from "@/components/AddTermDialog";
+import { AddWordDialog } from "@/components/AddWordDialog";
 import { CategoryBadge, NeedsDefinitionBadge } from "@/components/Badges";
 import {
   ConfirmDeleteDialog,
@@ -11,7 +11,7 @@ import {
   SelectionBar,
   SelectRowCheckbox,
 } from "@/components/DeleteControls";
-import { EditTermDialog } from "@/components/EditTermDialog";
+import { EditWordDialog } from "@/components/EditWordDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { EmptyCell } from "@/components/EmptyCell";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
@@ -19,22 +19,19 @@ import { RowEditButton } from "@/components/RowEditButton";
 import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
 import { foldName } from "@/lib/foldName";
-import { useTerms } from "@/lib/useTerms";
+import { useWords } from "@/lib/useWords";
 import { useWideScreen } from "@/lib/useWideScreen";
 import { useListPage } from "@/lib/useListPage";
 import { type ListSelection } from "@/lib/useListSelection";
 import { compareNames, compareText } from "@/lib/sortName";
 import { usePhrases } from "@/lib/usePhrases";
 
-type SortKey = "term" | "definition" | "dateAdded";
+type SortKey = "word" | "definition" | "dateAdded";
 type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
 
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
-  // "Word" in the heading, `term` as the key. The key is the sort field and
-  // the property on `Entry`, which the database and every backup file also
-  // spell `term`, so the heading is free to change and the key is not.
-  { key: "term", label: "Word", className: "w-[22%]" },
+  { key: "word", label: "Word", className: "w-[22%]" },
   { key: "definition", label: "Definition" },
   { key: null, label: "Category", className: "w-[14%]" },
   { key: null, label: "Ref", className: "w-[20%]" },
@@ -43,12 +40,12 @@ const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
 /** Module scope so their identity is stable across renders; `useListPage`
  *  memoises against them. */
 const idOfEntry = (entry: Entry) => entry.id;
-const nameOfEntry = (entry: Entry) => entry.term;
+const nameOfEntry = (entry: Entry) => entry.word;
 
 function compare(a: Entry, b: Entry, key: SortKey): number {
   switch (key) {
-    case "term":
-      return compareNames(a.term, b.term);
+    case "word":
+      return compareNames(a.word, b.word);
     case "definition":
       // No article convention here, and a term still waiting for its
       // definition sorts to the top of the ascending list, which is where
@@ -60,7 +57,7 @@ function compare(a: Entry, b: Entry, key: SortKey): number {
 }
 
 export default function TermsPage() {
-  const { entries, loaded } = useTerms();
+  const { entries, loaded } = useWords();
   const wide = useWideScreen();
   const { phrases } = usePhrases();
   const [isAdding, setIsAdding] = useState(false);
@@ -71,7 +68,7 @@ export default function TermsPage() {
   // Alphabetical by term, ignoring a leading der/die/das so the German
   // nouns file under their own first letter. Date added is no longer a
   // column and is now only the tie-breaker.
-  const [sort, setSort] = useState<Sort>({ key: "term", direction: "asc" });
+  const [sort, setSort] = useState<Sort>({ key: "word", direction: "asc" });
 
   /**
    * Only categories actually in use, so choosing one always shows
@@ -123,7 +120,7 @@ export default function TermsPage() {
       }
       if (!needle) return true;
       return (
-        foldName(entry.term).includes(needle) ||
+        foldName(entry.word).includes(needle) ||
         foldName(entry.definition).includes(needle) ||
         foldName(entry.ref).includes(needle)
       );
@@ -311,9 +308,9 @@ export default function TermsPage() {
         )}
       </main>
 
-      {isAdding && <AddTermDialog onClose={() => setIsAdding(false)} />}
+      {isAdding && <AddWordDialog onClose={() => setIsAdding(false)} />}
 
-      {editing && <EditTermDialog entry={editing} onClose={() => setEditingId(null)} />}
+      {editing && <EditWordDialog entry={editing} onClose={() => setEditingId(null)} />}
 
       {pendingDelete && pendingNames.length > 0 && (
         <ConfirmDeleteDialog
@@ -418,7 +415,7 @@ function EntryTable({
                   <SelectRowCheckbox
                     checked={selected}
                     onChange={() => selection.toggle(entry.id)}
-                    label={entry.term}
+                    label={entry.word}
                   />
                 </td>
                 <td className="px-4 py-3 align-top">
@@ -427,7 +424,7 @@ function EntryTable({
                     onClick={() => onEdit(entry.id)}
                     className="cursor-pointer text-left font-medium text-indigo-700 hover:underline dark:text-indigo-300"
                   >
-                    {entry.term}
+                    {entry.word}
                   </button>
                 </td>
                 <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
@@ -459,8 +456,8 @@ function EntryTable({
                 </td>
                 <td className="px-3 py-3 align-top">
                   <div className="flex items-center justify-end gap-0.5">
-                    <RowEditButton label={entry.term} onClick={() => onEdit(entry.id)} />
-                    <RowDeleteButton label={entry.term} onClick={() => onDelete(entry.id)} />
+                    <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
+                    <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
                   </div>
                 </td>
               </tr>
@@ -518,7 +515,7 @@ function EntryCards({
                     <SelectRowCheckbox
                       checked={selected}
                       onChange={() => selection.toggle(entry.id)}
-                      label={entry.term}
+                      label={entry.word}
                     />
                   </span>
                   <h2 className="flex-1 font-semibold">
@@ -527,13 +524,13 @@ function EntryCards({
                       onClick={() => onEdit(entry.id)}
                       className="cursor-pointer text-left text-indigo-700 hover:underline dark:text-indigo-300"
                     >
-                      {entry.term}
+                      {entry.word}
                     </button>
                   </h2>
                   {entry.needsDefinition && <NeedsDefinitionBadge />}
                   <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-0.5">
-                    <RowEditButton label={entry.term} onClick={() => onEdit(entry.id)} />
-                    <RowDeleteButton label={entry.term} onClick={() => onDelete(entry.id)} />
+                    <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
+                    <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
                   </div>
                 </div>
                 {entry.definition && (

@@ -15,7 +15,7 @@ import {
 } from "@/lib/phraseStorage";
 import { importEntries, parseEntry, settled as termsSettled } from "@/lib/storage";
 import type { Entry, Phrase } from "@/lib/types";
-import { useTerms } from "@/lib/useTerms";
+import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
@@ -65,32 +65,32 @@ function LegacyOffer({
   const [step, setStep] = useState<
     "offer" | "copying" | "copied" | "confirmForget" | "confirmDiscard" | "gone"
   >("offer");
-  const [copied, setCopied] = useState({ terms: 0, phrases: 0, skipped: 0 });
+  const [copied, setCopied] = useState({ words: 0, phrases: 0, skipped: 0 });
 
-  const terms = useTerms();
+  const words = useWords();
   const phraseList = usePhrases();
   // Both lists have to be fetched before importing: the "already have this
   // one" check runs against them, and a duplicate term would be rejected by
   // the database's unique index rather than quietly merged.
-  const ready = terms.loaded && phraseList.loaded;
+  const ready = words.loaded && phraseList.loaded;
 
   // Whichever store reported a failure, the copy did not fully arrive. The
   // store has already reloaded itself from the database and the banner is
   // saying so; all this needs to do is refuse to delete the other copy.
-  const writeFailed = terms.error !== null || phraseList.error !== null;
+  const writeFailed = words.error !== null || phraseList.error !== null;
 
   if (step === "gone") return null;
 
   async function handleCopy() {
     setStep("copying");
-    // "skip" so running this twice, or on a browser whose terms are already in
+    // "skip" so running this twice, or on a browser whose words are already in
     // the account, cannot overwrite anything that has since been edited.
-    const termResult = importEntries(legacy.entries, "skip");
+    const wordResult = importEntries(legacy.entries, "skip");
     const phraseResult = importPhrases(legacy.phrases, "skip");
     setCopied({
-      terms: termResult.added,
+      words: wordResult.added,
       phrases: phraseResult.added,
-      skipped: termResult.skipped + phraseResult.skipped,
+      skipped: wordResult.skipped + phraseResult.skipped,
     });
 
     // The counts above describe what was asked for. This is where we find out
@@ -154,7 +154,7 @@ function LegacyOffer({
         ) : step === "confirmForget" ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p>
-              Your account now has {describe(copied.terms, copied.phrases)}. Removing the old
+              Your account now has {describe(copied.words, copied.phrases)}. Removing the old
               copy deletes it from this browser for good.
             </p>
             <div className="flex shrink-0 gap-2">
@@ -189,7 +189,7 @@ function LegacyOffer({
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p>
-              Copied {describe(copied.terms, copied.phrases)} into your account
+              Copied {describe(copied.words, copied.phrases)} into your account
               {copied.skipped > 0 &&
                 `, and left ${copied.skipped} alone because you already had them`}
               . The old browser copy is still here until you remove it.
@@ -209,9 +209,9 @@ function LegacyOffer({
 }
 
 /** "3 words and 1 phrase", with only the halves that are actually there. */
-function describe(terms: number, phrases: number): string {
+function describe(words: number, phrases: number): string {
   const parts: string[] = [];
-  if (terms > 0) parts.push(`${terms} ${terms === 1 ? "word" : "words"}`);
+  if (words > 0) parts.push(`${words} ${words === 1 ? "word" : "words"}`);
   if (phrases > 0) parts.push(`${phrases} ${phrases === 1 ? "phrase" : "phrases"}`);
   if (parts.length === 0) return "nothing";
   return parts.join(" and ");

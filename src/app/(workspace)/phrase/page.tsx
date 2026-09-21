@@ -8,7 +8,7 @@ import { CategoryBadge, SourceBadge } from "@/components/Badges";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import type { Phrase } from "@/lib/types";
-import { useTerms } from "@/lib/useTerms";
+import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
@@ -42,7 +42,7 @@ function DetailSkeleton() {
 function PhraseDetail() {
   const id = useSearchParams().get("id") ?? "";
   const { phrases, loaded } = usePhrases();
-  const { entries } = useTerms();
+  const { entries } = useWords();
   const phrase = phrases.find((candidate) => candidate.id === id);
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);

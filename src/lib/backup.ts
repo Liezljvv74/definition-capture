@@ -36,18 +36,25 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * 1 was terms only; 2 adds the phrase list; 3 adds the conjugation tables and
  * the settings. 4 carried a fourth list of grammar rules, which the app no
  * longer has: a version 4 file still imports, and the rules in it are read
- * past like any other key this module does not know.
+ * past like any other key this module does not know. 6 renames the glossary
+ * list from `entries` to `words` and each row's `term` to `word`, following
+ * the rename in the app and the database.
  *
- * Older files still import: a missing list reads as an absent one, not an
- * empty one, which is what keeps Replace from wiping what the file predates.
+ * Older files still import, and that is not a courtesy: 5 and below are what
+ * every backup anyone already holds looks like. `parseBackup` reads either
+ * list key and `parseEntry` reads either name field, so a file from before
+ * the rename restores exactly as it used to.
+ *
+ * A missing list reads as an absent one, not an empty one, which is what
+ * keeps Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 5;
+export const BACKUP_VERSION = 6;
 
 export type Backup = {
   format: typeof BACKUP_FORMAT;
   version: number;
   exportedAt: string;
-  entries: Entry[];
+  words: Entry[];
   phrases: Phrase[];
   verbTables: VerbTable[];
   /**
@@ -60,7 +67,7 @@ export type Backup = {
 };
 
 /** Which lists an export should carry. */
-export type BackupScope = "all" | "terms" | "phrases" | "verbs";
+export type BackupScope = "all" | "words" | "phrases" | "verbs";
 
 export function buildBackup(scope: BackupScope = "all"): Backup {
   // Asking what is included, rather than what is excluded: a chain of "not
@@ -71,7 +78,7 @@ export function buildBackup(scope: BackupScope = "all"): Backup {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    entries: wants("terms") ? getEntries() : [],
+    words: wants("words") ? getEntries() : [],
     phrases: wants("phrases") ? getPhrases() : [],
     verbTables: wants("verbs") ? getVerbTables() : [],
     settings: scope === "all" ? currentSettings() : null,
@@ -79,7 +86,7 @@ export function buildBackup(scope: BackupScope = "all"): Backup {
 }
 
 export type BackupContents = {
-  entries: Entry[];
+  words: Entry[];
   phrases: Phrase[];
   verbTables: VerbTable[];
   settings: Settings | null;
@@ -101,7 +108,7 @@ export function parseBackup(text: string): BackupParse {
     return { ok: false, error: "That file is not valid JSON, so it cannot be read." };
   }
 
-  // A bare array is treated as a list of terms, which is what a
+  // A bare array is treated as a list of words, which is what a
   // hand-written file or a very early export looks like.
   const bare = asArray(raw);
   if (bare) {
@@ -109,7 +116,7 @@ export function parseBackup(text: string): BackupParse {
     return entries.length > 0
       ? {
           ok: true,
-          entries,
+          words: entries,
           phrases: [],
           verbTables: [],
           settings: null,
@@ -122,22 +129,25 @@ export function parseBackup(text: string): BackupParse {
     return {
       ok: false,
       error:
-        "That file does not look like a Definition Capture backup: it has no list of entries.",
+        "That file does not look like a Definition Capture backup: it has no list of words.",
     };
   }
 
   const {
+    words: rawWords,
     entries: rawEntries,
     phrases: rawPhrases,
     verbTables: rawVerbTables,
     settings: rawSettings,
   } = raw as {
+    words?: unknown;
     entries?: unknown;
     phrases?: unknown;
     verbTables?: unknown;
     settings?: unknown;
   };
-  const entryList = asArray(rawEntries);
+  // `words` since version 6, `entries` before it. Whichever the file has.
+  const entryList = asArray(rawWords) ?? asArray(rawEntries);
   const phraseList = asArray(rawPhrases);
   const verbTableList = asArray(rawVerbTables);
 
@@ -145,7 +155,7 @@ export function parseBackup(text: string): BackupParse {
     return {
       ok: false,
       error:
-        "That file does not look like a Definition Capture backup: it has no list of entries.",
+        "That file does not look like a Definition Capture backup: it has no list of words.",
     };
   }
 
@@ -172,7 +182,7 @@ export function parseBackup(text: string): BackupParse {
 
   return {
     ok: true,
-    entries: parsedEntries.entries,
+    words: parsedEntries.entries,
     phrases: parsedPhrases.phrases,
     verbTables: parsedVerbTables.tables,
     settings: parseSettings(rawSettings),
@@ -182,7 +192,7 @@ export function parseBackup(text: string): BackupParse {
 }
 
 export type ImportResult = {
-  terms: ImportCounts;
+  words: ImportCounts;
   phrases: ImportCounts;
   verbTables: ImportCounts;
   /** Whether the file's settings were written over the reader's own. */
@@ -190,7 +200,7 @@ export type ImportResult = {
 };
 
 /** The lists a backup carries, named as `BackupContents` names them. */
-export type BackupList = "entries" | "phrases" | "verbTables";
+export type BackupList = "words" | "phrases" | "verbTables";
 
 /**
  * True when Replace would wipe a list the file carries nothing for.
@@ -235,9 +245,9 @@ export function applyImport(contents: BackupContents, mode: ImportMode): ImportR
   if (settingsRestored && contents.settings) saveSettings(contents.settings);
 
   return {
-    terms: leavesListAlone(contents, "entries", mode)
+    words: leavesListAlone(contents, "words", mode)
       ? { ...NO_IMPORT }
-      : importEntries(contents.entries, mode),
+      : importEntries(contents.words, mode),
     phrases: leavesListAlone(contents, "phrases", mode)
       ? { ...NO_IMPORT }
       : importPhrases(contents.phrases, mode),
