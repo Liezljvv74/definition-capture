@@ -3,6 +3,18 @@
 @theme inline {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+
+  /*
+   * The yellow out of the logo, taken from the artwork rather than matched by
+   * eye: the weighted average of every yellow pixel in `captured-logo-bg.png`.
+   * The welcome panel on the home page is painted with it, so the panel and
+   * the mark in the corner are the same colour and not two near misses.
+   *
+   * It is a light colour in both themes, which is why it carries no dark
+   * variant. Slate 900 on it reads at 10.6:1 and near-white at 1.6:1, so
+   * anything sitting on this stays dark whatever the browser is set to.
+   */
+  --color-logo-yellow: #fcbd15;
 }
 
 html {

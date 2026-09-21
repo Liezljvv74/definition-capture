@@ -17,12 +17,10 @@ export default function HomePage() {
           comes forward, over the cards rather than behind them. */}
       <main data-home-page className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <div className="space-y-8">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
-            <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">
-              A language-learning companion
-            </p>
-
-            <h2 className="max-w-3xl whitespace-nowrap text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
+          {/* The logo's own yellow, and no dark variant: it is a light colour
+              in both themes, so the heading on it stays dark either way. */}
+          <section className="rounded-2xl bg-logo-yellow p-6 shadow-sm sm:p-8">
+            <h2 className="max-w-3xl whitespace-nowrap text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
               Welcome to your personal language study system
             </h2>
           </section>
