@@ -132,7 +132,7 @@ export function EntryForm({
         <p id={`${ids}-term-hint`} className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           {autoSplit
             ? didSplit
-              ? "Split into Term and Definition — edit either field if that isn't right."
+              ? "Split into Term and Definition. Edit either field if that isn't right."
               : "Paste \u201cterm: definition\u201d or \u201cterm - definition\u201d and it splits itself."
             : "The word or concept you want to remember."}
         </p>
@@ -188,7 +188,7 @@ export function EntryForm({
         </div>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           Groups terms that belong together. Up to {MAX_CATEGORIES}
-          {value.categories.length > 0 && ` — ${value.categories.length} chosen`}.
+          {value.categories.length > 0 && `, ${value.categories.length} chosen`}.
         </p>
       </fieldset>
 

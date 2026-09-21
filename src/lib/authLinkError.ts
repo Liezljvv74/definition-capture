@@ -16,7 +16,7 @@
 
 function friendly(code: string, description: string): string {
   if (code === "otp_expired") {
-    return "That sign-in link has expired. Links last an hour and work once — ask for a new one below.";
+    return "That sign-in link has expired. Links last an hour and work once. Ask for a new one below.";
   }
   if (code === "access_denied") {
     return "That sign-in link has already been used. Ask for a new one below.";

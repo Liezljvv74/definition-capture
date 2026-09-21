@@ -91,7 +91,7 @@ export default function SettingsPage() {
         <SettingSection title="Sources">
           <NameListEditor
             legend="Sources"
-            description="Where a definition came from. The Source column sorts by this order, so the order you put them in is the order the list uses — not alphabetical."
+            description="Where a definition came from. The Source column sorts by this order, so the order you put them in is the order the list uses, not alphabetical."
             names={settings.sources}
             onChange={(sources) => saveSettings({ sources })}
             minimum={1}
@@ -207,12 +207,12 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
   const changed = draft.trim() !== displayName;
 
   return (
-    <SettingSection title="Profile" summary={displayName || user?.email || "—"}>
+    <SettingSection title="Profile" summary={displayName || user?.email || "Not set"}>
       <dl>
         <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
           Signed in as
         </dt>
-        <dd className="mt-1 text-sm break-words">{user?.email ?? "—"}</dd>
+        <dd className="mt-1 text-sm break-words">{user?.email ?? "Not set"}</dd>
       </dl>
       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
         The address itself is the account. You can sign in with a one-time
@@ -425,7 +425,7 @@ function ExportFolderSection() {
         </Link>{" "}
         writes its files. The Excel workbook and the JSON backup both go here,
         and their names do not change. This one is remembered for this browser
-        only — a folder cannot follow an account to another machine.
+        only. A folder cannot follow an account to another machine.
       </p>
 
       {error && (
@@ -468,7 +468,7 @@ function ExportFolderSection() {
       ) : (
         <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
           This browser cannot hand a folder to a web page, so exports go to its
-          own download folder — change that in the browser&rsquo;s settings.
+          own download folder. Change that in the browser&rsquo;s settings.
           Choosing a folder here works in Chrome and Edge.
         </p>
       )}

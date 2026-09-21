@@ -191,7 +191,7 @@ function describe(cause: unknown, folder: string): string {
     return `Definition Capture is no longer allowed to write to "${folder}".`;
   }
   if (name === "NoModificationAllowedError") {
-    return `The file could not be written to "${folder}" — something else may have it open.`;
+    return `The file could not be written to "${folder}" : something else may have it open.`;
   }
   return `The export could not be written to "${folder}".`;
 }

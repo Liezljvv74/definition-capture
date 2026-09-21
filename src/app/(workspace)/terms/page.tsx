@@ -573,7 +573,7 @@ function EmptyTerms({ onAdd }: { onAdd: () => void }) {
       <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
         Definition Capture is a place to park the words and concepts you meet while studying, so
         you can search and review them later. Save a term now and write the definition whenever
-        you like — blank ones get flagged so they are easy to find again.
+        you like. Blank ones get flagged so they are easy to find again.
       </p>
       <button type="button" className="btn btn-primary mt-5" onClick={onAdd}>
         <span aria-hidden="true">+</span> Add your first term

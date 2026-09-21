@@ -92,7 +92,7 @@ function PhraseDetailCard({
       <article className="card p-5 sm:p-7">
         <h1 className="text-2xl font-semibold tracking-tight">{phrase.phrase}</h1>
 
-        <Field label="Literal meaning" empty="No literal meaning yet — use Edit to fill it in.">
+        <Field label="Literal meaning" empty="No literal meaning yet. Use Edit to fill it in.">
           {phrase.literalMeaning && (
             <p className="whitespace-pre-wrap text-slate-800 dark:text-slate-200">
               {phrase.literalMeaning}
@@ -166,7 +166,7 @@ function PhraseNotFound() {
       <h1 className="text-lg font-semibold">Phrase not found</h1>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
         There is no phrase with that ID in your list. It may have been deleted, or the link
-        may point to a phrase in a different account — your list follows the account you are
+        may point to a phrase in a different account, since your list follows the account you are
         signed in to.
       </p>
       <Link href="/phrases" className="btn btn-primary mt-5">

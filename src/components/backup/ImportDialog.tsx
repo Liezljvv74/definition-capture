@@ -268,21 +268,21 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
           <p className="font-medium break-all">{file.name}</p>
           <ul className="mt-1 space-y-0.5 text-slate-600 dark:text-slate-300">
             <li>
-              {terms} {terms === 1 ? "term" : "terms"} — {terms - preview.matchingTerms} new
+              {terms} {terms === 1 ? "term" : "terms"}: {terms - preview.matchingTerms} new
               to you, {preview.matchingTerms} of your {entries.length} already saved.
             </li>
             <li>
-              {phraseCount} {phraseCount === 1 ? "phrase" : "phrases"} —{" "}
+              {phraseCount} {phraseCount === 1 ? "phrase" : "phrases"}:{" "}
               {phraseCount - preview.matchingPhrases} new to you,{" "}
               {preview.matchingPhrases} of your {phrases.length} already saved.
             </li>
             <li>
-              {verbTables} {verbTables === 1 ? "verb table" : "verb tables"} —{" "}
+              {verbTables} {verbTables === 1 ? "verb table" : "verb tables"}:{" "}
               {verbTables - preview.matchingVerbTables} new to you,{" "}
               {preview.matchingVerbTables} of your {tables.length} already saved.
             </li>
             <li>
-              {grammarRules} {grammarRules === 1 ? "grammar rule" : "grammar rules"} —{" "}
+              {grammarRules} {grammarRules === 1 ? "grammar rule" : "grammar rules"}:{" "}
               {grammarRules - preview.matchingGrammarRules} new to you,{" "}
               {preview.matchingGrammarRules} of your {rules.length} already saved.
             </li>
@@ -290,7 +290,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
               {!contents.settings
                 ? "No settings in this file; yours will be left alone."
                 : restoresSettings(contents, mode)
-                  ? "Settings included — these will replace your own."
+                  ? "Settings included. These will replace your own."
                   : "Settings included, but this option leaves your own alone."}
             </li>
           </ul>
