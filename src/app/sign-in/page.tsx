@@ -42,7 +42,7 @@ export default function SignInPage() {
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-4 py-12 sm:px-6">
       <div className="card p-6">
-        <h1 className="text-xl font-semibold">Sign in to your terms</h1>
+        <h1 className="text-xl font-semibold">Sign in to start</h1>
 
         {!isSupabaseConfigured ? (
           // A build with no credentials would otherwise show a sign-in form
