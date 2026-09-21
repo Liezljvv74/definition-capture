@@ -13,6 +13,7 @@ import {
 } from "@/components/DeleteControls";
 import { EditTermDialog } from "@/components/EditTermDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { EmptyCell } from "@/components/EmptyCell";
 import { RowEditButton } from "@/components/RowEditButton";
 import { sourceOrder } from "@/lib/constants";
 import { deleteEntries } from "@/lib/storage";
@@ -440,9 +441,7 @@ function EntryTable({
                       ))}
                     </div>
                   ) : (
-                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
-                      —
-                    </span>
+                    <EmptyCell />
                   )}
                 </td>
                 <td className="px-4 py-3 align-top">
@@ -454,9 +453,7 @@ function EntryTable({
                       <RefText value={entry.ref} linkIndex={linkIndex} />
                     </span>
                   ) : (
-                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
-                      —
-                    </span>
+                    <EmptyCell />
                   )}
                 </td>
                 <td className="px-3 py-3 align-top">

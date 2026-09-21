@@ -208,27 +208,25 @@ export type ImportResult = {
   settingsRestored: boolean;
 };
 
-/** True when Replace would wipe a list the file carries nothing for. */
-export function leavesTermsAlone(contents: BackupContents, mode: ImportMode): boolean {
-  return mode === "replace" && contents.entries.length === 0;
-}
+/** The lists a backup carries, named as `BackupContents` names them. */
+export type BackupList = "entries" | "phrases" | "verbTables" | "grammarRules";
 
-export function leavesPhrasesAlone(contents: BackupContents, mode: ImportMode): boolean {
-  return mode === "replace" && contents.phrases.length === 0;
-}
-
-export function leavesVerbTablesAlone(
+/**
+ * True when Replace would wipe a list the file carries nothing for.
+ *
+ * One function keyed on the list rather than four near-identical ones. They
+ * differed only in which array they measured, and this is the predicate that
+ * decides whether a restore deletes something, so four chances to get it
+ * subtly different was three too many. The key is checked against
+ * `BackupContents`, so a misspelling is a compile error rather than a
+ * predicate that quietly answers false and lets the delete through.
+ */
+export function leavesListAlone(
   contents: BackupContents,
+  list: BackupList,
   mode: ImportMode,
 ): boolean {
-  return mode === "replace" && contents.verbTables.length === 0;
-}
-
-export function leavesGrammarRulesAlone(
-  contents: BackupContents,
-  mode: ImportMode,
-): boolean {
-  return mode === "replace" && contents.grammarRules.length === 0;
+  return mode === "replace" && contents[list].length === 0;
 }
 
 /**
@@ -256,16 +254,16 @@ export function applyImport(contents: BackupContents, mode: ImportMode): ImportR
   if (settingsRestored && contents.settings) saveSettings(contents.settings);
 
   return {
-    terms: leavesTermsAlone(contents, mode)
+    terms: leavesListAlone(contents, "entries", mode)
       ? { ...NO_IMPORT }
       : importEntries(contents.entries, mode),
-    phrases: leavesPhrasesAlone(contents, mode)
+    phrases: leavesListAlone(contents, "phrases", mode)
       ? { ...NO_IMPORT }
       : importPhrases(contents.phrases, mode),
-    verbTables: leavesVerbTablesAlone(contents, mode)
+    verbTables: leavesListAlone(contents, "verbTables", mode)
       ? { ...NO_IMPORT }
       : importVerbTables(contents.verbTables, mode),
-    grammarRules: leavesGrammarRulesAlone(contents, mode)
+    grammarRules: leavesListAlone(contents, "grammarRules", mode)
       ? { ...NO_IMPORT }
       : importGrammarRules(contents.grammarRules, mode),
     settingsRestored,

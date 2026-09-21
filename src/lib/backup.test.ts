@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  leavesPhrasesAlone,
-  leavesTermsAlone,
-  leavesVerbTablesAlone,
+  leavesListAlone,
   parseBackup,
   restoresSettings,
   type BackupContents,
@@ -144,9 +142,9 @@ describe("parseBackup — reads", () => {
 describe("Replace only touches the lists the file carries", () => {
   it("leaves every other list alone when the file has terms only", () => {
     const only = contents({ entries: [entry("Tür")] });
-    expect(leavesTermsAlone(only, "replace")).toBe(false);
-    expect(leavesPhrasesAlone(only, "replace")).toBe(true);
-    expect(leavesVerbTablesAlone(only, "replace")).toBe(true);
+    expect(leavesListAlone(only, "entries", "replace")).toBe(false);
+    expect(leavesListAlone(only, "phrases", "replace")).toBe(true);
+    expect(leavesListAlone(only, "verbTables", "replace")).toBe(true);
     expect(restoresSettings(only, "replace")).toBe(false);
   });
 
@@ -155,17 +153,17 @@ describe("Replace only touches the lists the file carries", () => {
       entries: [entry("Tür")],
       phrases: [phrase("guten Tag")],
     });
-    expect(leavesTermsAlone(both, "replace")).toBe(false);
-    expect(leavesPhrasesAlone(both, "replace")).toBe(false);
+    expect(leavesListAlone(both, "entries", "replace")).toBe(false);
+    expect(leavesListAlone(both, "phrases", "replace")).toBe(false);
   });
 
   it("never counts as leaving anything alone in the merge modes", () => {
     // "Leaves alone" is a Replace concept; skip and update never delete.
     const empty = contents();
     for (const mode of ["skip", "update"] as const) {
-      expect(leavesTermsAlone(empty, mode)).toBe(false);
-      expect(leavesPhrasesAlone(empty, mode)).toBe(false);
-      expect(leavesVerbTablesAlone(empty, mode)).toBe(false);
+      expect(leavesListAlone(empty, "entries", mode)).toBe(false);
+      expect(leavesListAlone(empty, "phrases", mode)).toBe(false);
+      expect(leavesListAlone(empty, "verbTables", mode)).toBe(false);
     }
   });
 });

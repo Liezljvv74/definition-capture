@@ -11,10 +11,7 @@ import {
 import { Modal } from "@/components/Modal";
 import {
   applyImport,
-  leavesPhrasesAlone,
-  leavesTermsAlone,
-  leavesGrammarRulesAlone,
-  leavesVerbTablesAlone,
+  leavesListAlone,
   parseBackup,
   restoresSettings,
   type BackupContents,
@@ -200,25 +197,25 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             label="Terms"
             saved={entries.length}
             incoming={contents.entries.length}
-            untouched={leavesTermsAlone(contents, "replace")}
+            untouched={leavesListAlone(contents, "entries", "replace")}
           />
           <ReplaceLine
             label="Phrases"
             saved={phrases.length}
             incoming={contents.phrases.length}
-            untouched={leavesPhrasesAlone(contents, "replace")}
+            untouched={leavesListAlone(contents, "phrases", "replace")}
           />
           <ReplaceLine
             label="Verb tables"
             saved={tables.length}
             incoming={contents.verbTables.length}
-            untouched={leavesVerbTablesAlone(contents, "replace")}
+            untouched={leavesListAlone(contents, "verbTables", "replace")}
           />
           <ReplaceLine
             label="Grammar rules"
             saved={rules.length}
             incoming={contents.grammarRules.length}
-            untouched={leavesGrammarRulesAlone(contents, "replace")}
+            untouched={leavesListAlone(contents, "grammarRules", "replace")}
           />
           <li className="flex flex-wrap gap-x-1.5">
             <span className="font-medium">Settings:</span>

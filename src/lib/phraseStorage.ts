@@ -44,6 +44,7 @@ const store = createRemoteStore<Phrase>({
   table: "phrases",
   orderBy: "created_at",
   idOf: (phrase) => phrase.id,
+  nameOf: (phrase) => phrase.phrase,
 
   fromRow(row) {
     const id = readString(row.id);
@@ -101,15 +102,7 @@ export function updatePhrase(id: string, input: PhraseInput): Phrase | null {
   return updated;
 }
 
-/** The term list's `deleteEntries` for phrases: many removals, one write. */
-export function deletePhrases(ids: readonly string[]): number {
-  const present = new Set(store.items().map((phrase) => phrase.id));
-  const doomed = [...new Set(ids)].filter((id) => present.has(id));
-  if (doomed.length === 0) return 0;
-
-  store.remove(doomed);
-  return doomed.length;
-}
+export const deletePhrases = store.removeMany;
 
 /* ----------------------------------------------------------------- queries */
 
@@ -118,15 +111,7 @@ export function getPhrases(): Phrase[] {
 }
 
 /** Case-insensitive lookup, used for the duplicate check before saving. */
-export function findByPhrase(text: string, ignoreId?: string): Phrase | undefined {
-  const needle = foldName(text);
-  if (!needle) return undefined;
-  return store
-    .items()
-    .find(
-      (phrase) => phrase.id !== ignoreId && foldName(phrase.phrase) === needle,
-    );
-}
+export const findByPhrase = store.findByName;
 
 /* ------------------------------------------------------------------ import */
 

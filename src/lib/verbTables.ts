@@ -27,6 +27,7 @@ const store = createRemoteStore<VerbTable>({
   table: "verb_tables",
   orderBy: "created_at",
   idOf: (table) => table.id,
+  nameOf: (table) => table.verb,
 
   fromRow(row) {
     const id = readString(row.id);
@@ -67,13 +68,7 @@ export function getVerbTables(): VerbTable[] {
 }
 
 /** The table for a verb, matched the way the term list matches its names. */
-function findVerbTable(verb: string): VerbTable | undefined {
-  const needle = foldName(verb);
-  if (!needle) return undefined;
-  return store
-    .items()
-    .find((table) => foldName(table.verb) === needle);
-}
+const findVerbTable = store.findByName;
 
 /* --------------------------------------------------------------- mutations */
 

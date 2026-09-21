@@ -12,6 +12,7 @@ import {
 } from "@/components/DeleteControls";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { EmptyCell } from "@/components/EmptyCell";
 import { RowEditButton } from "@/components/RowEditButton";
 import { deletePhrases } from "@/lib/phraseStorage";
 import { compareText } from "@/lib/sortName";
@@ -322,14 +323,14 @@ function PhraseTable({
                   {phrase.literalMeaning ? (
                     <span className="line-clamp-3">{phrase.literalMeaning}</span>
                   ) : (
-                    <Dash />
+                    <EmptyCell />
                   )}
                 </td>
                 <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
                   {phrase.usageExample ? (
                     <span className="line-clamp-3 italic">{phrase.usageExample}</span>
                   ) : (
-                    <Dash />
+                    <EmptyCell />
                   )}
                 </td>
                 <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
@@ -338,7 +339,7 @@ function PhraseTable({
                       <RefText value={phrase.ref} linkIndex={linkIndex} />
                     </span>
                   ) : (
-                    <Dash />
+                    <EmptyCell />
                   )}
                 </td>
                 <td className="px-3 py-3 align-top">
@@ -359,13 +360,6 @@ function PhraseTable({
   );
 }
 
-function Dash() {
-  return (
-    <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
-      —
-    </span>
-  );
-}
 
 /* ------------------------------------------------------------------ cards  */
 

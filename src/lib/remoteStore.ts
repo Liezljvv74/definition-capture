@@ -19,6 +19,7 @@
  * show. Losing a write silently would be worse than an ugly banner.
  */
 
+import { foldName } from "@/lib/foldName";
 import { currentUserId, subscribe as subscribeToSession } from "@/lib/session";
 import { getSupabase } from "@/lib/supabaseClient";
 
@@ -42,6 +43,18 @@ export type RemoteStore<T> = {
   update: (item: T) => void;
   /** Remove every listed id in one write. */
   remove: (ids: readonly string[]) => void;
+  /**
+   * Remove every listed id that is actually present, in one write, and say
+   * how many went. Ignores ids the list does not hold, so a stale selection
+   * cannot make the count lie.
+   */
+  removeMany: (ids: readonly string[]) => number;
+  /**
+   * The item with this name, folded the way `foldName` folds every name in
+   * the app. `ignoreId` is for the duplicate check while editing, where the
+   * item being renamed must not count as a clash with itself.
+   */
+  findByName: (name: string, ignoreId?: string) => T | undefined;
   /** Throw the whole list away and store these instead — a backup restore. */
   replaceAll: (items: T[]) => void;
   /** Store many new items in one write — the localStorage import. */
@@ -188,6 +201,12 @@ export type RemoteStoreConfig<T> = {
   toRow: (item: T) => Row;
   /** Reads the id off an app object. */
   idOf: (item: T) => string;
+  /**
+   * Reads the name an item is known by: the term, the phrase, the verb, the
+   * rule's title. Every list has one, and every list matches on it the same
+   * way, which is what lets `findByName` live here instead of four times over.
+   */
+  nameOf: (item: T) => string;
 };
 
 export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<T> {
@@ -336,6 +355,21 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
     void settling.finally(() => inFlight.delete(settling));
   }
 
+  /**
+   * Shared by `remove` and `removeMany`. A plain function rather than a
+   * method reaching through `this`, because the stores hand these out
+   * detached: `export const deleteEntries = store.removeMany`. A detached
+   * method has no `this`, so it would throw the moment it was called.
+   */
+  function removeIds(ids: readonly string[]): void {
+    if (ids.length === 0) return;
+    const doomed = new Set(ids);
+    setItems(snapshot.items.filter((item) => !doomed.has(config.idOf(item))));
+
+    const supabase = getSupabase();
+    if (supabase) send(supabase.from(config.table).delete().in("id", [...doomed]));
+  }
+
   function rowFor(item: T, userId: string): Row {
     return { ...config.toRow(item), user_id: userId };
   }
@@ -389,14 +423,22 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
       }
     },
 
-    remove(ids) {
-      if (ids.length === 0) return;
-      const doomed = new Set(ids);
-      setItems(snapshot.items.filter((item) => !doomed.has(config.idOf(item))));
-
-      const supabase = getSupabase();
-      if (supabase) send(supabase.from(config.table).delete().in("id", [...doomed]));
+    removeMany(ids) {
+      const present = new Set(snapshot.items.map(config.idOf));
+      const doomed = [...new Set(ids)].filter((id) => present.has(id));
+      removeIds(doomed);
+      return doomed.length;
     },
+
+    findByName(name, ignoreId) {
+      const needle = foldName(name);
+      if (!needle) return undefined;
+      return snapshot.items.find(
+        (item) => config.idOf(item) !== ignoreId && foldName(config.nameOf(item)) === needle,
+      );
+    },
+
+    remove: removeIds,
 
     replaceAll(items) {
       const userId = currentUserId();
