@@ -13,7 +13,9 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      {/* The marker `globals.css` looks for: on this page alone the logo
+          comes forward, over the cards rather than behind them. */}
+      <main data-home-page className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <div className="space-y-8">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
             <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">

@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 }
 
 /**
- * The logo as a page backdrop, shaded 70% — the artwork is laid over the page
+ * The logo as a page backdrop, shaded 70%: the artwork is laid over the page
  * colour at 30% strength, which is the same thing as covering it with 70% of
  * that colour, but in one layer instead of two.
  *
@@ -37,12 +37,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
  * backdrop instead of dragging a picture up the screen, and behind everything
  * (`-z-10`) with pointer events off so it can never intercept a click. The
  * cards and headers above it are opaque, which keeps every table row at full
- * contrast — the logo shows through the page margins.
+ * contrast, and the logo shows through the page margins.
+ *
+ * One layer for the whole app, not one per page. The home page wants it in
+ * front of its cards instead of behind them, and `globals.css` lifts this
+ * same element rather than drawing a second copy: two copies of one image at
+ * one position would stack in the margins and not over the cards, leaving a
+ * visible step wherever a card edge crossed the artwork. `data-page-backdrop`
+ * is the handle that rule reaches for.
  */
 function PageBackground() {
   return (
     <div
       aria-hidden="true"
+      data-page-backdrop
       className="pointer-events-none fixed inset-0 -z-10 bg-center bg-no-repeat
         [--logo-shade:70%] [background-size:min(70vmin,640px)]"
       style={{
