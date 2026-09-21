@@ -69,8 +69,8 @@ export type RemoteStore<T> = {
    * `subscribe` doubles as "someone is looking at this list, go and fetch
    * it", which is right for a page showing the list and wrong for the banner.
    * The banner sits in the workspace layout and only ever reads `error`, so
-   * subscribing normally made every page — Settings, Grammar, Verbs — fetch
-   * the terms and phrases it had no intention of showing.
+   * subscribing normally made every page, Settings and Verbs included,
+   * fetch the terms and phrases it had no intention of showing.
    */
   subscribeToError: (listener: () => void) => () => void;
   getError: () => string | null;

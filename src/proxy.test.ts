@@ -74,7 +74,7 @@ beforeEach(() => {
 
 describe("the route table this file tests", () => {
   it("found the workspace pages, so the tests below are not vacuous", () => {
-    expect(protectedPaths.length).toBeGreaterThanOrEqual(8);
+    expect(protectedPaths.length).toBeGreaterThanOrEqual(7);
     expect(protectedPaths).toContain("/terms/");
     expect(protectedPaths).toContain("/settings/");
   });

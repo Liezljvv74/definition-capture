@@ -2,9 +2,9 @@
 
 # Definition Capture
 
-A personal glossary: terms, phrases, verb conjugation tables, and grammar
-rules, private to each signed-in account. Every list is stored in Supabase and
-scoped to its owner.
+A personal glossary: terms, phrases, and verb conjugation tables, private to
+each signed-in account. Every list is stored in Supabase and scoped to its
+owner.
 
 ## Stack
 

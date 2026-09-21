@@ -129,7 +129,6 @@ too. What changes is only what is suggested for new ones.
   `[[Name]]` links resolve. `?verb=arbeiten` opens that table; `?new=arbeiten` makes it
   first — asking who verbs conjugate for if that has never been answered — and then opens
   it. Both are what the Edit term screen links to.
-- **`/grammar`** — a heading and nothing else yet.
 - **`/settings`** — reached from the account menu at the right of the nav rather than
   from the tabs, which belong to the two lists. Seven sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
@@ -151,7 +150,7 @@ the server, but the URLs are kept — they are saved in `[[Name]]` refs and past
 and breaking them to gain a tidier path would be a poor trade.
 
 A thin nav bar at the top of every page carries the Captured logo in the top left corner
-and switches between Glossary, Verbs, and Grammar. There is no Home tab — the logo is the
+and switches between Glossary and Verbs. There is no Home tab: the logo is the
 way home, and two controls for one destination is one too many. Each tab decides for
 itself which paths light it up, so a `/term?id=…` or `/phrase?id=…` page keeps Glossary
 lit.
@@ -479,7 +478,6 @@ src/
       term/page.tsx         one term by ?id=, read-only plus Edit
       phrase/page.tsx       one phrase by ?id=, read-only plus Edit
       verbs/page.tsx        the conjugation tables, one rolled-up card each
-      grammar/page.tsx      a heading for now
       settings/page.tsx     profile, password, the lists, exports
   components/
     AddTermDialog.tsx     add-term flow, including the duplicate prompt

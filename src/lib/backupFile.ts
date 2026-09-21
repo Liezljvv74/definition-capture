@@ -91,8 +91,7 @@ function countOf(backup: Backup): number {
   return (
     backup.entries.length +
     backup.phrases.length +
-    backup.verbTables.length +
-    backup.grammarRules.length
+    backup.verbTables.length
   );
 }
 
@@ -187,21 +186,6 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
     ],
   };
 
-  const grammar: Sheet<Blob> = {
-    sheet: "Grammar rules",
-    columns: [{ width: 28 }, { width: 18 }, { width: 55 }, { width: 45 }, { width: 30 }],
-    data: [
-      headerRow(["Title", "Category", "Explanation", "Examples", "Ref"]),
-      ...backup.grammarRules.map<Row>((rule) => [
-        { value: rule.title, type: String },
-        { value: rule.category, type: String },
-        { value: rule.explanation, type: String, wrap: true },
-        { value: rule.examples, type: String, wrap: true },
-        { value: rule.ref, type: String },
-      ]),
-    ],
-  };
-
   // A workbook must have at least one sheet, so a scoped export drops the
   // others. Listed by what is included rather than excluded, for the reason
   // `buildBackup` gives.
@@ -209,7 +193,6 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
     ["terms", terms],
     ["phrases", phrases],
     ["verbs", verbs],
-    ["grammar", grammar],
   ];
   const sheets = all
     .filter(([list]) => scope === "all" || scope === list)

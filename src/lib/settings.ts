@@ -1,8 +1,8 @@
 /**
- * Per-account settings: the display name, and the two lists the term form
- * offers. One row in `public.user_settings`, or none at all — an account that
- * has never changed anything has no row, and reads as the defaults in
- * `constants.ts`. The row is created by the first save.
+ * Per-account settings: the display name, and the lists the forms offer. One
+ * row in `public.user_settings`, or none at all. An account that has never
+ * changed anything has no row, and reads as the defaults in `constants.ts`.
+ * The row is created by the first save.
  *
  * Shaped like the list stores in `remoteStore.ts` and read the same way, but
  * deliberately not built on them: that factory is about a list of rows with
@@ -11,12 +11,7 @@
  * putting the truth back when a write fails.
  */
 
-import {
-  DEFAULT_CATEGORIES,
-  DEFAULT_GRAMMAR_CATEGORIES,
-  DEFAULT_SOURCES,
-  MAX_LIST_LENGTH,
-} from "@/lib/constants";
+import { DEFAULT_CATEGORIES, DEFAULT_SOURCES, MAX_LIST_LENGTH } from "@/lib/constants";
 import {
   ABANDONED,
   readError,
@@ -30,10 +25,8 @@ import { readNameList, readString } from "@/lib/types";
 
 export type Settings = {
   displayName: string;
-  /** The groups the term form offers. A term may still carry only three. */
+  /** The groups the term and phrase forms offer. One entry may carry three. */
   categories: string[];
-  /** The groups the grammar form offers. A rule carries exactly one, or none. */
-  grammarCategories: string[];
   /** In the reader's own order, which is what the Source column sorts by. */
   sources: string[];
   /**
@@ -49,7 +42,6 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Settings = {
   displayName: "",
   categories: [...DEFAULT_CATEGORIES],
-  grammarCategories: [...DEFAULT_GRAMMAR_CATEGORIES],
   sources: [...DEFAULT_SOURCES],
   // Deliberately empty: there is no sensible default set of persons, and
   // emptiness is the signal to ask.
@@ -83,17 +75,12 @@ function publish(next: SettingsSnapshot): void {
 function fromRow(row: Record<string, unknown> | null): Settings {
   if (!row) return DEFAULT_SETTINGS;
   const categories = readNameList(row.categories, MAX_LIST_LENGTH);
-  const grammarCategories = readNameList(row.grammar_categories, MAX_LIST_LENGTH);
   const sources = readNameList(row.sources, MAX_LIST_LENGTH);
   return {
     displayName: readString(row.display_name).trim(),
     // An empty stored list means the defaults rather than nothing to pick
     // from — a form with no options is not a state worth honouring.
     categories: categories.length > 0 ? categories : [...DEFAULT_CATEGORIES],
-    grammarCategories:
-      grammarCategories.length > 0
-        ? grammarCategories
-        : [...DEFAULT_GRAMMAR_CATEGORIES],
     sources: sources.length > 0 ? sources : [...DEFAULT_SOURCES],
     // No fallback here: empty is a real answer, meaning not asked yet.
     verbPersons: readNameList(row.verb_persons, MAX_LIST_LENGTH),
@@ -206,17 +193,12 @@ export function parseSettings(raw: unknown): Settings | null {
   const value = raw as Record<string, unknown>;
 
   const categories = readNameList(value.categories, MAX_LIST_LENGTH);
-  const grammarCategories = readNameList(value.grammarCategories, MAX_LIST_LENGTH);
   const sources = readNameList(value.sources, MAX_LIST_LENGTH);
   return {
     displayName: readString(value.displayName).trim(),
     // Same fallbacks as `fromRow`: a form with no options to pick from is not
     // a state worth restoring into.
     categories: categories.length > 0 ? categories : [...DEFAULT_CATEGORIES],
-    grammarCategories:
-      grammarCategories.length > 0
-        ? grammarCategories
-        : [...DEFAULT_GRAMMAR_CATEGORIES],
     sources: sources.length > 0 ? sources : [...DEFAULT_SOURCES],
     // No fallback: empty is a real answer, meaning not asked yet.
     verbPersons: readNameList(value.verbPersons, MAX_LIST_LENGTH),
@@ -258,10 +240,6 @@ export function saveSettings(change: Partial<Settings>): void {
       change.categories ?? snapshot.settings.categories,
       MAX_LIST_LENGTH,
     ),
-    grammarCategories: readNameList(
-      change.grammarCategories ?? snapshot.settings.grammarCategories,
-      MAX_LIST_LENGTH,
-    ),
     sources: readNameList(change.sources ?? snapshot.settings.sources, MAX_LIST_LENGTH),
     verbPersons: readNameList(
       change.verbPersons ?? snapshot.settings.verbPersons,
@@ -289,7 +267,6 @@ export function saveSettings(change: Partial<Settings>): void {
         user_id: userId,
         display_name: next.displayName,
         categories: next.categories,
-        grammar_categories: next.grammarCategories,
         sources: next.sources,
         verb_persons: next.verbPersons,
         verb_tenses: next.verbTenses,

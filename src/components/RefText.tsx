@@ -5,28 +5,20 @@ import { useMemo } from "react";
 
 import { foldName } from "@/lib/foldName";
 import { parseRef } from "@/lib/parseRef";
-import type { Entry, GrammarRule, Phrase } from "@/lib/types";
+import type { Entry, Phrase } from "@/lib/types";
 
 /** Folded name (see `foldName`) → the page it lives on, so `[[Name]]` finds it. */
 export type LinkIndex = Map<string, string>;
 
 /**
- * Every list shares one namespace, so a `[[Name]]` can point at any of them.
+ * Both lists share one namespace, so a `[[Name]]` can point at either of them.
  *
  * Built lowest precedence first, because a later `set` wins a name clash:
- * grammar rules, then phrases, then terms. Terms stay on top — they are the
- * most specific thing to link to, and that was the rule before grammar rules
- * existed, so adding a third list must not quietly re-point existing links.
+ * phrases, then terms. Terms stay on top, being the most specific thing
+ * to link to, so a list added later must not quietly re-point existing links.
  */
-export function buildLinkIndex(
-  entries: Entry[],
-  phrases: Phrase[] = [],
-  rules: GrammarRule[] = [],
-): LinkIndex {
+export function buildLinkIndex(entries: Entry[], phrases: Phrase[] = []): LinkIndex {
   const index: LinkIndex = new Map();
-  for (const rule of rules) {
-    index.set(foldName(rule.title), `/grammar?rule=${rule.id}`);
-  }
   for (const phrase of phrases) {
     index.set(foldName(phrase.phrase), `/phrase?id=${phrase.id}`);
   }

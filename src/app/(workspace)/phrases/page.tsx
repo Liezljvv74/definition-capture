@@ -26,7 +26,6 @@ import type { Phrase } from "@/lib/types";
 const idOfPhrase = (phrase: Phrase) => phrase.id;
 const nameOfPhrase = (phrase: Phrase) => phrase.phrase;
 
-import { useGrammarRules } from "@/lib/useGrammarRules";
 import { useTerms } from "@/lib/useTerms";
 import { useListPage } from "@/lib/useListPage";
 import { type ListSelection } from "@/lib/useListSelection";
@@ -54,7 +53,6 @@ const COLUMNS: { key?: PhraseSortKey; label: string; className?: string }[] = [
 
 export default function PhrasesPage() {
   const { phrases, loaded } = usePhrases();
-  const { rules } = useGrammarRules();
   const wide = useWideScreen();
   const { entries } = useTerms();
   const { settings } = useSettings();
@@ -79,10 +77,7 @@ export default function PhrasesPage() {
     return [...byKey.values()].sort(compareText);
   }, [phrases, settings.categories]);
 
-  const linkIndex = useMemo(
-    () => buildLinkIndex(entries, phrases, rules),
-    [entries, phrases, rules],
-  );
+  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
 
   const visible = useMemo(() => {
     const needle = foldName(query);

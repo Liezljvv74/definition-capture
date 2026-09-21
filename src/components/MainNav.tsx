@@ -41,11 +41,6 @@ function inGlossary(path: string): boolean {
  */
 const LINKS = [
   { href: "/verbs", label: "Verbs", isActive: (path: string) => path.startsWith("/verbs") },
-  {
-    href: "/grammar",
-    label: "Grammar",
-    isActive: (path: string) => path.startsWith("/grammar"),
-  },
 ] as const;
 
 /**
@@ -172,8 +167,8 @@ export function MainNav() {
         {/*
          * Backup is a tab rather than a pair of buttons on the two list
          * pages. Exporting is about the account, not the page you happen to
-         * be standing on — and repeating the controls per page meant Verbs
-         * and Grammar never got them at all.
+         * be standing on, and repeating the controls per page meant Verbs
+         * never got them at all.
          */}
         <BackupMenu />
 

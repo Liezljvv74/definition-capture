@@ -19,7 +19,6 @@ import { RowEditButton } from "@/components/RowEditButton";
 import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
 import { foldName } from "@/lib/foldName";
-import { useGrammarRules } from "@/lib/useGrammarRules";
 import { useTerms } from "@/lib/useTerms";
 import { useWideScreen } from "@/lib/useWideScreen";
 import { useListPage } from "@/lib/useListPage";
@@ -59,7 +58,6 @@ function compare(a: Entry, b: Entry, key: SortKey): number {
 
 export default function TermsPage() {
   const { entries, loaded } = useTerms();
-  const { rules } = useGrammarRules();
   const wide = useWideScreen();
   const { phrases } = usePhrases();
   const [isAdding, setIsAdding] = useState(false);
@@ -141,10 +139,7 @@ export default function TermsPage() {
     pendingNames,
   } = useListPage(visible, idOfEntry, nameOfEntry);
 
-  const linkIndex = useMemo(
-    () => buildLinkIndex(entries, phrases, rules),
-    [entries, phrases, rules],
-  );
+  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
   const isFiltered = query.trim() !== "" || onlyNeedsDefinition || category !== "";
 

@@ -18,8 +18,8 @@ import { useSession } from "@/lib/useSession";
 import { useSettings } from "@/lib/useSettings";
 
 /**
- * Settings: who you are, the two lists the term form offers, and where
- * exports are written. Reached from the account menu rather than the main
+ * Settings: who you are, the lists the forms offer, and where exports are
+ * written. Reached from the account menu rather than the main
  * tabs, which belong to the two lists.
  *
  * Every section is rolled up to its name and what it is currently set to, so
@@ -62,29 +62,18 @@ export default function SettingsPage() {
         <PasswordSection />
 
         {/*
-         * Two category lists, not one. They were a single list while grammar
-         * rules did not exist; sharing it now would offer Food and Travel on
-         * the grammar form and Cases and Word order on the term form. The
-         * names say which is which, because "Categories" alone no longer
-         * answers the question.
+         * "Glossary Categories" rather than "Categories": the one list is
+         * offered on the term form and the phrase form alike, and naming the
+         * section after the tab those two share says so without spelling out
+         * both.
          */}
         <SettingSection title="Glossary Categories">
           <NameListEditor
             legend="Glossary Categories"
-            description={`The groups the term form offers. A term can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on any term already filed under it.`}
+            description={`The groups the term and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on anything already filed under it.`}
             names={settings.categories}
             onChange={(categories) => saveSettings({ categories })}
             placeholder="e.g. Travel"
-          />
-        </SettingSection>
-
-        <SettingSection title="Grammar Categories">
-          <NameListEditor
-            legend="Grammar Categories"
-            description="The groups the grammar form offers. A rule carries one, or none at all. Removing one here leaves it on any rule already filed under it."
-            names={settings.grammarCategories}
-            onChange={(grammarCategories) => saveSettings({ grammarCategories })}
-            placeholder="e.g. Cases"
           />
         </SettingSection>
 

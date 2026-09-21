@@ -20,8 +20,8 @@ export default function HomePage() {
               A language-learning companion
             </p>
 
-            <h2 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
-              Welcome to your personal language study system.
+            <h2 className="max-w-3xl whitespace-nowrap text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
+              Welcome to your personal language study system
             </h2>
 
             <div className="mt-5 max-w-3xl space-y-4 text-base leading-7 text-slate-700 dark:text-slate-300">
@@ -50,7 +50,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Link
               href="/terms"
               className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500 dark:hover:bg-slate-800"
@@ -87,19 +87,6 @@ export default function HomePage() {
               <h3 className="mt-3 text-xl font-semibold text-slate-900 dark:text-slate-50">Verbs</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                 Track conjugation patterns and keep the grammar pieces that matter most close at hand.
-              </p>
-            </Link>
-
-            <Link
-              href="/grammar"
-              className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500 dark:hover:bg-slate-800"
-            >
-              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                Build
-              </p>
-              <h3 className="mt-3 text-xl font-semibold text-slate-900 dark:text-slate-50">Grammar</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                Keep a record of the structures and patterns that make your language feel clearer.
               </p>
             </Link>
           </section>

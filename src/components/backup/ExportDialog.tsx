@@ -16,7 +16,6 @@ import {
   clearExportFolder,
   ExportFolderError,
 } from "@/lib/exportFolder";
-import { useGrammarRules } from "@/lib/useGrammarRules";
 import { useTerms } from "@/lib/useTerms";
 import { usePhrases } from "@/lib/usePhrases";
 import { useVerbTables } from "@/lib/useVerbTables";
@@ -37,26 +36,23 @@ type State =
  * rather than offered as "everything or this page". It used to read the
  * current path, which worked while these controls only appeared on the two
  * list pages. From the nav bar there is no such thing as "this page": on
- * Grammar or Settings it names no list at all, and on Verbs it named the
- * wrong one.
+ * Settings it names no list at all, and on Verbs it named the wrong one.
  */
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const { entries, loaded: termsLoaded } = useTerms();
   const { phrases, loaded: phrasesLoaded } = usePhrases();
   const { tables, loaded: tablesLoaded } = useVerbTables();
-  const { rules, loaded: rulesLoaded } = useGrammarRules();
   const [scope, setScope] = useState<BackupScope>("all");
   const [state, setState] = useState<State>({ step: "choosing" });
 
-  const ready = termsLoaded && phrasesLoaded && tablesLoaded && rulesLoaded;
+  const ready = termsLoaded && phrasesLoaded && tablesLoaded;
   const busy = state.step === "working";
 
   const counts: Record<BackupScope, number> = {
-    all: entries.length + phrases.length + tables.length + rules.length,
+    all: entries.length + phrases.length + tables.length,
     terms: entries.length,
     phrases: phrases.length,
     verbs: tables.length,
-    grammar: rules.length,
   };
 
   async function runExport(format: ExportFormat) {
@@ -216,13 +212,6 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 disabled={busy}
                 onSelect={() => setScope("verbs")}
               />
-              <ScopeChoice
-                label="Grammar rules"
-                detail={`${counts.grammar} ${counts.grammar === 1 ? "rule" : "rules"}`}
-                checked={scope === "grammar"}
-                disabled={busy}
-                onSelect={() => setScope("grammar")}
-              />
             </div>
           </fieldset>
 
@@ -235,7 +224,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             title="Excel workbook (.xlsx)"
             detail={
               scope === "all"
-                ? "Terms, Phrases, Verb tables, and Grammar rules on separate sheets. Best for reading, sorting, or printing outside the app."
+                ? "Terms, Phrases, and Verb tables on separate sheets. Best for reading, sorting, or printing outside the app."
                 : "One sheet. Best for reading, sorting, or printing outside the app."
             }
             disabled={busy || counts[scope] === 0}

@@ -13,15 +13,15 @@ type Task = null | { kind: "export" } | { kind: "import"; file: File };
  * Export and Import, in the nav bar rather than on the list pages.
  *
  * They used to be a pair of buttons in the Terms and Phrases headers, which
- * meant Verbs and Grammar never had them — and the export they offered was
- * scoped to "this page", a question the nav bar cannot ask. Backing up is
- * about the account, so it belongs beside the other account-wide controls.
+ * meant Verbs never had them, and the export they offered was scoped to "this
+ * page", a question the nav bar cannot ask. Backing up is about the account,
+ * so it belongs beside the other account-wide controls.
  *
  * **This component subscribes to no store, and that is deliberate.**
  * Subscribing is what tells a store to fetch, and this sits in the nav on
  * every workspace page. Reading the three lists here to answer a question
- * nobody has asked yet would undo the work that stopped Settings and Grammar
- * from loading lists they never show. The dialogs are where the hooks live,
+ * nobody has asked yet would undo the work that stopped Settings from loading
+ * lists it never shows. The dialogs are where the hooks live,
  * and they are only mounted once someone opens one.
  */
 export function BackupMenu() {
