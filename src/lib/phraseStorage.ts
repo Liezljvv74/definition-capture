@@ -12,6 +12,7 @@ import { planImport } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
 import {
   readCategories,
+  readSource,
   readString,
   type ImportCounts,
   type ImportMode,
@@ -38,6 +39,7 @@ export function parsePhrase(raw: unknown, allowMissingId = false): Phrase | null
     literalMeaning: readString(value.literalMeaning),
     usageExample: readString(value.usageExample),
     categories: readCategories(value.categories),
+    source: readSource(value.source),
     ref: readString(value.ref),
   };
 }
@@ -59,6 +61,7 @@ const store = createRemoteStore<Phrase>({
       literalMeaning: readString(row.literal_meaning),
       usageExample: readString(row.usage_example),
       categories: readCategories(row.categories),
+      source: readSource(row.source),
       ref: readString(row.ref),
     };
   },
@@ -69,6 +72,7 @@ const store = createRemoteStore<Phrase>({
     literal_meaning: phrase.literalMeaning,
     usage_example: phrase.usageExample,
     categories: phrase.categories,
+    source: phrase.source,
     ref: phrase.ref,
   }),
 });
@@ -91,6 +95,7 @@ function clean(input: PhraseInput) {
     // Trimmed, de-duplicated and capped here as well as in the form, so a
     // value arriving from an import obeys the same rule as a typed one.
     categories: readCategories(input.categories),
+    source: input.source,
     ref: input.ref.trim(),
   };
 }

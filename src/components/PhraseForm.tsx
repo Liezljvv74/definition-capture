@@ -39,6 +39,18 @@ export function PhraseForm({
     return [...standing, ...extras];
   }, [initialValue, settings.categories]);
 
+  /**
+   * Same rule as the categories: the configured list, plus this phrase's own
+   * source if it has since been taken off. Saving must not quietly relabel
+   * where it came from.
+   */
+  const sourceOptions = useMemo(() => {
+    const standing = settings.sources;
+    return standing.includes(initialValue.source)
+      ? standing
+      : [...standing, initialValue.source];
+  }, [initialValue.source, settings.sources]);
+
   function toggleCategory(name: string) {
     setValue((current) => {
       if (current.categories.includes(name)) {
@@ -62,6 +74,7 @@ export function PhraseForm({
       literalMeaning: value.literalMeaning.trim(),
       usageExample: value.usageExample.trim(),
       categories: value.categories,
+      source: value.source,
       ref: value.ref.trim(),
     });
   }
@@ -153,6 +166,27 @@ export function PhraseForm({
           {value.categories.length > 0 && `, ${value.categories.length} chosen`}.
         </p>
       </fieldset>
+
+      <div>
+        <label htmlFor={`${ids}-source`} className="mb-1 block text-sm font-medium">
+          Source
+        </label>
+        <select
+          id={`${ids}-source`}
+          className="field sm:w-56"
+          value={value.source}
+          onChange={(event) => {
+            const next = event.target.value;
+            if (next) setValue((current) => ({ ...current, source: next }));
+          }}
+        >
+          {sourceOptions.map((source) => (
+            <option key={source} value={source}>
+              {source}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div>
         <label htmlFor={`${ids}-ref`} className="mb-1 block text-sm font-medium">

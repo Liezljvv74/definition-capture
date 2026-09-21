@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { AddTermDialog } from "@/components/AddTermDialog";
-import { CategoryBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import { CategoryBadge, NeedsDefinitionBadge } from "@/components/Badges";
 import {
   ConfirmDeleteDialog,
   RowDeleteButton,
@@ -16,7 +16,6 @@ import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { EmptyCell } from "@/components/EmptyCell";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
-import { sourceOrder } from "@/lib/constants";
 import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
 import { foldName } from "@/lib/foldName";
@@ -27,9 +26,8 @@ import { useListPage } from "@/lib/useListPage";
 import { type ListSelection } from "@/lib/useListSelection";
 import { compareNames, compareText } from "@/lib/sortName";
 import { usePhrases } from "@/lib/usePhrases";
-import { useSettings } from "@/lib/useSettings";
 
-type SortKey = "term" | "definition" | "source" | "dateAdded";
+type SortKey = "term" | "definition" | "dateAdded";
 type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
 
@@ -37,7 +35,6 @@ const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
   { key: "term", label: "Term", className: "w-[22%]" },
   { key: "definition", label: "Definition" },
   { key: null, label: "Category", className: "w-[14%]" },
-  { key: "source", label: "Source", className: "w-[12%]" },
   { key: null, label: "Ref", className: "w-[20%]" },
 ];
 
@@ -46,12 +43,7 @@ const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
 const idOfEntry = (entry: Entry) => entry.id;
 const nameOfEntry = (entry: Entry) => entry.term;
 
-function compare(
-  a: Entry,
-  b: Entry,
-  key: SortKey,
-  sources: readonly string[],
-): number {
+function compare(a: Entry, b: Entry, key: SortKey): number {
   switch (key) {
     case "term":
       return compareNames(a.term, b.term);
@@ -60,8 +52,6 @@ function compare(
       // definition sorts to the top of the ascending list, which is where
       // you would go looking for it.
       return compareText(a.definition, b.definition);
-    case "source":
-      return sourceOrder(a.source, sources) - sourceOrder(b.source, sources);
     case "dateAdded":
       return a.dateAdded.localeCompare(b.dateAdded);
   }
@@ -71,7 +61,6 @@ export default function TermsPage() {
   const { entries, loaded } = useTerms();
   const { rules } = useGrammarRules();
   const wide = useWideScreen();
-  const { settings } = useSettings();
   const { phrases } = usePhrases();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
@@ -116,12 +105,12 @@ export default function TermsPage() {
    */
   const sorted = useMemo(() => {
     return [...entries].sort((a, b) => {
-      const result = compare(a, b, sort.key, settings.sources);
+      const result = compare(a, b, sort.key);
       if (result !== 0) return sort.direction === "asc" ? result : -result;
       // Ties fall back to newest-first so the order is always stable.
       return b.dateAdded.localeCompare(a.dateAdded);
     });
-  }, [entries, sort, settings.sources]);
+  }, [entries, sort]);
 
   const visible = useMemo(() => {
     const needle = foldName(query);
@@ -459,9 +448,6 @@ function EntryTable({
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-4 py-3 align-top">
-                  <SourceBadge source={entry.source} />
-                </td>
                 <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
                   {entry.ref ? (
                     <span className="line-clamp-3 break-words">
@@ -562,7 +548,6 @@ function EntryCards({
                   </p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <SourceBadge source={entry.source} />
                   {entry.categories.map((name) => (
                     <CategoryBadge key={name} name={name} onSelect={onSelectCategory} />
                   ))}
