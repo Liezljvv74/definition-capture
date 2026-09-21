@@ -91,7 +91,7 @@ export default function SettingsPage() {
         <SettingSection title="Sources">
           <NameListEditor
             legend="Sources"
-            description="Where a definition came from. The Source column sorts by this order, so the order you put them in is the order the list uses, not alphabetical."
+            description="Where a definition came from. Shown on a term or phrase when you open it. The order you put them in is the order the form offers them, so the ones you use most belong at the top."
             names={settings.sources}
             onChange={(sources) => saveSettings({ sources })}
             minimum={1}

@@ -52,6 +52,7 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
             literalMeaning: editing.literalMeaning,
             usageExample: editing.usageExample,
             categories: editing.categories,
+            source: editing.source,
             ref: editing.ref,
           }}
           submitLabel="Save changes"

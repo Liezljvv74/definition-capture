@@ -137,6 +137,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
       { width: 45 },
       { width: 45 },
       { width: 24 },
+      { width: 12 },
       { width: 30 },
     ],
     data: [
@@ -145,6 +146,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
         "Literal meaning",
         "Usage example",
         "Category",
+        "Source",
         "Ref",
       ]),
       ...backup.phrases.map<Row>((phrase) => [
@@ -154,6 +156,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
         // A spreadsheet cell cannot hold a list, so the names are joined the
         // way a reader would write them, as the Terms sheet does.
         { value: phrase.categories.join(", "), type: String },
+        { value: phrase.source, type: String },
         { value: phrase.ref, type: String },
       ]),
     ],

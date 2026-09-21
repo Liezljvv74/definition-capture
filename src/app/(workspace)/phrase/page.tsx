@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
-import { CategoryBadge } from "@/components/Badges";
+import { CategoryBadge, SourceBadge } from "@/components/Badges";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import type { Phrase } from "@/lib/types";
@@ -107,6 +107,10 @@ function PhraseDetailCard({
               “{phrase.usageExample}”
             </p>
           )}
+        </Field>
+
+        <Field label="Source" empty="None">
+          <SourceBadge source={phrase.source} />
         </Field>
 
         <Field label="Category" empty="None">

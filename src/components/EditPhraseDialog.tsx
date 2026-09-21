@@ -38,6 +38,7 @@ export function EditPhraseDialog({
     literalMeaning: phrase.literalMeaning,
     usageExample: phrase.usageExample,
     categories: phrase.categories,
+    source: phrase.source,
     ref: phrase.ref,
   });
 

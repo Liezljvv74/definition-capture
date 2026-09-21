@@ -51,6 +51,8 @@ export type Phrase = {
   usageExample: string;
   /** Up to `MAX_CATEGORIES` group names, shared with the term list. */
   categories: string[];
+  /** Where it came from, from the same list the terms draw on. */
+  source: Source;
   ref: string;
 };
 
@@ -59,6 +61,7 @@ export type PhraseInput = {
   literalMeaning: string;
   usageExample: string;
   categories: string[];
+  source: Source;
   ref: string;
 };
 
@@ -67,6 +70,7 @@ export const EMPTY_PHRASE_INPUT: PhraseInput = {
   literalMeaning: "",
   usageExample: "",
   categories: [],
+  source: DEFAULT_SOURCE,
   ref: "",
 };
 

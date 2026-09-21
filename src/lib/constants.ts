@@ -8,8 +8,6 @@
  * begins with, not what an existing one sees.
  */
 
-import { foldName } from "@/lib/foldName";
-
 export const DEFAULT_SOURCES = ["Manual", "Google", "Claude", "ChatGPT"] as const;
 
 /**
@@ -55,14 +53,3 @@ export const MAX_CATEGORIES = 3;
 /** A guard against a runaway list, matching the check constraint on the table. */
 export const MAX_LIST_LENGTH = 30;
 
-/**
- * Sorts by the order the reader has put their sources in, not alphabetically —
- * the list is a rough order of trust, and sorting it A to Z would lose that.
- * Anything no longer on the list sorts last.
- */
-export function sourceOrder(source: Source, sources: readonly string[]): number {
-  const index = sources.findIndex(
-    (candidate) => foldName(candidate) === foldName(source),
-  );
-  return index === -1 ? sources.length : index;
-}
