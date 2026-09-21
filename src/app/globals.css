@@ -5,16 +5,31 @@
     "Helvetica Neue", Arial, sans-serif;
 
   /*
-   * The yellow out of the logo, taken from the artwork rather than matched by
-   * eye: the weighted average of every yellow pixel in `captured-logo-bg.png`.
-   * The welcome panel on the home page is painted with it, so the panel and
-   * the mark in the corner are the same colour and not two near misses.
+   * The home page's palette, taken out of the artwork rather than matched by
+   * eye. Each is the weighted average of the pixels in that hue band in
+   * `captured-logo-bg.png`, so the page and the mark in its corner are the
+   * same colours and not a set of near misses.
    *
-   * It is a light colour in both themes, which is why it carries no dark
-   * variant. Slate 900 on it reads at 10.6:1 and near-white at 1.6:1, so
-   * anything sitting on this stays dark whatever the browser is set to.
+   * The logo has no green in it. Every greenish pixel in the file is
+   * anti-aliasing beside white, 1,252 of 296,737 and 1,200 of those a hair
+   * off white, so the Terms card wears the teal: it was the one logo colour
+   * with nothing else claiming it.
+   *
+   * `-50` means the colour at half strength over white, which is what makes
+   * a card a card rather than a block of paint, and `wash` is the yellow at a
+   * fifth for the page behind them all.
+   *
+   * None of these carries a dark variant, and that is the point rather than
+   * an omission: they are light colours whatever the browser is set to, so
+   * the text on them is dark in both themes. Slate 700 is the palest that
+   * still clears 4.5:1 on all three cards (5.55:1 on the purple, the worst
+   * of them), where the slate 500 these labels used to carry reads at 2.55:1.
    */
   --color-logo-yellow: #fcbd15;
+  --color-logo-wash: #fef2d0;
+  --color-logo-teal-50: #86d9e9;
+  --color-logo-pink-50: #fcaeca;
+  --color-logo-purple-50: #c3b4fc;
 }
 
 html {
@@ -64,6 +79,10 @@ body {
  * 40 puts it over the page and the nav, and under the modal overlay at 50,
  * so a dialog on this page would cover it.
  */
+body:has([data-home-page]) {
+  background-color: var(--color-logo-wash);
+}
+
 body:has([data-home-page]) [data-page-backdrop] {
   z-index: 40;
   background-position: right bottom;

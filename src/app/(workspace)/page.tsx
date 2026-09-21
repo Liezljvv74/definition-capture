@@ -7,7 +7,10 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <>
-      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      {/* No fill of its own, so the page colour runs behind it. A white bar
+          across the top of a yellow page reads as an accident. The rule stays,
+          because it is what separates this from the nav above it. */}
+      <header className="border-b border-amber-200/70">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Home</h1>
         </div>
@@ -25,42 +28,47 @@ export default function HomePage() {
             </h2>
           </section>
 
+          {/*
+           * One logo colour per card, each at half strength. Hover dims by 5%
+           * rather than swapping in an indigo, which would have had to sit
+           * against three different colours and suit none of them.
+           */}
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Link
               href="/terms"
-              className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500 dark:hover:bg-slate-800"
+              className="rounded-2xl bg-logo-teal-50 p-5 transition hover:brightness-95"
             >
-              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-700">
                 Learn
               </p>
-              <h3 className="mt-3 text-xl font-semibold text-slate-900 dark:text-slate-50">Terms</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              <h3 className="mt-3 text-xl font-semibold text-slate-900">Terms</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-800">
                 Save words, definitions, references, and the ideas you want to keep close.
               </p>
             </Link>
 
             <Link
               href="/phrases"
-              className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500 dark:hover:bg-slate-800"
+              className="rounded-2xl bg-logo-pink-50 p-5 transition hover:brightness-95"
             >
-              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-700">
                 Practise
               </p>
-              <h3 className="mt-3 text-xl font-semibold text-slate-900 dark:text-slate-50">Phrases</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              <h3 className="mt-3 text-xl font-semibold text-slate-900">Phrases</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-800">
                 Gather useful expressions and sentence patterns that sound natural in real life.
               </p>
             </Link>
 
             <Link
               href="/verbs"
-              className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500 dark:hover:bg-slate-800"
+              className="rounded-2xl bg-logo-purple-50 p-5 transition hover:brightness-95"
             >
-              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-700">
                 Structure
               </p>
-              <h3 className="mt-3 text-xl font-semibold text-slate-900 dark:text-slate-50">Verbs</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              <h3 className="mt-3 text-xl font-semibold text-slate-900">Verbs</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-800">
                 Track conjugation patterns.
               </p>
             </Link>
