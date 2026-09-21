@@ -22,7 +22,10 @@ import {
  * how you get between them.
  */
 const GLOSSARY_VIEWS = [
-  { href: "/terms", label: "Terms", prefix: "/term" },
+  // "Vocabulary" in the menu, `/terms` in the URL. The route is what a saved
+  // `[[Name]]` ref and a pasted link point at, so the label is free to change
+  // and the path is not.
+  { href: "/terms", label: "Vocabulary", prefix: "/term" },
   { href: "/phrases", label: "Phrases", prefix: "/phrase" },
 ] as const;
 

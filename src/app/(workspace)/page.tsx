@@ -38,10 +38,7 @@ export default function HomePage() {
               href="/terms"
               className="rounded-2xl bg-logo-teal-50 p-5 transition hover:brightness-95"
             >
-              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-700">
-                Learn
-              </p>
-              <h3 className="mt-3 text-xl font-semibold text-slate-900">Terms</h3>
+              <h3 className="text-xl font-semibold text-slate-900">Vocabulary</h3>
               <p className="mt-2 text-sm leading-6 text-slate-800">
                 Save words, definitions, references, and the ideas you want to keep close.
               </p>
@@ -51,10 +48,7 @@ export default function HomePage() {
               href="/phrases"
               className="rounded-2xl bg-logo-pink-50 p-5 transition hover:brightness-95"
             >
-              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-700">
-                Practise
-              </p>
-              <h3 className="mt-3 text-xl font-semibold text-slate-900">Phrases</h3>
+              <h3 className="text-xl font-semibold text-slate-900">Phrases</h3>
               <p className="mt-2 text-sm leading-6 text-slate-800">
                 Gather useful expressions and sentence patterns that sound natural in real life.
               </p>
@@ -64,10 +58,7 @@ export default function HomePage() {
               href="/verbs"
               className="rounded-2xl bg-logo-purple-50 p-5 transition hover:brightness-95"
             >
-              <p className="text-sm font-medium uppercase tracking-[0.14em] text-slate-700">
-                Structure
-              </p>
-              <h3 className="mt-3 text-xl font-semibold text-slate-900">Verbs</h3>
+              <h3 className="text-xl font-semibold text-slate-900">Verbs</h3>
               <p className="mt-2 text-sm leading-6 text-slate-800">
                 Track conjugation patterns.
               </p>

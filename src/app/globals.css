@@ -22,8 +22,9 @@
    * None of these carries a dark variant, and that is the point rather than
    * an omission: they are light colours whatever the browser is set to, so
    * the text on them is dark in both themes. Slate 700 is the palest that
-   * still clears 4.5:1 on all three cards (5.55:1 on the purple, the worst
-   * of them), where the slate 500 these labels used to carry reads at 2.55:1.
+   * still clears 4.5:1 on all three cards, 5.55:1 on the purple as the worst
+   * of them, which is why the cards carry slate 800 and 900 and not the
+   * slate 500 and 600 they wore while they were white.
    */
   --color-logo-yellow: #fcbd15;
   --color-logo-wash: #fef2d0;
