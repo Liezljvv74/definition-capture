@@ -236,7 +236,18 @@ export type RemoteStoreConfig<T> = {
 export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<T> {
   const empty: StoreSnapshot<T> = { items: [], loaded: false, error: null };
   let snapshot: StoreSnapshot<T> = empty;
+  /**
+   * Two sets, not one, and the difference is what `refresh` reads.
+   *
+   * `listeners` is people looking at the list; `errorListeners` is the banner,
+   * which sits in the workspace layout and is therefore mounted on every page
+   * whether or not this list is on screen. Sharing one set meant it was never
+   * empty, so there was no way to ask "is anyone actually watching?" — and the
+   * catch-up read on returning to the tab re-fetched every list started
+   * earlier in the session, including the ones the current page never shows.
+   */
   const listeners = new Set<() => void>();
+  const errorListeners = new Set<() => void>();
   let started = false;
   /** The user the cache belongs to, so a sign-out or account switch clears it. */
   let cachedFor: string | null = null;
@@ -247,6 +258,7 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
   function publish(next: StoreSnapshot<T>): void {
     snapshot = next;
     for (const listener of listeners) listener();
+    for (const listener of errorListeners) listener();
   }
 
   function setItems(items: T[]): void {
@@ -336,6 +348,9 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
    * trips for one alt-tab.
    */
   function refresh(): void {
+    // Nobody is showing this list, so there is nothing on screen to be stale.
+    // The next page that does show it subscribes, and subscribing reads.
+    if (listeners.size === 0) return;
     if (loading || Date.now() - lastLoadedAt < REFRESH_GAP_MS) return;
     reload();
   }
@@ -556,9 +571,9 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
     },
 
     subscribeToError(listener) {
-      listeners.add(listener);
+      errorListeners.add(listener);
       return () => {
-        listeners.delete(listener);
+        errorListeners.delete(listener);
       };
     },
 

@@ -64,11 +64,18 @@ let started = false;
 let cachedFor: string | null = null;
 let loading = false;
 let lastLoadedAt = 0;
+/**
+ * Watchers of the settings themselves, and watchers of only the error. Split
+ * for the reason `remoteStore.ts` gives: the banner is mounted on every page,
+ * so one shared set can never answer "is anyone looking at this?".
+ */
 const listeners = new Set<() => void>();
+const errorListeners = new Set<() => void>();
 
 function publish(next: SettingsSnapshot): void {
   snapshot = next;
   for (const listener of listeners) listener();
+  for (const listener of errorListeners) listener();
 }
 
 /** A row, or the absence of one, as settings. */
@@ -135,6 +142,7 @@ function reload(): void {
 
 /** The catch-up read for returning to the tab; see `remoteStore.ts`. */
 function refresh(): void {
+  if (listeners.size === 0) return;
   if (loading || Date.now() - lastLoadedAt < REFRESH_GAP_MS) return;
   reload();
 }
@@ -208,9 +216,9 @@ export function parseSettings(raw: unknown): Settings | null {
 
 /** Watch only the error, without starting the read; see `remoteStore.ts`. */
 export function subscribeToError(listener: () => void): () => void {
-  listeners.add(listener);
+  errorListeners.add(listener);
   return () => {
-    listeners.delete(listener);
+    errorListeners.delete(listener);
   };
 }
 

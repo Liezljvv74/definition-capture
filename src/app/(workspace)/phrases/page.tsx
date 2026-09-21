@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddPhraseDialog } from "@/components/AddPhraseDialog";
 import { CategoryBadge } from "@/components/Badges";
@@ -79,8 +79,12 @@ export default function PhrasesPage() {
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
 
+  /** Deferred for the reason the vocabulary page gives: the filter is cheap
+      and rendering its result is not. */
+  const deferredQuery = useDeferredValue(query);
+
   const visible = useMemo(() => {
-    const needle = foldName(query);
+    const needle = foldName(deferredQuery);
     const wanted = foldName(category);
     const filtered = phrases.filter((phrase) => {
       if (wanted && !phrase.categories.some((name) => foldName(name) === wanted)) {
@@ -103,7 +107,7 @@ export default function PhrasesPage() {
       // ties keep the newest-first order the list has underneath.
       return 0;
     });
-  }, [phrases, query, category, sort]);
+  }, [phrases, deferredQuery, category, sort]);
 
   // The same four pieces the term page uses; see `useListPage`.
   const {

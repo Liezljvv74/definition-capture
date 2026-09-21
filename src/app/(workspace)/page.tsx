@@ -20,7 +20,11 @@ export default function HomePage() {
           {/* The logo's own yellow, and no dark variant: it is a light colour
               in both themes, so the heading on it stays dark either way. */}
           <section className="rounded-2xl bg-logo-yellow p-6 shadow-sm sm:p-8">
-            <h2 className="max-w-3xl whitespace-nowrap text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+            {/* One line where there is room for one. `whitespace-nowrap` on its
+                own made the heading unbreakable at every width, and nothing in
+                the app sets `overflow-x: hidden`, so below about 1280px it
+                dragged the whole page sideways. */}
+            <h2 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-900 lg:whitespace-nowrap sm:text-4xl">
               Welcome to your personal language study system
             </h2>
           </section>

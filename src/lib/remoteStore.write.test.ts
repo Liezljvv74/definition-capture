@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createRemoteStore } from "@/lib/remoteStore";
+import { createRemoteStore, REFRESH_GAP_MS } from "@/lib/remoteStore";
 
 /**
  * The half of the store its own test file cannot reach.
@@ -18,10 +18,10 @@ import { createRemoteStore } from "@/lib/remoteStore";
  * what was asked of it and answers with whatever the test has queued, which is
  * enough to pin the decisions without a network, a database or a DOM.
  *
- * Deliberately not covered: `subscribe`, because it registers refocus listeners
- * on `window` and this suite runs in node like the rest of them. Every write
- * here reaches `load` through the reload that follows a failure, which is the
- * path that matters anyway.
+ * Most of it never calls `subscribe`: every write reaches `load` through the
+ * reload that follows a failure, which is the path that matters. The one suite
+ * that does subscribe stubs `window`, because that is where the refocus
+ * listeners go and this file runs in node like the rest of them.
  */
 
 type Row = Record<string, unknown>;
@@ -387,5 +387,102 @@ describe("settled", () => {
     // The legacy import deletes the only other copy once this resolves, so
     // "resolved" has to mean the writes really answered.
     expect(fake.of("insert")).toHaveLength(2);
+  });
+});
+
+describe("coming back to the tab", () => {
+  /**
+   * The catch-up read exists because a database has no `storage` event: a list
+   * left open in another tab goes stale, and returning to it is when that
+   * would be noticed. What it must not do is re-read a list nobody is showing.
+   *
+   * The banner is why that is not obvious. It sits in the workspace layout, so
+   * it is mounted on every page, and it used to register through the same set
+   * as the list itself — which meant the set was never empty and every list
+   * started earlier in the session re-read itself on every alt-tab, however
+   * far the reader had navigated from it.
+   */
+  const focus = () => handlers.focus?.();
+  let handlers: Record<string, () => void>;
+
+  beforeEach(() => {
+    handlers = {};
+    vi.stubGlobal("window", {
+      addEventListener: (event: string, handler: () => void) => {
+        handlers[event] = handler;
+      },
+    });
+    vi.stubGlobal("document", { visibilityState: "visible" });
+    // Only `Date` is faked, so the gap can be stepped over while `setTimeout`
+    // keeps working for the waiting these tests do.
+    vi.useFakeTimers({ toFake: ["Date"] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  const stepPastTheGap = () => vi.setSystemTime(Date.now() + REFRESH_GAP_MS + 1);
+
+  it("re-reads a list someone is looking at", async () => {
+    const store = make();
+    const stop = store.subscribe(() => {});
+    await until(() => fake.of("select").length === 1, "the first read");
+
+    stepPastTheGap();
+    focus();
+
+    await until(() => fake.of("select").length === 2, "the catch-up read");
+    stop();
+  });
+
+  it("declines while the last read is still recent", async () => {
+    const store = make();
+    store.subscribe(() => {});
+    await until(() => fake.of("select").length === 1, "the first read");
+
+    // `visibilitychange` and `focus` both fire on one return to the tab.
+    focus();
+    focus();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(fake.of("select")).toHaveLength(1);
+  });
+
+  it("leaves alone a list nobody is showing, banner or no banner", async () => {
+    const store = make();
+    const stop = store.subscribe(() => {});
+    await until(() => fake.of("select").length === 1, "the first read");
+
+    // The reader has navigated to a page that shows something else. The banner
+    // goes with them; the list does not.
+    stop();
+    const stopWatchingErrors = store.subscribeToError(() => {});
+    stepPastTheGap();
+    focus();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(fake.of("select")).toHaveLength(1);
+    stopWatchingErrors();
+  });
+
+  it("still tells the banner about a failure it is not subscribed to the list for", async () => {
+    // The other half of splitting the sets: an error-only watcher has to keep
+    // hearing about errors, or the banner goes quiet instead of going quiet
+    // about fetching.
+    fake.answers.insert = [fails("denied")];
+    const store = make();
+    let told = 0;
+    const stop = store.subscribeToError(() => {
+      told += 1;
+    });
+
+    store.insert({ id: "a", name: "A" });
+    await store.settled();
+
+    expect(told).toBeGreaterThan(0);
+    expect(store.getError()).toContain("denied");
+    stop();
   });
 });

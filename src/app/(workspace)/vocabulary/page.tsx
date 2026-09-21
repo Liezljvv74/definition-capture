@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddWordDialog } from "@/components/AddWordDialog";
 import { CategoryBadge, NeedsDefinitionBadge } from "@/components/Badges";
@@ -110,8 +110,20 @@ export default function TermsPage() {
     });
   }, [entries, sort]);
 
+  /**
+   * The list filters on a deferred copy of the query, not the live one.
+   *
+   * The filter itself is cheap, well under a millisecond over a few thousand
+   * rows. Rendering the result is not: a row is about thirty elements, so a
+   * thousand of them is a hundred milliseconds or more of reconciliation, and
+   * doing that synchronously on every keystroke is what made typing feel
+   * sticky. React keeps the input on the live value and re-renders the list at
+   * low priority, abandoning the work if another key arrives first.
+   */
+  const deferredQuery = useDeferredValue(query);
+
   const visible = useMemo(() => {
-    const needle = foldName(query);
+    const needle = foldName(deferredQuery);
     const wanted = foldName(category);
     return sorted.filter((entry) => {
       if (onlyNeedsDefinition && !entry.needsDefinition) return false;
@@ -125,7 +137,7 @@ export default function TermsPage() {
         foldName(entry.ref).includes(needle)
       );
     });
-  }, [sorted, query, onlyNeedsDefinition, category]);
+  }, [sorted, deferredQuery, onlyNeedsDefinition, category]);
 
   // Selection, the row being edited, and the names the delete dialog lists —
   // the four pieces the phrase page also needs, and the ones where the two
