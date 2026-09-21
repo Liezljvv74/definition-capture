@@ -7,6 +7,14 @@
 
 html {
   color-scheme: light dark;
+
+  /*
+   * Room for the sticky nav when the browser scrolls something into view.
+   * Without it, an anchor in a Ref field, or the row a [[Name]] link points
+   * at, lands underneath the bar and reads as though the link went nowhere.
+   * Slightly more than the bar is tall, so the target clears it.
+   */
+  scroll-padding-top: 4.5rem;
 }
 
 body {

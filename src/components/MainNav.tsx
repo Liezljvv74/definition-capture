@@ -61,7 +61,17 @@ export function MainNav() {
   return (
     <nav
       aria-label="Main"
-      className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+      /*
+       * Stuck to the top, so the tabs and the Backup menu stay reachable from
+       * anywhere in a long list rather than only from the very top of it.
+       *
+       * `z-30` puts it over the page as it scrolls underneath, and sits
+       * deliberately between the dropdowns it contains and the modal overlay
+       * at `z-50`: a dialog must cover the nav, and the nav must cover the
+       * list. The background colour is not decoration here either, since a
+       * transparent bar would have rows sliding visibly through the tabs.
+       */
+      className="sticky top-0 z-30 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
     >
       {/* No `overflow-x-auto` here on purpose: it would clip the dropdowns,
           because an overflow on one axis makes the other one scroll too. */}
