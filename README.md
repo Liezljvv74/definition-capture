@@ -1,7 +1,7 @@
 # Definition Capture
 
-A small personal list of terms and concepts worth remembering. You sign in with
-an email and password, and your terms and phrases are private to your account.
+A small personal list of words and concepts worth remembering. You sign in with
+an email and password, and your words and phrases are private to your account.
 
 ## Running it
 
@@ -38,7 +38,7 @@ and a `/term?id=…` link opens anywhere you are signed in.
 
 List queries run in the browser under the publishable key, which is compiled into the
 JavaScript bundle and readable by anyone who views source. That is what that key is for,
-but it means **row level security is what separates one account's terms from another's.**
+but it means **row level security is what separates one account's words from another's.**
 The policies in `supabase/migrations/` are load-bearing, not decoration; every table has RLS
 enabled, and every policy checks `(select auth.uid()) = user_id`. The list tables carry all
 four — select, insert, update, delete — while `user_settings` has no delete policy, because a
@@ -52,7 +52,7 @@ The two stores are built from one factory in `src/lib/remoteStore.ts` — nothin
 app talks to Supabase directly, so the lists cannot drift apart in how they load, save, or
 report a failure. It keeps the shape the old `localStorage` store had: the whole list is
 fetched once into memory and read synchronously, and a write updates the screen immediately
-and goes to the database in the background. That is why adding a term still feels instant,
+and goes to the database in the background. That is why adding a word still feels instant,
 and why the forms never had to learn that saving became a network call.
 
 The price of writing optimistically is that a failure lands after the edit is already drawn.
@@ -70,17 +70,17 @@ deleting the only copy of that data on the strength of a request whose outcome n
 seen yet would be careless. `src/lib/legacyLocal.ts` is the read-only reader for those keys,
 and it is the only place left that touches them.
 
-## What a term holds
+## What a word holds
 
 | Field | Notes |
 | --- | --- |
-| **Term** | Required, plain text. |
+| **Word** | Required, plain text. |
 | **Definition** | Optional — leave it blank and fill it in later. |
 | **Ref** | Optional free text that links itself — see below. |
-| **Category** | Up to three groups the term belongs to, e.g. Nature or Office. Optional. |
+| **Category** | Up to three groups the word belongs to, e.g. Nature or Office. Optional. |
 | **Source** | Dropdown of your own list, `Manual` / `Google` / `Claude` / `ChatGPT` to begin with. |
 | **Date Added** | Set once on creation, never editable. |
-| **Date Updated** | Set on every save, shown on the term's own page as "Edited …". Null until the first edit. |
+| **Date Updated** | Set on every save, shown on the word's own page as "Edited …". Null until the first edit. |
 | **Needs Definition** | Derived automatically — true whenever the definition is blank. |
 
 The Source and Category options are yours to edit, under **Settings**. Both lists are
@@ -88,9 +88,9 @@ kept per account in `public.user_settings`, so they follow you between devices; 
 arrays in **`src/lib/constants.ts`** are only what an account starts with before it has
 changed anything.
 
-Taking a name off either list never reaches back into what is already saved. A term
+Taking a name off either list never reaches back into what is already saved. A word
 filed under a removed category keeps it — it still shows, still filters, and is still
-offered while you edit that term — and a term whose source has been removed keeps that
+offered while you edit that word — and a word whose source has been removed keeps that
 too. What changes is only what is suggested for new ones.
 
 ## Pages
@@ -100,41 +100,41 @@ too. What changes is only what is suggested for new ones.
   views. The grouping lives entirely in the nav — see below — so both keep their own
   addresses, neither list knows about the other, and nothing about how they store or
   read their rows changed.
-- **`/terms`** — the **Terms** page, which owns adding, editing, and deleting terms.
-  Columns are Term, Definition, Category, Source, and Ref. Search covers terms,
+- **`/terms`** — the **Vocabulary** page, which owns adding, editing, and deleting words.
+  Columns are Word, Definition, Category, Source, and Ref. Search covers words,
   definitions, and refs; a category dropdown narrows the list to one group, and clicking
   a category pill on any row does the same thing without leaving the list; a "Needs
-  definition" checkbox narrows to unfinished entries; the Term, Definition and Source
+  definition" checkbox narrows to unfinished entries; the Word, Definition and Source
   headers re-sort. A table on laptops, cards on phones. Rows that need a
   definition are flagged in amber. Date Added is not a column — the list is alphabetical
-  by term, and a leading `der`, `die`, or `das` is skipped when comparing, so a term
+  by word, and a leading `der`, `die`, or `das` is skipped when comparing, so a word
   filed under its article sorts by the word that follows instead. Date added survives
   as the tie-breaker, and the date itself is shown on the entry's own page.
-- **`/phrases`** — the phrase list: a separate store that mirrors Terms, for multi-word
-  expressions that do not fit a single term. Columns are **Phrase**, **Literal Meaning**,
+- **`/phrases`** — the phrase list: a separate store that mirrors Vocabulary, for multi-word
+  expressions that do not fit a single word. Columns are **Phrase**, **Literal Meaning**,
   **Usage Example**, and **Ref** — no dates, since phrases are looked up by wording rather
   than by when they were captured. Search covers all four fields, the Phrase and Literal
   Meaning headers each cycle A→Z / Z→A / back to newest-first, and only Phrase is
   required.
 - **`/term?id=…`** and **`/phrase?id=…`** — one item per stable URL, safe to reload or paste
   into a fresh tab. This is where a `[[Name]]` reference lands. Both pages read: they show the
-  full untruncated text plus, for a term, its Source badge and dates, and offer **Edit** so a
+  full untruncated text plus, for a word, its Source badge and dates, and offer **Edit** so a
   cross-link onto a typo can be fixed on the spot. Saving from here returns you to the list.
   Deleting is not offered — the lists own that. An unknown ID shows a readable "not found"
   message rather than an error page.
 
 - **`/verbs`** — the conjugation tables, one per verb, each rolled up to its verb until
-  you open it. Tables are made from a term's Edit screen rather than here, which is what
-  keeps a table's name and its term the same word: the two are matched by name, the way
+  you open it. Tables are made from a word's Edit screen rather than here, which is what
+  keeps a table's name and its word identical: the two are matched by name, the way
   `[[Name]]` links resolve. `?verb=arbeiten` opens that table; `?new=arbeiten` makes it
   first — asking who verbs conjugate for if that has never been answered — and then opens
-  it. Both are what the Edit term screen links to.
+  it. Both are what the Edit word screen links to.
 - **`/settings`** — reached from the account menu at the right of the nav rather than
   from the tabs, which belong to the two lists. Seven sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
   out), **Password** (set one, or change it — an account created from an emailed link has
   none until this is used), **Categories** and **Sources** (add, remove, and reorder the
-  lists the term form offers — source order is the order the Source column sorts by, so it
+  lists the word form offers — source order is the order the Source column sorts by, so it
   is kept rather than alphabetised), **Verb persons** and **Verb tenses** (what a new
   conjugation table is built from), and **Export folder** (see Backup below). All but the
   last are per account; the folder is per browser.
@@ -157,7 +157,7 @@ lit.
 
 Glossary is the two lists under one tab, and that tab opens a menu rather than going
 anywhere: it stands for two pages, so navigating on click would mean quietly preferring
-one of them. Terms and Phrases are the two items, the one you are on is marked, and the
+one of them. Vocabulary and Phrases are the two items, the one you are on is marked, and the
 menu closes on Escape — putting focus back on the tab — on a click outside, and on
 choosing. The bar deliberately has no horizontal overflow: a scroll on one axis makes
 the other one scroll too, which would clip the menu.
@@ -176,20 +176,20 @@ component in `src/app/layout.tsx` is the only number to change: raise it to fade
 further, lower it to bring the artwork forward.
 
 Dates are shown short — `01 Sep 2026`, no clock time. Hovering shows the exact timestamp, and
-sorting always uses the full stored value, so two terms added on the same day still order
+sorting always uses the full stored value, so two words added on the same day still order
 correctly.
 
 ## Conjugation tables
 
-A verb's conjugation lives on the Verbs page. There are two ways in. From a term:
+A verb's conjugation lives on the Verbs page. There are two ways in. From a word:
 **Edit** it and use **Conjugation table** — and if that verb already has one, the same
 place shows an icon that opens it instead, so the Edit screen answers "does this word have
 a table yet?" either way. Or from the Verbs page itself: **+ Add a verb** asks for the
 word along with the tense.
 
-A verb added that way is put on the **Terms** page too, if it is not already there — as a
-bare term waiting for its definition. A table and its term are matched by name, so a table
-with no term behind it would be a dead end, and inventing one is cheaper than explaining
+A verb added that way is put on the **Vocabulary** page too, if it is not already there — as a
+bare word waiting for its definition. A table and its word are matched by name, so a table
+with no word behind it would be a dead end, and inventing one is cheaper than explaining
 why the link goes nowhere. A verb that is already saved is left exactly as it is.
 
 Creating one goes straight to the table. The Edit screen only links to
@@ -219,7 +219,7 @@ Nothing invents a tense on its behalf, which is also why the tense list is the o
 here that keeps a blank entry.
 
 The first table also asks who verbs conjugate for — `ich`, `du`, `er/sie/es`, and so on, one per
-line — and it asks **on the Verbs page**, not in the term dialog: a question about verbs in
+line — and it asks **on the Verbs page**, not in the word dialog: a question about verbs in
 general does not belong inside a dialog about one word. That answer is kept in Settings and
 used for every table after it, so it is asked once. Nothing sensible could be shipped as a
 default: the language being studied is not the app's to assume. The list is editable later
@@ -240,8 +240,8 @@ to keep in step.
 
 Everything happens on the list pages, in a dialog, without navigating away.
 
-- **Add** — the **Add term** / **Add phrase** button at the top right.
-- **Edit** — select the term or phrase itself in the list. Every editable field lives in that
+- **Add** — the **Add word** / **Add phrase** button at the top right.
+- **Edit** — select the word or phrase itself in the list. Every editable field lives in that
   one form, Source included; Date Added is preserved. Renaming onto a name another entry
   already uses is refused rather than leaving two identical entries.
 - **Delete one** — the trash button at the end of the row, behind a confirmation.
@@ -260,7 +260,7 @@ field:
 
 | Write | Links to |
 | --- | --- |
-| `[[Closure]]` | Whatever is saved under that name — a term **or** a phrase, since the two share one namespace. Terms win a name clash. A name that matches nothing is shown plainly rather than as a dead link. |
+| `[[Closure]]` | Whatever is saved under that name — a word **or** a phrase, since the two share one namespace. Words win a name clash. A name that matches nothing is shown plainly rather than as a dead link. |
 | `/term?id=abc123`, `/` | A page inside this app. |
 | `https://example.com/docs` | Any web page — opens in a new tab. The scheme is hidden in the display so the column stays readable. |
 | `www.example.com` | The same, with `https://` assumed. |
@@ -271,8 +271,8 @@ searchable along with the other fields on both lists, and it is included in back
 
 ## Backup: export and import
 
-**Export** and **Import** sit at the top right of the Terms and Phrases pages and of the
-single-term and single-phrase pages, so there is always a copy you
+**Export** and **Import** sit at the top right of the Vocabulary and Phrases pages and of the
+single-word and single-phrase pages, so there is always a copy you
 hold yourself and a way out of the app entirely.
 
 By default an export goes wherever the browser puts downloads. **Settings → Export
@@ -290,7 +290,7 @@ another folder, or to use the download folder for this one.
 - **Export** asks two things: how much, and in what format.
 
   **How much** — *Everything* (both lists), or *Only this page*, which means Phrases while you
-  are on the phrase list or a single phrase, and Terms everywhere else. The file name
+  are on the phrase list or a single phrase, and Words everywhere else. The file name
   records the choice:
   `definition-capture-backup-…`, `-terms-…`, or `-phrases-…`.
 
@@ -298,7 +298,7 @@ another folder, or to use the download folder for this one.
 
   | Format | What you get |
   | --- | --- |
-  | **Excel workbook** (`.xlsx`) | One sheet per exported list — Terms and Phrases when you export everything — with bold headers and sensible column widths. For reading, sorting, or printing outside the app. |
+  | **Excel workbook** (`.xlsx`) | One sheet per exported list — Words and Phrases when you export everything — with bold headers and sensible column widths. For reading, sorting, or printing outside the app. |
   | **JSON backup** (`.json`) | `{ format, version, exportedAt, entries, phrases }` — plain, readable, and **the only format Import can read back in**. |
 
   The button is disabled while there is nothing saved. The workbook is built in the browser by
@@ -314,28 +314,28 @@ another folder, or to use the download folder for this one.
   | Add new and update matching | The backup overwrites what you have. |
   | Replace everything with this backup | What is saved now is deleted first — behind a second confirm. |
 
-Terms match on the term, phrases on the phrase, both case-insensitively — the same rule the add
+Words match on the word, phrases on the phrase, both case-insensitively — the same rule the add
 forms use. Imported entries keep their original **Date Added**, which is the point of a backup,
 and IDs that would collide are quietly re-issued so nothing is overwritten by accident.
 
-Older backups still work: a version 1 file (terms only) imports fine, as does a bare array of
-entries. **Replace never wipes a list the file carries nothing for** — restoring a terms-only
-export leaves your phrases alone, and a phrases-only export leaves your terms alone. The
+Older backups still work: a version 1 file (words only) imports fine, as does a bare array of
+entries. **Replace never wipes a list the file carries nothing for** — restoring a words-only
+export leaves your phrases alone, and a phrases-only export leaves your words alone. The
 confirmation spells out, per list, what will be deleted and what will be left as it is.
 Anything unreadable is counted and reported rather than silently dropped.
 
 ## Handy behaviors
 
-- **Paste-to-split.** Pasting `term: definition` or `term - definition` into the Term field
+- **Paste-to-split.** Pasting `word: definition` or `word - definition` into the Word field
   splits it across both fields. It only fills Definition when that field is still empty, and
   leaves URLs and long sentences alone.
-- **Duplicate check.** A term is saved once. Saving one that already exists
+- **Duplicate check.** A word is saved once. Saving one that already exists
   (case-insensitively) offers to update it, or to go back and change the wording — there
   is no “keep both”, because there cannot be: the unique index on `(user_id, lower(term))`
   refuses a second, and `[[Name]]` links, the duplicate check itself, and import matching
   all resolve a name to exactly one entry. Phrases work the same way.
 - **Tabs catch up when you look at them.** Switching to another tab, or back to the window,
-  re-reads both lists from the database, so a term added elsewhere is there when you look.
+  re-reads both lists from the database, so a word added elsewhere is there when you look.
   It is not live sync — a second tab sitting visible next to the first will not update until
   it is focused. The `localStorage` version got true cross-tab updates free from the
   `storage` event; a database has no equivalent, and Supabase Realtime would mean enabling
@@ -455,7 +455,7 @@ execute. Whatever it is will need `NEXT_PUBLIC_SUPABASE_URL` and
 the browser bundle and meant to be public — and its origin added to **Authentication → URL
 Configuration → Redirect URLs** in the Supabase dashboard, as `<origin>/auth/callback`.
 
-A deployed copy is the same list: sign in there and your terms are the ones you saved
+A deployed copy is the same list: sign in there and your words are the ones you saved
 locally, because both talk to the same Supabase project.
 
 ## Layout of the code
@@ -473,9 +473,9 @@ src/
       layout.tsx            group out of the URL, so /terms is still /terms;
                             the layout re-checks the session on the server
       page.tsx              the landing page, a heading for now
-      terms/page.tsx        Terms page: add, edit, delete, search, sort
+      terms/page.tsx        Vocabulary page: add, edit, delete, search, sort
       phrases/page.tsx      phrase list, the same shape as Terms
-      term/page.tsx         one term by ?id=, read-only plus Edit
+      term/page.tsx         one word by ?id=, read-only plus Edit
       phrase/page.tsx       one phrase by ?id=, read-only plus Edit
       verbs/page.tsx        the conjugation tables, one rolled-up card each
       settings/page.tsx     profile, password, the lists, exports
@@ -486,7 +486,7 @@ src/
     EditPhraseDialog.tsx  edit-phrase flow
     DeleteControls.tsx    checkboxes, selection bar, and the delete confirmation
     BackupButtons.tsx     export / import buttons and their dialogs
-    EntryForm.tsx         shared add/edit form for terms
+    EntryForm.tsx         shared add/edit form for words
     PhraseForm.tsx        shared add/edit form for phrases
     RefField.tsx          the Ref input, with its name suggestions
     MainNav.tsx           the nav bar, including the Glossary dropdown
@@ -550,7 +550,7 @@ Built with Next.js (App Router), TypeScript, Tailwind CSS, and Supabase.
 
 ## What it looks like
 
-![The term list with the Captured logo in the nav bar, Export, Import and Add term at the top right, and the shaded logo backdrop showing around the empty-list card](assets/app-screenshot.jpg)
+![The word list with the Captured logo in the nav bar, Export, Import and Add word at the top right, and the shaded logo backdrop showing around the empty-list card](assets/app-screenshot.jpg)
 
 An empty list on first run — the state the app opens in before anything is saved. The
 screenshot predates the rename, so the nav in it still reads "Glossary" and the column

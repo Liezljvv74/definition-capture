@@ -2,7 +2,7 @@
 
 # Definition Capture
 
-A personal glossary: terms, phrases, and verb conjugation tables, private to
+A personal glossary: words, phrases, and verb conjugation tables, private to
 each signed-in account. Every list is stored in Supabase and scoped to its
 owner.
 
@@ -82,7 +82,7 @@ above silently stops working.
 ## Data rules
 
 **No note data in `localStorage` or `sessionStorage`, under any circumstances.**
-Terms, phrases, verb tables, and settings live in Supabase. The one module that
+Words, phrases, verb tables, and settings live in Supabase. The one module that
 touches `localStorage` is `src/lib/legacyLocal.ts`, which exists only to read
 pre-account data out of an old browser and import it, and then delete it.
 

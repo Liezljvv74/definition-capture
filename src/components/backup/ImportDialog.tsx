@@ -145,7 +145,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
     return (
       <Modal title="Import finished" onClose={onClose}>
         <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
-          <ResultBlock label="Terms" counts={state.result.terms} mode={state.mode} />
+          <ResultBlock label="Words" counts={state.result.terms} mode={state.mode} />
           <ResultBlock label="Phrases" counts={state.result.phrases} mode={state.mode} />
           <ResultBlock
             label="Verb tables"
@@ -181,7 +181,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
         <p className="text-sm text-slate-600 dark:text-slate-300">This cannot be undone.</p>
         <ul className="mt-3 space-y-2 text-sm">
           <ReplaceLine
-            label="Terms"
+            label="Words"
             saved={entries.length}
             incoming={contents.entries.length}
             untouched={leavesListAlone(contents, "entries", "replace")}
@@ -248,7 +248,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
           <p className="font-medium break-all">{file.name}</p>
           <ul className="mt-1 space-y-0.5 text-slate-600 dark:text-slate-300">
             <li>
-              {terms} {terms === 1 ? "term" : "terms"}: {terms - preview.matchingTerms} new
+              {terms} {terms === 1 ? "word" : "words"}: {terms - preview.matchingTerms} new
               to you, {preview.matchingTerms} of your {entries.length} already saved.
             </li>
             <li>

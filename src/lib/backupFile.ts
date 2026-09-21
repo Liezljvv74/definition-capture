@@ -105,7 +105,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
   const backup = buildBackup(scope);
 
   const terms: Sheet<Blob> = {
-    sheet: "Terms",
+    sheet: "Words",
     columns: [
       { width: 26 },
       { width: 60 },
@@ -115,7 +115,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
       { width: 16 },
     ],
     data: [
-      headerRow(["Term", "Definition", "Category", "Source", "Ref", "Date added"]),
+      headerRow(["Word", "Definition", "Category", "Source", "Ref", "Date added"]),
       ...backup.entries.map<Row>((entry) => [
         { value: entry.term, type: String },
         { value: entry.definition, type: String, wrap: true },

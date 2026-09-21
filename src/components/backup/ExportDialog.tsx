@@ -192,8 +192,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 onSelect={() => setScope("all")}
               />
               <ScopeChoice
-                label="Terms"
-                detail={`${counts.terms} ${counts.terms === 1 ? "term" : "terms"}`}
+                label="Words"
+                detail={`${counts.terms} ${counts.terms === 1 ? "word" : "words"}`}
                 checked={scope === "terms"}
                 disabled={busy}
                 onSelect={() => setScope("terms")}
@@ -224,7 +224,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             title="Excel workbook (.xlsx)"
             detail={
               scope === "all"
-                ? "Terms, Phrases, and Verb tables on separate sheets. Best for reading, sorting, or printing outside the app."
+                ? "Words, Phrases, and Verb tables on separate sheets. Best for reading, sorting, or printing outside the app."
                 : "One sheet. Best for reading, sorting, or printing outside the app."
             }
             disabled={busy || counts[scope] === 0}

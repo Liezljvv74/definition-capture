@@ -203,7 +203,7 @@ export default function TermsPage() {
                   id="search"
                   type="search"
                   className="field"
-                  placeholder="Search terms and definitions…"
+                  placeholder="Search words and definitions…"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
@@ -250,7 +250,7 @@ export default function TermsPage() {
                 className="btn btn-primary shrink-0 sm:ml-auto"
                 onClick={() => setIsAdding(true)}
               >
-                <span aria-hidden="true">+</span> Add term
+                <span aria-hidden="true">+</span> Add word
               </button>
             </div>
 
@@ -265,13 +265,13 @@ export default function TermsPage() {
             ) : (
               <>
                 <p className="sr-only" aria-live="polite">
-                  {visible.length} of {entries.length} terms shown
+                  {visible.length} of {entries.length} words shown
                 </p>
                 {selection.count > 0 && (
                   <SelectionBar
                     count={selection.count}
-                    noun="term"
-                    nounPlural="terms"
+                    noun="word"
+                    nounPlural="words"
                     onDelete={() => setPendingDelete(selection.selectedIds)}
                     onClear={selection.clear}
                   />
@@ -318,8 +318,8 @@ export default function TermsPage() {
       {pendingDelete && pendingNames.length > 0 && (
         <ConfirmDeleteDialog
           names={pendingNames}
-          noun="term"
-          nounPlural="terms"
+          noun="word"
+          nounPlural="words"
           onCancel={() => setPendingDelete(null)}
           onConfirm={() => {
             deleteEntries(pendingDelete);
@@ -364,7 +364,7 @@ function EntryTable({
                 checked={selection.allSelected}
                 indeterminate={selection.partiallySelected}
                 onChange={selection.toggleAll}
-                label="Select all terms shown"
+                label="Select all words shown"
               />
             </th>
             {COLUMNS.map((column) => {
@@ -496,7 +496,7 @@ function EntryCards({
           checked={selection.allSelected}
           indeterminate={selection.partiallySelected}
           onChange={selection.toggleAll}
-          label="Select all terms shown"
+          label="Select all words shown"
         />
         Select all
       </label>
@@ -569,14 +569,14 @@ function EmptyTerms({ onAdd }: { onAdd: () => void }) {
       <div aria-hidden="true" className="mb-3 text-4xl">
         📖
       </div>
-      <h2 className="text-lg font-semibold">No terms yet</h2>
+      <h2 className="text-lg font-semibold">No words yet</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
         Definition Capture is a place to park the words and concepts you meet while studying, so
-        you can search and review them later. Save a term now and write the definition whenever
+        you can search and review them later. Save a word now and write the definition whenever
         you like. Blank ones get flagged so they are easy to find again.
       </p>
       <button type="button" className="btn btn-primary mt-5" onClick={onAdd}>
-        <span aria-hidden="true">+</span> Add your first term
+        <span aria-hidden="true">+</span> Add your first word
       </button>
     </div>
   );
@@ -585,7 +585,7 @@ function EmptyTerms({ onAdd }: { onAdd: () => void }) {
 function NoMatches({ onClear }: { onClear: () => void }) {
   return (
     <div className="card p-8 text-center">
-      <h2 className="font-semibold">No terms match those filters</h2>
+      <h2 className="font-semibold">No words match those filters</h2>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
         Try a different search, or clear the filters below.
       </p>

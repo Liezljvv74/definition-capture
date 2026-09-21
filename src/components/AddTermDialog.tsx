@@ -78,7 +78,7 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
   if (duplicate) {
     const existing = duplicate;
     return (
-      <Modal title="That term is already saved" onClose={onClose}>
+      <Modal title="That word is already saved" onClose={onClose}>
         <div className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-slate-300">
             You already saved <strong className="font-semibold">{existing.term}</strong>. Open
@@ -121,10 +121,10 @@ export function AddTermDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal title="Add a term" onClose={onClose}>
+    <Modal title="Add a word" onClose={onClose}>
       <EntryForm
         initialValue={draft}
-        submitLabel="Save term"
+        submitLabel="Save word"
         onSubmit={handleSubmit}
         onCancel={onClose}
         autoSplit

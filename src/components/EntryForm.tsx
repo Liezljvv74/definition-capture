@@ -101,7 +101,7 @@ export function EntryForm({
     event.preventDefault();
     const term = value.term.trim();
     if (!term) {
-      setError("A term is required.");
+      setError("A word is required.");
       return;
     }
     setError(null);
@@ -112,7 +112,7 @@ export function EntryForm({
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div>
         <label htmlFor={`${ids}-term`} className="mb-1 block text-sm font-medium">
-          Term <span className="text-red-600 dark:text-red-400">*</span>
+          Word <span className="text-red-600 dark:text-red-400">*</span>
         </label>
         <input
           id={`${ids}-term`}
@@ -132,8 +132,8 @@ export function EntryForm({
         <p id={`${ids}-term-hint`} className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           {autoSplit
             ? didSplit
-              ? "Split into Term and Definition. Edit either field if that isn't right."
-              : "Paste \u201cterm: definition\u201d or \u201cterm - definition\u201d and it splits itself."
+              ? "Split into Word and Definition. Edit either field if that isn't right."
+              : "Paste \u201cword: definition\u201d or \u201cword - definition\u201d and it splits itself."
             : "The word or concept you want to remember."}
         </p>
       </div>
@@ -187,7 +187,7 @@ export function EntryForm({
           })}
         </div>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          Groups terms that belong together. Up to {MAX_CATEGORIES}
+          Groups words that belong together. Up to {MAX_CATEGORIES}
           {value.categories.length > 0 && `, ${value.categories.length} chosen`}.
         </p>
       </fieldset>
@@ -221,7 +221,7 @@ export function EntryForm({
           <RefField
             id={`${ids}-ref`}
             value={value.ref}
-            placeholder="Notes, a link, or [[Another Term]]"
+            placeholder="Notes, a link, or [[Another Word]]"
             onChange={(ref) => setValue((current) => ({ ...current, ref }))}
             // A term referring to itself is a link back to the page you are
             // already on. Both names are excluded so a rename mid-edit cannot

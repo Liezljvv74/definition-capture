@@ -80,7 +80,7 @@ export default function SettingsPage() {
         <SettingSection title="Sources">
           <NameListEditor
             legend="Sources"
-            description="Where a definition came from. Shown on a term or phrase when you open it. The order you put them in is the order the form offers them, so the ones you use most belong at the top."
+            description="Where a definition came from. Shown on a word or phrase when you open it. The order you put them in is the order the form offers them, so the ones you use most belong at the top."
             names={settings.sources}
             onChange={(sources) => saveSettings({ sources })}
             minimum={1}

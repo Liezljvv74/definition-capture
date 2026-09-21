@@ -57,10 +57,10 @@ export function EditTermDialog({
 
   if (clash) {
     return (
-      <Modal title="Another term already has that name" onClose={onClose}>
+      <Modal title="Another word already has that name" onClose={onClose}>
         <p className="text-sm text-slate-600 dark:text-slate-300">
           <strong className="font-semibold">{clash.term}</strong> is already saved separately.
-          Change the wording, or delete one of the two from your term list.
+          Change the wording, or delete one of the two from your word list.
         </p>
         <div className="mt-5 flex justify-end">
           <button type="button" className="btn btn-primary" onClick={() => setClash(null)}>
@@ -72,7 +72,7 @@ export function EditTermDialog({
   }
 
   return (
-    <Modal title="Edit term" onClose={onClose}>
+    <Modal title="Edit word" onClose={onClose}>
       <EntryForm
         initialValue={draft}
         submitLabel="Save changes"
