@@ -198,9 +198,15 @@ export default function TermsPage() {
         ) : (
           <>
             <div
-              className={`${STICKY_FILTERS} mb-4 flex flex-col gap-3 sm:flex-row sm:items-center`}
+              className={`${STICKY_FILTERS} mb-4 flex flex-wrap items-center gap-2`}
             >
-              <div className="flex-1">
+              {/*
+               * A bounded width rather than `flex-1`. Letting the search take
+               * every spare pixel is what pushed the Add button off the end of
+               * the row: this list has the most controls of the four, so the
+               * field that can afford to be smaller is the one that grows.
+               */}
+              <div className="w-full sm:w-1/3 lg:min-w-64">
                 <label htmlFor="search" className="sr-only">
                   Search terms and definitions
                 </label>
@@ -217,7 +223,7 @@ export default function TermsPage() {
               {/* Width sits on the wrapper, not the select: `field` already sets
                   w-full, and two utilities of equal weight would be a coin toss. */}
               {categoryOptions.length > 0 && (
-                <div className="shrink-0 sm:w-44">
+                <div className="w-full sm:w-44">
                   <label htmlFor="category" className="sr-only">
                     Filter by category
                   </label>
