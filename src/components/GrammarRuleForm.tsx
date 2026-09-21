@@ -124,7 +124,7 @@ export function GrammarRuleForm({
           id={`${ids}-examples`}
           className="field min-h-24 resize-y"
           value={value.examples}
-          placeholder={"One per line — a sentence, and its translation if it helps."}
+          placeholder={"One per line: a sentence, and its translation if it helps."}
           onChange={(event) =>
             setValue((current) => ({ ...current, examples: event.target.value }))
           }

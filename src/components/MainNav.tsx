@@ -69,7 +69,7 @@ export function MainNav() {
         <li className="mr-2 shrink-0 sm:mr-3">
           <Link
             href="/"
-            aria-label="Definition Capture — home"
+            aria-label="Definition Capture, home"
             className="-ml-1 block rounded-md p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
           >
             {/* Width and height reserve the space before the file loads, so

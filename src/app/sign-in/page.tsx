@@ -82,7 +82,7 @@ function explainSignInFailure(message: string): string {
   return (
     "That email and password did not match an account. An account that has only " +
     "ever been used through an emailed link has no password until one is set for " +
-    "it — sign in with a link below, then set a password under Settings."
+    "it. Sign in with a link below, then set a password under Settings."
   );
 }
 
@@ -190,7 +190,7 @@ const RESEND_SECONDS = 60;
 function explainFailure(message: string): string {
   if (!/rate limit/i.test(message)) return message;
   return (
-    "The email sender will not send another link to this address yet — one a " +
+    "The email sender will not send another link to this address yet: one a " +
     "minute, and only a few an hour. Check your inbox first: a link sent " +
     "earlier may still be waiting, and it works for an hour. A password, set " +
     "under Settings once you are in, avoids this limit altogether."
@@ -239,7 +239,7 @@ function EmailLinkForm({ onUsePassword }: { onUsePassword: () => void }) {
         </p>
         <p className="text-slate-600 dark:text-slate-400">
           The link works once and expires after an hour. Only a few can be sent an hour, so
-          give the first one a minute to arrive before asking for another — or set a
+          give the first one a minute to arrive before asking for another, or set a
           password under Settings once you are in, and skip the email next time.
         </p>
         <button type="button" className="btn btn-secondary" onClick={() => setState("idle")}>

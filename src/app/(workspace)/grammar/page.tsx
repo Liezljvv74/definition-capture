@@ -423,7 +423,7 @@ function EmptyGrammar({ onAdd }: { onAdd: () => void }) {
       </div>
       <h2 className="text-lg font-semibold">No grammar rules yet</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
-        A rule is the thing you keep having to look up — which case follows a
+        A rule is the thing you keep having to look up: which case follows a
         preposition, where the verb goes. Give it a title, say what it does, and
         add the examples that make it stick.
       </p>

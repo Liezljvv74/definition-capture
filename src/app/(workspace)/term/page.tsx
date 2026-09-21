@@ -103,7 +103,7 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
             </p>
           ) : (
             <p className="mt-1.5 text-slate-500 italic dark:text-slate-400">
-              No definition yet — use Edit to fill it in.
+              No definition yet. Use Edit to fill it in.
             </p>
           )}
         </div>
@@ -189,7 +189,7 @@ function TermNotFound() {
       <h1 className="text-lg font-semibold">Term not found</h1>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
         There is no entry with that ID in your term list. It may have been deleted, or the
-        link may point to a term in a different account — your list follows the account you
+        link may point to a term in a different account, since your list follows the account you
         are signed in to.
       </p>
       <Link href="/terms" className="btn btn-primary mt-5">

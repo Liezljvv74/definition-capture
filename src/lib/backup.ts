@@ -129,7 +129,7 @@ export function parseBackup(text: string): BackupParse {
     return {
       ok: false,
       error:
-        "That file does not look like a Definition Capture backup — it has no list of entries.",
+        "That file does not look like a Definition Capture backup: it has no list of entries.",
     };
   }
 
@@ -155,7 +155,7 @@ export function parseBackup(text: string): BackupParse {
     return {
       ok: false,
       error:
-        "That file does not look like a Definition Capture backup — it has no list of entries.",
+        "That file does not look like a Definition Capture backup: it has no list of entries.",
     };
   }
 

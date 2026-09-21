@@ -86,7 +86,7 @@ export default function SignUpPage() {
             </p>
             <p className="text-slate-600 dark:text-slate-400">
               If an account already existed for that address, no new one was made and no
-              message was sent — sign in with it instead.
+              message was sent. Sign in with it instead.
             </p>
             <Link href="/sign-in" className="btn btn-secondary">
               Back to sign in
