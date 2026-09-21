@@ -162,7 +162,7 @@ export function PhraseForm({
           })}
         </div>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          The same groups the terms use. Up to {MAX_CATEGORIES}
+          The same groups the words use. Up to {MAX_CATEGORIES}
           {value.categories.length > 0 && `, ${value.categories.length} chosen`}.
         </p>
       </fieldset>

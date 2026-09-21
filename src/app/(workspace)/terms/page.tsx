@@ -197,7 +197,7 @@ export default function TermsPage() {
                */}
               <div className="w-full sm:w-1/3 lg:min-w-64">
                 <label htmlFor="search" className="sr-only">
-                  Search terms and definitions
+                  Search words and definitions
                 </label>
                 <input
                   id="search"
@@ -302,7 +302,7 @@ export default function TermsPage() {
                 )}
                 {isFiltered && (
                   <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    Showing {visible.length} of {entries.length} terms.
+                    Showing {visible.length} of {entries.length} words.
                   </p>
                 )}
               </>

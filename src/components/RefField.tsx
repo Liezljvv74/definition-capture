@@ -179,7 +179,7 @@ export function RefField({
         <ul
           id={listId}
           role="listbox"
-          aria-label="Saved terms and phrases"
+          aria-label="Saved words and phrases"
           className={`card absolute z-10 max-h-56 w-full overflow-y-auto p-1 shadow-lg ${
             dropUp ? "bottom-full mb-1" : "top-full mt-1"
           }`}
@@ -203,7 +203,7 @@ export function RefField({
             >
               <span className="truncate">{suggestion.name}</span>
               <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {suggestion.kind === "term" ? "Term" : "Phrase"}
+                {suggestion.kind === "term" ? "Word" : "Phrase"}
               </span>
             </li>
           ))}

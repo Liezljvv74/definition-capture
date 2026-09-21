@@ -95,7 +95,7 @@ export default function SignUpPage() {
         ) : (
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Your terms and phrases will be private to this account. Nobody else signed in
+              Your words and phrases will be private to this account. Nobody else signed in
               can see them.
             </p>
 

@@ -115,7 +115,7 @@ export function parseBackup(text: string): BackupParse {
           settings: null,
           unreadable,
         }
-      : { ok: false, error: "That backup contains no readable terms." };
+      : { ok: false, error: "That backup contains no readable words." };
   }
 
   if (typeof raw !== "object" || raw === null) {

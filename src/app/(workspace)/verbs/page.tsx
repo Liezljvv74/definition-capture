@@ -173,12 +173,12 @@ function VerbList() {
           </div>
           <h2 className="text-lg font-semibold">No conjugation tables yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
-            Tables are made from a term you have already saved. Open a verb on{" "}
+            Tables are made from a word you have already saved. Open a verb on{" "}
             <Link
               href="/terms"
               className="text-indigo-700 underline underline-offset-2 dark:text-indigo-300"
             >
-              Terms
+              Vocabulary
             </Link>
             , choose Edit, and use <strong className="font-semibold">Conjugation table</strong>.
           </p>
@@ -345,7 +345,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             {alreadyHasTable
               ? `${name} already has a table.`
-              : "Added to Terms as well, if it is not saved there already."}
+              : "Added to Vocabulary as well, if it is not saved there already."}
           </p>
         </div>
       )}

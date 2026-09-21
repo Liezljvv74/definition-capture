@@ -58,7 +58,7 @@ function TermDetail() {
             href="/terms"
             className="text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-300"
           >
-            ← Back to Terms
+            ← Back to Vocabulary
           </Link>
         </div>
       </header>
@@ -181,14 +181,14 @@ function TermNotFound() {
       <div aria-hidden="true" className="mb-3 text-4xl">
         🔍
       </div>
-      <h1 className="text-lg font-semibold">Term not found</h1>
+      <h1 className="text-lg font-semibold">Word not found</h1>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-        There is no entry with that ID in your term list. It may have been deleted, or the
-        link may point to a term in a different account, since your list follows the account you
+        There is no entry with that ID in your word list. It may have been deleted, or the
+        link may point to a word in a different account, since your list follows the account you
         are signed in to.
       </p>
       <Link href="/terms" className="btn btn-primary mt-5">
-        Back to Terms
+        Back to Vocabulary
       </Link>
     </div>
   );

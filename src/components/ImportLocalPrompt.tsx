@@ -111,7 +111,7 @@ function LegacyOffer({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p>
               This browser still holds {describe(legacy.entries.length, legacy.phrases.length)}{" "}
-              saved before you had an account. Copy them into your term list?
+              saved before you had an account. Copy them into your word list?
             </p>
             <div className="flex shrink-0 gap-2">
               <button
@@ -208,10 +208,10 @@ function LegacyOffer({
   );
 }
 
-/** "3 terms and 1 phrase", with only the halves that are actually there. */
+/** "3 words and 1 phrase", with only the halves that are actually there. */
 function describe(terms: number, phrases: number): string {
   const parts: string[] = [];
-  if (terms > 0) parts.push(`${terms} ${terms === 1 ? "term" : "terms"}`);
+  if (terms > 0) parts.push(`${terms} ${terms === 1 ? "word" : "words"}`);
   if (phrases > 0) parts.push(`${phrases} ${phrases === 1 ? "phrase" : "phrases"}`);
   if (parts.length === 0) return "nothing";
   return parts.join(" and ");

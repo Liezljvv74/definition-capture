@@ -117,7 +117,7 @@ function PasswordForm({ onUseEmail }: { onUseEmail: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-4">
       <p className="text-sm text-slate-600 dark:text-slate-400">
-        Your terms and phrases are private to your account.
+        Your words and phrases are private to your account.
       </p>
 
       <div>

@@ -70,7 +70,7 @@ export default function SettingsPage() {
         <SettingSection title="Glossary Categories">
           <NameListEditor
             legend="Glossary Categories"
-            description={`The groups the term and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on anything already filed under it.`}
+            description={`The groups the word and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on anything already filed under it.`}
             names={settings.categories}
             onChange={(categories) => saveSettings({ categories })}
             placeholder="e.g. Travel"
