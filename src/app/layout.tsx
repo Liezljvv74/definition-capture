@@ -39,12 +39,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
  * cards and headers above it are opaque, which keeps every table row at full
  * contrast, and the logo shows through the page margins.
  *
- * One layer for the whole app, not one per page. The home page wants it in
- * front of its cards instead of behind them, and `globals.css` lifts this
- * same element rather than drawing a second copy: two copies of one image at
- * one position would stack in the margins and not over the cards, leaving a
- * visible step wherever a card edge crossed the artwork. `data-page-backdrop`
- * is the handle that rule reaches for.
+ * One layer for the whole app, not one per page. The home page wears it as a
+ * small mark in the bottom right corner, in front of the page rather than
+ * behind it, and `globals.css` restyles this same element rather than drawing
+ * a second copy: two copies of one image at one position would stack in the
+ * margins and not over the cards, leaving a visible step wherever a card edge
+ * crossed the artwork. `data-page-backdrop` is the handle that rule reaches
+ * for, and it overrides the position and size set here as well as the depth.
  */
 function PageBackground() {
   return (
