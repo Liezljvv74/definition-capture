@@ -5,18 +5,22 @@
     "Helvetica Neue", Arial, sans-serif;
 
   /*
-   * The home page's palette, taken out of the artwork rather than matched by
-   * eye. Each is the weighted average of the pixels in that hue band in
-   * `captured-logo-bg.png`, so the page and the mark in its corner are the
-   * same colours and not a set of near misses.
-   *
-   * The logo has no green in it. Every greenish pixel in the file is
-   * anti-aliasing beside white, 1,252 of 296,737 and 1,200 of those a hair
-   * off white, so the Terms card wears the teal: it was the one logo colour
-   * with nothing else claiming it.
+   * The home page's palette. The `logo-` ones are taken out of the artwork
+   * rather than matched by eye: each is the weighted average of the pixels in
+   * that hue band in `captured-logo-bg.png`, so the page and the mark in its
+   * corner are the same colours and not a set of near misses.
    *
    * `-50` means the colour at half strength over white, which is what makes
    * a card a card rather than a block of paint.
+   *
+   * The green is the exception and carries a different prefix to say so: the
+   * logo has no green in it at all. Every greenish pixel in the file is
+   * anti-aliasing beside white, 1,252 of 296,737 and 1,200 of those a hair
+   * off white. So it is built to match instead of sampled, at the saturation
+   * and lightness of the logo's teal, its nearest neighbour on the wheel,
+   * turned to hue 135. That hue is the furthest of the plausible greens from
+   * the teal the card beside it wears, which matters when the two sit in one
+   * row.
    *
    * None of these carries a dark variant, and that is the point rather than
    * an omission: they are light colours whatever the browser is set to, so
@@ -27,8 +31,8 @@
    */
   --color-logo-yellow: #fcbd15;
   --color-logo-teal-50: #86d9e9;
-  --color-logo-pink-50: #fcaeca;
   --color-logo-purple-50: #c3b4fc;
+  --color-card-green-50: #86e99f;
 }
 
 html {

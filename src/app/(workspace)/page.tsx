@@ -43,7 +43,7 @@ export default function HomePage() {
 
             <Link
               href="/phrases"
-              className="rounded-2xl bg-logo-pink-50 p-5 transition hover:brightness-95"
+              className="rounded-2xl bg-card-green-50 p-5 transition hover:brightness-95"
             >
               <h3 className="text-xl font-semibold text-slate-900">Phrases</h3>
               <p className="mt-2 text-sm leading-6 text-slate-800">
