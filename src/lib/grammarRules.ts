@@ -51,6 +51,7 @@ const store = createRemoteStore<GrammarRule>({
   table: "grammar_rules",
   orderBy: "created_at",
   idOf: (rule) => rule.id,
+  nameOf: (rule) => rule.title,
 
   fromRow(row) {
     const id = readString(row.id);
@@ -121,15 +122,7 @@ export function updateGrammarRule(
   return updated;
 }
 
-/** Many removals, one write — the same as the other lists. */
-export function deleteGrammarRules(ids: readonly string[]): number {
-  const present = new Set(store.items().map((rule) => rule.id));
-  const doomed = [...new Set(ids)].filter((id) => present.has(id));
-  if (doomed.length === 0) return 0;
-
-  store.remove(doomed);
-  return doomed.length;
-}
+export const deleteGrammarRules = store.removeMany;
 
 /* ----------------------------------------------------------------- queries */
 
@@ -138,13 +131,7 @@ export function getGrammarRules(): GrammarRule[] {
 }
 
 /** Case-insensitive title lookup, for the duplicate check before saving. */
-export function findByTitle(title: string, ignoreId?: string): GrammarRule | undefined {
-  const needle = foldName(title);
-  if (!needle) return undefined;
-  return store
-    .items()
-    .find((rule) => rule.id !== ignoreId && foldName(rule.title) === needle);
-}
+export const findByTitle = store.findByName;
 
 /* ------------------------------------------------------------------ import */
 

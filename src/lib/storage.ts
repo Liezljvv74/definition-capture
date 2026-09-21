@@ -60,6 +60,7 @@ const store = createRemoteStore<Entry>({
   table: "terms",
   orderBy: "date_added",
   idOf: (entry) => entry.id,
+  nameOf: (entry) => entry.term,
 
   fromRow(row) {
     const id = readString(row.id);
@@ -147,14 +148,7 @@ export function updateEntry(id: string, input: EntryInput): Entry | null {
  * single round trip and a single re-render, not one per row. Returns how many
  * were actually removed; ids that are not in the term list are ignored.
  */
-export function deleteEntries(ids: readonly string[]): number {
-  const present = new Set(store.items().map((entry) => entry.id));
-  const doomed = [...new Set(ids)].filter((id) => present.has(id));
-  if (doomed.length === 0) return 0;
-
-  store.remove(doomed);
-  return doomed.length;
-}
+export const deleteEntries = store.removeMany;
 
 /* ----------------------------------------------------------------- queries */
 
@@ -163,13 +157,7 @@ export function getEntries(): Entry[] {
 }
 
 /** Case-insensitive term lookup, used for the duplicate check before saving. */
-export function findByTerm(term: string, ignoreId?: string): Entry | undefined {
-  const needle = foldName(term);
-  if (!needle) return undefined;
-  return store
-    .items()
-    .find((entry) => entry.id !== ignoreId && foldName(entry.term) === needle);
-}
+export const findByTerm = store.findByName;
 
 /* ------------------------------------------------------------------ import */
 
