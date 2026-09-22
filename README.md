@@ -179,20 +179,31 @@ too. What changes is only what is suggested for new ones.
 
   Otherwise it is deliberately strict: being refused costs a button press, while being wrongly
   told you knew something schedules it weeks away with nothing to notice.
-- **`/settings`** — reached from the account menu at the right of the nav rather than
-  from the tabs, which belong to the two lists. Eight sections: **Profile** (the address
-  you signed in with, an optional display name shown in the nav in its place, and Sign
-  out), **Password** (set one, or change it — an account created from an emailed link has
-  none until this is used), **Answer separators** (which punctuation means "or" when a
-  flashcard is marked), **Glossary Categories** and **Sources** (add, remove, and reorder
-  the lists the word and phrase forms offer — source order is the order the Source column sorts by, so it
-  is kept rather than alphabetised), **Verb persons** and **Verb tenses** (what a new
-  conjugation table is built from), and **Export folder** (see Backup below). All but the
-  last are per account; the folder is per browser.
+- **`/settings`**, reached from the gear at the right of the nav rather than from the
+  tabs, which belong to the two lists. The gear opens a menu of three groups rather than
+  going straight to one page, because eight sections on one scroll is a list to hunt
+  through. The grouping is by what somebody came to change:
 
-  Each section is rolled up to its name and what it is currently set to, with a pencil
-  to open the controls. The list sections show their name alone: spelling eight
-  categories across a row meant to be skimmed would defeat the point of folding it up.
+  - **Profile**: **Profile** itself (the address you signed in with, an optional display
+    name shown in the nav in its place, and Sign out), **Password** (set one, or change
+    it: an account created from an emailed link has none until this is used), and
+    **Export folder** (see Backup below).
+  - **Glossary settings**: **Glossary Categories** and **Sources** (add, remove, and
+    reorder the lists the word and phrase forms offer; source order is the order the
+    Source column sorts by, so it is kept rather than alphabetised), plus **Verb persons**
+    and **Verb tenses** (what a new conjugation table is built from).
+  - **Flashcard settings**: **Answer separators**, which punctuation means "or" when a
+    flashcard is marked.
+
+  Which group is showing is a `?section=` query parameter, so a group can be linked to and
+  survives a reload. Anything unrecognised falls back to Profile: the value comes from a
+  URL and can be anything at all, and a settings page rendering nothing looks broken.
+  All of it is per account except the export folder, which is per browser.
+
+  Within a group each section is still rolled up to its name and what it is currently set
+  to, with a pencil to open the controls. The list sections show their name alone:
+  spelling eight categories across a row meant to be skimmed would defeat the point of
+  folding it up.
 
 The id is a query parameter rather than a path segment for historical reasons: the app was a
 static export, and a `/vocabulary/[id]` route would have had nothing to pre-render, since the
@@ -221,8 +232,8 @@ menu closes on Escape — putting focus back on the tab — on a click outside, 
 choosing. The bar deliberately has no horizontal overflow: a scroll on one axis makes
 the other one scroll too, which would clip the menu.
 
-At the right-hand end are the signed-in name and a gear that opens Settings. Signing out
-is in Settings rather than up here: it is rare and feels destructive, and one click from
+At the right-hand end are the signed-in name and a gear that opens the Settings menu.
+Signing out is in Settings rather than up here: it is rare and feels destructive, and one click from
 a nav bar is closer than it wants to be. On a narrow screen the bar scrolls sideways
 rather than wrapping into two rows.
 
@@ -560,13 +571,13 @@ src/
       phrase/page.tsx       one phrase by ?id=, read-only plus Edit
       verbs/page.tsx        the conjugation tables, one rolled-up card each
       flashcards/page.tsx   one card at a time from a deck, and what you answered
-      settings/page.tsx     profile, password, the lists, exports
+      settings/page.tsx     one of the three settings groups, by ?section=
   components/
     flashcards/
       CreateDeckDialog.tsx  sources, filters and how many, then build the deck
     MainNav.tsx           the nav bar: Glossary, Verbs, Backup, and the account menu
-    NavMenu.tsx           the dropdown the Glossary and Backup tabs open
-    AccountMenu.tsx       display name or address, and a gear to Settings
+    NavMenu.tsx           the dropdown the Glossary, Backup and gear tabs open
+    AccountMenu.tsx       display name or address, and the gear's Settings menu
     BackupMenu.tsx        Export and Import, loading their dialogs on demand
     backup/
       ExportDialog.tsx    what to export and in which format
@@ -609,6 +620,7 @@ src/
     backupFile.ts         download plumbing: builds the .xlsx and .json files
     planImport.ts         what merging a backup into a list means, as a pure function
     settings.ts           the account's display name and editable lists
+    settingsSections.ts   the three groups Settings is divided into
     exportFolder.ts       the chosen export folder, held in IndexedDB
     useWords.ts           React binding for the word store
     usePhrases.ts         React binding for the phrase store

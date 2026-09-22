@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useId, useState, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
 import { MAX_CATEGORIES, SEPARATOR_CHOICES } from "@/lib/constants";
+import { SETTINGS_SECTIONS, readSectionKey } from "@/lib/settingsSections";
 import {
   chooseExportFolder,
   clearExportFolder,
@@ -32,14 +34,128 @@ import { useSettings } from "@/lib/useSettings";
  * on the section itself rather than leaving the difference to be discovered.
  */
 export default function SettingsPage() {
-  const { settings, loaded } = useSettings();
+  // `useSearchParams` needs one, and the fallback is what shows while the
+  // section is still unknown.
+  return (
+    <Suspense fallback={<Frame section={SETTINGS_SECTIONS[0]}>{null}</Frame>}>
+      <Settings />
+    </Suspense>
+  );
+}
 
+function Settings() {
+  const { settings, loaded } = useSettings();
+  const chosen = readSectionKey(useSearchParams().get("section"));
+  const section =
+    SETTINGS_SECTIONS.find((one) => one.key === chosen) ?? SETTINGS_SECTIONS[0];
+
+  return (
+    <Frame section={section}>
+
+      {/* A failed settings save used to be reported here, and only here —
+          which meant a save made from the verbs page or a table card failed
+          silently. `StoreErrorBanner` in the workspace layout now shows it
+          wherever it happens, so repeating it on this page would say the same
+          thing twice. */}
+
+      <div className="space-y-3">
+        {section.key === "profile" && (
+          <>
+            {/* Keyed on the stored name so a save, or a change in another tab,
+                remounts the field with the new value — React’s way of resetting
+                state from a prop without an effect that writes state. */}
+            <ProfileSection
+              key={settings.displayName}
+              displayName={settings.displayName}
+              loaded={loaded}
+            />
+
+            <PasswordSection />
+
+            <ExportFolderSection />
+          </>
+        )}
+
+        {section.key === "glossary" && (
+          <>
+            {/*
+             * "Glossary Categories" rather than "Categories": the one list is
+             * offered on the word form and the phrase form alike, and naming the
+             * section after the tab those two share says so without spelling out
+             * both.
+             */}
+            <SettingSection title="Glossary Categories">
+              <NameListEditor
+                legend="Glossary Categories"
+                description={`The groups the word and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on anything already filed under it.`}
+                names={settings.categories}
+                onChange={(categories) => saveSettings({ categories })}
+                placeholder="e.g. Travel"
+              />
+            </SettingSection>
+
+            <SettingSection title="Sources">
+              <NameListEditor
+                legend="Sources"
+                description="Where a definition came from. Shown on a word or phrase when you open it. The order you put them in is the order the form offers them, so the ones you use most belong at the top."
+                names={settings.sources}
+                onChange={(sources) => saveSettings({ sources })}
+                minimum={1}
+                placeholder="e.g. Textbook"
+              />
+            </SettingSection>
+
+            <SettingSection title="Verb persons">
+              <NameListEditor
+                legend="Verb persons"
+                description="The people a conjugation table is built from, in the order the rows should appear. Changing this shapes the next table you make; tables you already have keep the rows they were made with."
+                names={settings.verbPersons}
+                onChange={(verbPersons) => saveSettings({ verbPersons })}
+                placeholder="e.g. ich"
+              />
+            </SettingSection>
+
+            <SettingSection title="Verb tenses">
+              <NameListEditor
+                legend="Verb tenses"
+                description="Offered when a conjugation table is made. A tense typed there is added here automatically; the order is the order the dropdown shows."
+                names={settings.verbTenses}
+                onChange={(verbTenses) => saveSettings({ verbTenses })}
+                placeholder="e.g. Present"
+              />
+            </SettingSection>
+          </>
+        )}
+
+        {section.key === "flashcards" && <AnswerSeparatorsSection />}
+      </div>
+    </Frame>
+  );
+}
+
+/**
+ * The heading and the shell every group shares.
+ *
+ * Separate so the Suspense fallback is the same page with nothing in it
+ * rather than a different one: the heading does not depend on which group is
+ * chosen being known yet, and swapping the whole page for a spinner to learn
+ * one query parameter would be a flash for no reason.
+ */
+function Frame({
+  section,
+  children,
+}: {
+  section: (typeof SETTINGS_SECTIONS)[number];
+  children: ReactNode;
+}) {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
       <header className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Settings</h1>
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          {section.label}
+        </h1>
         <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-          Your profile, the lists the forms offer, and where exports go.
+          {section.description}
         </p>
       </header>
 
@@ -49,72 +165,11 @@ export default function SettingsPage() {
           wherever it happens, so repeating it on this page would say the same
           thing twice. */}
 
-      <div className="space-y-3">
-        {/* Keyed on the stored name so a save, or a change in another tab,
-            remounts the field with the new value — React’s way of resetting
-            state from a prop without an effect that writes state. */}
-        <ProfileSection
-          key={settings.displayName}
-          displayName={settings.displayName}
-          loaded={loaded}
-        />
-
-        <PasswordSection />
-
-        {/*
-         * "Glossary Categories" rather than "Categories": the one list is
-         * offered on the word form and the phrase form alike, and naming the
-         * section after the tab those two share says so without spelling out
-         * both.
-         */}
-        <SettingSection title="Glossary Categories">
-          <NameListEditor
-            legend="Glossary Categories"
-            description={`The groups the word and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on anything already filed under it.`}
-            names={settings.categories}
-            onChange={(categories) => saveSettings({ categories })}
-            placeholder="e.g. Travel"
-          />
-        </SettingSection>
-
-        <SettingSection title="Sources">
-          <NameListEditor
-            legend="Sources"
-            description="Where a definition came from. Shown on a word or phrase when you open it. The order you put them in is the order the form offers them, so the ones you use most belong at the top."
-            names={settings.sources}
-            onChange={(sources) => saveSettings({ sources })}
-            minimum={1}
-            placeholder="e.g. Textbook"
-          />
-        </SettingSection>
-
-        <SettingSection title="Verb persons">
-          <NameListEditor
-            legend="Verb persons"
-            description="The people a conjugation table is built from, in the order the rows should appear. Changing this shapes the next table you make; tables you already have keep the rows they were made with."
-            names={settings.verbPersons}
-            onChange={(verbPersons) => saveSettings({ verbPersons })}
-            placeholder="e.g. ich"
-          />
-        </SettingSection>
-
-        <SettingSection title="Verb tenses">
-          <NameListEditor
-            legend="Verb tenses"
-            description="Offered when a conjugation table is made. A tense typed there is added here automatically; the order is the order the dropdown shows."
-            names={settings.verbTenses}
-            onChange={(verbTenses) => saveSettings({ verbTenses })}
-            placeholder="e.g. Present"
-          />
-        </SettingSection>
-
-        <AnswerSeparatorsSection />
-
-        <ExportFolderSection />
-      </div>
+      {children}
     </main>
   );
 }
+
 
 /**
  * Which punctuation means "or" when a flashcard answer is marked.
