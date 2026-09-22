@@ -19,8 +19,10 @@ import { usePhrases } from "@/lib/usePhrases";
  * links now outlive. The singular path also keeps this clear of `/phrases`,
  * which is the list.
  *
- * Deliberately thin — phrases carry no dates and no source, so this page has
- * nothing the list does not already show beyond untruncated text.
+ * Thinner than the word page, because a phrase carries no dates: what is here
+ * is the untruncated text, the Source, and a Ref whose references can be
+ * followed. The list clamps the first of those to three lines and leaves the
+ * Source out of the table altogether.
  */
 export default function PhraseDetailPage() {
   // `useSearchParams` needs a boundary to suspend against during prerender.
