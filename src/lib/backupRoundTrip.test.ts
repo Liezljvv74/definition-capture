@@ -36,6 +36,7 @@ const phrase: Phrase = {
   categories: ["People"],
   source: "Textbook",
   ref: "",
+  dateAdded: "2026-02-03T09:15:00.000Z",
 };
 
 const table: VerbTable = {
@@ -77,6 +78,19 @@ describe("what the writer writes, the reader reads", () => {
 
   it("returns every phrase field for field", () => {
     expect(read(fileHolding()).phrases).toEqual([phrase]);
+  });
+
+  it("stands in a date for a phrase written before phrases had one", () => {
+    // Every file up to version 7 is this shape, and there are such files in
+    // people's Downloads folders. The phrase has to come back, and it has to
+    // come back with a usable date rather than a blank that would sit on its
+    // page forever.
+    const beforeVersion8: Record<string, unknown> = { ...toWirePhrase(phrase) };
+    delete beforeVersion8.dateAdded;
+    const restored = read(fileHolding({ phrases: [beforeVersion8 as never] })).phrases[0];
+
+    expect(restored.phrase).toBe(phrase.phrase);
+    expect(Number.isNaN(Date.parse(restored.dateAdded))).toBe(false);
   });
 
   it("returns a conjugation table with its grid intact", () => {

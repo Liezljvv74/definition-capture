@@ -75,6 +75,7 @@ describe("buildBackup, with something to back up", () => {
       categories: [],
       source: saved.phrase.source,
       ref: "",
+      dateAdded: saved.phrase.dateAdded,
     });
     expect(backup.verbTables[0]).toEqual({
       id: saved.table.id,

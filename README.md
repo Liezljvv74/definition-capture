@@ -122,11 +122,13 @@ too. What changes is only what is suggested for new ones.
   as the tie-breaker, and the date itself is shown on the entry's own page.
 - **`/phrases`** — the phrase list: a separate store that mirrors Vocabulary, for multi-word
   expressions that do not fit a single word. Columns are **Phrase**, **Literal Meaning**,
-  **Usage Example**, **Category**, and **Ref**. There are no dates, since phrases are looked
+  **Usage Example**, **Category**, and **Ref**. No date is a column, since phrases are looked
   up by wording rather than by when they were captured. Search covers the four text fields, a
   category dropdown narrows the list the way it does on Vocabulary, the Phrase and Literal
   Meaning headers each cycle A→Z / Z→A / back to newest-first, and only Phrase is
-  required. A phrase also carries a Source, shown on its own page.
+  required. A phrase also carries a Source and a Date added, both shown on its own page.
+  There is no Date Updated: a phrase records when it was captured and nothing about its
+  edits, which is the one place the two lists differ in what they keep.
 - **`/word?id=…`** and **`/phrase?id=…`** — one item per stable URL, safe to reload or paste
   into a fresh tab. This is where a `[[Name]]` reference lands, and where a name opens from
   either list. Both pages read: they show the

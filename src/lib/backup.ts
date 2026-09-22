@@ -66,10 +66,16 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * its definition and recomputed on the way back in regardless. A version 6
  * file and a version 7 file each read as the other.
  *
+ * 8 adds `dateAdded` to a phrase, which the database had always held and the
+ * app had been dropping on the way in. A file from 7 or earlier restores with
+ * today's date standing in for the one it never recorded, which is the same
+ * thing the word list has always done with a dated row that arrived without
+ * one.
+ *
  * A missing list reads as an absent one, not an empty one, which is what
  * keeps Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 7;
+export const BACKUP_VERSION = 8;
 
 /**
  * The lists a backup carries, named once.
