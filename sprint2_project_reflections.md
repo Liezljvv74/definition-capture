@@ -22,7 +22,15 @@ Sprint 1 stored everything in the browser and clearing site data would have lost
 
 Supabase Auth manages authentication. No password is stored, compared or hashed by my code. Being signed in is decided on the server twice: `src/proxy.ts` runs before every request and redirects anyone without a session, and the workspace layout asks again before any protected page renders. Both verify the token's signature with `getClaims()` rather than believing the cookie, because a cookie is a claim made by whoever sent the request.
 
-## 4. The optional task
+## 4. My data, and what the columns mean
+
+Everything I save is one row in `learning_items`, with the part that is particular to its type in a small table beside it. The columns that matter are `id`, which is the row's own identifier and what a `/word?id=` link points at; `user_id`, which is the account that owns the row and the column every security policy compares against `auth.uid()`; `item_type`, which is `word`, `phrase` or `verb_table` and says which detail table holds the rest; `title`, which is the word, the phrase or the verb; and the shared fields `ref`, `source`, `needs_review` and `created_at`.
+
+The detail tables hold only what is particular to a type. `word_details` has the definition, `phrase_details` has the literal meaning and the example, and `verb_table_details` has the tenses and the grid. They have no `user_id` of their own and reach through the shared id instead, so there is one answer to who owns a row rather than two that can disagree.
+
+`words`, `phrases` and `verb_tables` still exist, but as views. When I add a word, the app inserts into the `words` view, and an `instead of` trigger on that view splits it into one row in `learning_items`, stamped with my account's id, and one in `word_details`. Categories become rows in `tags` and `item_tags` in the same write. In the Table Editor the new row shows in `learning_items` with my `user_id` on it, which is the same id the Authentication tab shows for my account.
+
+## 5. The optional task
 
 I took the “password-reset email flow”, and built it on its own feature branch, `feat/password-reset`, which comes into `main` through a pull request rather than straight onto `main`.
 
@@ -30,11 +38,11 @@ I took the “password-reset email flow”, and built it on its own feature bran
 
 Two other things on the optional list were already part of the app by then: the “self-service sign-up page” at `/sign-up`, including the confirmation email Supabase sends, and “tag filtering”, which this app calls categories, with a filter on both list pages and on the flashcard deck builder.
 
-## 5. One thing that was harder than Sprint 1
+## 6. One thing that was harder than Sprint 1
 
 Although I love the fact that I can use a database to bring this idea to life, I struggle getting my head around databases and creating schemas.
 
-## 6. What I would keep, and what I would change
+## 7. What I would keep, and what I would change
 
 Keep: documenting the project rules in `CLAUDE.md` and making the agent follow them.
 
