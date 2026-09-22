@@ -9,7 +9,7 @@ migrations below and this explains why it is shaped the way it is.
 | `…_tags_and_categories.sql` | one labelling system across every type |
 | `…_reviews_and_flashcards.sql` | review history, decks, progress, goals, streaks, and the scheduler |
 
-All of these are applied, along with seven that followed while the feature was
+All of these are applied, along with eight that followed while the feature was
 built and reviewed: `card_faces` and the `needs_review` plumbing; a deck
 builder that skips items with no answer on the back; a mastery ladder that
 does not call one correct answer familiarity; the per-account answer
@@ -18,7 +18,8 @@ separators, and brackets joining them as a choice; the ownership check in
 migration, which indexes the delete cascade, takes the client's insert policy
 off `review_logs`, filters the category aggregates by tag kind, keeps the two
 category lists in step, and splits the deck builder so the recent path can use
-its index.
+its index. The last of them drops the three legacy tables, after checking that
+every row in them was still accounted for in `learning_items`.
 
 The backfill was checked field by field against the tables it replaced, not
 merely counted: 103 words, 21 phrases and 3 verb tables, with every column and
@@ -382,10 +383,16 @@ compatibility views, and build the flashcard feature directly against
 right way from the start and the existing pages migrate when there is a reason
 to touch them, rather than all at once as a prerequisite.
 
-The old tables are kept as `words_legacy`, `phrases_legacy` and
-`verb_tables_legacy` rather than dropped. Keep them until the app has run on
-the views for a while and a backup has been exported and re-imported
-successfully, then drop them in a migration of their own. They are no longer
-reachable through the API: keeping the data was a decision, keeping a second
-readable copy of every account's glossary on a public endpoint was not, so
-`anon` and `authenticated` have had their privileges revoked on all three.
+The old tables were kept as `words_legacy`, `phrases_legacy` and
+`verb_tables_legacy` rather than dropped, so the backfill could be checked
+against what it was built from. They have since been dropped, in a migration of
+their own that refused to drop anything unless every row in them still had its
+counterpart in `learning_items`, matched by the id it kept. Fields were not
+compared, because by then they were allowed to differ: an entry edited after
+the cutover has its current wording in the spine and its old wording in the
+copy, and that is the spine being right.
+
+What settled it was that nothing maintained them. A second copy of every row
+that drifts further from the truth by the day looks like data without being
+data, and the moment somebody reads it to answer a question is the moment it
+does harm.
