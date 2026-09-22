@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { ImportLocalPrompt } from "@/components/ImportLocalPrompt";
 import { MainNav } from "@/components/MainNav";
 import { StoreErrorBanner } from "@/components/StoreErrorBanner";
 import { serverUserId } from "@/lib/supabaseServer";
@@ -35,7 +34,6 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
           on the sign-in page. */}
       <MainNav />
       <StoreErrorBanner />
-      <ImportLocalPrompt />
       {children}
     </>
   );

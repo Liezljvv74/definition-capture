@@ -546,7 +546,6 @@ src/
     RowEditButton.tsx     the pencil at the end of a row, beside the bin
     StickyFilters.tsx     the classes that pin a page's filter row under the nav
     EmptyCell.tsx         the dash a blank cell shows instead of nothing
-    ImportLocalPrompt.tsx offers an account the notes it made before accounts existed
     StoreErrorBanner.tsx  says so when a read or a save did not reach the database
     NameListEditor.tsx    add / remove / reorder a list of names in Settings
     VerbTableControl.tsx  links to a verb's table, or to making one, from Edit word
@@ -562,7 +561,6 @@ src/
     supabaseServer.ts     the server client, and the verified "who is asking?"
     session.ts            who is signed in, and signing in, up, out and changing a password
     authLinkError.ts      why a sign-in link did not sign you in
-    legacyLocal.ts        reads what the app held before it had accounts, once, to import
     constants.ts          what a new account's lists start out as
     types.ts              Entry, Phrase and VerbTable shapes plus validators
     storage.ts            the word store, and how a word is written to a file
