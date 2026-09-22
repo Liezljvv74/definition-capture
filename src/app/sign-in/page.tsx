@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { signInLinkError } from "@/lib/authLinkError";
-import { sendMagicLink, signInWithPassword } from "@/lib/session";
+import { sendMagicLink, sendPasswordReset, signInWithPassword } from "@/lib/session";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
 /**
@@ -23,9 +23,11 @@ import { isSupabaseConfigured } from "@/lib/supabaseClient";
  * `password` is first and is the default because it sends no email, so it
  * works as many times a day as you like. The link route is there for an
  * account that has no password yet, which is every account that was created by
- * following a link in the first place.
+ * following a link in the first place. `forgot` is for the reader who has a
+ * password and cannot produce it, and it is a separate route rather than a
+ * page of its own so that nothing has to be typed twice to get to it.
  */
-type Route = "password" | "email";
+type Route = "password" | "email" | "forgot";
 
 export default function SignInPage() {
   const [route, setRoute] = useState<Route>("password");
@@ -60,8 +62,11 @@ export default function SignInPage() {
               </p>
             )}
 
-            {route === "password" && <PasswordForm onUseEmail={() => go("email")} />}
+            {route === "password" && (
+              <PasswordForm onUseEmail={() => go("email")} onForgot={() => go("forgot")} />
+            )}
             {route === "email" && <EmailLinkForm onUsePassword={() => go("password")} />}
+            {route === "forgot" && <ForgotPasswordForm onUsePassword={() => go("password")} />}
           </>
         )}
       </div>
@@ -80,13 +85,20 @@ export default function SignInPage() {
 function explainSignInFailure(message: string): string {
   if (!/invalid login credentials/i.test(message)) return message;
   return (
-    "That email and password did not match an account. An account that has only " +
-    "ever been used through an emailed link has no password until one is set for " +
-    "it. Sign in with a link below, then set a password under Settings."
+    "That email and password did not match an account. If the password is the " +
+    "part you are unsure of, use Forgot your password below. An account that has " +
+    "only ever been used through an emailed link has no password at all yet, and " +
+    "either route below will give it one."
   );
 }
 
-function PasswordForm({ onUseEmail }: { onUseEmail: () => void }) {
+function PasswordForm({
+  onUseEmail,
+  onForgot,
+}: {
+  onUseEmail: () => void;
+  onForgot: () => void;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -160,6 +172,12 @@ function PasswordForm({ onUseEmail }: { onUseEmail: () => void }) {
       <button type="submit" className="btn btn-primary w-full" disabled={busy}>
         {busy ? "Signing in…" : "Sign in"}
       </button>
+
+      <p className="text-center text-sm">
+        <button type="button" onClick={onForgot} className="link-button">
+          Forgot your password?
+        </button>
+      </p>
 
       <p className="space-x-3 text-center text-sm">
         <button type="button" onClick={onUseEmail} className="link-button">
@@ -293,6 +311,123 @@ function EmailLinkForm({ onUsePassword }: { onUsePassword: () => void }) {
       <p className="text-center text-sm">
         <button type="button" onClick={onUsePassword} className="link-button">
           Use a password instead
+        </button>
+      </p>
+    </form>
+  );
+}
+
+/* ------------------------------------------------------ forgotten password */
+
+/**
+ * Sends a link that signs the reader in and takes them to a form for choosing
+ * a new password.
+ *
+ * It says the same thing whether or not the address has an account. Supabase
+ * answers both the same way on purpose, and repeating that here is the point:
+ * a screen that said "no account with that address" would be a way of finding
+ * out who has one, which is the same reason sign-up never confirms an account
+ * either.
+ *
+ * It shares the sign-in link's rate limit, because it is the same email
+ * sender, so it holds the button for the same minute rather than letting
+ * somebody spend a request on a refusal.
+ */
+function ForgotPasswordForm({ onUsePassword }: { onUsePassword: () => void }) {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+  const [cooldown, setCooldown] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setTimeout(() => setCooldown((left) => left - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!email.trim() || cooldown > 0) return;
+
+    setState("sending");
+    setError(null);
+    const { error: failure } = await sendPasswordReset(email);
+    if (failure) {
+      setError(explainFailure(failure));
+      setState("idle");
+      if (/rate limit/i.test(failure)) setCooldown(RESEND_SECONDS);
+      return;
+    }
+    setCooldown(RESEND_SECONDS);
+    setState("sent");
+  }
+
+  if (state === "sent") {
+    return (
+      <div className="mt-3 space-y-3 text-sm">
+        <p>
+          If <strong className="font-semibold">{email.trim()}</strong> has an account, a link
+          to choose a new password is on its way to it.
+        </p>
+        <p className="text-slate-600 dark:text-slate-400">
+          Opening it signs you in and takes you straight to the form. The link works once and
+          expires after an hour. Choosing a password signs out anywhere else that was signed
+          in, which is the point of changing it.
+        </p>
+        <button type="button" className="btn btn-secondary" onClick={onUsePassword}>
+          Back to signing in
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+      <p className="text-sm text-slate-600 dark:text-slate-400">
+        Enter your email and we will send a link that lets you choose a new password. You do
+        not need the old one.
+      </p>
+
+      <div>
+        <label htmlFor="forgot-email" className="mb-1.5 block text-sm font-medium">
+          Email address
+        </label>
+        <input
+          id="forgot-email"
+          type="email"
+          required
+          autoComplete="email"
+          className="field"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            setError(null);
+          }}
+        />
+      </div>
+
+      {error && (
+        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+          {error}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        className="btn btn-primary w-full"
+        disabled={state === "sending" || cooldown > 0}
+      >
+        {state === "sending"
+          ? "Sending…"
+          : cooldown > 0
+            ? `Another link in ${cooldown}s`
+            : "Email me a reset link"}
+      </button>
+
+      <p className="text-center text-sm">
+        <button type="button" onClick={onUsePassword} className="link-button">
+          Back to signing in
         </button>
       </p>
     </form>

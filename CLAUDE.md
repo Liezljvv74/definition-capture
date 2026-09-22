@@ -44,6 +44,15 @@ refreshed, and ended by Supabase. Do not build a parallel notion of "logged in".
 validated by this app. Setting one goes through `supabase.auth.updateUser`, in
 `setPassword` in `src/lib/session.ts`. Do not add a password field to any table.
 
+Three paths reach it, and the difference between them is what each one accepts as proof.
+`changePassword` is Settings: it asks for the current password and checks it by calling
+`signInWithPassword`, because a session on its own may be a browser somebody walked away
+from. `sendPasswordReset` emails a link to `/auth/reset`, which exchanges the code and sends
+the reader to `/choose-password`; that form asks for no old password, because reading the
+account's email is the proof. Every one of them ends by signing out other sessions. The
+reset route needs `http://localhost:3000/auth/reset` listed under Authentication, URL
+Configuration, Redirect URLs, beside the callback.
+
 **Verify the session on the server before any protected page loads.** Two places
 do this, and both must keep doing it:
 
