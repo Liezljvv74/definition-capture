@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddWordDialog } from "@/components/AddWordDialog";
@@ -417,13 +418,18 @@ function EntryTable({
                   />
                 </td>
                 <td className="px-4 py-3 align-top">
-                  <button
-                    type="button"
-                    onClick={() => onEdit(entry.id)}
-                    className="cursor-pointer text-left font-medium text-indigo-700 hover:underline dark:text-indigo-300"
+                  {/* The name opens the word, it does not edit it. Reading is
+                      what somebody is doing when they scan a list and stop at
+                      a row; editing is a decision, and it has the pencil at
+                      the end of the row and the Edit button on the page
+                      itself. It was the edit dialog until a click here meant
+                      being handed a form to escape from. */}
+                  <Link
+                    href={`/word?id=${entry.id}`}
+                    className="font-medium text-indigo-700 hover:underline dark:text-indigo-300"
                   >
                     {entry.word}
-                  </button>
+                  </Link>
                 </td>
                 <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
                   {entry.needsDefinition ? (
@@ -517,13 +523,12 @@ function EntryCards({
                     />
                   </span>
                   <h2 className="flex-1 font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(entry.id)}
-                      className="cursor-pointer text-left text-indigo-700 hover:underline dark:text-indigo-300"
+                    <Link
+                      href={`/word?id=${entry.id}`}
+                      className="text-indigo-700 hover:underline dark:text-indigo-300"
                     >
                       {entry.word}
-                    </button>
+                    </Link>
                   </h2>
                   {entry.needsDefinition && <NeedsDefinitionBadge />}
                   <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-0.5">
