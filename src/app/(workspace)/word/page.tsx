@@ -53,11 +53,11 @@ function WordDetail() {
 
   return (
     <>
-      <header className="border-b border-slate-300 bg-slate-200 dark:border-slate-800 dark:bg-slate-900">
+      <header className="bg-card-blue">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link
             href="/vocabulary"
-            className="text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-300"
+            className="text-sm font-medium text-indigo-900 hover:underline"
           >
             ← Back to Vocabulary
           </Link>
