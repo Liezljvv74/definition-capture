@@ -84,8 +84,7 @@ export default function HomePage() {
           <section className="rounded-2xl bg-challenge p-5 sm:p-6">
             <h3 className="text-xl font-semibold text-slate-900">Progress Challenge</h3>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-800">
-              Create flashcards to test your knowledge. Draw them from everything you have
-              saved or from one list, narrow by category, and pick how many you want.
+              Create flashcards to test your knowledge.
             </p>
             <button
               type="button"
