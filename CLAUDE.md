@@ -117,7 +117,7 @@ the `Entry` type keeps the name it had two renames ago, from when the table was
 `entries`. Check what a name actually reaches before renaming it.
 
 **The flashcard work is a schema change, and it is designed before it is
-built.** `docs/schema.md` is the design of record: one `learning_items` table
+built.** `Docs/schema.md` is the design of record: one `learning_items` table
 as the spine, a typed detail table per content type, an append-only
 `review_logs`, and `progress_summary` derived from it so dashboards are fast.
 Three migrations carry it and **none has been applied yet**. The three names
