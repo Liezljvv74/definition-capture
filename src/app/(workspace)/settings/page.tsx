@@ -13,7 +13,7 @@ import {
   ExportFolderError,
   supportsExportFolder,
 } from "@/lib/exportFolder";
-import { MIN_PASSWORD, setPassword, signOut } from "@/lib/session";
+import { MIN_PASSWORD, changePassword, sendPasswordReset, signOut } from "@/lib/session";
 import { saveSettings } from "@/lib/settings";
 import { useExportFolder } from "@/lib/useExportFolder";
 import { useSession } from "@/lib/useSession";
@@ -375,14 +375,42 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
  * strength of the session alone, and requiring one here would shut out exactly
  * the people this section is for — the accounts that have no password yet.
  */
+/**
+ * Changing the password of the account you are signed in to.
+ *
+ * It asks for the current one first, which `updateUser` does not. A session is
+ * a weaker claim than knowing the password: it may be a browser somebody
+ * walked away from, and a screen that changes the password without asking is a
+ * screen that hands the account over. Supabase does the checking, by being
+ * asked to sign in with what was typed, so nothing here ever holds a password
+ * of its own.
+ *
+ * An account made through an emailed link has no current password to give, and
+ * a reader who has forgotten theirs is in the same position. Both are served
+ * by the reset link below, which proves the mailbox instead and lands on a
+ * form that asks for nothing but the new password.
+ */
 function PasswordSection() {
+  const { user } = useSession();
+  const [current, setCurrent] = useState("");
   const [password, setPasswordDraft] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function typing(set: (value: string) => void) {
+    return (event: React.ChangeEvent<HTMLInputElement>) => {
+      set(event.target.value);
+      setDone(false);
+      setSent(false);
+      setError(null);
+    };
+  }
+
   async function save() {
+    if (!user) return;
     if (password.length < MIN_PASSWORD) {
       setError(`A password needs at least ${MIN_PASSWORD} characters.`);
       return;
@@ -391,29 +419,61 @@ function PasswordSection() {
       setError("The two passwords do not match.");
       return;
     }
+    if (password === current) {
+      setError("That is the password you already have.");
+      return;
+    }
 
     setBusy(true);
     setError(null);
-    const { error: failure } = await setPassword(password);
+    const { error: failure } = await changePassword(user.email, current, password);
     setBusy(false);
     if (failure) {
       setError(failure);
       return;
     }
 
+    setCurrent("");
     setPasswordDraft("");
     setConfirm("");
     setDone(true);
   }
 
+  async function emailAReset() {
+    if (!user) return;
+    setBusy(true);
+    setError(null);
+    const { error: failure } = await sendPasswordReset(user.email);
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    setSent(true);
+  }
+
   return (
-    <SettingSection title="Password" summary="Sign in without waiting for an email">
+    <SettingSection title="Password" summary="Change the password you sign in with">
       <p className="text-sm text-slate-600 dark:text-slate-400">
-        Set a password and you can sign in as often as you like. Signing in by emailed link
-        is limited to one a minute and a few an hour; a password is not limited at all.
+        Give the password you use now, then the one you would rather use. Everywhere else
+        that is signed in to this account is signed out, which is the point of changing it.
       </p>
 
       <div className="mt-4 space-y-3">
+        <div>
+          <label htmlFor="current-password" className="mb-1.5 block text-sm font-medium">
+            Current password
+          </label>
+          <input
+            id="current-password"
+            type="password"
+            autoComplete="current-password"
+            className="field"
+            value={current}
+            onChange={typing(setCurrent)}
+          />
+        </div>
+
         <div>
           <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium">
             New password
@@ -424,12 +484,11 @@ function PasswordSection() {
             autoComplete="new-password"
             className="field"
             value={password}
-            onChange={(event) => {
-              setPasswordDraft(event.target.value);
-              setDone(false);
-              setError(null);
-            }}
+            onChange={typing(setPasswordDraft)}
           />
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            At least {MIN_PASSWORD} characters.
+          </p>
         </div>
 
         <div>
@@ -442,11 +501,7 @@ function PasswordSection() {
             autoComplete="new-password"
             className="field"
             value={confirm}
-            onChange={(event) => {
-              setConfirm(event.target.value);
-              setDone(false);
-              setError(null);
-            }}
+            onChange={typing(setConfirm)}
           />
         </div>
 
@@ -458,24 +513,47 @@ function PasswordSection() {
 
         {done && (
           <p role="status" className="text-sm text-green-700 dark:text-green-400">
-            Password saved. Use it with your email address next time you sign in.
+            Password changed. Use it with your email address next time you sign in.
+          </p>
+        )}
+
+        {sent && (
+          <p role="status" className="text-sm text-green-700 dark:text-green-400">
+            A link is on its way to {user?.email}. Opening it brings you to a form that asks
+            for nothing but the new password.
           </p>
         )}
 
         <button
           type="button"
           className="btn btn-secondary"
-          disabled={busy || !password || !confirm}
+          disabled={busy || !current || !password || !confirm}
           onClick={() => void save()}
         >
-          {busy ? "Saving…" : "Save password"}
+          {busy ? "Saving…" : "Change password"}
         </button>
+
+        {/* The way in for an account that has no password to give: one made by
+            following an emailed link has never had one, and a reader who has
+            forgotten theirs is in the same position. The link proves the
+            mailbox, which is the proof the current-password box was asking
+            for by another route. */}
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Do not know your current password?{" "}
+          <button
+            type="button"
+            className="link-button"
+            disabled={busy}
+            onClick={() => void emailAReset()}
+          >
+            Email yourself a reset link
+          </button>
+          .
+        </p>
       </div>
     </SettingSection>
   );
 }
-
-/* ----------------------------------------------------------- export folder */
 
 function ExportFolderSection() {
   const { name, loaded } = useExportFolder();

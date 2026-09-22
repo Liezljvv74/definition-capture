@@ -62,3 +62,21 @@ export function getSupabase(): SupabaseClient | null {
 export function authRedirectUrl(): string {
   return `${window.location.origin}/auth/callback`;
 }
+
+/**
+ * Where a password-reset link lands, which is deliberately not the same place.
+ *
+ * Both routes exchange a code for a session and both end up signed in, so the
+ * difference is only what happens next: an ordinary link drops the reader on
+ * the home page, and this one sends them to a form for choosing a new
+ * password, because that is the thing they set out to do. The alternative was
+ * a query parameter on the one callback, which would have to survive
+ * Supabase's redirect allow list; a second registered URL is plainer and fails
+ * in an obvious way rather than a subtle one.
+ *
+ * This URL has to be listed under Authentication, URL Configuration, Redirect
+ * URLs in the Supabase dashboard, exactly as the callback is.
+ */
+export function passwordResetUrl(): string {
+  return `${window.location.origin}/auth/reset`;
+}

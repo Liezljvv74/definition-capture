@@ -8,7 +8,7 @@
  * flashing in front of an already signed-in reader on every reload.
  */
 
-import { authRedirectUrl, getSupabase } from "@/lib/supabaseClient";
+import { authRedirectUrl, getSupabase, passwordResetUrl } from "@/lib/supabaseClient";
 
 /** Just the fields the UI shows; the access token is never handed out. */
 export type SessionUser = { id: string; email: string };
@@ -163,6 +163,58 @@ export async function signInWithPassword(
   const { error } = await supabase.auth.signInWithPassword({
     email: email.trim(),
     password,
+  });
+  return { error: error?.message ?? null };
+}
+
+/**
+ * Changes the password of the signed-in account, having first proved that the
+ * reader knows the current one.
+ *
+ * Supabase's `updateUser` does not ask for the old password: a session is
+ * enough. That is the right rule for a reset, where the mailbox has just been
+ * proved, and the wrong one for Settings, where the session may be a screen
+ * somebody walked away from. So the current password is checked first, by
+ * signing in with it. Supabase does the checking, as it does everywhere else
+ * here; nothing in this app ever sees a stored password, and a wrong guess
+ * costs the same as a wrong guess on the sign-in screen.
+ *
+ * An account made through an emailed link has no password to know, and cannot
+ * use this. `sendPasswordReset` is the way in for that reader, which Settings
+ * offers beside this form.
+ */
+export async function changePassword(
+  email: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ error: string | null }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "This build has no Supabase credentials." };
+
+  const { error: wrong } = await supabase.auth.signInWithPassword({
+    email,
+    password: currentPassword,
+  });
+  if (wrong) return { error: "That is not your current password." };
+
+  return setPassword(newPassword);
+}
+
+/**
+ * Emails a link that signs the reader in and takes them straight to a form for
+ * choosing a new password.
+ *
+ * The answer is the same whether or not the address has an account, and it is
+ * the screen that says so rather than this function: telling somebody that an
+ * address is unknown turns the form into a way of discovering who has an
+ * account here, which is the same reason sign-up never confirms one either.
+ */
+export async function sendPasswordReset(email: string): Promise<{ error: string | null }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "This build has no Supabase credentials." };
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: passwordResetUrl(),
   });
   return { error: error?.message ?? null };
 }

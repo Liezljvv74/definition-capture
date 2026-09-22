@@ -44,6 +44,15 @@ refreshed, and ended by Supabase. Do not build a parallel notion of "logged in".
 validated by this app. Setting one goes through `supabase.auth.updateUser`, in
 `setPassword` in `src/lib/session.ts`. Do not add a password field to any table.
 
+Three paths reach it, and the difference between them is what each one accepts as proof.
+`changePassword` is Settings: it asks for the current password and checks it by calling
+`signInWithPassword`, because a session on its own may be a browser somebody walked away
+from. `sendPasswordReset` emails a link to `/auth/reset`, which exchanges the code and sends
+the reader to `/choose-password`; that form asks for no old password, because reading the
+account's email is the proof. Every one of them ends by signing out other sessions. The
+reset route needs `http://localhost:3000/auth/reset` listed under Authentication, URL
+Configuration, Redirect URLs, beside the callback.
+
 **Verify the session on the server before any protected page loads.** Two places
 do this, and both must keep doing it:
 
@@ -83,9 +92,11 @@ above silently stops working.
 ## Data rules
 
 **No note data in `localStorage` or `sessionStorage`, under any circumstances.**
-Words, phrases, verb tables, and settings live in Supabase. The one module that
-touches `localStorage` is `src/lib/legacyLocal.ts`, which exists only to read
-pre-account data out of an old browser and import it, and then delete it.
+Words, phrases, verb tables, and settings live in Supabase, and nothing in `src/`
+writes a note anywhere else. The one module that ever read from browser storage,
+`legacyLocal.ts`, is gone along with the prompt that offered its contents to an
+account: it existed to carry data across from before this app had accounts, and
+that crossing is long finished.
 
 **Row level security is load-bearing.** List queries run in the browser under the
 publishable key, so RLS is what separates one account's rows from another's. Every
@@ -106,8 +117,8 @@ through them, so renaming a field on a domain type is a compile error rather
 than a silent change to the format everyone's saved files use. Two things that
 look like leftovers are not: `parseBackup` accepting `entries` as well as
 `words`, and `parseEntry` accepting `term` as well as `word`. Every backup
-written before version 6, and every pre-account `localStorage` list, spells them
-the old way. There is a test that fails if either is dropped.
+written before version 6 spells them the old way, and those files are still in
+people's Downloads folders. There is a test that fails if either is dropped.
 
 **The glossary is called Vocabulary and its items are words.** The label and the
 identifiers behind it do not all agree, deliberately. The table is `words` with a
