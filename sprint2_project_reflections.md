@@ -116,7 +116,7 @@ end.
 ## Handed in
 
 - Repository: https://github.com/Liezljvv74/definition-capture
-- Pull request for the optional task: (link once merged)
+- Pull request for the optional task: https://github.com/Liezljvv74/definition-capture/pull/8
 - `README.md`, `CLAUDE.md` and the `Docs/` folder, as app documentation
 - The app runs locally with `npm run dev` at http://localhost:3000
 
