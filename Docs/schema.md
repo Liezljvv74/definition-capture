@@ -9,9 +9,14 @@ migrations and this explains why it is shaped the way it is.
 | `…_tags_and_categories.sql` | one labelling system across every type |
 | `…_reviews_and_flashcards.sql` | review history, decks, progress, goals, streaks, and the scheduler |
 
-**None of them has been applied.** They have not been run against a database,
-so the first `npx supabase db push` is also the first time they execute. Push
-them one file at a time and read what each one says.
+All of these are applied, along with three that followed while the feature
+was built: `card_faces` and the `needs_review` plumbing, a deck builder that
+skips items with no answer on the back, and a mastery ladder that does not
+call one correct answer familiarity.
+
+The backfill was checked field by field against the tables it replaced, not
+merely counted: 103 words, 21 phrases and 3 verb tables, with every column and
+both timestamps identical, and nothing missing from the views.
 
 ---
 

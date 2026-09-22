@@ -120,7 +120,7 @@ the `Entry` type keeps the name it had two renames ago, from when the table was
 built.** `Docs/schema.md` is the design of record: one `learning_items` table
 as the spine, a typed detail table per content type, an append-only
 `review_logs`, and `progress_summary` derived from it so dashboards are fast.
-Three migrations carry it and **none has been applied yet**. The three names
+Six migrations carry it and **all are applied**. The three names
 the app reads, `words`, `phrases` and `verb_tables`, survive as views with
 `instead of` triggers, so applying them changes nothing in `src/`. Read that
 document before adding a table; a new content type should be a row in

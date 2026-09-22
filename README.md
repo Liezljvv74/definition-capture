@@ -101,8 +101,9 @@ too. What changes is only what is suggested for new ones.
 
 ## Pages
 
-- **`/`** — the landing page, which is a welcome panel in the logo's yellow and a card for each of
-  the three lists, coloured from the logo's own palette. The logo itself sits as a small mark
+- **`/`** — the landing page: a welcome panel in the logo's yellow, a card for each of the
+  three lists coloured from the logo's own palette, and the pale blue **Progress Challenge**
+  card that starts a set of flashcards. The logo itself sits as a small mark
   in the bottom right corner of this page rather than as the backdrop it is everywhere else.
 - **`/vocabulary`** and **`/phrases`** together make up **Glossary**, one section with two
   views. The grouping lives entirely in the nav — see below — so both keep their own
@@ -139,6 +140,13 @@ too. What changes is only what is suggested for new ones.
   `[[Name]]` links resolve. `?verb=arbeiten` opens that table; `?new=arbeiten` makes it
   first — asking who verbs conjugate for if that has never been answered — and then opens
   it. Both are what the Edit word screen links to.
+- **`/flashcards`** — one card at a time from a deck built on the home page. The front is the
+  word, phrase or verb; the back is its definition, its literal meaning and example, or its
+  conjugations. Saying you knew it flashes the card pale green and moves on by itself; saying
+  you did not flashes pale orange and waits, because there are three reasonable things to do
+  next: try it again, see the answer, or move on. Each of those is recorded as a different
+  outcome, since "I looked it up" and "I gave up" are not the same thing to have done. A
+  checkbox marks the item as needing review, which is one of the filters the builder offers.
 - **`/settings`** — reached from the account menu at the right of the nav rather than
   from the tabs, which belong to the two lists. Seven sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
@@ -518,8 +526,11 @@ src/
       word/page.tsx         one word by ?id=, read-only plus Edit
       phrase/page.tsx       one phrase by ?id=, read-only plus Edit
       verbs/page.tsx        the conjugation tables, one rolled-up card each
+      flashcards/page.tsx   one card at a time from a deck, and what you answered
       settings/page.tsx     profile, password, the lists, exports
   components/
+    flashcards/
+      CreateDeckDialog.tsx  sources, filters and how many, then build the deck
     MainNav.tsx           the nav bar: Glossary, Verbs, Backup, and the account menu
     NavMenu.tsx           the dropdown the Glossary and Backup tabs open
     AccountMenu.tsx       display name or address, and a gear to Settings
@@ -549,6 +560,7 @@ src/
     Modal.tsx             overlay panel
     Badges.tsx            source / needs-definition pills
   lib/
+    flashcards.ts         decks, cards, answers: the flashcard feature's data access
     remoteStore.ts        the Supabase factory all three list stores are built on
     supabaseClient.ts     the browser client, session kept in cookies
     supabaseServer.ts     the server client, and the verified "who is asking?"

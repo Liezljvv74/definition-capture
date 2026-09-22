@@ -1,10 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+
+import { CreateDeckDialog } from "@/components/flashcards/CreateDeckDialog";
 
 /**
  * A welcoming landing page that explains the purpose of the app and points
  * new users toward the main sections of the workspace.
  */
 export default function HomePage() {
+  const [creating, setCreating] = useState(false);
+
   return (
     <>
       <header className="border-b border-slate-300 bg-slate-200 dark:border-slate-800 dark:bg-slate-900">
@@ -67,8 +74,31 @@ export default function HomePage() {
               </p>
             </Link>
           </section>
+
+          {/*
+           * A card, but not a fourth list: this one does something rather
+           * than going somewhere, which is why it stands apart from the row
+           * above and is pale blue where they are muted. Sharing their row
+           * would have made it look like a place to browse.
+           */}
+          <section className="rounded-2xl bg-challenge p-5 sm:p-6">
+            <h3 className="text-xl font-semibold text-slate-900">Progress Challenge</h3>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-800">
+              Create flashcards to test your knowledge. Draw them from everything you have
+              saved or from one list, narrow by category, and pick how many you want.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary mt-4"
+              onClick={() => setCreating(true)}
+            >
+              Create flashcards
+            </button>
+          </section>
         </div>
       </main>
+
+      {creating && <CreateDeckDialog onClose={() => setCreating(false)} />}
     </>
   );
 }
