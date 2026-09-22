@@ -128,8 +128,8 @@ too. What changes is only what is suggested for new ones.
   Meaning headers each cycle A→Z / Z→A / back to newest-first, and only Phrase is
   required. A phrase also carries a Source, shown on its own page.
 - **`/word?id=…`** and **`/phrase?id=…`** — one item per stable URL, safe to reload or paste
-  into a fresh tab. This is where a `[[Name]]` reference lands, and where a word opens from
-  the Vocabulary list. Both pages read: they show the
+  into a fresh tab. This is where a `[[Name]]` reference lands, and where a name opens from
+  either list. Both pages read: they show the
   full untruncated text plus, for a word, its Source badge and dates, and offer **Edit** so a
   cross-link onto a typo can be fixed on the spot. Saving from here returns you to the list.
   Deleting is not offered — the lists own that. An unknown ID shows a readable "not found"
@@ -324,13 +324,13 @@ to keep in step.
 Everything happens on the list pages, in a dialog, without navigating away.
 
 - **Add** — the **Add word** / **Add phrase** button at the top right.
-- **Edit** — the pencil at the end of the row, or **Edit** on the item's own page. A word
-  in the Vocabulary list is a link to that page rather than to the edit form: it looks like
-  a link, so it should behave like one, and reading is what somebody is doing when they
-  scan a list and stop at a row. Editing is a decision, and it has a control of its own in
-  both places. A phrase still opens its edit form on click. Every editable field lives in
-  that one form, Source included; Date Added is preserved. Renaming onto a name another
-  entry already uses is refused rather than leaving two identical entries.
+- **Edit** — the pencil at the end of the row, or **Edit** on the item's own page. A name
+  in either list is a link to that page rather than to the edit form: it looks like a link,
+  so it should behave like one, and reading is what somebody is doing when they scan a list
+  and stop at a row. Editing is a decision, and it has a control of its own in both places.
+  Every editable field lives in that one form, Source included; Date Added is preserved.
+  Renaming onto a name another entry already uses is refused rather than leaving two
+  identical entries.
 - **Delete one** — the trash button at the end of the row, behind a confirmation.
 - **Delete several** — tick the checkboxes (or the select-all box in the header), then use
   **Delete selected** in the bar that appears. The confirmation names what is about to go, up

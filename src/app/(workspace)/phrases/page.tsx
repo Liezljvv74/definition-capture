@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddPhraseDialog } from "@/components/AddPhraseDialog";
@@ -365,13 +366,17 @@ function PhraseTable({
                   />
                 </td>
                 <td className="px-4 py-3 align-top">
-                  <button
-                    type="button"
-                    onClick={() => onEdit(phrase.id)}
-                    className="cursor-pointer text-left font-medium text-indigo-700 hover:underline dark:text-indigo-300"
+                  {/* The name opens the phrase, it does not edit it, which is
+                      what the Vocabulary list does and for the same reason:
+                      stopping at a row while reading is not a decision to
+                      change anything. Editing has the pencil at the end of the
+                      row and the Edit button on the page itself. */}
+                  <Link
+                    href={`/phrase?id=${phrase.id}`}
+                    className="font-medium text-indigo-700 hover:underline dark:text-indigo-300"
                   >
                     <span className="line-clamp-3 break-words">{phrase.phrase}</span>
-                  </button>
+                  </Link>
                 </td>
                 <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
                   {phrase.literalMeaning ? (
@@ -472,13 +477,12 @@ function PhraseCards({
                     />
                   </span>
                   <h2 className="flex-1 font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(phrase.id)}
-                      className="cursor-pointer text-left text-indigo-700 hover:underline dark:text-indigo-300"
+                    <Link
+                      href={`/phrase?id=${phrase.id}`}
+                      className="text-indigo-700 hover:underline dark:text-indigo-300"
                     >
                       {phrase.phrase}
-                    </button>
+                    </Link>
                   </h2>
                   <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-0.5">
                     <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
