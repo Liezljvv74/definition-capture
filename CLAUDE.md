@@ -12,7 +12,7 @@ owner.
 | --- | --- |
 | Framework | Next.js 16.3.4, App Router, Turbopack |
 | UI | React 19.2.8, TypeScript 5, Tailwind CSS 4 |
-| Data and auth | Supabase — Postgres with row level security, and Supabase Auth |
+| Data and auth | Supabase: Postgres with row level security, and Supabase Auth |
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 3, in the node environment; `npx vitest run` |
@@ -26,7 +26,7 @@ port bounces every link.
 
 There is no deployment at the moment. The app used to be a static export on
 GitHub Pages; that was given up to get a server, because a static host cannot
-check a session. That era is over and its remains have been deleted — the Pages
+check a session. That era is over and its remains have been deleted: the Pages
 workflow, the committed `out/` build, and the `asset()` base-path helper. Any
 host for this app has to run Node, and nothing should be designed around the
 absence of a server.
@@ -58,20 +58,20 @@ page behind it swings open; the layout check sits with the pages it protects.
 
 **Use `getClaims()`, never `getSession()`, in server code.** A session read out of
 a cookie is a claim made by whoever sent the request, and cookies can be forged.
-`getClaims()` verifies the token's signature — locally, against the project's
+`getClaims()` verifies the token's signature, locally, against the project's
 public JWKS, since this project signs with an asymmetric ECC key. `serverUserId()`
 in `src/lib/supabaseServer.ts` is the wrapper to use.
 
 **Workspace routes require a signed-in user.** Everything except `/sign-in`,
 `/sign-up` and `/auth/*` lives under `src/app/(workspace)/`. A new page belongs
 inside that group. Putting one outside it, at the top level, leaves it
-unprotected — and a new public route must be added to `PUBLIC_PATHS` in
+unprotected, and a new public route must be added to `PUBLIC_PATHS` in
 `src/proxy.ts` as well as placed outside the group.
 
 **No service-role key in client-accessible env vars.** Anything named
 `NEXT_PUBLIC_*` is compiled into the browser bundle. Only the project URL and the
 publishable key belong there. The project currently holds no service-role key at
-all — legacy JWT-based API keys are disabled, and the one Edge Function that used
+all: legacy JWT-based API keys are disabled, and the one Edge Function that used
 to need the service role has been deleted.
 
 **The session lives in cookies, not `localStorage`.** `createBrowserClient` from
@@ -136,7 +136,7 @@ indexes and a view has none, so the request is refused with 42P10 before the
 reason.
 
 **Migrations are imperative and hand-written.** Create one with
-`npx supabase migration new <name>` — never invent a filename — and apply with
+`npx supabase migration new <name>` (never invent a filename) and apply with
 `npx supabase db push`. There is no `supabase/schemas/`, so this is not a
 declarative-schema project.
 
