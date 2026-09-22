@@ -81,6 +81,7 @@ const phrase = (text: string): Phrase => ({
   usageExample: "",
   categories: [],
   source: "Manual",
+  dateAdded: "2026-01-01T00:00:00.000Z",
   ref: "",
 });
 
@@ -90,6 +91,7 @@ const settings: Settings = {
   sources: ["Manual"],
   verbPersons: [],
   verbTenses: [],
+  answerSeparators: ",/",
 };
 
 const contents = (over: Partial<BackupContents> = {}): BackupContents => ({

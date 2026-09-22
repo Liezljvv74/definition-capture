@@ -48,10 +48,10 @@ import {
 export const BACKUP_FORMAT = "definition-capture-backup";
 /**
  * 1 was terms only; 2 adds the phrase list; 3 adds the conjugation tables and
- * the settings. 4 carried a fourth list of grammar rules, which the app no
- * longer has: a version 4 file still imports, and the rules in it are read
- * past like any other key this module does not know. 5 is 4 with that list
- * dropped again. 6 renames the glossary
+ * the settings. 4 carried a fourth list, which the app no longer has: such a
+ * file still imports, and the list in it is read past like any other key this
+ * module does not know. 5 is 4 with that list dropped again. 6 renames the
+ * glossary
  * list from `entries` to `words` and each row's `term` to `word`, following
  * the rename in the app and the database.
  *
@@ -66,10 +66,19 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * its definition and recomputed on the way back in regardless. A version 6
  * file and a version 7 file each read as the other.
  *
+ * 8 adds `dateAdded` to a phrase, which the database had always held and the
+ * app had been dropping on the way in. A file from 7 or earlier restores with
+ * today's date standing in for the one it never recorded, which is the same
+ * thing the word list has always done with a dated row that arrived without
+ * one. The same version carries `answerSeparators` in the settings block; a
+ * file without the key restores the defaults rather than an empty set, since
+ * the absence of a field and a reader who turned every separator off are not
+ * the same statement even though both read as "".
+ *
  * A missing list reads as an absent one, not an empty one, which is what
  * keeps Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 7;
+export const BACKUP_VERSION = 8;
 
 /**
  * The lists a backup carries, named once.

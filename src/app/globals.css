@@ -36,6 +36,33 @@
   --color-card-blue: #aec0db;
   --color-card-green: #a2cdb5;
   --color-card-purple: #bfb6dd;
+
+  /*
+   * The flashcard feature's own four.
+   *
+   * `challenge` is the pale blue of the card that starts it, lighter and
+   * cooler than the Vocabulary card so the two are not mistaken for each
+   * other: one is a place to go, the other is a thing to do.
+   *
+   * `flashcard` is an off-white with blue undertones rather than plain white,
+   * so a card reads as a card sitting on the page rather than as the page.
+   *
+   * `correct` and `wrong` are the two flashes an answer gets. Pale on purpose:
+   * they are a signal, not a verdict, and a saturated red for a word somebody
+   * is still learning is the wrong thing to say to them. Both carry dark text
+   * at better than 10:1, so the flash never costs legibility.
+   */
+  --color-challenge: #d7e6f4;
+  /*
+   * A card is a deeper blue than the challenge tile that offers it, and it
+   * wears the logo's own navy as a frame. The frame is what makes a square of
+   * colour read as a card: at half the width it no longer fills the column,
+   * so without an edge it looks like a panel that failed to stretch.
+   */
+  --color-flashcard: #bbd3eb;
+  --color-flashcard-frame: #1b4390;
+  --color-flash-correct: #cbebd7;
+  --color-flash-wrong: #f8d9bf;
 }
 
 html {

@@ -54,6 +54,13 @@ export type Phrase = {
   /** Where it came from, from the same list the words draw on. */
   source: Source;
   ref: string;
+  /**
+   * When it was captured, ISO 8601. Not a column on the list, which is
+   * ordered and sorted by wording, but shown on the phrase's own page: the
+   * database has held the value all along, and there is no reason to keep it
+   * from a reader who has asked for one phrase.
+   */
+  dateAdded: string;
 };
 
 export type PhraseInput = {

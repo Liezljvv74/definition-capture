@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 
+import { MENU_ITEM, MENU_ITEM_CURRENT, NavMenu } from "@/components/NavMenu";
+import { SETTINGS_SECTIONS, readSectionKey } from "@/lib/settingsSections";
 import { useSession } from "@/lib/useSession";
 import { useSettings } from "@/lib/useSettings";
 
@@ -39,18 +42,56 @@ export function AccountMenu() {
       >
         {label}
       </span>
-      <Link
-        href="/settings"
-        aria-label="Settings"
-        title="Settings"
-        className="cursor-pointer rounded-md p-1.5 text-slate-500 transition
-          hover:bg-slate-100 hover:text-slate-900
-          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500
-          dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
-      >
-        <GearIcon />
-      </Link>
+      <SettingsMenu />
     </li>
+  );
+}
+
+/**
+ * The gear, which opens rather than navigates.
+ *
+ * Settings was one page of eight sections, which is a list to hunt through
+ * rather than a page to read. It is three groups now, and the gear names them
+ * for the same reason the Glossary tab opens a menu: it stands for more than
+ * one destination, so going somewhere on click would mean quietly preferring
+ * one of them.
+ */
+function SettingsMenu() {
+  const pathname = usePathname();
+  const current = readSectionKey(useSearchParams().get("section"));
+  const onSettings = pathname.startsWith("/settings");
+
+  return (
+    <NavMenu
+      label="Settings"
+      icon={<GearIcon />}
+      align="right"
+      // Already inside the account's own list item, so this one is a plain
+      // wrapper rather than a tab in its own right.
+      element="div"
+      active={onSettings}
+    >
+      {(close) =>
+        SETTINGS_SECTIONS.map((section) => {
+          const here = onSettings && current === section.key;
+          return (
+            <li key={section.key} role="none">
+              <Link
+                role="menuitem"
+                href={`/settings?section=${section.key}`}
+                aria-current={here ? "page" : undefined}
+                // Closed here rather than by watching the path: a second click
+                // on the group you are already in should still put it away.
+                onClick={close}
+                className={here ? MENU_ITEM_CURRENT : MENU_ITEM}
+              >
+                {section.label}
+              </Link>
+            </li>
+          );
+        })
+      }
+    </NavMenu>
   );
 }
 

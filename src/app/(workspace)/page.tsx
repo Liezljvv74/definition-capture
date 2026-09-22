@@ -1,8 +1,14 @@
 import Link from "next/link";
 
+import { CreateDeckButton } from "@/components/flashcards/CreateDeckButton";
+
 /**
  * A welcoming landing page that explains the purpose of the app and points
  * new users toward the main sections of the workspace.
+ *
+ * A server component, deliberately: everything here is static but the one
+ * button that opens the deck builder, and that button carries its own state
+ * in its own client component so this page ships no JavaScript of its own.
  */
 export default function HomePage() {
   return (
@@ -66,6 +72,20 @@ export default function HomePage() {
                 Track conjugation patterns.
               </p>
             </Link>
+          </section>
+
+          {/*
+           * A card, but not a fourth list: this one does something rather
+           * than going somewhere, which is why it stands apart from the row
+           * above and is pale blue where they are muted. Sharing their row
+           * would have made it look like a place to browse.
+           */}
+          <section className="rounded-2xl bg-challenge p-5 sm:p-6">
+            <h3 className="text-xl font-semibold text-slate-900">Own your progress</h3>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-800">
+              Create flashcards to test your knowledge.
+            </p>
+            <CreateDeckButton />
           </section>
         </div>
       </main>

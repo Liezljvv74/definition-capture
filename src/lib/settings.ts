@@ -11,7 +11,13 @@
  * putting the truth back when a write fails.
  */
 
-import { DEFAULT_CATEGORIES, DEFAULT_SOURCES, MAX_LIST_LENGTH } from "@/lib/constants";
+import {
+  DEFAULT_ANSWER_SEPARATORS,
+  DEFAULT_CATEGORIES,
+  DEFAULT_SOURCES,
+  MAX_LIST_LENGTH,
+  readSeparators,
+} from "@/lib/constants";
 import {
   ABANDONED,
   readError,
@@ -37,6 +43,12 @@ export type Settings = {
   verbPersons: string[];
   /** Tenses offered when making a table; grows as new ones are typed. */
   verbTenses: string[];
+  /**
+   * Which characters mean "or" when a flashcard answer is marked. Empty is a
+   * real answer: it means none of them do, so an entry offering alternatives
+   * has to be typed out in full.
+   */
+  answerSeparators: string;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -47,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // emptiness is the signal to ask.
   verbPersons: [],
   verbTenses: [],
+  answerSeparators: DEFAULT_ANSWER_SEPARATORS,
 };
 
 export type SettingsSnapshot = {
@@ -92,6 +105,10 @@ function fromRow(row: Record<string, unknown> | null): Settings {
     // No fallback here: empty is a real answer, meaning not asked yet.
     verbPersons: readNameList(row.verb_persons, MAX_LIST_LENGTH),
     verbTenses: readNameList(row.verb_tenses, MAX_LIST_LENGTH),
+    // No fallback to the default: a reader who has turned every separator off
+    // means it, and treating their empty string as "not set" would keep
+    // handing them back the commas they just removed.
+    answerSeparators: readSeparators(row.answer_separators),
   };
 }
 
@@ -211,6 +228,17 @@ export function parseSettings(raw: unknown): Settings | null {
     // No fallback: empty is a real answer, meaning not asked yet.
     verbPersons: readNameList(value.verbPersons, MAX_LIST_LENGTH),
     verbTenses: readNameList(value.verbTenses, MAX_LIST_LENGTH),
+    // A file that predates the setting is not a reader who turned every
+    // separator off, and the two look identical once `readSeparators` has run:
+    // both come back as "". So the absence of the key is answered with the
+    // defaults, and only a key that is actually present is taken at its word.
+    // Getting this wrong is silent and lasting: restoring any backup written
+    // before this field existed would leave every alternative answer having to
+    // be typed out in full, with nothing on screen to say why.
+    answerSeparators:
+      value.answerSeparators === undefined
+        ? DEFAULT_ANSWER_SEPARATORS
+        : readSeparators(value.answerSeparators),
   };
 }
 
@@ -257,6 +285,9 @@ export function saveSettings(change: Partial<Settings>): void {
       change.verbTenses ?? snapshot.settings.verbTenses,
       MAX_LIST_LENGTH,
     ),
+    answerSeparators: readSeparators(
+      change.answerSeparators ?? snapshot.settings.answerSeparators,
+    ),
   };
 
   // The form guards against this too, but the database refuses an empty
@@ -278,6 +309,7 @@ export function saveSettings(change: Partial<Settings>): void {
         sources: next.sources,
         verb_persons: next.verbPersons,
         verb_tenses: next.verbTenses,
+        answer_separators: next.answerSeparators,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },
@@ -290,4 +322,23 @@ export function saveSettings(change: Partial<Settings>): void {
       });
       reload();
     });
+
+  /*
+   * The category list exists in two places and they have to agree.
+   *
+   * `user_settings.categories` is what the word and phrase forms offer;
+   * `tags` is what the flashcard filter reads, and until now only a row save
+   * wrote to it. So a category typed here was invisible to the filter until
+   * something was filed under it, and one deleted here stayed in the filter
+   * for good. The function below reconciles them, keeping this list's order
+   * and refusing to delete a category that is still on an item, which is what
+   * this page promises when it says removing one leaves it where it is.
+   *
+   * Not awaited and not surfaced: the settings themselves are already saved
+   * by the time this runs, and a failure here means the filter is briefly out
+   * of step, not that anything the reader typed was lost.
+   */
+  if (change.categories) {
+    void supabase.rpc("sync_category_tags", { names: next.categories });
+  }
 }

@@ -128,7 +128,7 @@ describe("parseRef — punctuation and spacing", () => {
 
   it("takes a closing bracket that belongs to the URL with it — a known limit", () => {
     // A Wikipedia link with a parenthesised title loses its last bracket,
-    // which matters for a language app citing German grammar pages. Pinned
+    // which matters for an app whose readers cite German reference pages. Pinned
     // rather than endorsed: change it deliberately, not by accident.
     const tokens = parseRef("https://de.wikipedia.org/wiki/Tür_(Architektur)");
     expect(tokens[0]).toMatchObject({

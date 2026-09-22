@@ -26,16 +26,38 @@ export const TAB_OFF =
 export function NavMenu({
   label,
   active = false,
+  icon,
+  align = "left",
+  element = "li",
   children,
 }: {
   label: string;
   /** Lights the tab up when the section it stands for is the current one. */
   active?: boolean;
+  /**
+   * Shown instead of the label, which then becomes the accessible name. For
+   * the gear at the end of the bar, which is a menu like the others and has
+   * no room to say so in words.
+   */
+  icon?: ReactNode;
+  /**
+   * Which edge the menu hangs from. The one at the right-hand end of the bar
+   * would otherwise open off the side of the window.
+   */
+  align?: "left" | "right";
+  /**
+   * What the menu wraps itself in. A tab in the nav bar is a list item, since
+   * the bar is a list of destinations. The gear is not: it already sits inside
+   * the account item, and an `li` inside an `li` is invalid HTML that the
+   * browser rewrites, which shows up as a hydration mismatch rather than as a
+   * layout problem.
+   */
+  element?: "li" | "div";
   children: (close: () => void) => ReactNode;
 }) {
   const menuId = useId();
   const [open, setOpen] = useState(false);
-  const container = useRef<HTMLLIElement>(null);
+  const container = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -59,21 +81,33 @@ export function NavMenu({
     };
   }, [open]);
 
-  return (
-    <li ref={container} className="relative shrink-0">
+  // The root differs, the rest does not, so the contents are built once and
+  // the wrapper chosen around them.
+  const inside = (
+    <>
       <button
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
         aria-current={active ? "page" : undefined}
+        aria-label={icon ? label : undefined}
+        title={icon ? label : undefined}
         onClick={() => setOpen((current) => !current)}
-        className={`${TAB_BASE} ${active ? TAB_ON : TAB_OFF} inline-flex cursor-pointer items-center gap-1`}
+        className={
+          icon
+            ? ICON_TAB
+            : `${TAB_BASE} ${active ? TAB_ON : TAB_OFF} inline-flex cursor-pointer items-center gap-1`
+        }
       >
-        {label}
-        <span aria-hidden="true" className={`text-[0.6rem] ${open ? "rotate-180" : ""}`}>
-          ▼
-        </span>
+        {icon ?? (
+          <>
+            {label}
+            <span aria-hidden="true" className={`text-[0.6rem] ${open ? "rotate-180" : ""}`}>
+              ▼
+            </span>
+          </>
+        )}
       </button>
 
       <ul
@@ -81,13 +115,36 @@ export function NavMenu({
         role="menu"
         aria-label={label}
         hidden={!open}
-        className="card absolute top-full left-0 z-20 mt-1 min-w-40 p-1 shadow-lg"
+        className={`card absolute top-full z-20 mt-1 min-w-40 p-1 shadow-lg ${
+          align === "right" ? "right-0" : "left-0"
+        }`}
       >
         {children(() => setOpen(false))}
       </ul>
+    </>
+  );
+  const className = "relative shrink-0";
+  // A callback ref rather than the object: the two roots are different element
+  // types, and one `HTMLElement` ref accepts both where a typed one accepts
+  // neither.
+  const hold = (node: HTMLElement | null) => {
+    container.current = node;
+  };
+
+  return element === "li" ? (
+    <li ref={hold} className={className}>
+      {inside}
     </li>
+  ) : (
+    <div ref={hold} className={className}>
+      {inside}
+    </div>
   );
 }
+
+/** The icon form of the trigger, for a menu with no room for a word. */
+const ICON_TAB =
+  "cursor-pointer rounded-md p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100";
 
 /** The shape every item in one of these menus takes. */
 export const MENU_ITEM =

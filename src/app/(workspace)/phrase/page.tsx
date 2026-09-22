@@ -7,6 +7,7 @@ import { Suspense, useMemo, useState } from "react";
 import { CategoryBadge, SourceBadge } from "@/components/Badges";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { formatDate, formatDateTime } from "@/lib/format";
 import type { Phrase } from "@/lib/types";
 import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
@@ -19,8 +20,10 @@ import { usePhrases } from "@/lib/usePhrases";
  * links now outlive. The singular path also keeps this clear of `/phrases`,
  * which is the list.
  *
- * Deliberately thin — phrases carry no dates and no source, so this page has
- * nothing the list does not already show beyond untruncated text.
+ * Thinner than the word page, because a phrase is never edited into a second
+ * date: what is here is the untruncated text, the Source, the date it was
+ * captured, and a Ref whose references can be followed. The list clamps the
+ * text to three lines and leaves the other two out of the table altogether.
  */
 export default function PhraseDetailPage() {
   // `useSearchParams` needs a boundary to suspend against during prerender.
@@ -122,6 +125,17 @@ function PhraseDetailCard({
           {phrase.ref && (
             <p className="break-words text-slate-800 dark:text-slate-200">
               <RefText value={phrase.ref} linkIndex={linkIndex} />
+            </p>
+          )}
+        </Field>
+
+        {/* The day, with the time on hover, the way the word page shows it. A
+            phrase restored from a backup keeps the date it was captured, so
+            this is not simply when the row reached this database. */}
+        <Field label="Date added" empty="Unknown">
+          {phrase.dateAdded && (
+            <p className="text-slate-800 dark:text-slate-200">
+              <span title={formatDateTime(phrase.dateAdded)}>{formatDate(phrase.dateAdded)}</span>
             </p>
           )}
         </Field>

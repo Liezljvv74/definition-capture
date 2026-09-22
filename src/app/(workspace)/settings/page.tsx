@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useId, useState, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
-import { MAX_CATEGORIES } from "@/lib/constants";
+import { MAX_CATEGORIES, SEPARATOR_CHOICES } from "@/lib/constants";
+import { SETTINGS_SECTIONS, readSection } from "@/lib/settingsSections";
 import {
   chooseExportFolder,
   clearExportFolder,
@@ -32,14 +34,119 @@ import { useSettings } from "@/lib/useSettings";
  * on the section itself rather than leaving the difference to be discovered.
  */
 export default function SettingsPage() {
-  const { settings, loaded } = useSettings();
+  // `useSearchParams` needs one, and the fallback is what shows while the
+  // section is still unknown.
+  return (
+    <Suspense fallback={<Frame section={SETTINGS_SECTIONS[0]}>{null}</Frame>}>
+      <Settings />
+    </Suspense>
+  );
+}
 
+function Settings() {
+  const { settings, loaded } = useSettings();
+  const section = readSection(useSearchParams().get("section"));
+
+  return (
+    <Frame section={section}>
+      <div className="space-y-3">
+        {section.key === "profile" && (
+          <>
+            {/* Keyed on the stored name so a save, or a change in another tab,
+                remounts the field with the new value — React’s way of resetting
+                state from a prop without an effect that writes state. */}
+            <ProfileSection
+              key={settings.displayName}
+              displayName={settings.displayName}
+              loaded={loaded}
+            />
+
+            <PasswordSection />
+
+            <ExportFolderSection />
+          </>
+        )}
+
+        {section.key === "glossary" && (
+          <>
+            {/*
+             * "Glossary Categories" rather than "Categories": the one list is
+             * offered on the word form and the phrase form alike, and naming the
+             * section after the tab those two share says so without spelling out
+             * both.
+             */}
+            <SettingSection title="Glossary Categories">
+              <NameListEditor
+                legend="Glossary Categories"
+                description={`The groups the word and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on anything already filed under it.`}
+                names={settings.categories}
+                onChange={(categories) => saveSettings({ categories })}
+                placeholder="e.g. Travel"
+              />
+            </SettingSection>
+
+            <SettingSection title="Sources">
+              <NameListEditor
+                legend="Sources"
+                description="Where a definition came from. Shown on a word or phrase when you open it. The order you put them in is the order the form offers them, so the ones you use most belong at the top."
+                names={settings.sources}
+                onChange={(sources) => saveSettings({ sources })}
+                minimum={1}
+                placeholder="e.g. Textbook"
+              />
+            </SettingSection>
+
+            <SettingSection title="Verb persons">
+              <NameListEditor
+                legend="Verb persons"
+                description="The people a conjugation table is built from, in the order the rows should appear. Changing this shapes the next table you make; tables you already have keep the rows they were made with."
+                names={settings.verbPersons}
+                onChange={(verbPersons) => saveSettings({ verbPersons })}
+                placeholder="e.g. ich"
+              />
+            </SettingSection>
+
+            <SettingSection title="Verb tenses">
+              <NameListEditor
+                legend="Verb tenses"
+                description="Offered when a conjugation table is made. A tense typed there is added here automatically; the order is the order the dropdown shows."
+                names={settings.verbTenses}
+                onChange={(verbTenses) => saveSettings({ verbTenses })}
+                placeholder="e.g. Present"
+              />
+            </SettingSection>
+          </>
+        )}
+
+        {section.key === "flashcards" && <AnswerSeparatorsSection />}
+      </div>
+    </Frame>
+  );
+}
+
+/**
+ * The heading and the shell every group shares.
+ *
+ * Separate so the Suspense fallback is the same page with nothing in it
+ * rather than a different one: the heading does not depend on which group is
+ * chosen being known yet, and swapping the whole page for a spinner to learn
+ * one query parameter would be a flash for no reason.
+ */
+function Frame({
+  section,
+  children,
+}: {
+  section: (typeof SETTINGS_SECTIONS)[number];
+  children: ReactNode;
+}) {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
       <header className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Settings</h1>
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          {section.label}
+        </h1>
         <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-          Your profile, the lists the forms offer, and where exports go.
+          {section.description}
         </p>
       </header>
 
@@ -49,68 +156,73 @@ export default function SettingsPage() {
           wherever it happens, so repeating it on this page would say the same
           thing twice. */}
 
-      <div className="space-y-3">
-        {/* Keyed on the stored name so a save, or a change in another tab,
-            remounts the field with the new value — React’s way of resetting
-            state from a prop without an effect that writes state. */}
-        <ProfileSection
-          key={settings.displayName}
-          displayName={settings.displayName}
-          loaded={loaded}
-        />
-
-        <PasswordSection />
-
-        {/*
-         * "Glossary Categories" rather than "Categories": the one list is
-         * offered on the word form and the phrase form alike, and naming the
-         * section after the tab those two share says so without spelling out
-         * both.
-         */}
-        <SettingSection title="Glossary Categories">
-          <NameListEditor
-            legend="Glossary Categories"
-            description={`The groups the word and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on anything already filed under it.`}
-            names={settings.categories}
-            onChange={(categories) => saveSettings({ categories })}
-            placeholder="e.g. Travel"
-          />
-        </SettingSection>
-
-        <SettingSection title="Sources">
-          <NameListEditor
-            legend="Sources"
-            description="Where a definition came from. Shown on a word or phrase when you open it. The order you put them in is the order the form offers them, so the ones you use most belong at the top."
-            names={settings.sources}
-            onChange={(sources) => saveSettings({ sources })}
-            minimum={1}
-            placeholder="e.g. Textbook"
-          />
-        </SettingSection>
-
-        <SettingSection title="Verb persons">
-          <NameListEditor
-            legend="Verb persons"
-            description="The people a conjugation table is built from, in the order the rows should appear. Changing this shapes the next table you make; tables you already have keep the rows they were made with."
-            names={settings.verbPersons}
-            onChange={(verbPersons) => saveSettings({ verbPersons })}
-            placeholder="e.g. ich"
-          />
-        </SettingSection>
-
-        <SettingSection title="Verb tenses">
-          <NameListEditor
-            legend="Verb tenses"
-            description="Offered when a conjugation table is made. A tense typed there is added here automatically; the order is the order the dropdown shows."
-            names={settings.verbTenses}
-            onChange={(verbTenses) => saveSettings({ verbTenses })}
-            placeholder="e.g. Present"
-          />
-        </SettingSection>
-
-        <ExportFolderSection />
-      </div>
+      {children}
     </main>
+  );
+}
+
+
+/**
+ * Which punctuation means "or" when a flashcard answer is marked.
+ *
+ * Tick boxes over a fixed set rather than a text field, and the reason is not
+ * tidiness: a letter typed in here would split every answer containing that
+ * letter, and marking would stop working in a way nobody would connect to a
+ * settings change made weeks earlier. The database refuses anything else too,
+ * so this is the same rule said twice on purpose.
+ */
+function AnswerSeparatorsSection() {
+  const { settings } = useSettings();
+  const chosen = settings.answerSeparators;
+
+  const summary =
+    chosen === ""
+      ? "None; answers must be typed in full"
+      : SEPARATOR_CHOICES.filter((choice) => chosen.includes(choice.character))
+          .map((choice) => choice.label.toLowerCase())
+          .join(", ");
+
+  function toggle(character: string) {
+    const next = chosen.includes(character)
+      ? chosen.replace(character, "")
+      : chosen + character;
+    saveSettings({ answerSeparators: next });
+  }
+
+  return (
+    <SettingSection title="Answer separators" summary={summary}>
+      <fieldset>
+        <legend className="text-sm text-slate-600 dark:text-slate-300">
+          When a flashcard is marked, these characters separate one acceptable answer from
+          the next. An entry reading <strong>gladly, willingly</strong> is then answered by
+          either word, by both, or by both in the other order.
+        </legend>
+
+        <div className="mt-3 flex flex-col gap-2">
+          {SEPARATOR_CHOICES.map((choice) => (
+            <label
+              key={choice.character}
+              className="flex cursor-pointer items-center gap-3 text-sm select-none"
+            >
+              <input
+                type="checkbox"
+                className="size-4 accent-indigo-600"
+                checked={chosen.includes(choice.character)}
+                onChange={() => toggle(choice.character)}
+              />
+              <span className="font-medium">{choice.label}</span>
+              <span className="text-slate-500 dark:text-slate-400">{choice.example}</span>
+            </label>
+          ))}
+        </div>
+
+        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          A character listed here stops being ordinary text in an answer: with the slash
+          ticked, an entry reading <strong>and/or</strong> offers two answers rather than
+          one. Untick everything to have answers marked exactly as they are written.
+        </p>
+      </fieldset>
+    </SettingSection>
   );
 }
 

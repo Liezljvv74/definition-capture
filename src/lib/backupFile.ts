@@ -159,6 +159,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
       { width: 24 },
       { width: 12 },
       { width: 30 },
+      { width: 16 },
     ],
     data: [
       headerRow([
@@ -168,6 +169,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
         "Category",
         "Source",
         "Ref",
+        "Date added",
       ]),
       ...backup.phrases.map<Row>((phrase) => [
         { value: phrase.phrase, type: String },
@@ -178,6 +180,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
         { value: phrase.categories.join(", "), type: String },
         { value: phrase.source, type: String },
         { value: phrase.ref, type: String },
+        { value: formatDate(phrase.dateAdded), type: String },
       ]),
     ],
   };

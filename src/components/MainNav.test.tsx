@@ -28,10 +28,19 @@ describe("MainNav", () => {
     expect(markup).toContain("Glossary");
     expect(markup).toContain("Verbs");
     expect(markup).toContain('href="/verbs"');
-    // The grammar list and its page are gone. A tab left behind would still
-    // look like a working link.
-    expect(markup).not.toContain("Grammar");
-    expect(markup).not.toContain("/grammar");
+  });
+
+  it("links nowhere the app does not serve", () => {
+    // The nav is the one place that knows every destination, so a tab left
+    // behind after a page is removed still looks like a working link. Checking
+    // the set rather than one old name keeps this useful whatever goes next.
+    const served = ["/", "/vocabulary", "/phrases", "/verbs", "/flashcards", "/settings"];
+    const hrefs = [...html("/vocabulary").matchAll(/href="([^"]*)"/g)].map((match) => match[1]);
+
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const href of hrefs) {
+      expect([href, served.includes(href.split("?")[0])]).toEqual([href, true]);
+    }
   });
 
   it("lights the tab that owns the current path, detail pages included", () => {

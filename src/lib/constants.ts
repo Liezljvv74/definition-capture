@@ -37,3 +37,44 @@ export const MAX_CATEGORIES = 3;
 /** A guard against a runaway list, matching the check constraint on the table. */
 export const MAX_LIST_LENGTH = 30;
 
+
+/**
+ * The characters that can be chosen as answer separators, and what to call
+ * them. A fixed set rather than a free text box, for the reason the check
+ * constraint in the migration gives: a letter in here would split every
+ * answer containing that letter, and marking would quietly stop working in a
+ * way nobody would connect to a settings change made weeks earlier.
+ */
+export const SEPARATOR_CHOICES = [
+  { character: ",", label: "Comma", example: "gladly, willingly" },
+  { character: "/", label: "Slash", example: "gladly/willingly" },
+  { character: ";", label: "Semicolon", example: "gladly; willingly" },
+  { character: "|", label: "Pipe", example: "gladly | willingly" },
+  /*
+   * Not a separator in the same sense as the others: the rest split one
+   * answer from the next, and this says a part of an answer may be left out
+   * altogether. It sits with them because it is the same question to a reader
+   * writing entries, which is "what punctuation here is not part of what I
+   * mean?", and because it is answered the same way.
+   */
+  { character: "()", label: "Brackets", example: "to go (on foot)" },
+] as const;
+
+/** What a new account marks answers with. */
+export const DEFAULT_ANSWER_SEPARATORS = ",/()";
+
+/**
+ * Keeps only what is actually on offer, in the order it is offered, without
+ * repeats. Anything else a row or a backup file carries is dropped rather
+ * than trusted.
+ *
+ * Matched on the first character of each choice, so the pair of brackets is
+ * recognised by its opening one. A stored value is then readable as what it
+ * means without the reader having to hold both halves.
+ */
+export function readSeparators(value: unknown): string {
+  const given = typeof value === "string" ? value : "";
+  return SEPARATOR_CHOICES.filter((choice) => given.includes(choice.character[0]))
+    .map((choice) => choice.character)
+    .join("");
+}

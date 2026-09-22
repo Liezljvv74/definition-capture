@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddPhraseDialog } from "@/components/AddPhraseDialog";
@@ -72,21 +73,16 @@ export default function PhrasesPage() {
       and rendering its result is not. */
   const deferredQuery = useDeferredValue(query);
 
-  const visible = useMemo(() => {
-    const needle = foldName(deferredQuery);
-    const wanted = foldName(category);
-    const filtered = phrases.filter((phrase) => {
-      if (wanted && !phrase.categories.some((name) => foldName(name) === wanted)) {
-        return false;
-      }
-      if (!needle) return true;
-      return [phrase.phrase, phrase.literalMeaning, phrase.usageExample, phrase.ref].some(
-        (field) => foldName(field).includes(needle),
-      );
-    });
-
-    if (!sort) return filtered;
-    return [...filtered].sort((a, b) => {
+  /**
+   * Two memos rather than one, the shape the Vocabulary page arrived at and
+   * for the reason written out there: sorting is the O(n log n) half and it
+   * does not depend on the query, so keeping them together re-sorted the whole
+   * list on every keystroke. `filter` preserves order, so the result is the
+   * same list in the same order it used to be.
+   */
+  const sorted = useMemo(() => {
+    if (!sort) return phrases;
+    return [...phrases].sort((a, b) => {
       const result =
         sort.key === "phrase"
           ? compareText(a.phrase, b.phrase)
@@ -96,7 +92,21 @@ export default function PhrasesPage() {
       // ties keep the newest-first order the list has underneath.
       return 0;
     });
-  }, [phrases, deferredQuery, category, sort]);
+  }, [phrases, sort]);
+
+  const visible = useMemo(() => {
+    const needle = foldName(deferredQuery);
+    const wanted = foldName(category);
+    return sorted.filter((phrase) => {
+      if (wanted && !phrase.categories.some((name) => foldName(name) === wanted)) {
+        return false;
+      }
+      if (!needle) return true;
+      return [phrase.phrase, phrase.literalMeaning, phrase.usageExample, phrase.ref].some(
+        (field) => foldName(field).includes(needle),
+      );
+    });
+  }, [sorted, deferredQuery, category]);
 
   // The same four pieces the word page uses; see `useListPage`.
   const {
@@ -365,13 +375,17 @@ function PhraseTable({
                   />
                 </td>
                 <td className="px-4 py-3 align-top">
-                  <button
-                    type="button"
-                    onClick={() => onEdit(phrase.id)}
-                    className="cursor-pointer text-left font-medium text-indigo-700 hover:underline dark:text-indigo-300"
+                  {/* The name opens the phrase, it does not edit it, which is
+                      what the Vocabulary list does and for the same reason:
+                      stopping at a row while reading is not a decision to
+                      change anything. Editing has the pencil at the end of the
+                      row and the Edit button on the page itself. */}
+                  <Link
+                    href={`/phrase?id=${phrase.id}`}
+                    className="font-medium text-indigo-700 hover:underline dark:text-indigo-300"
                   >
                     <span className="line-clamp-3 break-words">{phrase.phrase}</span>
-                  </button>
+                  </Link>
                 </td>
                 <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
                   {phrase.literalMeaning ? (
@@ -472,13 +486,12 @@ function PhraseCards({
                     />
                   </span>
                   <h2 className="flex-1 font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(phrase.id)}
-                      className="cursor-pointer text-left text-indigo-700 hover:underline dark:text-indigo-300"
+                    <Link
+                      href={`/phrase?id=${phrase.id}`}
+                      className="text-indigo-700 hover:underline dark:text-indigo-300"
                     >
                       {phrase.phrase}
-                    </button>
+                    </Link>
                   </h2>
                   <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-0.5">
                     <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
