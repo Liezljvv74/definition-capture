@@ -28,6 +28,7 @@ export function NavMenu({
   active = false,
   icon,
   align = "left",
+  element = "li",
   children,
 }: {
   label: string;
@@ -44,11 +45,19 @@ export function NavMenu({
    * would otherwise open off the side of the window.
    */
   align?: "left" | "right";
+  /**
+   * What the menu wraps itself in. A tab in the nav bar is a list item, since
+   * the bar is a list of destinations. The gear is not: it already sits inside
+   * the account item, and an `li` inside an `li` is invalid HTML that the
+   * browser rewrites, which shows up as a hydration mismatch rather than as a
+   * layout problem.
+   */
+  element?: "li" | "div";
   children: (close: () => void) => ReactNode;
 }) {
   const menuId = useId();
   const [open, setOpen] = useState(false);
-  const container = useRef<HTMLLIElement>(null);
+  const container = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -72,8 +81,10 @@ export function NavMenu({
     };
   }, [open]);
 
-  return (
-    <li ref={container} className="relative shrink-0">
+  // The root differs, the rest does not, so the contents are built once and
+  // the wrapper chosen around them.
+  const inside = (
+    <>
       <button
         type="button"
         aria-haspopup="menu"
@@ -110,7 +121,24 @@ export function NavMenu({
       >
         {children(() => setOpen(false))}
       </ul>
+    </>
+  );
+  const className = "relative shrink-0";
+  // A callback ref rather than the object: the two roots are different element
+  // types, and one `HTMLElement` ref accepts both where a typed one accepts
+  // neither.
+  const hold = (node: HTMLElement | null) => {
+    container.current = node;
+  };
+
+  return element === "li" ? (
+    <li ref={hold} className={className}>
+      {inside}
     </li>
+  ) : (
+    <div ref={hold} className={className}>
+      {inside}
+    </div>
   );
 }
 

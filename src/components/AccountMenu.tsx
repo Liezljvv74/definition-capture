@@ -62,7 +62,15 @@ function SettingsMenu() {
   const onSettings = pathname.startsWith("/settings");
 
   return (
-    <NavMenu label="Settings" icon={<GearIcon />} align="right" active={onSettings}>
+    <NavMenu
+      label="Settings"
+      icon={<GearIcon />}
+      align="right"
+      // Already inside the account's own list item, so this one is a plain
+      // wrapper rather than a tab in its own right.
+      element="div"
+      active={onSettings}
+    >
       {(close) =>
         SETTINGS_SECTIONS.map((section) => {
           const here = onSettings && current === section.key;
