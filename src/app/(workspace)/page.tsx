@@ -17,9 +17,11 @@ export default function HomePage() {
           comes forward, over the cards rather than behind them. */}
       <main data-home-page className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <div className="space-y-8">
-          {/* The logo's own yellow, and no dark variant: it is a light colour
-              in both themes, so the heading on it stays dark either way. */}
-          <section className="rounded-2xl bg-logo-yellow p-6 shadow-sm sm:p-8">
+          {/* Lighter than the three cards below, which is what makes this read
+              as a heading rather than a fourth one. No dark variant: it is a
+              light colour in both themes, so the heading stays dark either
+              way. See `globals.css` for where the palette comes from. */}
+          <section className="rounded-2xl bg-card-yellow p-6 shadow-sm sm:p-8">
             {/* One line where there is room for one. `whitespace-nowrap` on its
                 own made the heading unbreakable at every width, and nothing in
                 the app sets `overflow-x: hidden`, so below about 1280px it
@@ -30,14 +32,16 @@ export default function HomePage() {
           </section>
 
           {/*
-           * One logo colour per card, each at half strength. Hover dims by 5%
-           * rather than swapping in an indigo, which would have had to sit
-           * against three different colours and suit none of them.
+           * One colour per list, in the logo's hues at about a third of its
+           * saturation: the full-strength version read as something made for a
+           * child. Hover dims by 5% rather than swapping in an indigo, which
+           * would have had to sit against three different colours and suit
+           * none of them.
            */}
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Link
               href="/vocabulary"
-              className="rounded-2xl bg-logo-teal-50 p-5 transition hover:brightness-95"
+              className="rounded-2xl bg-card-blue p-5 transition hover:brightness-95"
             >
               <h3 className="text-xl font-semibold text-slate-900">Vocabulary</h3>
               <p className="mt-2 text-sm leading-6 text-slate-800">
@@ -47,7 +51,7 @@ export default function HomePage() {
 
             <Link
               href="/phrases"
-              className="rounded-2xl bg-card-green-50 p-5 transition hover:brightness-95"
+              className="rounded-2xl bg-card-green p-5 transition hover:brightness-95"
             >
               <h3 className="text-xl font-semibold text-slate-900">Phrases</h3>
               <p className="mt-2 text-sm leading-6 text-slate-800">
@@ -57,7 +61,7 @@ export default function HomePage() {
 
             <Link
               href="/verbs"
-              className="rounded-2xl bg-logo-purple-50 p-5 transition hover:brightness-95"
+              className="rounded-2xl bg-card-purple p-5 transition hover:brightness-95"
             >
               <h3 className="text-xl font-semibold text-slate-900">Verbs</h3>
               <p className="mt-2 text-sm leading-6 text-slate-800">

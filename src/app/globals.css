@@ -5,34 +5,37 @@
     "Helvetica Neue", Arial, sans-serif;
 
   /*
-   * The home page's palette. The `logo-` ones are taken out of the artwork
-   * rather than matched by eye: each is the weighted average of the pixels in
-   * that hue band in `captured-logo-bg.png`, so the page and the mark in its
-   * corner are the same colours and not a set of near misses.
+   * The home page's palette: a yellow panel and a card each in blue, green and
+   * purple.
    *
-   * `-50` means the colour at half strength over white, which is what makes
-   * a card a card rather than a block of paint.
+   * The hues come from the logo. 44 is its yellow, 216 its navy, 254 its
+   * purple; green is the one the artwork does not contain at all, so it is
+   * built at 146, far enough from the blue beside it to be told apart at a
+   * glance.
    *
-   * The green is the exception and carries a different prefix to say so: the
-   * logo has no green in it at all. Every greenish pixel in the file is
-   * anti-aliasing beside white, 1,252 of 296,737 and 1,200 of those a hair
-   * off white. So it is built to match instead of sampled, at the saturation
-   * and lightness of the logo's teal, its nearest neighbour on the wheel,
-   * turned to hue 135. That hue is the furthest of the plausible greens from
-   * the teal the card beside it wears, which matters when the two sit in one
-   * row.
+   * What is deliberately *not* taken from the logo is the saturation. An
+   * earlier version used the artwork's own colours at half strength over
+   * white, which gave four high-chroma tints next to a full-strength yellow
+   * panel, and the whole page read as something made for a child. These are
+   * the same hues at roughly a third of that saturation: muted enough to sit
+   * behind an hour of reading, still warm enough not to look like a form.
    *
-   * None of these carries a dark variant, and that is the point rather than
-   * an omission: they are light colours whatever the browser is set to, so
-   * the text on them is dark in both themes. Slate 700 is the palest that
-   * still clears 4.5:1 on all three cards, 5.55:1 on the purple as the worst
-   * of them, which is why the cards carry slate 800 and 900 and not the
-   * slate 500 and 600 they wore while they were white.
+   * The three cards are within 0.049 of each other in relative luminance, so
+   * the row reads as one set rather than one bright card and two quiet ones.
+   * The green is taken down further than its neighbours to get there, because
+   * green reads lighter than blue or purple at the same nominal lightness.
+   * The panel sits lighter than all three, between them and the page, which is
+   * what makes it read as a heading rather than a fourth card.
+   *
+   * None of these carries a dark variant, and that is the point rather than an
+   * omission: they are light colours whatever the browser is set to, so the
+   * text on them is dark in both themes. Every one clears 4.5:1 against slate
+   * 700 and better than 7.6:1 against the slate 800 the cards actually use.
    */
-  --color-logo-yellow: #fcbd15;
-  --color-logo-teal-50: #86d9e9;
-  --color-logo-purple-50: #c3b4fc;
-  --color-card-green-50: #86e99f;
+  --color-card-yellow: #ead599;
+  --color-card-blue: #aec0db;
+  --color-card-green: #a2cdb5;
+  --color-card-purple: #bfb6dd;
 }
 
 html {
