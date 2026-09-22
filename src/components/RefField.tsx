@@ -156,7 +156,11 @@ export function RefField({
       <input
         id={id}
         ref={inputRef}
-        className="field"
+        // The placeholder alone steps down a size: this field's hint says
+        // more than the other fields' do, and the input can be narrow inside
+        // a dialog. Shrinking the hint keeps the whole of it readable without
+        // shrinking what is actually typed.
+        className="field placeholder:text-xs"
         value={value}
         autoComplete="off"
         placeholder={placeholder}

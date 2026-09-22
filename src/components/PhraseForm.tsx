@@ -195,7 +195,7 @@ export function PhraseForm({
         <RefField
           id={`${ids}-ref`}
           value={value.ref}
-          placeholder="Notes, a link, or a saved word or phrase"
+          placeholder="Note, link or saved word/phrase"
           onChange={(ref) => setValue((current) => ({ ...current, ref }))}
           // The phrase being edited cannot usefully refer to itself.
           exclude={[initialValue.phrase, value.phrase]}

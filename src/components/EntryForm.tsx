@@ -221,7 +221,7 @@ export function EntryForm({
           <RefField
             id={`${ids}-ref`}
             value={value.ref}
-            placeholder="Notes, a link, or a saved word or phrase"
+            placeholder="Note, link or saved word/phrase"
             onChange={(ref) => setValue((current) => ({ ...current, ref }))}
             // A word referring to itself is a link back to the page you are
             // already on. Both names are excluded so a rename mid-edit cannot
