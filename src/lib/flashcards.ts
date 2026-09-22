@@ -334,16 +334,57 @@ export function similarity(a: string, b: string): number {
  */
 const CLOSE_ENOUGH = 0.85;
 
+/** The same string, or near enough to be a typo rather than another answer. */
+function alike(given: string, candidate: string): boolean {
+  return given === candidate || similarity(given, candidate) >= CLOSE_ENOUGH;
+}
+
+/**
+ * Whether what was typed is some combination of the alternatives, in any
+ * order, and nothing else.
+ *
+ * Commas have already become spaces by the time this runs, which is what
+ * makes "gladly, willingly" and "gladly willingly" the same thing to it.
+ * Written so that an alternative may be several words: it eats the longest
+ * thing it recognises from the front and tries again with the rest, and each
+ * alternative may be used once.
+ *
+ * Exact rather than forgiving, deliberately. A typo inside one of several
+ * run-together answers cannot be told apart from a different answer without
+ * guessing where one ends and the next begins, and guessing is how a marker
+ * starts accepting things nobody wrote.
+ */
+function madeOf(given: string, alternatives: readonly string[]): boolean {
+  if (given === "") return true;
+
+  return alternatives.some((alternative, at) => {
+    if (alternative === "") return false;
+    if (given === alternative) return true;
+    if (!given.startsWith(`${alternative} `)) return false;
+
+    const rest = alternatives.filter((_, other) => other !== at);
+    return madeOf(given.slice(alternative.length + 1), rest);
+  });
+}
+
 /**
  * Whether a typed answer matches the back of the card.
  *
- * The back is not always one thing. A phrase carries its literal meaning and
- * an example, separated by a blank line, and nobody is going to type both; a
- * verb table is a line per person. So each line counts as an acceptable
- * answer in its own right, as well as the whole back.
+ * The back is not always one thing, in two different ways.
  *
- * This is deliberately strict rather than clever. A reader who is told they
- * were wrong can try again, reveal the answer, or carry on, so the cost of
+ * It may be several lines: a phrase carries its literal meaning and an
+ * example separated by a blank line, and a verb table is a line per person.
+ * Nobody is going to type all of that, so each line counts on its own.
+ *
+ * And a line may offer alternatives separated by commas. `gerne` means
+ * "gladly, willingly", and somebody who answers "gladly" knows the word.
+ * Requiring both, in that order, with the comma, tests whether they can
+ * reproduce a glossary entry rather than whether they know what it means. So
+ * any one of the alternatives is accepted, as is any combination of them, in
+ * any order, with or without the commas.
+ *
+ * Otherwise this stays strict rather than clever. A reader told they were
+ * wrong can try again, reveal the answer, or carry on, so the cost of
  * refusing a near miss is a button press; the cost of accepting a wrong
  * answer is being told they know something they do not.
  */
@@ -351,11 +392,23 @@ export function judgeAnswer(typed: string, back: string): boolean {
   const given = normaliseAnswer(typed);
   if (given === "") return false;
 
-  const candidates = [back, ...back.split("\n")]
-    .map(normaliseAnswer)
-    .filter((candidate) => candidate !== "");
+  for (const line of [back, ...back.split("\n")]) {
+    const whole = normaliseAnswer(line);
+    if (whole === "") continue;
+    if (alike(given, whole)) return true;
 
-  return candidates.some(
-    (candidate) => candidate === given || similarity(given, candidate) >= CLOSE_ENOUGH,
-  );
+    const alternatives = line
+      .split(",")
+      .map(normaliseAnswer)
+      .filter((alternative) => alternative !== "");
+    if (alternatives.length < 2) continue;
+
+    // One of them on its own, typo and all.
+    if (alternatives.some((one) => alike(given, one))) return true;
+
+    // Or several of them together.
+    if (madeOf(given, alternatives)) return true;
+  }
+
+  return false;
 }

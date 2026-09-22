@@ -152,10 +152,17 @@ too. What changes is only what is suggested for new ones.
 
   The marking ignores case, surrounding punctuation and stray spacing, and forgives a typo in
   a long answer, but keeps accents: `Tür` and `Tur` are different words and pretending
-  otherwise teaches the wrong thing. Each line of a multi-part answer counts on its own, so a
-  phrase can be answered with its literal meaning without also typing the example. It is
-  deliberately strict — being refused costs a button press, while being wrongly told you knew
-  something schedules it weeks away with nothing to notice.
+  otherwise teaches the wrong thing.
+
+  Where an answer offers alternatives separated by commas, any one of them will do. `gerne`
+  means "gladly, willingly", and somebody who types `gladly` knows the word; requiring both,
+  in that order, with the comma, would be testing whether they can reproduce a glossary entry
+  instead. Any combination of the alternatives is accepted too, in any order, with or without
+  the commas. Each line of a multi-part answer counts on its own for the same reason, so a
+  phrase can be answered with its literal meaning without also typing the example.
+
+  Otherwise it is deliberately strict: being refused costs a button press, while being wrongly
+  told you knew something schedules it weeks away with nothing to notice.
 - **`/settings`** — reached from the account menu at the right of the nav rather than
   from the tabs, which belong to the two lists. Seven sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
