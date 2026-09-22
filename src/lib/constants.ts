@@ -50,19 +50,31 @@ export const SEPARATOR_CHOICES = [
   { character: "/", label: "Slash", example: "gladly/willingly" },
   { character: ";", label: "Semicolon", example: "gladly; willingly" },
   { character: "|", label: "Pipe", example: "gladly | willingly" },
+  /*
+   * Not a separator in the same sense as the others: the rest split one
+   * answer from the next, and this says a part of an answer may be left out
+   * altogether. It sits with them because it is the same question to a reader
+   * writing entries, which is "what punctuation here is not part of what I
+   * mean?", and because it is answered the same way.
+   */
+  { character: "()", label: "Brackets", example: "to go (on foot)" },
 ] as const;
 
-/** What a new account marks answers with: a comma or a slash means "or". */
-export const DEFAULT_ANSWER_SEPARATORS = ",/";
+/** What a new account marks answers with. */
+export const DEFAULT_ANSWER_SEPARATORS = ",/()";
 
 /**
- * Keeps only the characters that are actually on offer, in the order they are
- * offered, without repeats. Anything else a row or a backup file carries is
- * dropped rather than trusted.
+ * Keeps only what is actually on offer, in the order it is offered, without
+ * repeats. Anything else a row or a backup file carries is dropped rather
+ * than trusted.
+ *
+ * Matched on the first character of each choice, so the pair of brackets is
+ * recognised by its opening one. A stored value is then readable as what it
+ * means without the reader having to hold both halves.
  */
 export function readSeparators(value: unknown): string {
   const given = typeof value === "string" ? value : "";
-  return SEPARATOR_CHOICES.filter((choice) => given.includes(choice.character))
+  return SEPARATOR_CHOICES.filter((choice) => given.includes(choice.character[0]))
     .map((choice) => choice.character)
     .join("");
 }

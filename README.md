@@ -162,12 +162,14 @@ too. What changes is only what is suggested for new ones.
   for the same reason, so a phrase can be answered with its literal meaning without also
   typing the example.
 
-  An answer that qualifies itself in brackets counts both ways: `to go (on foot)` is answered
-  by `to go`, by `to go on foot`, or by typing the brackets out. The aside says when the word
-  applies rather than what it means.
+  An answer that qualifies itself in brackets counts both ways, if you want it to: `to go (on
+  foot)` is answered by `to go`, by `to go on foot`, or by typing the brackets out. That is a
+  choice in the same list as the separators, because whether an aside says when a word applies
+  or what it means depends on how you write your entries. Brackets are never split on, so
+  `on foot` is not an answer in its own right either way.
 
   Which characters count as separators is yours to set, under **Settings → Answer
-  separators**: comma, slash, semicolon and pipe, any combination, or none at all. Ticking a
+  separators**: comma, slash, semicolon, pipe and brackets, any combination, or none at all. Ticking a
   character stops it being ordinary text, so with the slash on, an entry reading `and/or`
   offers two answers rather than one; with everything off, answers are marked exactly as they
   are written. The choice is a fixed set rather than a text field because a letter used as a

@@ -249,9 +249,9 @@ describe("judgeAnswer, when alternatives are separated by a slash", () => {
 });
 
 describe("the separators are configurable", () => {
-  it("defaults to a comma and a slash", () => {
-    expect(ANSWER_SEPARATORS).toBe(",/");
-    expect(DEFAULT_ANSWER_SEPARATORS).toBe(",/");
+  it("defaults to a comma, a slash and brackets", () => {
+    expect(ANSWER_SEPARATORS).toBe(",/()");
+    expect(DEFAULT_ANSWER_SEPARATORS).toBe(",/()");
   });
 
   it("can be told to use something else instead", () => {
@@ -321,5 +321,52 @@ describe("readSeparators", () => {
     for (const nonsense of [null, undefined, 42, {}, [","]]) {
       expect(readSeparators(nonsense)).toBe("");
     }
+  });
+});
+
+/**
+ * Brackets are the one choice in the list that is not a separator in the same
+ * sense as the others. The rest split one answer from the next; this says a
+ * part of an answer may be left out. Whether it may depends on how the reader
+ * writes their entries: "to go (on foot)" is an aside, and a definition where
+ * the brackets carry meaning is not.
+ */
+describe("brackets as a choice rather than a rule", () => {
+  const gehen = "to go (on foot)";
+
+  it("lets the aside be dropped when they are chosen", () => {
+    expect(judgeAnswer("to go", gehen, ",/()")).toBe(true);
+    expect(judgeAnswer("to go on foot", gehen, ",/()")).toBe(true);
+    expect(judgeAnswer("to go (on foot)", gehen, ",/()")).toBe(true);
+  });
+
+  it("requires the whole answer when they are not", () => {
+    expect(judgeAnswer("to go", gehen, ",/")).toBe(false);
+    // The brackets are still punctuation, so typing them or not is no matter.
+    expect(judgeAnswer("to go on foot", gehen, ",/")).toBe(true);
+    expect(judgeAnswer("to go (on foot)", gehen, ",/")).toBe(true);
+  });
+
+  it("never splits an answer on a bracket", () => {
+    // They are a choice about what may be left out, not a character to split
+    // on. Splitting here would make "on foot" an answer in its own right.
+    expect(judgeAnswer("on foot", gehen, ",/()")).toBe(false);
+    expect(judgeAnswer("on foot", gehen, "()")).toBe(false);
+  });
+
+  it("works with nothing else chosen", () => {
+    expect(judgeAnswer("to go", gehen, "()")).toBe(true);
+    expect(judgeAnswer("gladly", "gladly, willingly", "()")).toBe(false);
+  });
+
+  it("is recognised in a stored value by its opening bracket alone", () => {
+    expect(readSeparators("(")).toBe("()");
+    expect(readSeparators("()")).toBe("()");
+    expect(readSeparators(",/()")).toBe(",/()");
+  });
+
+  it("is what a new account starts with, so nothing changes by default", () => {
+    expect(readSeparators(DEFAULT_ANSWER_SEPARATORS)).toBe(",/()");
+    expect(judgeAnswer("to go", gehen)).toBe(true);
   });
 });

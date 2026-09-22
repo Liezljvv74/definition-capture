@@ -415,14 +415,16 @@ function madeOf(given: string, alternatives: readonly string[]): boolean {
  * any one of the alternatives is accepted, as is any combination of them, in
  * any order, with or without the separators.
  *
- * A line may also qualify itself in brackets: "to go (on foot)". The aside
- * says when the word applies rather than what it means, so the answer counts
- * with it and without it.
+ * A line may also qualify itself in brackets: "to go (on foot)". Where the
+ * reader has said brackets are one of their separators, the aside is taken as
+ * saying when the word applies rather than what it means, so the answer counts
+ * with it and without it. Where they have not, the brackets are ordinary
+ * punctuation and the aside is part of the answer.
  *
- * Each line is therefore tried twice, as written and with its asides removed,
- * and each reading is tried whole and split into alternatives. Two readings
- * of two shapes is four passes over a short string, which is nothing, and the
- * alternative is a single expression nobody could check by eye.
+ * Each line is therefore tried once or twice, as written and, if asides may be
+ * dropped, without them; and each reading is tried whole and split into
+ * alternatives. Four passes over a short string at worst, which is nothing,
+ * and the alternative is a single expression nobody could check by eye.
  *
  * Otherwise this stays strict rather than clever. A reader told they were
  * wrong can try again, reveal the answer, or carry on, so the cost of
@@ -437,10 +439,14 @@ export function judgeAnswer(
   const given = normaliseAnswer(typed);
   if (given === "") return false;
 
-  const pattern = separatorPattern(separators);
+  // The brackets are a choice about what may be left out, not a character to
+  // split on, so they come out before the splitting pattern is built. An empty
+  // pattern is fine: `[]` matches nothing, so the line simply stays whole.
+  const asidesOptional = separators.includes("(");
+  const pattern = separatorPattern(separators.replace(/[()]/g, ""));
 
   for (const line of [back, ...back.split("\n")]) {
-    for (const reading of [line, withoutAsides(line)]) {
+    for (const reading of asidesOptional ? [line, withoutAsides(line)] : [line]) {
       // The separators become spaces here, so "gladly/willingly" typed out in
       // full matches however the reader punctuated it.
       const whole = normaliseAnswer(reading.replace(pattern, " "));
