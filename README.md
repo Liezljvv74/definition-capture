@@ -162,8 +162,13 @@ too. What changes is only what is suggested for new ones.
   done.
 
   The **needs review** box shows the flag the item already carries, so a deck built from
-  flagged items opens with it ticked. Untick it and the flag is cleared, which is the only way
-  an item leaves that filter apart from editing it.
+  flagged items opens with it ticked, and answering moves it in both directions: wrong ticks
+  it, right clears it. A card you have learned stops coming back rather than sitting in the
+  filter for ever, which is what would happen if only getting one wrong could ever set it.
+
+  Ticking or unticking the box yourself on a card stops the app deciding for that card.
+  Marking one you answered correctly is a deliberate "keep this one, I was not sure", and it
+  is left alone.
 
   The marking ignores case, surrounding punctuation and stray spacing, and forgives a typo in
   a long answer, but never an accent: `Tür` and `Tur` are different words and pretending

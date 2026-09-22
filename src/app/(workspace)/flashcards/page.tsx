@@ -6,6 +6,7 @@ import { Suspense, useEffect, useId, useRef, useState } from "react";
 
 import {
   answerCard,
+  flagAfterAnswer,
   FlashcardError,
   loadDeck,
   setNeedsReview,
@@ -136,6 +137,8 @@ function CardFace({
   // Seeded from the item rather than from nothing. The component is keyed on
   // the card's id, so a new card remounts and picks up its own flag.
   const [marked, setMarked] = useState(card.needsReview);
+  /** Set once the reader changes the box themselves, so the app stops deciding. */
+  const [touchedByReader, setTouched] = useState(false);
   const [typed, setTyped] = useState("");
   const ids = useId();
 
@@ -171,7 +174,10 @@ function CardFace({
    * Wrong flashes orange, waits, and ticks "needs review" without being
    * asked. Getting it wrong is exactly the evidence that box is for, and
    * making the reader tick it themselves means the filter only ever collects
-   * the cards they had the presence of mind to flag.
+   * the cards they had the presence of mind to flag. Getting it right takes
+   * the tick off again, so a card that has been learned stops coming back.
+   * `flagAfterAnswer` holds that rule, including when to leave the reader's
+   * own choice alone.
    */
   function submit() {
     if (phase !== "asking") return;
@@ -181,14 +187,17 @@ function CardFace({
     // first card of a session judged by rules they had removed.
     if (!settingsLoaded) return;
 
-    if (judgeAnswer(typed, card.back, settings.answerSeparators)) {
+    const correct = judgeAnswer(typed, card.back, settings.answerSeparators);
+    const flag = flagAfterAnswer({ correct, flagged: marked, touchedByReader });
+    if (flag !== null) void mark(flag);
+
+    if (correct) {
       setPhase("correct");
       void record("correct");
       window.setTimeout(() => onFinished("correct"), 650);
       return;
     }
     setPhase("wrong");
-    if (!marked) void mark(true);
   }
 
   function tryAgain() {
@@ -331,7 +340,10 @@ function CardFace({
           type="checkbox"
           className="size-4 accent-indigo-600"
           checked={marked}
-          onChange={() => void mark(!marked)}
+          onChange={() => {
+            setTouched(true);
+            void mark(!marked);
+          }}
         />
         Mark this one as needing review
       </label>

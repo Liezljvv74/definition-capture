@@ -304,6 +304,42 @@ export async function answerCard(
 }
 
 /**
+ * What the "needs review" flag should be once a card has been answered, or
+ * `null` when it should be left exactly as it is.
+ *
+ * The flag is evidence, and answering is how evidence arrives. Getting a card
+ * wrong sets it, which is the point of the box: a filter that only collects
+ * what somebody remembered to tick collects almost nothing. Getting it right
+ * clears it again, because an item that keeps coming back after it is known
+ * is the filter wasting the reader's time, and nothing else would ever take
+ * it off the list short of editing the entry.
+ *
+ * The exception is a reader who has touched the box themselves on this card.
+ * Ticking it while answering correctly is a deliberate "keep this one, I was
+ * not sure", and an app that undid that a second later would be arguing with
+ * them. Their choice stands.
+ *
+ * A pure function rather than a branch inside the component, because it is a
+ * rule about what the reader meant rather than about rendering, and this way
+ * it can be read and tested on its own.
+ */
+export function flagAfterAnswer({
+  correct,
+  flagged,
+  touchedByReader,
+}: {
+  correct: boolean;
+  /** What the box shows right now. */
+  flagged: boolean;
+  /** Whether the reader has changed it themselves on this card. */
+  touchedByReader: boolean;
+}): boolean | null {
+  if (touchedByReader) return null;
+  if (correct) return flagged ? false : null;
+  return flagged ? null : true;
+}
+
+/**
  * Marks an item as wanting another look, or clears the mark.
  *
  * Written straight to `learning_items` rather than through a store: the three
