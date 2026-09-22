@@ -70,7 +70,10 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * app had been dropping on the way in. A file from 7 or earlier restores with
  * today's date standing in for the one it never recorded, which is the same
  * thing the word list has always done with a dated row that arrived without
- * one.
+ * one. The same version carries `answerSeparators` in the settings block; a
+ * file without the key restores the defaults rather than an empty set, since
+ * the absence of a field and a reader who turned every separator off are not
+ * the same statement even though both read as "".
  *
  * A missing list reads as an absent one, not an empty one, which is what
  * keeps Replace from wiping what the file predates.

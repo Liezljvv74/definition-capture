@@ -367,11 +367,57 @@ describe("writes stamp the owner from the session", () => {
     store.replaceAll([{ id: "c", name: "C" }]);
     await store.settled();
 
-    const written = [...fake.of("insert"), ...fake.of("upsert")].flatMap(
-      (call) => call.rows ?? [],
-    );
+    const written = [
+      ...fake.of("insert"),
+      ...fake.of("upsert"),
+      ...fake.of("update"),
+    ].flatMap((call) => call.rows ?? []);
     expect(written.length).toBeGreaterThan(0);
     for (const row of written) expect(row.user_id).toBe("user-1");
+  });
+});
+
+describe("updateMany", () => {
+  /*
+   * The three lists are views over `learning_items`, not tables, and a view
+   * has no index for `on conflict` to infer an arbiter from: PostgREST's
+   * upsert is refused with 42P10 before the `instead of` trigger runs. So the
+   * bulk path that an import's "overwrite matching rows" mode depends on has
+   * to be updates, one per row, however much one round trip would be nicer.
+   *
+   * Asserting on the verb rather than on the outcome, because the fake answers
+   * every call the same way: what broke in production was the shape of the
+   * request, and that is the thing this can see.
+   */
+  it("updates each row by id rather than upserting", async () => {
+    const store = make();
+    store.updateMany([
+      { id: "a", name: "A2" },
+      { id: "b", name: "B2" },
+    ]);
+    await store.settled();
+
+    expect(fake.of("upsert")).toHaveLength(0);
+
+    const updates = fake.of("update");
+    expect(updates).toHaveLength(2);
+    expect(updates.map((call) => call.eq?.id)).toEqual(["a", "b"]);
+    expect(updates.map((call) => call.rows?.[0]?.name)).toEqual(["A2", "B2"]);
+  });
+
+  it("reports one failure out of a batch, and reloads once", async () => {
+    const store = make();
+    fake.answers.update = [fails("no")];
+
+    store.updateMany([
+      { id: "a", name: "A2" },
+      { id: "b", name: "B2" },
+    ]);
+    await store.settled();
+
+    expect(store.getError()).toContain("Could not save to the database");
+    // One reload for the batch, not one per row.
+    expect(fake.of("select")).toHaveLength(1);
   });
 });
 

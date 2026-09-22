@@ -228,7 +228,17 @@ export function parseSettings(raw: unknown): Settings | null {
     // No fallback: empty is a real answer, meaning not asked yet.
     verbPersons: readNameList(value.verbPersons, MAX_LIST_LENGTH),
     verbTenses: readNameList(value.verbTenses, MAX_LIST_LENGTH),
-    answerSeparators: readSeparators(value.answerSeparators),
+    // A file that predates the setting is not a reader who turned every
+    // separator off, and the two look identical once `readSeparators` has run:
+    // both come back as "". So the absence of the key is answered with the
+    // defaults, and only a key that is actually present is taken at its word.
+    // Getting this wrong is silent and lasting: restoring any backup written
+    // before this field existed would leave every alternative answer having to
+    // be typed out in full, with nothing on screen to say why.
+    answerSeparators:
+      value.answerSeparators === undefined
+        ? DEFAULT_ANSWER_SEPARATORS
+        : readSeparators(value.answerSeparators),
   };
 }
 

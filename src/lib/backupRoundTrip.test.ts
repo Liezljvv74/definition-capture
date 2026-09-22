@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { BACKUP_FORMAT, BACKUP_VERSION, buildBackup, parseBackup } from "@/lib/backup";
+import { DEFAULT_ANSWER_SEPARATORS } from "@/lib/constants";
 import { toWirePhrase } from "@/lib/phraseStorage";
 import { toWireWord } from "@/lib/storage";
 import type { Entry, Phrase, VerbTable } from "@/lib/types";
@@ -91,6 +92,47 @@ describe("what the writer writes, the reader reads", () => {
 
     expect(restored.phrase).toBe(phrase.phrase);
     expect(Number.isNaN(Date.parse(restored.dateAdded))).toBe(false);
+  });
+
+  it("keeps the default separators when a file predates the setting", () => {
+    /*
+     * The same shape of hazard as the phrase date above, and a worse
+     * consequence. `readSeparators` answers an unreadable value with "", and
+     * "" is also what a reader means when they turn every separator off, so a
+     * settings block written before this field existed is indistinguishable
+     * from a deliberate choice unless the absence of the key is handled on its
+     * own. Restoring one used to switch the marking rule off: "gladly" would
+     * be refused for "gladly, willingly" from then on, with nothing on screen
+     * to connect the two.
+     */
+    const olderSettings = {
+      displayName: "Reader",
+      categories: ["Home"],
+      sources: ["Manual"],
+      verbPersons: ["ich"],
+      verbTenses: ["Present"],
+    };
+
+    const restored = read(fileHolding({ settings: olderSettings })).settings;
+    expect(restored?.answerSeparators).toBe(DEFAULT_ANSWER_SEPARATORS);
+  });
+
+  it("takes an empty separator string in a current file at its word", () => {
+    // Present and empty is a reader who turned them all off, which the
+    // fallback above must not overrule.
+    const restored = read(
+      fileHolding({
+        settings: {
+          displayName: "",
+          categories: ["Home"],
+          sources: ["Manual"],
+          verbPersons: [],
+          verbTenses: [],
+          answerSeparators: "",
+        },
+      }),
+    ).settings;
+    expect(restored?.answerSeparators).toBe("");
   });
 
   it("returns a conjugation table with its grid intact", () => {

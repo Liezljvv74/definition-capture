@@ -447,6 +447,15 @@ export function judgeAnswer(
 
   for (const line of [back, ...back.split("\n")]) {
     for (const reading of asidesOptional ? [line, withoutAsides(line)] : [line]) {
+      // The back exactly as it is written, before any separator is touched.
+      // Without this pass a reader who copies the answer character for
+      // character is told they are wrong: every other comparison has already
+      // turned the separators into spaces, so "and/or" is being measured
+      // against "and or", and the two differ by more than a typo once the
+      // string is short. The card's own back has to be a right answer.
+      const asWritten = normaliseAnswer(reading);
+      if (asWritten !== "" && alike(given, asWritten)) return true;
+
       // The separators become spaces here, so "gladly/willingly" typed out in
       // full matches however the reader punctuated it.
       const whole = normaliseAnswer(reading.replace(pattern, " "));

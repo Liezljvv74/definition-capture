@@ -538,10 +538,20 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
      * open over it — while the new rows beside them went in a single insert.
      * One `upsert` keyed on the primary key does the whole set in one trip.
      *
-     * `upsert` rather than `update` because PostgREST has no bulk update; row
-     * level security still applies, and `rowFor` stamps `user_id` from the
-     * session rather than from the file, so this cannot write another
-     * account's rows.
+     * It used to be one `upsert` keyed on the primary key, which was one trip
+     * for the whole set. That stopped working the day the three lists became
+     * views over `learning_items`: PostgREST turns an upsert into `insert ...
+     * on conflict (id) do update`, and Postgres infers the arbiter from the
+     * target's indexes. A view has none, so the statement is refused with
+     * 42P10 before the `instead of` trigger ever runs, and the import that
+     * overwrites matching rows failed outright.
+     *
+     * PostgREST has no bulk update, so the requests come back, but they are
+     * issued together and awaited as one: the screen still updates once, and
+     * one failure reloads once rather than three hundred times. `rowFor`
+     * stamps `user_id` from the session rather than from the file, and row
+     * level security still applies, so this cannot write another account's
+     * rows.
      */
     updateMany(items) {
       const userId = currentUserId();
@@ -555,12 +565,19 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
       const supabase = getSupabase();
       if (supabase) {
         send(
-          supabase
-            .from(config.table)
-            .upsert(
-              items.map((item) => rowFor(item, userId)),
-              { onConflict: "id" },
+          Promise.all(
+            items.map((item) =>
+              supabase
+                .from(config.table)
+                .update(rowFor(item, userId))
+                .eq("id", config.idOf(item)),
             ),
+          ).then((results) => ({
+            // The first failure is the one reported. They are all the same
+            // kind of failure in practice, and a banner listing three hundred
+            // of them says no more than a banner naming one.
+            error: results.find((result) => result.error)?.error ?? null,
+          })),
         );
       }
     },

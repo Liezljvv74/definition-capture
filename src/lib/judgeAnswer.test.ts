@@ -248,6 +248,45 @@ describe("judgeAnswer, when alternatives are separated by a slash", () => {
   });
 });
 
+describe("the card's own back is always a right answer", () => {
+  /**
+   * The rule nothing else states: whatever is written on the back, typed
+   * character for character, has to be accepted. It is the one answer the
+   * reader can be certain of, and it was being refused. Every other
+   * comparison replaces the separators with spaces first, so "and/or" was
+   * measured against "and or" and, on a short string, that is further apart
+   * than a typo.
+   *
+   * The cost of failing this is not a red card. A wrong answer resets the
+   * streak, counts a lapse, drops the ease, pulls the due date back in and
+   * ticks "needs review" without being asked.
+   */
+  it("accepts the back verbatim, whichever separators are in use", () => {
+    for (const [back, separators] of [
+      ["and/or", ",/()"],
+      ["he/she/it", ",/()"],
+      ["a/an", ",/()"],
+      ["gladly, willingly", ",/()"],
+      ["to go (on foot)", ",/()"],
+      ["a | an", "|"],
+      ["gladly; willingly", ";"],
+      ["one/two", ""],
+    ] as const) {
+      expect([back, judgeAnswer(back, back, separators)]).toEqual([back, true]);
+    }
+  });
+
+  it("still refuses an answer that is not on the back", () => {
+    // The pass added for the case above compares against the whole line, so
+    // it must not become a second, laxer route to a pass. It inherits the
+    // typo tolerance rather than escaping it: "and/nor" for "and/or" is one
+    // character in seven and is forgiven, the same way "gemutlich" is, which
+    // is the standing trade recorded on `CLOSE_ENOUGH` and not new here.
+    expect(judgeAnswer("and/but", "and/or")).toBe(false);
+    expect(judgeAnswer("she/it", "he/she/it")).toBe(false);
+  });
+});
+
 describe("the separators are configurable", () => {
   it("defaults to a comma, a slash and brackets", () => {
     expect(ANSWER_SEPARATORS).toBe(",/()");
