@@ -154,12 +154,21 @@ too. What changes is only what is suggested for new ones.
   a long answer, but keeps accents: `Tür` and `Tur` are different words and pretending
   otherwise teaches the wrong thing.
 
-  Where an answer offers alternatives separated by commas, any one of them will do. `gerne`
-  means "gladly, willingly", and somebody who types `gladly` knows the word; requiring both,
-  in that order, with the comma, would be testing whether they can reproduce a glossary entry
-  instead. Any combination of the alternatives is accepted too, in any order, with or without
-  the commas. Each line of a multi-part answer counts on its own for the same reason, so a
-  phrase can be answered with its literal meaning without also typing the example.
+  Where an answer offers alternatives, separated by a comma or a slash, any one of them will
+  do. `gerne` means "gladly, willingly", and somebody who types `gladly` knows the word;
+  requiring both, in that order, with the comma, would be testing whether they can reproduce a
+  glossary entry instead. Any combination is accepted too, in any order, and it does not
+  matter which separator you answer with. Each line of a multi-part answer counts on its own
+  for the same reason, so a phrase can be answered with its literal meaning without also
+  typing the example.
+
+  An answer that qualifies itself in brackets counts both ways: `to go (on foot)` is answered
+  by `to go`, by `to go on foot`, or by typing the brackets out. The aside says when the word
+  applies rather than what it means.
+
+  The separators are `ANSWER_SEPARATORS` in `src/lib/flashcards.ts`, and `judgeAnswer` takes
+  its own if you want to change them for one call. Listing a character there stops it being
+  ordinary text: with the slash separating, `and/or` offers two answers rather than one.
 
   Otherwise it is deliberately strict: being refused costs a button press, while being wrongly
   told you knew something schedules it weeks away with nothing to notice.

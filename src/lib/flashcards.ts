@@ -334,6 +334,42 @@ export function similarity(a: string, b: string): number {
  */
 const CLOSE_ENOUGH = 0.85;
 
+/**
+ * The characters that separate one acceptable answer from the next.
+ *
+ * A comma is how a glossary usually writes it and a slash is the other common
+ * way, so both are here. Change this string to change what counts as a
+ * separator everywhere; `judgeAnswer` also takes its own, which is how the
+ * tests pin the behaviour without changing it for the app.
+ *
+ * A character listed here stops being ordinary text in an answer. That is the
+ * trade: with a slash separating, a back reading "and/or" offers "and" and
+ * "or" as two answers rather than one answer spelled with a slash.
+ */
+export const ANSWER_SEPARATORS = ",/";
+
+/** A character class matching any of them, escaped for use inside one. */
+function separatorPattern(separators: string): RegExp {
+  return new RegExp(`[${separators.replace(/[\\\]^-]/g, (c) => `\\${c}`)}]`, "g");
+}
+
+/**
+ * The same text with any bracketed aside taken out.
+ *
+ * A definition often qualifies itself: "to go (on foot)". The part in
+ * brackets is a note about when the word applies, not part of the answer, so
+ * both readings count. Answering with the brackets works already, because
+ * normalising turns them into spaces; this is what makes answering without
+ * them work too.
+ *
+ * Innermost brackets only, and no attempt at nesting. A definition with
+ * brackets inside brackets is not a thing this app has, and a regex that
+ * tried would be harder to read than the problem deserves.
+ */
+function withoutAsides(text: string): string {
+  return text.replace(/\([^()]*\)/g, " ");
+}
+
 /** The same string, or near enough to be a typo rather than another answer. */
 function alike(given: string, candidate: string): boolean {
   return given === candidate || similarity(given, candidate) >= CLOSE_ENOUGH;
@@ -376,38 +412,57 @@ function madeOf(given: string, alternatives: readonly string[]): boolean {
  * example separated by a blank line, and a verb table is a line per person.
  * Nobody is going to type all of that, so each line counts on its own.
  *
- * And a line may offer alternatives separated by commas. `gerne` means
- * "gladly, willingly", and somebody who answers "gladly" knows the word.
+ * And a line may offer alternatives, separated by a comma or a slash. `gerne`
+ * means "gladly, willingly", and somebody who answers "gladly" knows the word.
  * Requiring both, in that order, with the comma, tests whether they can
  * reproduce a glossary entry rather than whether they know what it means. So
  * any one of the alternatives is accepted, as is any combination of them, in
- * any order, with or without the commas.
+ * any order, with or without the separators.
+ *
+ * A line may also qualify itself in brackets: "to go (on foot)". The aside
+ * says when the word applies rather than what it means, so the answer counts
+ * with it and without it.
+ *
+ * Each line is therefore tried twice, as written and with its asides removed,
+ * and each reading is tried whole and split into alternatives. Two readings
+ * of two shapes is four passes over a short string, which is nothing, and the
+ * alternative is a single expression nobody could check by eye.
  *
  * Otherwise this stays strict rather than clever. A reader told they were
  * wrong can try again, reveal the answer, or carry on, so the cost of
  * refusing a near miss is a button press; the cost of accepting a wrong
  * answer is being told they know something they do not.
  */
-export function judgeAnswer(typed: string, back: string): boolean {
+export function judgeAnswer(
+  typed: string,
+  back: string,
+  separators: string = ANSWER_SEPARATORS,
+): boolean {
   const given = normaliseAnswer(typed);
   if (given === "") return false;
 
+  const pattern = separatorPattern(separators);
+
   for (const line of [back, ...back.split("\n")]) {
-    const whole = normaliseAnswer(line);
-    if (whole === "") continue;
-    if (alike(given, whole)) return true;
+    for (const reading of [line, withoutAsides(line)]) {
+      // The separators become spaces here, so "gladly/willingly" typed out in
+      // full matches however the reader punctuated it.
+      const whole = normaliseAnswer(reading.replace(pattern, " "));
+      if (whole === "") continue;
+      if (alike(given, whole)) return true;
 
-    const alternatives = line
-      .split(",")
-      .map(normaliseAnswer)
-      .filter((alternative) => alternative !== "");
-    if (alternatives.length < 2) continue;
+      const alternatives = reading
+        .split(pattern)
+        .map(normaliseAnswer)
+        .filter((alternative) => alternative !== "");
+      if (alternatives.length < 2) continue;
 
-    // One of them on its own, typo and all.
-    if (alternatives.some((one) => alike(given, one))) return true;
+      // One of them on its own, typo and all.
+      if (alternatives.some((one) => alike(given, one))) return true;
 
-    // Or several of them together.
-    if (madeOf(given, alternatives)) return true;
+      // Or several of them together.
+      if (madeOf(given, alternatives)) return true;
+    }
   }
 
   return false;

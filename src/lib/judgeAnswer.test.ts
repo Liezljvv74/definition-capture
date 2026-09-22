@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { judgeAnswer, normaliseAnswer, similarity } from "@/lib/flashcards";
+import {
+  ANSWER_SEPARATORS,
+  judgeAnswer,
+  normaliseAnswer,
+  similarity,
+} from "@/lib/flashcards";
 
 /**
  * Whether a typed answer counts as right.
@@ -169,5 +174,103 @@ describe("judgeAnswer, when the back offers alternatives", () => {
 
   it("leaves a back with no commas exactly as strict as it was", () => {
     expect(judgeAnswer("wooden path", "To be on the wooden path")).toBe(false);
+  });
+});
+
+/**
+ * A definition often qualifies itself rather than extending itself: "to go
+ * (on foot)" says when the word applies, not what it means. Somebody who
+ * answers "to go" has the word; the aside is the glossary being careful.
+ */
+describe("judgeAnswer, when the back has a bracketed aside", () => {
+  const gehen = "to go (on foot)";
+
+  it("takes the answer without the aside", () => {
+    expect(judgeAnswer("to go", gehen)).toBe(true);
+  });
+
+  it("takes it with the aside, written either way", () => {
+    expect(judgeAnswer("to go (on foot)", gehen)).toBe(true);
+    expect(judgeAnswer("to go on foot", gehen)).toBe(true);
+  });
+
+  it("still refuses a different answer", () => {
+    expect(judgeAnswer("to drive", gehen)).toBe(false);
+    expect(judgeAnswer("on foot", gehen)).toBe(false);
+  });
+
+  it("works on an aside inside one of several alternatives", () => {
+    const back = "to go (on foot), to walk";
+    expect(judgeAnswer("to go", back)).toBe(true);
+    expect(judgeAnswer("to walk", back)).toBe(true);
+    expect(judgeAnswer("to go on foot", back)).toBe(true);
+    expect(judgeAnswer("to go, to walk", back)).toBe(true);
+    expect(judgeAnswer("to walk to go", back)).toBe(true);
+    expect(judgeAnswer("to run", back)).toBe(false);
+  });
+
+  it("copes with an aside at the front", () => {
+    expect(judgeAnswer("tired", "(feeling) tired")).toBe(true);
+    expect(judgeAnswer("feeling tired", "(feeling) tired")).toBe(true);
+  });
+});
+
+describe("judgeAnswer, when alternatives are separated by a slash", () => {
+  const gerne = "gladly/willingly";
+
+  it("takes either one", () => {
+    expect(judgeAnswer("gladly", gerne)).toBe(true);
+    expect(judgeAnswer("willingly", gerne)).toBe(true);
+  });
+
+  it("takes both, however they are punctuated", () => {
+    expect(judgeAnswer("gladly/willingly", gerne)).toBe(true);
+    expect(judgeAnswer("gladly willingly", gerne)).toBe(true);
+    // Answering with a comma when the entry used a slash is not a mistake.
+    expect(judgeAnswer("gladly, willingly", gerne)).toBe(true);
+    expect(judgeAnswer("willingly gladly", gerne)).toBe(true);
+  });
+
+  it("still refuses something that is neither", () => {
+    expect(judgeAnswer("happily", gerne)).toBe(false);
+  });
+
+  it("handles a slash with spaces around it", () => {
+    expect(judgeAnswer("gladly", "gladly / willingly")).toBe(true);
+  });
+
+  it("handles both separators in one answer", () => {
+    const back = "gladly, willingly/happily";
+    expect(judgeAnswer("happily", back)).toBe(true);
+    expect(judgeAnswer("gladly", back)).toBe(true);
+    expect(judgeAnswer("sadly", back)).toBe(false);
+  });
+});
+
+describe("the separators are configurable", () => {
+  it("defaults to a comma and a slash", () => {
+    expect(ANSWER_SEPARATORS).toBe(",/");
+  });
+
+  it("can be told to use something else instead", () => {
+    const back = "gladly; willingly";
+    // Not a separator by default, so the whole thing is one answer.
+    expect(judgeAnswer("gladly", back)).toBe(false);
+    // Told that it is, either half will do.
+    expect(judgeAnswer("gladly", back, ";")).toBe(true);
+    expect(judgeAnswer("willingly", back, ";")).toBe(true);
+  });
+
+  it("stops treating a character as a separator when it is left out", () => {
+    // The trade named in the comment on `ANSWER_SEPARATORS`: with the slash
+    // separating, "and/or" is two answers; without it, one.
+    expect(judgeAnswer("and", "and/or")).toBe(true);
+    expect(judgeAnswer("and", "and/or", ",")).toBe(false);
+    expect(judgeAnswer("and/or", "and/or", ",")).toBe(true);
+  });
+
+  it("escapes what it is given, so a regex character cannot break it", () => {
+    expect(judgeAnswer("gladly", "gladly] willingly", "]")).toBe(true);
+    expect(judgeAnswer("gladly", "gladly- willingly", "-")).toBe(true);
   });
 });
