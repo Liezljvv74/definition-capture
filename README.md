@@ -102,7 +102,7 @@ too. What changes is only what is suggested for new ones.
 ## Pages
 
 - **`/`** — the landing page: a welcome panel in the logo's yellow, a card for each of the
-  three lists coloured from the logo's own palette, and the pale blue **Progress Challenge**
+  three lists coloured from the logo's own palette, and the pale blue **Own your progress**
   card that starts a set of flashcards. The logo itself sits as a small mark
   in the bottom right corner of this page rather than as the backdrop it is everywhere else.
 - **`/vocabulary`** and **`/phrases`** together make up **Glossary**, one section with two

@@ -301,7 +301,7 @@ append-only.
 
 ## The Home page challenge flow
 
-A card on the home page, pale blue, titled **Progress Challenge**, described as
+A card on the home page, pale blue, titled **Own your progress**, described as
 "Create flashcards to test your knowledge". The cards themselves are a soft
 off-white with blue undertones.
 

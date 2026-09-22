@@ -82,7 +82,7 @@ export default function HomePage() {
            * would have made it look like a place to browse.
            */}
           <section className="rounded-2xl bg-challenge p-5 sm:p-6">
-            <h3 className="text-xl font-semibold text-slate-900">Progress Challenge</h3>
+            <h3 className="text-xl font-semibold text-slate-900">Own your progress</h3>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-800">
               Create flashcards to test your knowledge.
             </p>
