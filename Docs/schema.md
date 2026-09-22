@@ -1,7 +1,7 @@
 # Schema design: flashcards, review and progress
 
-The design of record for the `flashcards` branch. The SQL lives in three
-migrations and this explains why it is shaped the way it is.
+The design of record for the `flashcards` branch. The SQL lives in the
+migrations below and this explains why it is shaped the way it is.
 
 | Migration | What it does |
 | --- | --- |
@@ -9,10 +9,16 @@ migrations and this explains why it is shaped the way it is.
 | `…_tags_and_categories.sql` | one labelling system across every type |
 | `…_reviews_and_flashcards.sql` | review history, decks, progress, goals, streaks, and the scheduler |
 
-All of these are applied, along with three that followed while the feature
-was built: `card_faces` and the `needs_review` plumbing, a deck builder that
-skips items with no answer on the back, and a mastery ladder that does not
-call one correct answer familiarity.
+All of these are applied, along with seven that followed while the feature was
+built and reviewed: `card_faces` and the `needs_review` plumbing; a deck
+builder that skips items with no answer on the back; a mastery ladder that
+does not call one correct answer familiarity; the per-account answer
+separators, and brackets joining them as a choice; the ownership check in
+`apply_review` that an anonymous caller used to pass; and the review findings
+migration, which indexes the delete cascade, takes the client's insert policy
+off `review_logs`, filters the category aggregates by tag kind, keeps the two
+category lists in step, and splits the deck builder so the recent path can use
+its index.
 
 The backfill was checked field by field against the tables it replaced, not
 merely counted: 103 words, 21 phrases and 3 verb tables, with every column and
@@ -310,7 +316,7 @@ off-white with blue undertones.
    Verbs, Most recently added
 3. **Apply filters**: categories, and items marked as needing review
 4. **How many**, defaulting to 50 if nothing is entered
-5. **Generate deck** — one call to `build_flashcard_deck`
+5. **Generate deck**: one call to `build_flashcard_deck`
 
 Answering a card calls `apply_review` once. Correct flashes pale green and
 moves on; wrong flashes pale orange and offers try again, see the answer, or
@@ -325,15 +331,26 @@ them the same is throwing away what the reader told it.
 
 The point of the shape. To add, say, sentences:
 
-1. `insert into item_types` — one row.
+1. `insert into item_types`, one row.
 2. `create table sentence_details (id uuid primary key references learning_items(id) on delete cascade, …)` plus its two policies, copied from any existing detail table.
 3. A store, a hook, a page, a form and its dialogs, as for any list.
 
+4. A branch in `card_faces`, and a fourth partial unique index beside
+   `learning_items_user_word_key` and its two siblings.
+
 What you do **not** touch: `review_logs`, `progress_summary`, `deck_items`,
 `item_tags`, `flashcard_decks`, `daily_study`, `user_goals`,
-`build_flashcard_deck` or `apply_review`. Flashcards, tagging, progress,
-streaks and dashboards all work on the new type the moment its rows exist,
-because every one of them references `learning_items` and not a page.
+`build_flashcard_deck` or `apply_review`. Tagging, progress, streaks and
+dashboards all work on the new type the moment its rows exist, because every
+one of them references `learning_items` and not a page.
+
+Flashcards are the one exception, and step 4 is the reason. `card_faces` is a
+`case` over `item_type` with no `else`, so a type it has not been told about
+yields a null back, and the deck builder skips anything with an empty back. The
+failure is silent: decks simply come back without the new type in them. That is
+the price of a view that has to know what the front and the back of each kind
+of thing are, which is knowledge no generic table can hold; naming it here is
+cheaper than the afternoon somebody would spend finding it.
 
 Compare that with the three-table version, where the same addition meant
 widening every union, every filter and every summary.
@@ -342,7 +359,7 @@ widening every union, every filter and every summary.
 
 ## Recommendation
 
-Apply the three migrations in order, leave the application on the
+Apply the migrations in order, leave the application on the
 compatibility views, and build the flashcard feature directly against
 `learning_items` and `apply_review`. That way the new feature is written the
 right way from the start and the existing pages migrate when there is a reason
@@ -351,4 +368,7 @@ to touch them, rather than all at once as a prerequisite.
 The old tables are kept as `words_legacy`, `phrases_legacy` and
 `verb_tables_legacy` rather than dropped. Keep them until the app has run on
 the views for a while and a backup has been exported and re-imported
-successfully, then drop them in a migration of their own.
+successfully, then drop them in a migration of their own. They are no longer
+reachable through the API: keeping the data was a decision, keeping a second
+readable copy of every account's glossary on a public endpoint was not, so
+`anon` and `authenticated` have had their privileges revoked on all three.

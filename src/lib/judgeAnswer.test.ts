@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_ANSWER_SEPARATORS, readSeparators } from "@/lib/constants";
-import {
-  ANSWER_SEPARATORS,
-  judgeAnswer,
-  normaliseAnswer,
-  similarity,
-} from "@/lib/flashcards";
+import { judgeAnswer, normaliseAnswer, similarity } from "@/lib/judgeAnswer";
 
 /**
  * Whether a typed answer counts as right.
@@ -287,9 +282,43 @@ describe("the card's own back is always a right answer", () => {
   });
 });
 
+describe("edges that are easy to break by accident", () => {
+  it("never accepts an accent as a typo, at any length", () => {
+    // The threshold used to decide this by word length: nine characters were
+    // close enough to pass, five were not. Whichever way that went, it could
+    // not be explained to a reader.
+    expect(judgeAnswer("gemutlich", "gemütlich")).toBe(false);
+    expect(judgeAnswer("schon", "schön")).toBe(false);
+    expect(judgeAnswer("gemütlich", "gemütlich")).toBe(true);
+    // A real typo in an accented word is still forgiven, since the two differ
+    // by more than their accents.
+    expect(judgeAnswer("gemütlick", "gemütlich")).toBe(true);
+  });
+
+  it("cannot be answered when the back is only punctuation", () => {
+    // `normaliseAnswer` empties both sides, and an empty answer is refused, so
+    // this is a card nobody can get right. Asserted so that a rewrite of the
+    // normaliser does not quietly turn it into a card nobody can get wrong.
+    expect(judgeAnswer("!!!", "!!!")).toBe(false);
+    expect(judgeAnswer("anything", "!!!")).toBe(false);
+  });
+
+  it("leaves a nested bracket alone", () => {
+    // `withoutAsides` takes out the innermost brackets only, so a doubly
+    // nested aside is not unwrapped and the answer has to include it.
+    expect(judgeAnswer("to go", "to go (on foot (quickly))")).toBe(false);
+    expect(judgeAnswer("to go (on foot (quickly))", "to go (on foot (quickly))")).toBe(true);
+  });
+
+  it("treats brackets as ordinary punctuation when they are not a separator", () => {
+    const back = "to go (on foot)";
+    expect(judgeAnswer("to go", back, ",")).toBe(false);
+    expect(judgeAnswer("to go on foot", back, ",")).toBe(true);
+  });
+});
+
 describe("the separators are configurable", () => {
   it("defaults to a comma, a slash and brackets", () => {
-    expect(ANSWER_SEPARATORS).toBe(",/()");
     expect(DEFAULT_ANSWER_SEPARATORS).toBe(",/()");
   });
 
@@ -303,7 +332,7 @@ describe("the separators are configurable", () => {
   });
 
   it("stops treating a character as a separator when it is left out", () => {
-    // The trade named in the comment on `ANSWER_SEPARATORS`: with the slash
+    // The trade Settings names where it offers the choice: with the slash
     // separating, "and/or" is two answers; without it, one.
     expect(judgeAnswer("and", "and/or")).toBe(true);
     expect(judgeAnswer("and", "and/or", ",")).toBe(false);

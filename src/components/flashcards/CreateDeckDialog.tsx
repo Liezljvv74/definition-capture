@@ -29,6 +29,15 @@ import {
  * Two ways of saying "everything" that could both be on at once would be one
  * way too many.
  */
+/**
+ * How long a change has to settle before it is counted.
+ *
+ * Long enough to swallow a run of ticks, short enough that it reads as the
+ * number catching up rather than as a delay: the reader is choosing sources,
+ * not waiting for a result.
+ */
+const COUNT_DELAY_MS = 250;
+
 export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const ids = useId();
@@ -66,19 +75,32 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
-  // Recounted as the sources and the review filter change, so "50" can be
-  // seen to be more than there is before the deck is built rather than after.
+  /*
+   * Recounted as the sources and the review filter change, so "50" can be
+   * seen to be more than there is before the deck is built rather than after.
+   *
+   * Held back a moment first. This is the most expensive read in the feature,
+   * because `back` is a derived column and the count has to compute it for
+   * every row the reader owns before it can filter. Ticking three boxes in a
+   * row used to start three of those and keep the answer from one; now the
+   * timer is cleared by the next tick and only the choice somebody settles on
+   * is ever counted.
+   */
   useEffect(() => {
     let current = true;
-    void countMatching({ sources, categoryIds: [], needsReviewOnly, size: null })
-      .then((found) => {
-        if (current) setAvailable(found);
-      })
-      .catch(() => {
-        if (current) setAvailable(null);
-      });
+    const timer = window.setTimeout(() => {
+      void countMatching({ sources, categoryIds: [], needsReviewOnly, size: null })
+        .then((found) => {
+          if (current) setAvailable(found);
+        })
+        .catch(() => {
+          if (current) setAvailable(null);
+        });
+    }, COUNT_DELAY_MS);
+
     return () => {
       current = false;
+      window.clearTimeout(timer);
     };
   }, [sources, needsReviewOnly]);
 

@@ -24,10 +24,6 @@ import {
 } from "@/lib/types";
 
 /**
- * Turns unknown JSON into a Phrase, or null if it is unusable. This reads the
- * camelCase shape a backup file uses; database rows go through `fromRow`.
- */
-/**
  * A phrase as a backup file spells it. Declared for the reason `WireWord` is:
  * so that renaming a field on `Phrase` is a compile error here instead of a
  * silent change to the file format.
@@ -99,7 +95,11 @@ export function fromPhraseRow(row: Record<string, unknown>): Phrase | null {
     categories: readCategories(row.categories),
     source: readSource(row.source),
     ref: readString(row.ref),
-    dateAdded: readString(row.created_at),
+    // A row always has one, since the column is `not null` with a default.
+    // The fallback is for the case that cannot happen but would show as a
+    // blank Date added forever if it did, the same stand-in `parsePhrase`
+    // makes for a file that predates the field.
+    dateAdded: readString(row.created_at) || new Date().toISOString(),
   };
 }
 

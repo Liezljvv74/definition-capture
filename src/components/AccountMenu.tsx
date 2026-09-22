@@ -78,7 +78,7 @@ function SettingsMenu() {
             <li key={section.key} role="none">
               <Link
                 role="menuitem"
-                href={`/settings/?section=${section.key}`}
+                href={`/settings?section=${section.key}`}
                 aria-current={here ? "page" : undefined}
                 // Closed here rather than by watching the path: a second click
                 // on the group you are already in should still put it away.

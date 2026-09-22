@@ -6,7 +6,7 @@ import { Suspense, useId, useState, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
 import { MAX_CATEGORIES, SEPARATOR_CHOICES } from "@/lib/constants";
-import { SETTINGS_SECTIONS, readSectionKey } from "@/lib/settingsSections";
+import { SETTINGS_SECTIONS, readSection } from "@/lib/settingsSections";
 import {
   chooseExportFolder,
   clearExportFolder,
@@ -45,19 +45,10 @@ export default function SettingsPage() {
 
 function Settings() {
   const { settings, loaded } = useSettings();
-  const chosen = readSectionKey(useSearchParams().get("section"));
-  const section =
-    SETTINGS_SECTIONS.find((one) => one.key === chosen) ?? SETTINGS_SECTIONS[0];
+  const section = readSection(useSearchParams().get("section"));
 
   return (
     <Frame section={section}>
-
-      {/* A failed settings save used to be reported here, and only here —
-          which meant a save made from the verbs page or a table card failed
-          silently. `StoreErrorBanner` in the workspace layout now shows it
-          wherever it happens, so repeating it on this page would say the same
-          thing twice. */}
-
       <div className="space-y-3">
         {section.key === "profile" && (
           <>

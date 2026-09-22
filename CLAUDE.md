@@ -120,11 +120,20 @@ the `Entry` type keeps the name it had two renames ago, from when the table was
 built.** `Docs/schema.md` is the design of record: one `learning_items` table
 as the spine, a typed detail table per content type, an append-only
 `review_logs`, and `progress_summary` derived from it so dashboards are fast.
-Six migrations carry it and **all are applied**. The three names
-the app reads, `words`, `phrases` and `verb_tables`, survive as views with
-`instead of` triggers, so applying them changes nothing in `src/`. Read that
-document before adding a table; a new content type should be a row in
-`item_types` and one detail table, touching nothing that already exists.
+Ten migrations carry it and **all are applied**; `Docs/schema.md` lists what
+each of them does. The three names the app reads, `words`, `phrases` and
+`verb_tables`, survive as views with `instead of` triggers, so applying them
+changed nothing in `src/`. Read that document before adding a table. A new
+content type is a row in `item_types`, one detail table, a partial unique
+index and a branch in `card_faces`: the first three are what make it a first
+class list, and the fourth is what makes it produce flashcards, which nothing
+will tell you about if it is left out.
+
+A view cannot take `on conflict`, so nothing may `upsert` against `words`,
+`phrases` or `verb_tables`. Postgres infers the arbiter from the target's
+indexes and a view has none, so the request is refused with 42P10 before the
+`instead of` trigger ever runs. `remoteStore` updates row by row for this
+reason.
 
 **Migrations are imperative and hand-written.** Create one with
 `npx supabase migration new <name>` — never invent a filename — and apply with

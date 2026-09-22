@@ -154,8 +154,17 @@ too. What changes is only what is suggested for new ones.
   done.
 
   The marking ignores case, surrounding punctuation and stray spacing, and forgives a typo in
-  a long answer, but keeps accents: `Tür` and `Tur` are different words and pretending
-  otherwise teaches the wrong thing.
+  a long answer, but never an accent: `Tür` and `Tur` are different words and pretending
+  otherwise teaches the wrong thing. Two answers that differ only by an accent are refused at
+  any length, which they were not at first: the typo tolerance was letting `gemutlich` through
+  for `gemütlich` while refusing `schon` for `schön`, so the rule depended on how long the word
+  happened to be.
+
+  Whatever is written on the back, typed out exactly, is always right. That sounds too obvious
+  to state, and it is here because it was once untrue: every comparison replaced the
+  separators with spaces first, so `and/or` was being measured against `and or` and a reader
+  copying the answer character for character was told they were wrong, had their streak reset
+  and the card flagged.
 
   Where an answer offers alternatives, separated by a comma or a slash, any one of them will
   do. `gerne` means "gladly, willingly", and somebody who types `gladly` knows the word;
@@ -194,7 +203,10 @@ too. What changes is only what is suggested for new ones.
   - **Glossary settings**: **Glossary Categories** and **Sources** (add, remove, and
     reorder the lists the word and phrase forms offer; source order is the order the
     Source column sorts by, so it is kept rather than alphabetised), plus **Verb persons**
-    and **Verb tenses** (what a new conjugation table is built from).
+    and **Verb tenses** (what a new conjugation table is built from). Saving the category
+    list also brings the flashcard filter's copy of it into line, in the order you put them
+    in. A category you remove here is deleted only if nothing is filed under it, which is
+    the same promise this page already made about the entries themselves.
   - **Flashcard settings**: **Answer separators**, which punctuation means "or" when a
     flashcard is marked.
 

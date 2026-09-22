@@ -1,17 +1,16 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
 
-import { CreateDeckDialog } from "@/components/flashcards/CreateDeckDialog";
+import { CreateDeckButton } from "@/components/flashcards/CreateDeckButton";
 
 /**
  * A welcoming landing page that explains the purpose of the app and points
  * new users toward the main sections of the workspace.
+ *
+ * A server component, deliberately: everything here is static but the one
+ * button that opens the deck builder, and that button carries its own state
+ * in its own client component so this page ships no JavaScript of its own.
  */
 export default function HomePage() {
-  const [creating, setCreating] = useState(false);
-
   return (
     <>
       <header className="border-b border-slate-300 bg-slate-200 dark:border-slate-800 dark:bg-slate-900">
@@ -86,18 +85,10 @@ export default function HomePage() {
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-800">
               Create flashcards to test your knowledge.
             </p>
-            <button
-              type="button"
-              className="btn btn-primary mt-4"
-              onClick={() => setCreating(true)}
-            >
-              Create flashcards
-            </button>
+            <CreateDeckButton />
           </section>
         </div>
       </main>
-
-      {creating && <CreateDeckDialog onClose={() => setCreating(false)} />}
     </>
   );
 }

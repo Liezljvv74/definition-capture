@@ -46,6 +46,15 @@ describe("fromPhraseRow", () => {
     expect(fromPhraseRow(row)?.dateAdded).toBe("2026-02-03T09:15:00.000Z");
   });
 
+  it("stands in a date for a row that somehow arrived without one", () => {
+    // The column is `not null` with a default, so this is the impossible case.
+    // It is asserted because the alternative is a phrase page showing a blank
+    // Date added with nothing to explain it.
+    const withoutDate: Record<string, unknown> = { ...row };
+    delete withoutDate.created_at;
+    expect(Number.isNaN(Date.parse(fromPhraseRow(withoutDate)?.dateAdded ?? ""))).toBe(false);
+  });
+
   it("refuses a row with no id or no text", () => {
     expect(fromPhraseRow({ ...row, id: "" })).toBeNull();
     expect(fromPhraseRow({ ...row, phrase: "   " })).toBeNull();

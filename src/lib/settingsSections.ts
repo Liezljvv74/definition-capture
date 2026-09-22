@@ -44,7 +44,11 @@ export const SETTINGS_SECTIONS: {
  * value comes from a URL, so it can be anything at all, and a settings page
  * that renders nothing is indistinguishable from one that is broken.
  */
+export function readSection(value: string | null): (typeof SETTINGS_SECTIONS)[number] {
+  return SETTINGS_SECTIONS.find((section) => section.key === value) ?? SETTINGS_SECTIONS[0];
+}
+
+/** The same, for a caller that only wants to compare keys. */
 export function readSectionKey(value: string | null): SettingsSectionKey {
-  const found = SETTINGS_SECTIONS.find((section) => section.key === value);
-  return found?.key ?? SETTINGS_SECTIONS[0].key;
+  return readSection(value).key;
 }

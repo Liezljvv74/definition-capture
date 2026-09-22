@@ -1,6 +1,5 @@
 "use client";
 
-import { DEFAULT_ANSWER_SEPARATORS } from "@/lib/constants";
 import { readError } from "@/lib/remoteStore";
 import { getSupabase } from "@/lib/supabaseClient";
 
@@ -48,6 +47,16 @@ export type DeckRequest = {
   size: number | null;
 };
 
+/**
+ * How many ids travel in one `in (...)`.
+ *
+ * The same 200 `remoteStore` settled on, and for the same measured reason:
+ * ids go in the query string, so a long list becomes a long request line and
+ * a gateway in front of the database is entitled to refuse it. A deck can hold
+ * 500 cards, so this is reached in ordinary use rather than in theory.
+ */
+const ID_BATCH = 200;
+
 /** What the reader gets when they ask for a deck without saying how big. */
 export const DEFAULT_DECK_SIZE = 50;
 
@@ -58,7 +67,14 @@ export type Card = {
   itemType: string;
   front: string;
   back: string;
-  position: number;
+  /**
+   * Whether this item is already flagged for another look. Carried because
+   * the checkbox on the card shows it: starting every card unticked meant a
+   * deck built from "only items marked as needing review" showed a row of
+   * empty boxes, and a click there cleared a mark the reader never set in
+   * that session.
+   */
+  needsReview: boolean;
 };
 
 /**
@@ -67,7 +83,13 @@ export type Card = {
  * Four, not a boolean, because the three buttons an unknown card offers are
  * three different things to have done. "Try again" is not "I looked it up",
  * and neither is "move on"; a scheduler that treats them the same is throwing
- * away what it was told. The names match the check constraint on
+ * away what it was told.
+ *
+ * Three of the four are produced today. `skipped` is carried because the
+ * scheduler already treats it as its own case, holding the streak while
+ * zeroing the interval, and a screen that offers "not now" is the obvious
+ * next one to build; it is headroom, not a path anybody takes. The names
+ * match the check constraint on
  * `review_logs.outcome`.
  */
 export type Outcome = "correct" | "again" | "revealed" | "skipped";
@@ -187,7 +209,7 @@ export async function loadDeck(deckId: string): Promise<Card[]> {
 
   const { data: entries, error: entriesError } = await supabase
     .from("deck_items")
-    .select("item_id, position")
+    .select("item_id")
     .eq("deck_id", deckId)
     .order("position");
 
@@ -197,22 +219,31 @@ export async function loadDeck(deckId: string): Promise<Card[]> {
   const order = entries ?? [];
   if (order.length === 0) return [];
 
-  const { data: faces, error: facesError } = await supabase
-    .from("card_faces")
-    .select("id, item_type, front, back")
-    .in("id", order.map((row) => String(row.item_id)));
+  // In batches, for the reason `remoteStore` gives where it does the same
+  // thing: every id travels in the URL at roughly 37 bytes, and a deck of 500
+  // would put 19 KB in a request line that a gateway is entitled to refuse.
+  const ids = order.map((row) => String(row.item_id));
+  const faces: Record<string, unknown>[] = [];
+  for (let from = 0; from < ids.length; from += ID_BATCH) {
+    const { data, error } = await supabase
+      .from("card_faces")
+      .select("id, item_type, front, back, needs_review")
+      .in("id", ids.slice(from, from + ID_BATCH));
 
-  if (facesError) {
-    throw new FlashcardError(`Could not read the cards: ${readError(facesError)}.`);
+    if (error) {
+      throw new FlashcardError(`Could not read the cards: ${readError(error)}.`);
+    }
+    faces.push(...(data ?? []));
   }
 
   const byId = new Map(
-    (faces ?? []).map((row) => [
+    faces.map((row) => [
       String(row.id),
       {
         itemType: String(row.item_type),
         front: String(row.front ?? ""),
         back: String(row.back ?? ""),
+        needsReview: row.needs_review === true,
       },
     ]),
   );
@@ -220,12 +251,31 @@ export async function loadDeck(deckId: string): Promise<Card[]> {
   // Ordered by the deck, not by the second query: `in` makes no promise about
   // the order it returns rows in, and the deck's order is the whole point.
   return order
-    .map((row, at) => {
+    .map((row) => {
       const face = byId.get(String(row.item_id));
       if (!face) return null;
-      return { id: String(row.item_id), position: at + 1, ...face };
+      return { id: String(row.item_id), ...face };
     })
     .filter((card): card is Card => card !== null);
+}
+
+/**
+ * The reader's own calendar day, as `YYYY-MM-DD`.
+ *
+ * Built by hand rather than with `toISOString`, which would give the UTC day:
+ * a review at eleven at night in Europe belongs to the day the reader thinks
+ * it does, not to tomorrow. This is the only input to the streak, and it
+ * cannot be recomputed afterwards, because `daily_study` is a counter and the
+ * reader's offset is stored nowhere. Exported so that it can be tested, which
+ * it could not be while it lived inside an async function that needs a
+ * database.
+ */
+export function localDayOf(when: Date): string {
+  return [
+    when.getFullYear(),
+    String(when.getMonth() + 1).padStart(2, "0"),
+    String(when.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
 /**
@@ -242,19 +292,12 @@ export async function answerCard(
   deckId: string,
   tookMs: number | null,
 ): Promise<void> {
-  const today = new Date();
-  const localDay = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, "0"),
-    String(today.getDate()).padStart(2, "0"),
-  ].join("-");
-
   const { error } = await client().rpc("apply_review", {
     target_item: itemId,
     answer: outcome,
     deck: deckId,
     took_ms: tookMs,
-    local_day: localDay,
+    local_day: localDayOf(new Date()),
   });
 
   if (error) throw new FlashcardError(`Could not record that answer: ${readError(error)}.`);
@@ -278,203 +321,4 @@ export async function setNeedsReview(itemId: string, value: boolean): Promise<vo
   if (error) {
     throw new FlashcardError(`Could not mark that item: ${readError(error)}.`);
   }
-}
-
-/* ------------------------------------------------------- judging an answer */
-
-/**
- * The comparable form of an answer.
- *
- * Case and surrounding punctuation are noise: "Door." and "door" are the same
- * answer. Whitespace is collapsed so a stray double space is not a mistake.
- *
- * Accents are deliberately kept. This is an app for learning a language where
- * `Tür` and `Tur` are different words, and quietly accepting one for the other
- * would teach the wrong thing. `normalize("NFC")` only settles how an accent
- * is encoded, not whether it is there.
- */
-export function normaliseAnswer(value: string): string {
-  return value
-    .normalize("NFC")
-    .toLowerCase()
-    .replace(/[.,;:!?"'()[\]{}]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/**
- * How alike two strings are, from 0 to 1, by edit distance over the longer of
- * them. Used only to forgive a typo, never to accept a different answer.
- */
-export function similarity(a: string, b: string): number {
-  if (a === b) return 1;
-  if (a.length === 0 || b.length === 0) return 0;
-
-  // One row at a time rather than the whole matrix: these are short strings,
-  // but there is no reason to hold a table of them.
-  let previous = Array.from({ length: b.length + 1 }, (_, at) => at);
-  for (let i = 1; i <= a.length; i += 1) {
-    const current = [i];
-    for (let j = 1; j <= b.length; j += 1) {
-      current[j] = Math.min(
-        previous[j] + 1,
-        current[j - 1] + 1,
-        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
-      );
-    }
-    previous = current;
-  }
-
-  return 1 - previous[b.length] / Math.max(a.length, b.length);
-}
-
-/**
- * Close enough to count as a typo rather than a different answer. At 0.85 a
- * ten-character answer may be one character out; a short one must be exact,
- * which is right, because in a short word every character is most of it.
- */
-const CLOSE_ENOUGH = 0.85;
-
-/**
- * What `judgeAnswer` uses when nobody says otherwise.
- *
- * The real answer is per account, chosen in Settings and read from the
- * settings store by the review screen. This is the fallback for a caller that
- * has no settings to hand, and the value a new account starts with.
- */
-export { DEFAULT_ANSWER_SEPARATORS as ANSWER_SEPARATORS } from "@/lib/constants";
-
-/** A character class matching any of them, escaped for use inside one. */
-function separatorPattern(separators: string): RegExp {
-  return new RegExp(`[${separators.replace(/[\\\]^-]/g, (c) => `\\${c}`)}]`, "g");
-}
-
-/**
- * The same text with any bracketed aside taken out.
- *
- * A definition often qualifies itself: "to go (on foot)". The part in
- * brackets is a note about when the word applies, not part of the answer, so
- * both readings count. Answering with the brackets works already, because
- * normalising turns them into spaces; this is what makes answering without
- * them work too.
- *
- * Innermost brackets only, and no attempt at nesting. A definition with
- * brackets inside brackets is not a thing this app has, and a regex that
- * tried would be harder to read than the problem deserves.
- */
-function withoutAsides(text: string): string {
-  return text.replace(/\([^()]*\)/g, " ");
-}
-
-/** The same string, or near enough to be a typo rather than another answer. */
-function alike(given: string, candidate: string): boolean {
-  return given === candidate || similarity(given, candidate) >= CLOSE_ENOUGH;
-}
-
-/**
- * Whether what was typed is some combination of the alternatives, in any
- * order, and nothing else.
- *
- * Commas have already become spaces by the time this runs, which is what
- * makes "gladly, willingly" and "gladly willingly" the same thing to it.
- * Written so that an alternative may be several words: it eats the longest
- * thing it recognises from the front and tries again with the rest, and each
- * alternative may be used once.
- *
- * Exact rather than forgiving, deliberately. A typo inside one of several
- * run-together answers cannot be told apart from a different answer without
- * guessing where one ends and the next begins, and guessing is how a marker
- * starts accepting things nobody wrote.
- */
-function madeOf(given: string, alternatives: readonly string[]): boolean {
-  if (given === "") return true;
-
-  return alternatives.some((alternative, at) => {
-    if (alternative === "") return false;
-    if (given === alternative) return true;
-    if (!given.startsWith(`${alternative} `)) return false;
-
-    const rest = alternatives.filter((_, other) => other !== at);
-    return madeOf(given.slice(alternative.length + 1), rest);
-  });
-}
-
-/**
- * Whether a typed answer matches the back of the card.
- *
- * The back is not always one thing, in two different ways.
- *
- * It may be several lines: a phrase carries its literal meaning and an
- * example separated by a blank line, and a verb table is a line per person.
- * Nobody is going to type all of that, so each line counts on its own.
- *
- * And a line may offer alternatives, separated by a comma or a slash. `gerne`
- * means "gladly, willingly", and somebody who answers "gladly" knows the word.
- * Requiring both, in that order, with the comma, tests whether they can
- * reproduce a glossary entry rather than whether they know what it means. So
- * any one of the alternatives is accepted, as is any combination of them, in
- * any order, with or without the separators.
- *
- * A line may also qualify itself in brackets: "to go (on foot)". Where the
- * reader has said brackets are one of their separators, the aside is taken as
- * saying when the word applies rather than what it means, so the answer counts
- * with it and without it. Where they have not, the brackets are ordinary
- * punctuation and the aside is part of the answer.
- *
- * Each line is therefore tried once or twice, as written and, if asides may be
- * dropped, without them; and each reading is tried whole and split into
- * alternatives. Four passes over a short string at worst, which is nothing,
- * and the alternative is a single expression nobody could check by eye.
- *
- * Otherwise this stays strict rather than clever. A reader told they were
- * wrong can try again, reveal the answer, or carry on, so the cost of
- * refusing a near miss is a button press; the cost of accepting a wrong
- * answer is being told they know something they do not.
- */
-export function judgeAnswer(
-  typed: string,
-  back: string,
-  separators: string = DEFAULT_ANSWER_SEPARATORS,
-): boolean {
-  const given = normaliseAnswer(typed);
-  if (given === "") return false;
-
-  // The brackets are a choice about what may be left out, not a character to
-  // split on, so they come out before the splitting pattern is built. An empty
-  // pattern is fine: `[]` matches nothing, so the line simply stays whole.
-  const asidesOptional = separators.includes("(");
-  const pattern = separatorPattern(separators.replace(/[()]/g, ""));
-
-  for (const line of [back, ...back.split("\n")]) {
-    for (const reading of asidesOptional ? [line, withoutAsides(line)] : [line]) {
-      // The back exactly as it is written, before any separator is touched.
-      // Without this pass a reader who copies the answer character for
-      // character is told they are wrong: every other comparison has already
-      // turned the separators into spaces, so "and/or" is being measured
-      // against "and or", and the two differ by more than a typo once the
-      // string is short. The card's own back has to be a right answer.
-      const asWritten = normaliseAnswer(reading);
-      if (asWritten !== "" && alike(given, asWritten)) return true;
-
-      // The separators become spaces here, so "gladly/willingly" typed out in
-      // full matches however the reader punctuated it.
-      const whole = normaliseAnswer(reading.replace(pattern, " "));
-      if (whole === "") continue;
-      if (alike(given, whole)) return true;
-
-      const alternatives = reading
-        .split(pattern)
-        .map(normaliseAnswer)
-        .filter((alternative) => alternative !== "");
-      if (alternatives.length < 2) continue;
-
-      // One of them on its own, typo and all.
-      if (alternatives.some((one) => alike(given, one))) return true;
-
-      // Or several of them together.
-      if (madeOf(given, alternatives)) return true;
-    }
-  }
-
-  return false;
 }

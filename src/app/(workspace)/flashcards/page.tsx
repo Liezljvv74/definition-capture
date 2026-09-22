@@ -7,12 +7,12 @@ import { Suspense, useEffect, useId, useRef, useState } from "react";
 import {
   answerCard,
   FlashcardError,
-  judgeAnswer,
   loadDeck,
   setNeedsReview,
   type Card,
   type Outcome,
 } from "@/lib/flashcards";
+import { judgeAnswer } from "@/lib/judgeAnswer";
 import { useSettings } from "@/lib/useSettings";
 
 export default function FlashcardsPage() {
@@ -131,9 +131,11 @@ function CardFace({
   onFinished: (outcome: "correct" | "wrong") => void;
   onProblem: (message: string) => void;
 }) {
-  const { settings } = useSettings();
+  const { settings, loaded: settingsLoaded } = useSettings();
   const [phase, setPhase] = useState<Phase>("asking");
-  const [marked, setMarked] = useState(false);
+  // Seeded from the item rather than from nothing. The component is keyed on
+  // the card's id, so a new card remounts and picks up its own flag.
+  const [marked, setMarked] = useState(card.needsReview);
   const [typed, setTyped] = useState("");
   const ids = useId();
 
@@ -173,6 +175,12 @@ function CardFace({
    */
   function submit() {
     if (phase !== "asking") return;
+    // Nothing is marked against defaults the reader may have changed. Until
+    // the settings row has arrived, `useSettings` hands back the shipped
+    // values, so a reader who turned every separator off would have had their
+    // first card of a session judged by rules they had removed.
+    if (!settingsLoaded) return;
+
     if (judgeAnswer(typed, card.back, settings.answerSeparators)) {
       setPhase("correct");
       void record("correct");
@@ -288,7 +296,9 @@ function CardFace({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={typed.trim() === ""}
+            // Also while the settings are still on their way, so the button
+            // is visibly not ready rather than silently doing nothing.
+            disabled={typed.trim() === "" || !settingsLoaded}
             onClick={submit}
           >
             Check

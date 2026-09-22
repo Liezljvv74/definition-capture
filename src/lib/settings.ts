@@ -322,4 +322,23 @@ export function saveSettings(change: Partial<Settings>): void {
       });
       reload();
     });
+
+  /*
+   * The category list exists in two places and they have to agree.
+   *
+   * `user_settings.categories` is what the word and phrase forms offer;
+   * `tags` is what the flashcard filter reads, and until now only a row save
+   * wrote to it. So a category typed here was invisible to the filter until
+   * something was filed under it, and one deleted here stayed in the filter
+   * for good. The function below reconciles them, keeping this list's order
+   * and refusing to delete a category that is still on an item, which is what
+   * this page promises when it says removing one leaves it where it is.
+   *
+   * Not awaited and not surfaced: the settings themselves are already saved
+   * by the time this runs, and a failure here means the filter is briefly out
+   * of step, not that anything the reader typed was lost.
+   */
+  if (change.categories) {
+    void supabase.rpc("sync_category_tags", { names: next.categories });
+  }
 }

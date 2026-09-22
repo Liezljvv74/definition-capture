@@ -73,21 +73,16 @@ export default function PhrasesPage() {
       and rendering its result is not. */
   const deferredQuery = useDeferredValue(query);
 
-  const visible = useMemo(() => {
-    const needle = foldName(deferredQuery);
-    const wanted = foldName(category);
-    const filtered = phrases.filter((phrase) => {
-      if (wanted && !phrase.categories.some((name) => foldName(name) === wanted)) {
-        return false;
-      }
-      if (!needle) return true;
-      return [phrase.phrase, phrase.literalMeaning, phrase.usageExample, phrase.ref].some(
-        (field) => foldName(field).includes(needle),
-      );
-    });
-
-    if (!sort) return filtered;
-    return [...filtered].sort((a, b) => {
+  /**
+   * Two memos rather than one, the shape the Vocabulary page arrived at and
+   * for the reason written out there: sorting is the O(n log n) half and it
+   * does not depend on the query, so keeping them together re-sorted the whole
+   * list on every keystroke. `filter` preserves order, so the result is the
+   * same list in the same order it used to be.
+   */
+  const sorted = useMemo(() => {
+    if (!sort) return phrases;
+    return [...phrases].sort((a, b) => {
       const result =
         sort.key === "phrase"
           ? compareText(a.phrase, b.phrase)
@@ -97,7 +92,21 @@ export default function PhrasesPage() {
       // ties keep the newest-first order the list has underneath.
       return 0;
     });
-  }, [phrases, deferredQuery, category, sort]);
+  }, [phrases, sort]);
+
+  const visible = useMemo(() => {
+    const needle = foldName(deferredQuery);
+    const wanted = foldName(category);
+    return sorted.filter((phrase) => {
+      if (wanted && !phrase.categories.some((name) => foldName(name) === wanted)) {
+        return false;
+      }
+      if (!needle) return true;
+      return [phrase.phrase, phrase.literalMeaning, phrase.usageExample, phrase.ref].some(
+        (field) => foldName(field).includes(needle),
+      );
+    });
+  }, [sorted, deferredQuery, category]);
 
   // The same four pieces the word page uses; see `useListPage`.
   const {
