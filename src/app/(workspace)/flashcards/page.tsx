@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useId, useRef, useState } from "react";
 
 import {
   answerCard,
   FlashcardError,
+  judgeAnswer,
   loadDeck,
   setNeedsReview,
   type Card,
@@ -131,6 +132,8 @@ function CardFace({
 }) {
   const [phase, setPhase] = useState<Phase>("asking");
   const [marked, setMarked] = useState(false);
+  const [typed, setTyped] = useState("");
+  const ids = useId();
 
   /**
    * When this card appeared, so the answer can be timed. A ref, and written
@@ -155,26 +158,34 @@ function CardFace({
   }
 
   /**
+   * The answer is marked rather than self-assessed.
+   *
    * Correct flashes green and moves on by itself. The pause is what makes the
    * flash a flash: answering and advancing in the same instant means the
    * colour is never seen, and a colour nobody sees is not feedback.
+   *
+   * Wrong flashes orange, waits, and ticks "needs review" without being
+   * asked. Getting it wrong is exactly the evidence that box is for, and
+   * making the reader tick it themselves means the filter only ever collects
+   * the cards they had the presence of mind to flag.
    */
-  function knewIt() {
+  function submit() {
     if (phase !== "asking") return;
-    setPhase("correct");
-    void record("correct");
-    window.setTimeout(() => onFinished("correct"), 650);
-  }
-
-  /** Wrong flashes orange and waits, because there are three things to do next. */
-  function didNot() {
-    if (phase !== "asking") return;
+    if (judgeAnswer(typed, card.back)) {
+      setPhase("correct");
+      void record("correct");
+      window.setTimeout(() => onFinished("correct"), 650);
+      return;
+    }
     setPhase("wrong");
+    if (!marked) void mark(true);
   }
 
   function tryAgain() {
     // Not recorded: nothing has been decided yet, and logging an attempt that
-    // is about to be replaced would count one card as two reviews.
+    // is about to be replaced would count one card as two reviews. The typed
+    // answer is cleared, because retyping it is the point of trying again.
+    setTyped("");
     setPhase("asking");
     shownAt.current = Date.now();
   }
@@ -191,8 +202,7 @@ function CardFace({
     onFinished("wrong");
   }
 
-  async function toggleMark() {
-    const next = !marked;
+  async function mark(next: boolean) {
     setMarked(next);
     try {
       await setNeedsReview(card.id, next);
@@ -212,39 +222,75 @@ function CardFace({
 
   return (
     <>
-      <div className={`rounded-2xl p-8 shadow-sm transition-colors duration-200 sm:p-12 ${face}`}>
-        <p className="text-xs font-medium tracking-[0.14em] text-slate-600 uppercase">
+      {/*
+       * Square, and half the width it had. A card that fills the column reads
+       * as a page; one the shape of a card reads as a card. `aspect-square`
+       * with the content scrolling inside, because a long definition must not
+       * be allowed to stretch it back into a rectangle.
+       */}
+      <div
+        className={`mx-auto flex aspect-square w-full max-w-sm flex-col rounded-2xl border-2 border-flashcard-frame p-6 shadow-sm transition-colors duration-200 ${face}`}
+      >
+        <p className="text-xs font-medium tracking-[0.14em] text-slate-700 uppercase">
           {label(card.itemType)}
         </p>
-        <h1 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">
-          {card.front}
-        </h1>
 
-        {/* `aria-live`, because turning a card over changes the page without
-            moving focus, and a screen reader would otherwise not be told. */}
-        <div aria-live="polite" className="min-h-24">
-          {phase === "revealed" || phase === "correct" ? (
-            <p className="mt-6 text-lg whitespace-pre-line text-slate-800">{card.back}</p>
-          ) : (
-            <p className="mt-6 text-sm text-slate-600">
-              {phase === "wrong"
-                ? "Not quite. Try it again, see the answer, or move on."
-                : "Do you know it?"}
-            </p>
-          )}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <h1 className="mt-2 text-xl font-semibold text-slate-900 sm:text-2xl">
+            {card.front}
+          </h1>
+
+          {/* `aria-live`, because turning a card over changes the page without
+              moving focus, and a screen reader would otherwise not be told. */}
+          <div aria-live="polite">
+            {phase === "revealed" || phase === "correct" ? (
+              <p className="mt-4 whitespace-pre-line text-slate-800">{card.back}</p>
+            ) : (
+              <p className="mt-2 text-sm text-slate-700">
+                {phase === "wrong"
+                  ? "Not quite. Try it again, see the answer, or move on."
+                  : "Type what it means."}
+              </p>
+            )}
+          </div>
         </div>
+
+        {phase === "asking" && (
+          <form
+            className="mt-3 shrink-0"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submit();
+            }}
+          >
+            <label htmlFor={`${ids}-answer`} className="sr-only">
+              Your answer
+            </label>
+            <input
+              id={`${ids}-answer`}
+              className="field bg-white"
+              autoFocus
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="Your answer"
+              value={typed}
+              onChange={(event) => setTyped(event.target.value)}
+            />
+          </form>
+        )}
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
         {phase === "asking" && (
-          <>
-            <button type="button" className="btn btn-primary" onClick={knewIt}>
-              I knew it
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={didNot}>
-              I did not
-            </button>
-          </>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={typed.trim() === ""}
+            onClick={submit}
+          >
+            Check
+          </button>
         )}
 
         {phase === "wrong" && (
@@ -273,7 +319,7 @@ function CardFace({
           type="checkbox"
           className="size-4 accent-indigo-600"
           checked={marked}
-          onChange={() => void toggleMark()}
+          onChange={() => void mark(!marked)}
         />
         Mark this one as needing review
       </label>

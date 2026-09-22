@@ -278,3 +278,84 @@ export async function setNeedsReview(itemId: string, value: boolean): Promise<vo
     throw new FlashcardError(`Could not mark that item: ${readError(error)}.`);
   }
 }
+
+/* ------------------------------------------------------- judging an answer */
+
+/**
+ * The comparable form of an answer.
+ *
+ * Case and surrounding punctuation are noise: "Door." and "door" are the same
+ * answer. Whitespace is collapsed so a stray double space is not a mistake.
+ *
+ * Accents are deliberately kept. This is an app for learning a language where
+ * `Tür` and `Tur` are different words, and quietly accepting one for the other
+ * would teach the wrong thing. `normalize("NFC")` only settles how an accent
+ * is encoded, not whether it is there.
+ */
+export function normaliseAnswer(value: string): string {
+  return value
+    .normalize("NFC")
+    .toLowerCase()
+    .replace(/[.,;:!?"'()[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * How alike two strings are, from 0 to 1, by edit distance over the longer of
+ * them. Used only to forgive a typo, never to accept a different answer.
+ */
+export function similarity(a: string, b: string): number {
+  if (a === b) return 1;
+  if (a.length === 0 || b.length === 0) return 0;
+
+  // One row at a time rather than the whole matrix: these are short strings,
+  // but there is no reason to hold a table of them.
+  let previous = Array.from({ length: b.length + 1 }, (_, at) => at);
+  for (let i = 1; i <= a.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= b.length; j += 1) {
+      current[j] = Math.min(
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    previous = current;
+  }
+
+  return 1 - previous[b.length] / Math.max(a.length, b.length);
+}
+
+/**
+ * Close enough to count as a typo rather than a different answer. At 0.85 a
+ * ten-character answer may be one character out; a short one must be exact,
+ * which is right, because in a short word every character is most of it.
+ */
+const CLOSE_ENOUGH = 0.85;
+
+/**
+ * Whether a typed answer matches the back of the card.
+ *
+ * The back is not always one thing. A phrase carries its literal meaning and
+ * an example, separated by a blank line, and nobody is going to type both; a
+ * verb table is a line per person. So each line counts as an acceptable
+ * answer in its own right, as well as the whole back.
+ *
+ * This is deliberately strict rather than clever. A reader who is told they
+ * were wrong can try again, reveal the answer, or carry on, so the cost of
+ * refusing a near miss is a button press; the cost of accepting a wrong
+ * answer is being told they know something they do not.
+ */
+export function judgeAnswer(typed: string, back: string): boolean {
+  const given = normaliseAnswer(typed);
+  if (given === "") return false;
+
+  const candidates = [back, ...back.split("\n")]
+    .map(normaliseAnswer)
+    .filter((candidate) => candidate !== "");
+
+  return candidates.some(
+    (candidate) => candidate === given || similarity(given, candidate) >= CLOSE_ENOUGH,
+  );
+}

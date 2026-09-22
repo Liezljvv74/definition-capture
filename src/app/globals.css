@@ -53,7 +53,14 @@
    * at better than 10:1, so the flash never costs legibility.
    */
   --color-challenge: #d7e6f4;
-  --color-flashcard: #f4f7fa;
+  /*
+   * A card is a deeper blue than the challenge tile that offers it, and it
+   * wears the logo's own navy as a frame. The frame is what makes a square of
+   * colour read as a card: at half the width it no longer fills the column,
+   * so without an edge it looks like a panel that failed to stretch.
+   */
+  --color-flashcard: #bbd3eb;
+  --color-flashcard-frame: #1b4390;
   --color-flash-correct: #cbebd7;
   --color-flash-wrong: #f8d9bf;
 }

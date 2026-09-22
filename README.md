@@ -140,13 +140,22 @@ too. What changes is only what is suggested for new ones.
   `[[Name]]` links resolve. `?verb=arbeiten` opens that table; `?new=arbeiten` makes it
   first — asking who verbs conjugate for if that has never been answered — and then opens
   it. Both are what the Edit word screen links to.
-- **`/flashcards`** — one card at a time from a deck built on the home page. The front is the
-  word, phrase or verb; the back is its definition, its literal meaning and example, or its
-  conjugations. Saying you knew it flashes the card pale green and moves on by itself; saying
-  you did not flashes pale orange and waits, because there are three reasonable things to do
-  next: try it again, see the answer, or move on. Each of those is recorded as a different
-  outcome, since "I looked it up" and "I gave up" are not the same thing to have done. A
-  checkbox marks the item as needing review, which is one of the filters the builder offers.
+- **`/flashcards`** — one card at a time from a deck built on the home page. A square card in
+  the logo's blue with a navy frame: the front is the word, phrase or verb, and you type what
+  it means rather than deciding for yourself whether you knew it.
+
+  A right answer flashes the card pale green and moves on by itself. A wrong one flashes pale
+  orange, ticks **needs review** without being asked, and waits, because there are three
+  reasonable things to do next: try it again, see the answer, or move on. Each is recorded as
+  a different outcome, since "I looked it up" and "I gave up" are not the same thing to have
+  done.
+
+  The marking ignores case, surrounding punctuation and stray spacing, and forgives a typo in
+  a long answer, but keeps accents: `Tür` and `Tur` are different words and pretending
+  otherwise teaches the wrong thing. Each line of a multi-part answer counts on its own, so a
+  phrase can be answered with its literal meaning without also typing the example. It is
+  deliberately strict — being refused costs a button press, while being wrongly told you knew
+  something schedules it weeks away with nothing to notice.
 - **`/settings`** — reached from the account menu at the right of the nav rather than
   from the tabs, which belong to the two lists. Seven sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
