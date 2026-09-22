@@ -134,8 +134,13 @@ history can be replayed, a scheduler can be swapped without losing what
 happened under the old one, and a bug in the summary is a recomputation rather
 than a loss.
 
-It has a select policy and an insert policy and no others. Append-only is
-worth nothing if the client can edit what it appended.
+It has a select policy and nothing else. Append-only is worth nothing if the
+client can edit what it appended, and the insert policy it started with cost
+almost as much: anything holding the publishable key could append a row saying
+whatever it liked, and then replaying the log would no longer reproduce the
+summary. Every real write comes from `apply_review`, which is `security
+definer` and therefore not subject to policies at all, so the policy bought
+nothing and was dropped.
 
 `prior_interval_days`, `prior_ease` and `next_due_at` are snapshots of what the
 scheduler thought at the moment of the answer, not references to current
@@ -290,8 +295,20 @@ next unanswered card in a deck, the dashboard's mastery breakdown, a streak.
 
 SM-2, trimmed, in `apply_review`. Correct answers step 1 day, then 6, then
 multiply by `ease`; the two fixed steps stop a brand new card jumping to a
-fortnight. Anything else resets the interval, drops `ease` by 0.2 with a floor
-of 1.3, and counts a lapse.
+fortnight. A correct answer also adds 0.10 to `ease`, capped at 3.00, so a card
+answered easily several times over stops coming back so often.
+
+`again` and `revealed` reset the streak and the interval, drop `ease` by 0.20
+with a floor of 1.30, and count a lapse. `skipped` is the exception and is
+deliberately gentler: it holds the streak and the ease where they are and only
+zeroes the interval, because moving past a card is not the same as getting it
+wrong.
+
+Mastery is read off the streak and the interval afterwards: nothing seen is
+`new`, a reset streak or a single correct answer is `learning`, and after that
+`familiar`, `known` and `mastered` at intervals of under 7 days, under 21, and
+beyond. One right answer deliberately does not count as familiarity, which is
+a correction: it did at first, and it made the ladder meaningless.
 
 It lives in the database rather than the browser for three reasons: the summary
 it writes is not client-writable, every caller gets the same arithmetic, and it

@@ -101,12 +101,12 @@ describe("parseBackup — reads", () => {
             rows: [{ person: "ich", conjugations: ["gehe"], notes: "" }],
           },
         ],
-        settings: { categories: ["Grammar"], sources: ["Textbook"] },
+        settings: { categories: ["Travel"], sources: ["Textbook"] },
       }),
     );
     expect(parsed.verbTables).toHaveLength(1);
     expect(parsed.verbTables[0].rows[0].conjugations).toEqual(["gehe"]);
-    expect(parsed.settings?.categories).toEqual(["Grammar"]);
+    expect(parsed.settings?.categories).toEqual(["Travel"]);
   });
 
   it("holds the conjugation invariant for a hand-edited table", () => {
@@ -191,7 +191,7 @@ describe("restoresSettings", () => {
   const withSettings = contents({
     settings: {
       displayName: "",
-      categories: ["Grammar"],
+      categories: ["Travel"],
       sources: ["Manual"],
       verbPersons: [],
       verbTenses: [],

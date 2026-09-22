@@ -31,32 +31,40 @@ single number meant phone access broke each time it moved. Change the pattern in
 
 ## Where the data lives
 
-All three lists live in **Supabase** — Postgres tables `words`, `phrases` and
-`verb_tables`, plus a `user_settings` row per account for what Settings manages.
+All three lists live in **Supabase**, and all three are now views over a single
+`learning_items` table: `words`, `phrases` and `verb_tables` are the names the
+application reads and writes, and `instead of` triggers turn a write through one of them into
+a write to the spine and the matching detail table. A `user_settings` row per account holds
+what Settings manages.
 
-> **On the `flashcards` branch** those three become views over one
-> `learning_items` table, so that flashcards, review history and progress can
-> work across every content type instead of one page at a time. The design is
-> in [`Docs/schema.md`](Docs/schema.md); the migrations are written but not
-> applied, and the application still reads and writes the same three names. One private set of
-rows per signed-in account: sign in on any browser or device and the same list is there,
-and a `/word?id=…` link opens anywhere you are signed in.
+The spine is what lets flashcards, review history and progress work across every content type
+rather than one page at a time, and it is why adding a content type later is a row in
+`item_types` and one detail table rather than a change to every query. The design, and what it
+cost, is in [`Docs/schema.md`](Docs/schema.md). All of its migrations are applied.
+
+One private set of rows per signed-in account: sign in on any browser or device and the same
+list is there, and a `/word?id=…` link opens anywhere you are signed in.
 
 List queries run in the browser under the publishable key, which is compiled into the
 JavaScript bundle and readable by anyone who views source. That is what that key is for,
 but it means **row level security is what separates one account's words from another's.**
 The policies in `supabase/migrations/` are load-bearing, not decoration; every table has RLS
-enabled, and every policy checks `(select auth.uid()) = user_id`. The list tables carry all
-four — select, insert, update, delete — while `user_settings` has no delete policy, because a
-settings row is created once and edited thereafter, never thrown away.
+enabled. `learning_items` carries all four, select, insert, update and delete, each checking
+`(select auth.uid()) = user_id`. The detail tables carry no `user_id` of their own and reach
+through the shared primary key instead, so there is one answer to who owns a row and the two
+cannot drift. `user_settings` has no delete policy, because a settings row is created once and
+edited thereafter, never thrown away, and `review_logs` has only select and insert, because a
+review that happened cannot later not have happened.
 
 RLS is no longer the *only* thing standing there. `src/proxy.ts` verifies the session on
 the server before any page behind a sign-in is rendered, and `src/app/(workspace)/layout.tsx`
 verifies it again before those pages run — see [Where the check happens](#where-the-check-happens).
 
-The three list stores are built from one factory in `src/lib/remoteStore.ts` — nothing else
-in the app talks to Supabase directly, so the lists cannot drift apart in how they load, save,
-or report a failure. It keeps the shape the old `localStorage` store had: the whole list is
+The three list stores are built from one factory in `src/lib/remoteStore.ts`, so they cannot
+drift apart in how they load, save, or report a failure. Two modules read Supabase without it,
+and both fail its premise rather than ignore it: `src/lib/settings.ts` holds one row with no id
+and no order, and `src/lib/flashcards.ts` asks for a deck that is played once and finished
+with. Both borrow the pieces where drifting would be a bug, such as how a failure is worded. It keeps the shape the old `localStorage` store had: the whole list is
 fetched once into memory and read synchronously, and a write updates the screen immediately
 and goes to the database in the background. That is why adding a word still feels instant,
 and why the forms never had to learn that saving became a network call.
@@ -152,6 +160,10 @@ too. What changes is only what is suggested for new ones.
   reasonable things to do next: try it again, see the answer, or move on. Each is recorded as
   a different outcome, since "I looked it up" and "I gave up" are not the same thing to have
   done.
+
+  The **needs review** box shows the flag the item already carries, so a deck built from
+  flagged items opens with it ticked. Untick it and the flag is cleared, which is the only way
+  an item leaves that filter apart from editing it.
 
   The marking ignores case, surrounding punctuation and stray spacing, and forgives a typo in
   a long answer, but never an accent: `Tür` and `Tur` are different words and pretending
@@ -424,7 +436,10 @@ and IDs that would collide are quietly re-issued so nothing is overwritten by ac
 Older backups still work, and that is tested rather than hoped for: a version 1 file (words
 only) imports fine, as does a bare array of entries, and so does anything written before the
 glossary was renamed, since those files call the list `entries` and the field `term` and the
-reader accepts either spelling. **Replace never wipes a list the file carries nothing for** —
+reader accepts either spelling. Two fields arrived with version 8, and a file without them is
+not treated as a file that says no: a phrase with no date recorded is given today's, and a
+settings block with no answer separators restores the defaults rather than switching the
+marking rules off. **Replace never wipes a list the file carries nothing for** —
 restoring a words-only export leaves your phrases and verb tables alone. The confirmation
 spells out, per list, what will be deleted and what will be left as it is. Anything unreadable
 is counted and reported rather than silently dropped.
@@ -436,9 +451,11 @@ is counted and reported rather than silently dropped.
   leaves URLs and long sentences alone.
 - **Duplicate check.** A word is saved once. Saving one that already exists
   (case-insensitively) offers to update it, or to go back and change the wording — there
-  is no “keep both”, because there cannot be: the unique index on `(user_id, lower(word))`
-  refuses a second, and `[[Name]]` links, the duplicate check itself, and import matching
-  all resolve a name to exactly one entry. Phrases work the same way.
+  is no “keep both”, because there cannot be: a partial unique index on
+  `(user_id, lower(title)) where item_type = 'word'` refuses a second, and `[[Name]]` links,
+  the duplicate check itself, and import matching all resolve a name to exactly one entry.
+  Phrases work the same way, under an index of their own, which is why a word and a phrase may
+  share a name while two words may not.
 - **Tabs catch up when you look at them.** Switching to another tab, or back to the window,
   re-reads whichever lists the page you are on is showing, so a word added elsewhere is there
   when you look. Only those: a list nobody is looking at has nothing on screen to be stale.
@@ -566,6 +583,25 @@ Configuration → Redirect URLs** in the Supabase dashboard, as `<origin>/auth/c
 A deployed copy is the same list: sign in there and your words are the ones you saved
 locally, because both talk to the same Supabase project.
 
+## Checking the code
+
+```bash
+npx tsc --noEmit     # types
+npx eslint src/      # lint
+npx vitest run       # 25 suites, node environment, no jsdom and no browser
+npm run build        # when routing or rendering changed
+```
+
+The build is worth running for its route table rather than for the bundle: it prints which
+routes are static and which are server-rendered, which is how a protected page is confirmed to
+still be dynamic. Every route but `/sign-in` and `/sign-up` should be marked `ƒ`.
+
+The tests run in node and render components to a string where they need markup at all, so
+there is no jsdom to configure and no browser to drive. What they cover is chosen rather than
+uniform: the paths that can lose data quietly, such as importing a backup, writing through the
+store, and deciding whether a typed answer is right. Several of them were checked by breaking
+the code on purpose and confirming they noticed.
+
 ## Layout of the code
 
 ```
@@ -580,7 +616,7 @@ src/
     (workspace)/          everything behind a sign-in. The brackets keep the
       layout.tsx            group out of the URL, so /vocabulary is still /vocabulary;
                             the layout re-checks the session on the server
-      page.tsx              the landing page, a heading for now
+      page.tsx              the landing page: the three lists and the challenge card
       vocabulary/page.tsx   Vocabulary page: add, edit, delete, search, sort
       phrases/page.tsx      phrase list, the same shape as Vocabulary
       word/page.tsx         one word by ?id=, read-only plus Edit
@@ -590,6 +626,7 @@ src/
       settings/page.tsx     one of the three settings groups, by ?section=
   components/
     flashcards/
+      CreateDeckButton.tsx  opens the dialog, and is the only client part of Home
       CreateDeckDialog.tsx  sources, filters and how many, then build the deck
     MainNav.tsx           the nav bar: Glossary, Verbs, Backup, and the account menu
     NavMenu.tsx           the dropdown the Glossary, Backup and gear tabs open
@@ -621,6 +658,7 @@ src/
     Badges.tsx            source / needs-definition pills
   lib/
     flashcards.ts         decks, cards, answers: the flashcard feature's data access
+    judgeAnswer.ts        whether what was typed counts as the answer
     remoteStore.ts        the Supabase factory all three list stores are built on
     supabaseClient.ts     the browser client, session kept in cookies
     supabaseServer.ts     the server client, and the verified "who is asking?"

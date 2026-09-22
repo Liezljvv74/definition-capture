@@ -48,10 +48,10 @@ import {
 export const BACKUP_FORMAT = "definition-capture-backup";
 /**
  * 1 was terms only; 2 adds the phrase list; 3 adds the conjugation tables and
- * the settings. 4 carried a fourth list of grammar rules, which the app no
- * longer has: a version 4 file still imports, and the rules in it are read
- * past like any other key this module does not know. 5 is 4 with that list
- * dropped again. 6 renames the glossary
+ * the settings. 4 carried a fourth list, which the app no longer has: such a
+ * file still imports, and the list in it is read past like any other key this
+ * module does not know. 5 is 4 with that list dropped again. 6 renames the
+ * glossary
  * list from `entries` to `words` and each row's `term` to `word`, following
  * the rename in the app and the database.
  *
