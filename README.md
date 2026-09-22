@@ -347,7 +347,7 @@ field:
 
 | Write | Links to |
 | --- | --- |
-| `[[Closure]]` | Whatever is saved under that name — a word **or** a phrase, since the two share one namespace. Words win a name clash. A name that matches nothing is shown plainly rather than as a dead link. |
+| `[[Closure]]` | Whatever is saved under that name — a word **or** a phrase, since the two share one namespace. Words win a name clash. A name that matches nothing is shown plainly rather than as a dead link. **You do not type this form.** Start typing a saved name and the field offers it; picking one writes the brackets for you. The placeholders say "a saved word or phrase" rather than showing the syntax, because a reader who has to be taught a markup to make a link will not make one. |
 | `/word?id=abc123`, `/` | A page inside this app. |
 | `https://example.com/docs` | Any web page — opens in a new tab. The scheme is hidden in the display so the column stays readable. |
 | `www.example.com` | The same, with `https://` assumed. |
