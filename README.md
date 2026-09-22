@@ -166,17 +166,23 @@ too. What changes is only what is suggested for new ones.
   by `to go`, by `to go on foot`, or by typing the brackets out. The aside says when the word
   applies rather than what it means.
 
-  The separators are `ANSWER_SEPARATORS` in `src/lib/flashcards.ts`, and `judgeAnswer` takes
-  its own if you want to change them for one call. Listing a character there stops it being
-  ordinary text: with the slash separating, `and/or` offers two answers rather than one.
+  Which characters count as separators is yours to set, under **Settings → Answer
+  separators**: comma, slash, semicolon and pipe, any combination, or none at all. Ticking a
+  character stops it being ordinary text, so with the slash on, an entry reading `and/or`
+  offers two answers rather than one; with everything off, answers are marked exactly as they
+  are written. The choice is a fixed set rather than a text field because a letter used as a
+  separator would split every answer containing that letter, and marking would stop working in
+  a way nobody would connect to a settings change made weeks earlier. The database refuses one
+  too.
 
   Otherwise it is deliberately strict: being refused costs a button press, while being wrongly
   told you knew something schedules it weeks away with nothing to notice.
 - **`/settings`** — reached from the account menu at the right of the nav rather than
-  from the tabs, which belong to the two lists. Seven sections: **Profile** (the address
+  from the tabs, which belong to the two lists. Eight sections: **Profile** (the address
   you signed in with, an optional display name shown in the nav in its place, and Sign
   out), **Password** (set one, or change it — an account created from an emailed link has
-  none until this is used), **Glossary Categories** and **Sources** (add, remove, and reorder
+  none until this is used), **Answer separators** (which punctuation means "or" when a
+  flashcard is marked), **Glossary Categories** and **Sources** (add, remove, and reorder
   the lists the word and phrase forms offer — source order is the order the Source column sorts by, so it
   is kept rather than alphabetised), **Verb persons** and **Verb tenses** (what a new
   conjugation table is built from), and **Export folder** (see Backup below). All but the

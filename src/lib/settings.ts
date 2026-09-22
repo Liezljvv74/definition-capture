@@ -11,7 +11,13 @@
  * putting the truth back when a write fails.
  */
 
-import { DEFAULT_CATEGORIES, DEFAULT_SOURCES, MAX_LIST_LENGTH } from "@/lib/constants";
+import {
+  DEFAULT_ANSWER_SEPARATORS,
+  DEFAULT_CATEGORIES,
+  DEFAULT_SOURCES,
+  MAX_LIST_LENGTH,
+  readSeparators,
+} from "@/lib/constants";
 import {
   ABANDONED,
   readError,
@@ -37,6 +43,12 @@ export type Settings = {
   verbPersons: string[];
   /** Tenses offered when making a table; grows as new ones are typed. */
   verbTenses: string[];
+  /**
+   * Which characters mean "or" when a flashcard answer is marked. Empty is a
+   * real answer: it means none of them do, so an entry offering alternatives
+   * has to be typed out in full.
+   */
+  answerSeparators: string;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -47,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // emptiness is the signal to ask.
   verbPersons: [],
   verbTenses: [],
+  answerSeparators: DEFAULT_ANSWER_SEPARATORS,
 };
 
 export type SettingsSnapshot = {
@@ -92,6 +105,10 @@ function fromRow(row: Record<string, unknown> | null): Settings {
     // No fallback here: empty is a real answer, meaning not asked yet.
     verbPersons: readNameList(row.verb_persons, MAX_LIST_LENGTH),
     verbTenses: readNameList(row.verb_tenses, MAX_LIST_LENGTH),
+    // No fallback to the default: a reader who has turned every separator off
+    // means it, and treating their empty string as "not set" would keep
+    // handing them back the commas they just removed.
+    answerSeparators: readSeparators(row.answer_separators),
   };
 }
 
@@ -211,6 +228,7 @@ export function parseSettings(raw: unknown): Settings | null {
     // No fallback: empty is a real answer, meaning not asked yet.
     verbPersons: readNameList(value.verbPersons, MAX_LIST_LENGTH),
     verbTenses: readNameList(value.verbTenses, MAX_LIST_LENGTH),
+    answerSeparators: readSeparators(value.answerSeparators),
   };
 }
 
@@ -257,6 +275,9 @@ export function saveSettings(change: Partial<Settings>): void {
       change.verbTenses ?? snapshot.settings.verbTenses,
       MAX_LIST_LENGTH,
     ),
+    answerSeparators: readSeparators(
+      change.answerSeparators ?? snapshot.settings.answerSeparators,
+    ),
   };
 
   // The form guards against this too, but the database refuses an empty
@@ -278,6 +299,7 @@ export function saveSettings(change: Partial<Settings>): void {
         sources: next.sources,
         verb_persons: next.verbPersons,
         verb_tenses: next.verbTenses,
+        answer_separators: next.answerSeparators,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },

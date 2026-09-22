@@ -13,6 +13,7 @@ import {
   type Card,
   type Outcome,
 } from "@/lib/flashcards";
+import { useSettings } from "@/lib/useSettings";
 
 export default function FlashcardsPage() {
   return (
@@ -130,6 +131,7 @@ function CardFace({
   onFinished: (outcome: "correct" | "wrong") => void;
   onProblem: (message: string) => void;
 }) {
+  const { settings } = useSettings();
   const [phase, setPhase] = useState<Phase>("asking");
   const [marked, setMarked] = useState(false);
   const [typed, setTyped] = useState("");
@@ -171,7 +173,7 @@ function CardFace({
    */
   function submit() {
     if (phase !== "asking") return;
-    if (judgeAnswer(typed, card.back)) {
+    if (judgeAnswer(typed, card.back, settings.answerSeparators)) {
       setPhase("correct");
       void record("correct");
       window.setTimeout(() => onFinished("correct"), 650);

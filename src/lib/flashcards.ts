@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_ANSWER_SEPARATORS } from "@/lib/constants";
 import { readError } from "@/lib/remoteStore";
 import { getSupabase } from "@/lib/supabaseClient";
 
@@ -335,18 +336,13 @@ export function similarity(a: string, b: string): number {
 const CLOSE_ENOUGH = 0.85;
 
 /**
- * The characters that separate one acceptable answer from the next.
+ * What `judgeAnswer` uses when nobody says otherwise.
  *
- * A comma is how a glossary usually writes it and a slash is the other common
- * way, so both are here. Change this string to change what counts as a
- * separator everywhere; `judgeAnswer` also takes its own, which is how the
- * tests pin the behaviour without changing it for the app.
- *
- * A character listed here stops being ordinary text in an answer. That is the
- * trade: with a slash separating, a back reading "and/or" offers "and" and
- * "or" as two answers rather than one answer spelled with a slash.
+ * The real answer is per account, chosen in Settings and read from the
+ * settings store by the review screen. This is the fallback for a caller that
+ * has no settings to hand, and the value a new account starts with.
  */
-export const ANSWER_SEPARATORS = ",/";
+export { DEFAULT_ANSWER_SEPARATORS as ANSWER_SEPARATORS } from "@/lib/constants";
 
 /** A character class matching any of them, escaped for use inside one. */
 function separatorPattern(separators: string): RegExp {
@@ -436,7 +432,7 @@ function madeOf(given: string, alternatives: readonly string[]): boolean {
 export function judgeAnswer(
   typed: string,
   back: string,
-  separators: string = ANSWER_SEPARATORS,
+  separators: string = DEFAULT_ANSWER_SEPARATORS,
 ): boolean {
   const given = normaliseAnswer(typed);
   if (given === "") return false;

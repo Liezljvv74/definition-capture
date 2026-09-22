@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_ANSWER_SEPARATORS, readSeparators } from "@/lib/constants";
 import {
   ANSWER_SEPARATORS,
   judgeAnswer,
@@ -250,6 +251,7 @@ describe("judgeAnswer, when alternatives are separated by a slash", () => {
 describe("the separators are configurable", () => {
   it("defaults to a comma and a slash", () => {
     expect(ANSWER_SEPARATORS).toBe(",/");
+    expect(DEFAULT_ANSWER_SEPARATORS).toBe(",/");
   });
 
   it("can be told to use something else instead", () => {
@@ -272,5 +274,52 @@ describe("the separators are configurable", () => {
   it("escapes what it is given, so a regex character cannot break it", () => {
     expect(judgeAnswer("gladly", "gladly] willingly", "]")).toBe(true);
     expect(judgeAnswer("gladly", "gladly- willingly", "-")).toBe(true);
+  });
+});
+
+/**
+ * What a stored setting is allowed to be.
+ *
+ * This is the guard between a row, or a backup file, and the marker. The
+ * damage a bad value does is quiet rather than loud: a letter in here splits
+ * every answer containing that letter, marking stops agreeing with itself,
+ * and nothing points at a settings change made weeks ago. The database
+ * refuses the same things, so this is the rule said twice on purpose.
+ */
+describe("readSeparators", () => {
+  it("keeps the characters that are actually on offer", () => {
+    expect(readSeparators(",/")).toBe(",/");
+    expect(readSeparators(";")).toBe(";");
+    expect(readSeparators("|")).toBe("|");
+  });
+
+  it("drops anything that is not one of them", () => {
+    // A letter is the dangerous case: "a" would split every answer with an
+    // "a" in it, and marking would quietly stop working.
+    expect(readSeparators("a")).toBe("");
+    expect(readSeparators(",a/")).toBe(",/");
+    expect(readSeparators(" ")).toBe("");
+    expect(readSeparators(".")).toBe("");
+  });
+
+  it("takes an empty setting at its word", () => {
+    // Turning them all off is a real choice: answers are then marked exactly
+    // as they are written.
+    expect(readSeparators("")).toBe("");
+    expect(judgeAnswer("gladly", "gladly, willingly", readSeparators(""))).toBe(false);
+  });
+
+  it("puts them in a settled order, so the same choice is one string", () => {
+    expect(readSeparators("/,")).toBe(readSeparators(",/"));
+  });
+
+  it("does not repeat one that was stored twice", () => {
+    expect(readSeparators(",,,")).toBe(",");
+  });
+
+  it("treats anything that is not a string as nothing chosen", () => {
+    for (const nonsense of [null, undefined, 42, {}, [","]]) {
+      expect(readSeparators(nonsense)).toBe("");
+    }
   });
 });

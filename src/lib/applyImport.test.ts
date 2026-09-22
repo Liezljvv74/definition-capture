@@ -90,6 +90,7 @@ const settings: Settings = {
   sources: ["Manual"],
   verbPersons: [],
   verbTenses: [],
+  answerSeparators: ",/",
 };
 
 const contents = (over: Partial<BackupContents> = {}): BackupContents => ({

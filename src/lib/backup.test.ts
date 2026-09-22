@@ -194,6 +194,7 @@ describe("restoresSettings", () => {
       sources: ["Manual"],
       verbPersons: [],
       verbTenses: [],
+      answerSeparators: ",/",
     },
   });
 

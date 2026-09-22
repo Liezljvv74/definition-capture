@@ -37,3 +37,32 @@ export const MAX_CATEGORIES = 3;
 /** A guard against a runaway list, matching the check constraint on the table. */
 export const MAX_LIST_LENGTH = 30;
 
+
+/**
+ * The characters that can be chosen as answer separators, and what to call
+ * them. A fixed set rather than a free text box, for the reason the check
+ * constraint in the migration gives: a letter in here would split every
+ * answer containing that letter, and marking would quietly stop working in a
+ * way nobody would connect to a settings change made weeks earlier.
+ */
+export const SEPARATOR_CHOICES = [
+  { character: ",", label: "Comma", example: "gladly, willingly" },
+  { character: "/", label: "Slash", example: "gladly/willingly" },
+  { character: ";", label: "Semicolon", example: "gladly; willingly" },
+  { character: "|", label: "Pipe", example: "gladly | willingly" },
+] as const;
+
+/** What a new account marks answers with: a comma or a slash means "or". */
+export const DEFAULT_ANSWER_SEPARATORS = ",/";
+
+/**
+ * Keeps only the characters that are actually on offer, in the order they are
+ * offered, without repeats. Anything else a row or a backup file carries is
+ * dropped rather than trusted.
+ */
+export function readSeparators(value: unknown): string {
+  const given = typeof value === "string" ? value : "";
+  return SEPARATOR_CHOICES.filter((choice) => given.includes(choice.character))
+    .map((choice) => choice.character)
+    .join("");
+}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useId, useState, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
-import { MAX_CATEGORIES } from "@/lib/constants";
+import { MAX_CATEGORIES, SEPARATOR_CHOICES } from "@/lib/constants";
 import {
   chooseExportFolder,
   clearExportFolder,
@@ -108,9 +108,75 @@ export default function SettingsPage() {
           />
         </SettingSection>
 
+        <AnswerSeparatorsSection />
+
         <ExportFolderSection />
       </div>
     </main>
+  );
+}
+
+/**
+ * Which punctuation means "or" when a flashcard answer is marked.
+ *
+ * Tick boxes over a fixed set rather than a text field, and the reason is not
+ * tidiness: a letter typed in here would split every answer containing that
+ * letter, and marking would stop working in a way nobody would connect to a
+ * settings change made weeks earlier. The database refuses anything else too,
+ * so this is the same rule said twice on purpose.
+ */
+function AnswerSeparatorsSection() {
+  const { settings } = useSettings();
+  const chosen = settings.answerSeparators;
+
+  const summary =
+    chosen === ""
+      ? "None; answers must be typed in full"
+      : SEPARATOR_CHOICES.filter((choice) => chosen.includes(choice.character))
+          .map((choice) => choice.label.toLowerCase())
+          .join(", ");
+
+  function toggle(character: string) {
+    const next = chosen.includes(character)
+      ? chosen.replace(character, "")
+      : chosen + character;
+    saveSettings({ answerSeparators: next });
+  }
+
+  return (
+    <SettingSection title="Answer separators" summary={summary}>
+      <fieldset>
+        <legend className="text-sm text-slate-600 dark:text-slate-300">
+          When a flashcard is marked, these characters separate one acceptable answer from
+          the next. An entry reading <strong>gladly, willingly</strong> is then answered by
+          either word, by both, or by both in the other order.
+        </legend>
+
+        <div className="mt-3 flex flex-col gap-2">
+          {SEPARATOR_CHOICES.map((choice) => (
+            <label
+              key={choice.character}
+              className="flex cursor-pointer items-center gap-3 text-sm select-none"
+            >
+              <input
+                type="checkbox"
+                className="size-4 accent-indigo-600"
+                checked={chosen.includes(choice.character)}
+                onChange={() => toggle(choice.character)}
+              />
+              <span className="font-medium">{choice.label}</span>
+              <span className="text-slate-500 dark:text-slate-400">{choice.example}</span>
+            </label>
+          ))}
+        </div>
+
+        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          A character listed here stops being ordinary text in an answer: with the slash
+          ticked, an entry reading <strong>and/or</strong> offers two answers rather than
+          one. Untick everything to have answers marked exactly as they are written.
+        </p>
+      </fieldset>
+    </SettingSection>
   );
 }
 
