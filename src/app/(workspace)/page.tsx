@@ -13,9 +13,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* The marker `globals.css` looks for: on this page alone the logo
-          comes forward, over the cards rather than behind them. */}
-      <main data-home-page className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <div className="space-y-8">
           {/* Lighter than the three cards below, which is what makes this read
               as a heading rather than a fourth one. No dark variant: it is a

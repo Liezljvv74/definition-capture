@@ -185,19 +185,19 @@ green for Phrases and a single phrase, purple for Verbs. The colour is the whole
 so those bands have no rule under them, and it is the same in both themes for the reason the
 cards are: it is a light colour whatever the browser is set to, so the text on it stays dark.
 
-The same logo sits behind the app as a backdrop, shaded 70%: the artwork is laid over the page
-colour at 30% strength, which is the same thing as covering it with 70% of that colour but in
-one layer instead of two. It is fixed rather than scrolling, so a long list slides over a still
-backdrop, and the cards and headers above it stay opaque so every table row keeps full
-contrast — the logo shows through the page margins. `--logo-shade` in the `PageBackground`
-component in `src/app/layout.tsx` is the only number to change: raise it to fade the logo
-further, lower it to bring the artwork forward.
+The logo also appears as a small mark floating in the bottom right corner of every page,
+shaded 80%: the artwork is laid over the page at a fifth of its strength, faint enough to
+read straight past and still there when you look for it. It is `fixed`, so it stays put while
+a long list scrolls behind it and sits in the same place on every page, and it has pointer
+events off so it can never intercept a click.
 
-The home page is the exception: there the same element is restyled by one rule in
-`globals.css` into a small mark in the bottom right corner, in front of the page rather than
-behind it. One element rather than a second copy, because two copies of one image at one
-position would add up in the margins and not over the opaque cards, leaving a visible step
-wherever a card edge crossed the artwork.
+It used to be a large centred backdrop showing through the margins around the cards. That
+works on a page with room to spare and not on a full list: the artwork sat behind the table,
+the reader caught pieces of it between rows, and it read as something gone wrong rather than
+as decoration. Small and cornered is the version that can be on every page without being in
+the way of any of them. `--logo-shade` in the `PageBackground` component in
+`src/app/layout.tsx` is the only number to change: raise it to fade the mark further, lower
+it to bring the artwork forward.
 
 Dates are shown short — `01 Sep 2026`, no clock time. Hovering shows the exact timestamp, and
 sorting always uses the full stored value, so two words added on the same day still order

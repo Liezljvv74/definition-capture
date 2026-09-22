@@ -72,35 +72,6 @@ body {
   @apply bg-slate-100 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
 }
 
-/*
- * On the home page the logo is a small mark in the bottom right corner, in
- * front of the page rather than behind it. Everywhere else it stays a large
- * centred backdrop: a watermark across a list of words would sit on top of the
- * text people are there to read.
- *
- * Centred and full size in front did not work. At that size it lay across the
- * cards and the reading matter both, which is what a backdrop is for and what
- * a foreground layer is not. Small and cornered is the version of "in front"
- * that leaves the page legible.
- *
- * The same element is restyled rather than a second copy drawn on the page.
- * Two copies at one position would add up in the margins and not over the
- * opaque cards, so the artwork would step darker wherever a card edge crossed
- * it. `:has` rather than a prop, because the backdrop lives in the root
- * layout and a page cannot pass anything up to it.
- *
- * The layer is `fixed inset-0`, so `right bottom` is flush to the corner of
- * the viewport with no gutter. The shade stays at 70%: the mark sits over the
- * last card at this corner, and an opaque one would blot out its text.
- * 40 puts it over the page and the nav, and under the modal overlay at 50,
- * so a dialog on this page would cover it.
- */
-body:has([data-home-page]) [data-page-backdrop] {
-  z-index: 40;
-  background-position: right bottom;
-  background-size: min(30vmin, 240px);
-}
-
 /* Shared form control styling so every input, select, and textarea matches. */
 @utility field {
   @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
