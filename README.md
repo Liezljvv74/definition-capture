@@ -179,8 +179,9 @@ is in Settings rather than up here: it is rare and feels destructive, and one cl
 a nav bar is closer than it wants to be. On a narrow screen the bar scrolls sideways
 rather than wrapping into two rows.
 
-Pages are a light grey, with the nav one step darker so it reads as a bar without a rule
-doing the work.
+Pages are a light grey. The nav bar above them is white and each page's header band is a
+step darker than the page, so the three read as distinct bands without needing rules to
+separate them.
 
 The same logo sits behind the app as a backdrop, shaded 70%: the artwork is laid over the page
 colour at 30% strength, which is the same thing as covering it with 70% of that colour but in

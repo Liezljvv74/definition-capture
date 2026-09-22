@@ -53,7 +53,7 @@ function WordDetail() {
 
   return (
     <>
-      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <header className="border-b border-slate-300 bg-slate-200 dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link
             href="/vocabulary"

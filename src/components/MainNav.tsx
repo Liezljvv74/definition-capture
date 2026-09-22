@@ -102,11 +102,13 @@ export function MainNav() {
        * list. The background colour is not decoration here either, since a
        * transparent bar would have rows sliding visibly through the tabs.
        *
-       * One step darker than the page, which is slate 100: the bar reads as
-       * a bar without a rule doing the work. The rule is still there, at
-       * slate 300, because slate 200 on slate 200 draws nothing.
+       * White, against a page of slate 100 and a page header of slate 200, so
+       * the bar is the lightest band on the screen and the eye starts there.
+       * The rule below it still earns its place: this scrolls over white
+       * cards as well as over the page, and without it the bar and a card
+       * beneath would run together.
        */
-      className="sticky top-0 z-30 border-b border-slate-300 bg-slate-200 dark:border-slate-800 dark:bg-slate-900"
+      className="sticky top-0 z-30 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
     >
       {/* No `overflow-x-auto` here on purpose: it would clip the dropdowns,
           because an overflow on one axis makes the other one scroll too. */}
