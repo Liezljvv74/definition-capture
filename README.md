@@ -32,7 +32,13 @@ single number meant phone access broke each time it moved. Change the pattern in
 ## Where the data lives
 
 All three lists live in **Supabase** — Postgres tables `words`, `phrases` and
-`verb_tables`, plus a `user_settings` row per account for what Settings manages. One private set of
+`verb_tables`, plus a `user_settings` row per account for what Settings manages.
+
+> **On the `flashcards` branch** those three become views over one
+> `learning_items` table, so that flashcards, review history and progress can
+> work across every content type instead of one page at a time. The design is
+> in [`docs/schema.md`](docs/schema.md); the migrations are written but not
+> applied, and the application still reads and writes the same three names. One private set of
 rows per signed-in account: sign in on any browser or device and the same list is there,
 and a `/word?id=…` link opens anywhere you are signed in.
 
@@ -586,6 +592,8 @@ public/
 supabase/
   config.toml             CLI project config
   migrations/             the tables, indexes, and row level security policies
+docs/
+  schema.md               the flashcard and progress schema, and why it is shaped that way
 ```
 
 `assets/` holds source art that is not served; `public/` holds what the browser downloads, so

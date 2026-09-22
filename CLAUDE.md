@@ -116,6 +116,16 @@ identifiers behind it do not all agree, deliberately. The table is `words` with 
 the `Entry` type keeps the name it had two renames ago, from when the table was
 `entries`. Check what a name actually reaches before renaming it.
 
+**The flashcard work is a schema change, and it is designed before it is
+built.** `docs/schema.md` is the design of record: one `learning_items` table
+as the spine, a typed detail table per content type, an append-only
+`review_logs`, and `progress_summary` derived from it so dashboards are fast.
+Three migrations carry it and **none has been applied yet**. The three names
+the app reads, `words`, `phrases` and `verb_tables`, survive as views with
+`instead of` triggers, so applying them changes nothing in `src/`. Read that
+document before adding a table; a new content type should be a row in
+`item_types` and one detail table, touching nothing that already exists.
+
 **Migrations are imperative and hand-written.** Create one with
 `npx supabase migration new <name>` — never invent a filename — and apply with
 `npx supabase db push`. There is no `supabase/schemas/`, so this is not a
