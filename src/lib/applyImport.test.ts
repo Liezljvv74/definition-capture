@@ -92,6 +92,9 @@ const settings: Settings = {
   verbPersons: [],
   verbTenses: [],
   answerSeparators: ",/",
+  language: "",
+  languageOther: "",
+  sortSkipWords: [],
 };
 
 const contents = (over: Partial<BackupContents> = {}): BackupContents => ({

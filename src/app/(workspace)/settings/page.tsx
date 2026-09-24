@@ -2,10 +2,20 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useId, useState, type ReactNode } from "react";
+import { Suspense, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
-import { MAX_CATEGORIES, SEPARATOR_CHOICES } from "@/lib/constants";
+import { MAX_CATEGORIES, MAX_SKIP_WORD, SEPARATOR_CHOICES } from "@/lib/constants";
+import { foldName } from "@/lib/foldName";
+import {
+  canSortIn,
+  languageMenu,
+  languageName,
+  MAX_LANGUAGE_NAME,
+  presetFor,
+  readLanguageName,
+  type LanguageMenu,
+} from "@/lib/languages";
 import { SETTINGS_SECTIONS, readSection } from "@/lib/settingsSections";
 import {
   chooseExportFolder,
@@ -69,6 +79,20 @@ function Settings() {
 
         {section.key === "glossary" && (
           <>
+            <LanguageSection />
+
+            <SettingSection title="Words to skip when sorting">
+              <NameListEditor
+                legend="Words to skip when sorting"
+                description="Leading words Vocabulary sorts past, usually articles. With der on the list, der Tisch sorts under T. A word ending in an apostrophe, such as l', needs no space after it."
+                names={settings.sortSkipWords}
+                onChange={(sortSkipWords) => saveSettings({ sortSkipWords })}
+                placeholder="e.g. der"
+                maxLength={MAX_SKIP_WORD}
+                ordered={false}
+              />
+            </SettingSection>
+
             {/*
              * "Glossary Categories" rather than "Categories": the one list is
              * offered on the word form and the phrase form alike, and naming the
@@ -161,6 +185,254 @@ function Frame({
   );
 }
 
+
+/* --------------------------------------------------------------- language */
+
+/** The menu's value for a language typed in by name. Not a language code. */
+const OTHER_LANGUAGE = "other";
+
+const neverChanges = () => () => {};
+
+/**
+ * The language menu, or null during the server render and hydration.
+ *
+ * The server's `Intl` is a different build from the browser's, with a
+ * different set of languages it can sort, so a menu rendered there would not
+ * match the one the browser hydrates. Null there and the real menu after is
+ * what `useSyncExternalStore` gives with a server snapshot of its own.
+ */
+function useLanguageMenu(): LanguageMenu | null {
+  return useSyncExternalStore(neverChanges, languageMenu, () => null);
+}
+
+/** Two word lists that say the same thing, ignoring case and order. */
+function sameWords(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const folded = new Set(a.map(foldName));
+  return b.every((word) => folded.has(foldName(word)));
+}
+
+/**
+ * Which language is being learned. It sets the alphabetical order of every
+ * list, and choosing one with a ready-made list fills the words to skip.
+ *
+ * Changing language never throws away words someone typed without asking.
+ * The words are replaced without a question only when there is nothing of
+ * the reader's own in them: an empty list, or exactly the list the previous
+ * language came with. Otherwise the language changes at once and the words
+ * wait on an answer, since keeping them is a reasonable thing to want for
+ * someone learning two languages at once.
+ */
+function LanguageSection() {
+  const { settings, loaded } = useSettings();
+  const menu = useLanguageMenu();
+  const selectId = useId();
+  const { language, languageOther, sortSkipWords } = settings;
+
+  const [typingOther, setTypingOther] = useState(false);
+  /** Words waiting on the reader, for the language just chosen. */
+  const [offer, setOffer] = useState<{ name: string; words: readonly string[] } | null>(
+    null,
+  );
+
+  const chosenName = language ? languageName(language) : languageOther;
+  // Typing a name wins over a saved code: the code stays saved until the
+  // name is, and the field has to show in the meantime.
+  const value =
+    typingOther || (!language && languageOther) ? OTHER_LANGUAGE : language;
+  // Asked only once the menu exists, which is only ever in the browser.
+  const cannotSort = menu !== null && language !== "" && !canSortIn(language);
+  // A code chosen on another browser that this one cannot sort in is still
+  // the account's choice, and the menu has to be able to show it.
+  const missingFromMenu =
+    menu !== null &&
+    language !== "" &&
+    ![...menu.presets, ...menu.others].some((entry) => entry.code === language);
+
+  function apply(code: string, other: string) {
+    // Picking the language already chosen, after backing out of typing
+    // another, changes nothing and has nothing to ask about.
+    if (code === language && other === languageOther) {
+      setOffer(null);
+      return;
+    }
+
+    const words = presetFor(code)?.skipWords ?? [];
+    const previous = presetFor(language)?.skipWords ?? [];
+    const nothingOfTheirOwn =
+      sortSkipWords.length === 0 ||
+      sameWords(sortSkipWords, previous) ||
+      sameWords(sortSkipWords, words);
+    // Renaming a typed-in language, "Welsh" to "Cymraeg", is the same
+    // language spelled another way, and the words typed for it still apply.
+    const renamed = !code && !language && languageOther !== "";
+
+    if (renamed) {
+      saveSettings({ language: code, languageOther: other });
+      setOffer(null);
+    } else if (nothingOfTheirOwn) {
+      saveSettings({ language: code, languageOther: other, sortSkipWords: [...words] });
+      setOffer(null);
+    } else {
+      saveSettings({ language: code, languageOther: other });
+      setOffer({ name: code ? languageName(code) : other, words });
+    }
+  }
+
+  function choose(next: string) {
+    if (next === OTHER_LANGUAGE) {
+      // The language is saved once it has a name; until then the menu just
+      // shows the field for it.
+      setTypingOther(true);
+      setOffer(null);
+      return;
+    }
+    setTypingOther(false);
+    apply(next, "");
+  }
+
+  return (
+    <SettingSection title="Language" summary={chosenName || "Not chosen"}>
+      <label htmlFor={selectId} className="mb-1 block text-sm font-medium">
+        Language you are learning
+      </label>
+      <select
+        id={selectId}
+        className="field"
+        value={value}
+        disabled={!loaded || menu === null}
+        onChange={(event) => choose(event.target.value)}
+      >
+        <option value="">Not chosen</option>
+        {missingFromMenu && <option value={language}>{chosenName}</option>}
+        {menu && (
+          <optgroup label="Most learned">
+            {menu.presets.map((entry) => (
+              <option key={entry.code} value={entry.code}>
+                {entry.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {menu && (
+          <optgroup label="All languages">
+            {menu.others.map((entry) => (
+              <option key={entry.code} value={entry.code}>
+                {entry.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        <option value={OTHER_LANGUAGE}>Another language</option>
+      </select>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        Sets the alphabetical order of every list.
+      </p>
+
+      {value === OTHER_LANGUAGE && (
+        // Keyed on the saved name so a save, or a change in another tab,
+        // starts the field again from what is stored.
+        <OtherLanguageField
+          key={languageOther}
+          saved={languageOther}
+          onSave={(name) => {
+            setTypingOther(false);
+            apply("", name);
+          }}
+        />
+      )}
+
+      {cannotSort && (
+        <p role="status" className="mt-3 text-sm text-amber-700 dark:text-amber-300">
+          This browser cannot sort in {chosenName}, so lists here use a neutral
+          alphabetical order.
+        </p>
+      )}
+
+      {offer && (
+        <div
+          role="status"
+          className="mt-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800"
+        >
+          <p>
+            {offer.words.length > 0
+              ? `Replace your words to skip with the ${offer.name} list (${offer.words.join(", ")})?`
+              : offer.name
+                ? `There is no list of words to skip for ${offer.name}. Clear yours?`
+                : "Clear your words to skip as well?"}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                saveSettings({ sortSkipWords: [...offer.words] });
+                setOffer(null);
+              }}
+            >
+              {offer.words.length > 0 ? "Replace" : "Clear"}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setOffer(null)}>
+              Keep mine
+            </button>
+          </div>
+        </div>
+      )}
+    </SettingSection>
+  );
+}
+
+/** The name of a language the menu does not have. */
+function OtherLanguageField({
+  saved,
+  onSave,
+}: {
+  saved: string;
+  onSave: (name: string) => void;
+}) {
+  const inputId = useId();
+  const [draft, setDraft] = useState(saved);
+  const name = readLanguageName(draft);
+
+  function save() {
+    if (name && name !== saved) onSave(name);
+  }
+
+  return (
+    <div className="mt-4">
+      <label htmlFor={inputId} className="mb-1 block text-sm font-medium">
+        Language name
+      </label>
+      <div className="flex gap-2">
+        <input
+          id={inputId}
+          className="field flex-1"
+          value={draft}
+          maxLength={MAX_LANGUAGE_NAME}
+          placeholder="e.g. Welsh"
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            save();
+          }}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary shrink-0"
+          disabled={!name || name === saved}
+          onClick={save}
+        >
+          Save
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        Lists use a neutral alphabetical order. Add its articles to Words to skip when
+        sorting.
+      </p>
+    </div>
+  );
+}
 
 /**
  * Which punctuation means "or" when a flashcard answer is marked.

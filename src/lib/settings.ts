@@ -16,8 +16,10 @@ import {
   DEFAULT_CATEGORIES,
   DEFAULT_SOURCES,
   MAX_LIST_LENGTH,
+  MAX_SKIP_WORD,
   readSeparators,
 } from "@/lib/constants";
+import { readLanguageCode, readLanguageName } from "@/lib/languages";
 import {
   ABANDONED,
   readError,
@@ -49,6 +51,19 @@ export type Settings = {
    * has to be typed out in full.
    */
   answerSeparators: string;
+  /**
+   * The language being learned, as an ISO 639-1 code, or "" when none is
+   * chosen. Sets the alphabetical order of every list; see `sortName.ts`.
+   */
+  language: string;
+  /**
+   * The name of a language the menu does not have, typed in by hand. Only
+   * ever set while `language` is "", which the database checks too: the two
+   * are one answer, and a row holding both would not say which one it meant.
+   */
+  languageOther: string;
+  /** Leading words Vocabulary sorts past, such as articles. */
+  sortSkipWords: string[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -60,7 +75,30 @@ export const DEFAULT_SETTINGS: Settings = {
   verbPersons: [],
   verbTenses: [],
   answerSeparators: DEFAULT_ANSWER_SEPARATORS,
+  // No language and nothing skipped: the app does not assume one, and what a
+  // reader is learning is theirs to say.
+  language: "",
+  languageOther: "",
+  sortSkipWords: [],
 };
+
+/**
+ * The words to skip, from anywhere untrusted. The same rules as every other
+ * name list, and a word too long to be an article is dropped rather than cut
+ * short into a different word.
+ */
+export function readSkipWords(value: unknown): string[] {
+  return readNameList(value, MAX_LIST_LENGTH).filter((word) => word.length <= MAX_SKIP_WORD);
+}
+
+/**
+ * A chosen language and a typed-in one are one answer, not two. A code wins,
+ * because it is the one the menu offered.
+ */
+function readLanguage(code: unknown, other: unknown): Pick<Settings, "language" | "languageOther"> {
+  const language = readLanguageCode(code);
+  return { language, languageOther: language ? "" : readLanguageName(other) };
+}
 
 export type SettingsSnapshot = {
   settings: Settings;
@@ -109,6 +147,8 @@ function fromRow(row: Record<string, unknown> | null): Settings {
     // means it, and treating their empty string as "not set" would keep
     // handing them back the commas they just removed.
     answerSeparators: readSeparators(row.answer_separators),
+    ...readLanguage(row.language, row.language_other),
+    sortSkipWords: readSkipWords(row.sort_skip_words),
   };
 }
 
@@ -205,6 +245,23 @@ export function currentSettings(): Settings {
 }
 
 /**
+ * Settings as a backup file restores them.
+ *
+ * The language and its words are optional here where everything else is not:
+ * a file written before they existed says nothing about them, and restoring it
+ * should leave the reader's own choice alone rather than clear it. Left
+ * undefined, `saveSettings` keeps what is already set.
+ *
+ * `answerSeparators` answers a missing key differently, with the defaults,
+ * because a file from before that setting was written by someone marking
+ * with the defaults. There is no such answer here: the old fixed rule was
+ * German, and restoring a file is no reason to decide the reader is learning
+ * German.
+ */
+export type RestoredSettings = Omit<Settings, "language" | "languageOther" | "sortSkipWords"> &
+  Partial<Pick<Settings, "language" | "languageOther" | "sortSkipWords">>;
+
+/**
  * Settings out of a backup file. Reads the camelCase shape an export writes,
  * the way `fromRow` reads a database row.
  *
@@ -213,7 +270,7 @@ export function currentSettings(): Settings {
  * settings: the first restores nothing, the second would overwrite the
  * reader's categories and sources with blanks.
  */
-export function parseSettings(raw: unknown): Settings | null {
+export function parseSettings(raw: unknown): RestoredSettings | null {
   if (typeof raw !== "object" || raw === null) return null;
   const value = raw as Record<string, unknown>;
 
@@ -239,6 +296,12 @@ export function parseSettings(raw: unknown): Settings | null {
       value.answerSeparators === undefined
         ? DEFAULT_ANSWER_SEPARATORS
         : readSeparators(value.answerSeparators),
+    ...(value.language === undefined && value.languageOther === undefined
+      ? {}
+      : readLanguage(value.language, value.languageOther)),
+    ...(value.sortSkipWords === undefined
+      ? {}
+      : { sortSkipWords: readSkipWords(value.sortSkipWords) }),
   };
 }
 
@@ -288,6 +351,12 @@ export function saveSettings(change: Partial<Settings>): void {
     answerSeparators: readSeparators(
       change.answerSeparators ?? snapshot.settings.answerSeparators,
     ),
+    // Both halves together or neither: choosing a language from the menu has
+    // to clear a typed-in one, and typing one in has to clear the code.
+    ...(change.language === undefined && change.languageOther === undefined
+      ? readLanguage(snapshot.settings.language, snapshot.settings.languageOther)
+      : readLanguage(change.language ?? "", change.languageOther ?? "")),
+    sortSkipWords: readSkipWords(change.sortSkipWords ?? snapshot.settings.sortSkipWords),
   };
 
   // The form guards against this too, but the database refuses an empty
@@ -310,6 +379,9 @@ export function saveSettings(change: Partial<Settings>): void {
         verb_persons: next.verbPersons,
         verb_tenses: next.verbTenses,
         answer_separators: next.answerSeparators,
+        language: next.language,
+        language_other: next.languageOther,
+        sort_skip_words: next.sortSkipWords,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },

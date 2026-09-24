@@ -25,8 +25,9 @@ import { useWords } from "@/lib/useWords";
 import { useWideScreen } from "@/lib/useWideScreen";
 import { useListPage } from "@/lib/useListPage";
 import { type ListSelection } from "@/lib/useListSelection";
-import { compareNames, compareText } from "@/lib/sortName";
+import type { Sorting } from "@/lib/sortName";
 import { usePhrases } from "@/lib/usePhrases";
+import { useSorting } from "@/lib/useSorting";
 
 type SortKey = "word" | "definition" | "dateAdded";
 type SortDirection = "asc" | "desc";
@@ -44,15 +45,15 @@ const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
 const idOfEntry = (entry: Entry) => entry.id;
 const nameOfEntry = (entry: Entry) => entry.word;
 
-function compare(a: Entry, b: Entry, key: SortKey): number {
+function compare(a: Entry, b: Entry, key: SortKey, sorting: Sorting): number {
   switch (key) {
     case "word":
-      return compareNames(a.word, b.word);
+      return sorting.compareNames(a.word, b.word);
     case "definition":
       // No article convention here, and a word still waiting for its
       // definition sorts to the top of the ascending list, which is where
       // you would go looking for it.
-      return compareText(a.definition, b.definition);
+      return sorting.compareText(a.definition, b.definition);
     case "dateAdded":
       return a.dateAdded.localeCompare(b.dateAdded);
   }
@@ -62,20 +63,21 @@ export default function VocabularyPage() {
   const { entries, loaded } = useWords();
   const wide = useWideScreen();
   const { phrases } = usePhrases();
+  const sorting = useSorting();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [onlyNeedsDefinition, setOnlyNeedsDefinition] = useState(false);
   /** Empty means every category; otherwise the one being shown. */
   const [category, setCategory] = useState("");
-  // Alphabetical by word, ignoring any form of a leading der or ein so the German
-  // nouns file under their own first letter. Date added is no longer a
-  // column and is now only the tie-breaker.
+  // Alphabetical by word, looking past a leading word from the skip list in
+  // Settings, so nouns saved with their article file under their own first
+  // letter. Date added is no longer a column and is now only the tie-breaker.
   const [sort, setSort] = useState<Sort>({ key: "word", direction: "asc" });
 
   /** See `categoryOptions`: in use only, plus whatever is being filtered by. */
   const categories = useMemo(
-    () => categoryOptions(entries, category),
-    [entries, category],
+    () => categoryOptions(entries, category, sorting.compareText),
+    [entries, category, sorting],
   );
 
   /**
@@ -90,12 +92,14 @@ export default function VocabularyPage() {
    */
   const sorted = useMemo(() => {
     return [...entries].sort((a, b) => {
-      const result = compare(a, b, sort.key);
+      const result = compare(a, b, sort.key, sorting);
       if (result !== 0) return sort.direction === "asc" ? result : -result;
       // Ties fall back to newest-first so the order is always stable.
       return b.dateAdded.localeCompare(a.dateAdded);
     });
-  }, [entries, sort]);
+    // `sorting` is here so the list re-sorts when settings arrive after the
+    // first render, or the language changes; it keeps its identity otherwise.
+  }, [entries, sort, sorting]);
 
   /**
    * The list filters on a deferred copy of the query, not the live one.

@@ -267,8 +267,10 @@ Together these are **Glossary**, one section with two pages. Vocabulary owns
 adding, editing and deleting words; its columns are Word, Definition, Category and
 Ref. Search covers words, definitions and refs, a category dropdown narrows to one
 group, a "needs definition" checkbox narrows to unfinished entries, and the Word
-and Definition headers re-sort. The list is alphabetical, and a leading `der`,
-`die` or `das` is skipped when comparing, so a noun files under its own word. Rows
+and Definition headers re-sort. The list is alphabetical in the order of the
+language chosen in Settings, and a leading word from that language's skip list,
+usually an article such as `der` or `la`, is skipped when comparing, so a noun
+files under its own word. Rows
 that still need a definition are flagged in amber. A table on laptops, cards on
 phones.
 
@@ -330,7 +332,12 @@ rather than going straight to one page:
 
 - **Profile**: the address you signed in with, an optional display name shown in
   the nav in its place, Sign out, **Password** (see above), and **Export folder**.
-- **Glossary settings**: Glossary Categories and Sources, plus Verb persons and
+- **Glossary settings**: the **Language** you are learning, which sets the
+  alphabetical order of every list, and the **Words to skip when sorting** that
+  Vocabulary looks past. Eleven common languages are ready-made: seven fill the
+  list with their articles, and Chinese, Japanese, Korean and Russian, which have
+  none, set only the order. Any other language, or one typed in by name, starts
+  with an empty list to fill in. Then Glossary Categories and Sources, plus Verb persons and
   Verb tenses. Saving the category list also brings the flashcard filter's copy of
   it into line. A category removed here is deleted only if nothing is filed under
   it.
@@ -426,6 +433,8 @@ field `term` and the reader accepts either spelling. Two fields arrived with
 version 8, and a file without them is not treated as a file that says no: a phrase
 with no date recorded is given today's, and a settings block with no answer
 separators restores the defaults rather than switching the marking rules off.
+Version 9 adds the language and its skip list, and a file without them leaves
+yours as they are.
 **Replace never wipes a list the file carries nothing for**: restoring a
 words-only export leaves your phrases and verb tables alone. Anything unreadable is
 counted and reported rather than silently dropped.
@@ -569,13 +578,15 @@ src/
     backup.ts             one backup file covering all three lists
     backupFile.ts         download plumbing: builds the .xlsx and .json files
     planImport.ts         what merging a backup into a list means, as a pure function
-    settings.ts           the account's display name and editable lists
+    settings.ts           the account's display name, language and editable lists
+    languages.ts          the language menu and the ready-made skip lists
     settingsSections.ts   the three groups Settings is divided into
     exportFolder.ts       the chosen export folder, held in IndexedDB
     useWords.ts           React binding for the word store
     usePhrases.ts         React binding for the phrase store
     useVerbTables.ts      React binding for the conjugation tables
     useSettings.ts        React binding for the settings row
+    useSorting.ts         the account's sorting rules, for a list page
     useSession.ts         React binding for the session store
     useExportFolder.ts    React binding for the export folder
     useListPage.ts        the bookkeeping every list page does around its rows
@@ -584,7 +595,7 @@ src/
     categoryOptions.ts    the categories a list's filter offers
     refSuggestions.ts     the names a Ref field offers to complete
     foldName.ts           the one way a name is folded before it is compared
-    sortName.ts           the comparison that skips a leading der / ein, in any form
+    sortName.ts           sorting in the chosen language, past a leading skip word
     parseWord.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting

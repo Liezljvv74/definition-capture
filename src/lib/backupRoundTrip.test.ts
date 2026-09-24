@@ -135,6 +135,76 @@ describe("what the writer writes, the reader reads", () => {
     expect(restored?.answerSeparators).toBe("");
   });
 
+  it("leaves the reader's language alone when a file predates the setting", () => {
+    /*
+     * Undefined, not "" and []. `saveSettings` keeps whatever is set for a
+     * field left undefined, and clears it for "". Restoring a file from
+     * before languages existed must not wipe out a language chosen since,
+     * and "" here would do exactly that, with the lists quietly reverting to
+     * the neutral order.
+     */
+    const olderSettings = {
+      displayName: "",
+      categories: ["Home"],
+      sources: ["Manual"],
+      verbPersons: [],
+      verbTenses: [],
+      answerSeparators: ",/",
+    };
+
+    const restored = read(fileHolding({ settings: olderSettings })).settings;
+    expect(restored).not.toBeNull();
+    expect(restored?.language).toBeUndefined();
+    expect(restored?.languageOther).toBeUndefined();
+    expect(restored?.sortSkipWords).toBeUndefined();
+  });
+
+  it("restores a language and its words from a current file", () => {
+    const restored = read(
+      fileHolding({
+        settings: {
+          displayName: "",
+          categories: ["Home"],
+          sources: ["Manual"],
+          verbPersons: [],
+          verbTenses: [],
+          answerSeparators: ",/",
+          language: "fr",
+          languageOther: "",
+          sortSkipWords: ["le", "la", "l'"],
+        },
+      }),
+    ).settings;
+    expect(restored?.language).toBe("fr");
+    expect(restored?.languageOther).toBe("");
+    expect(restored?.sortSkipWords).toEqual(["le", "la", "l'"]);
+  });
+
+  it("reads a typed-in language only when no code is chosen", () => {
+    // The two are one answer. A file holding both keeps the code, which is
+    // the one the menu offered, as the database's check would insist.
+    const both = read(
+      fileHolding({
+        settings: { language: "fr", languageOther: "Klingon", sortSkipWords: [] },
+      }),
+    ).settings;
+    expect(both?.language).toBe("fr");
+    expect(both?.languageOther).toBe("");
+
+    const typed = read(
+      fileHolding({ settings: { language: "", languageOther: " Klingon ", sortSkipWords: [] } }),
+    ).settings;
+    expect(typed?.language).toBe("");
+    expect(typed?.languageOther).toBe("Klingon");
+  });
+
+  it("reads an unusable language code as none chosen", () => {
+    const restored = read(
+      fileHolding({ settings: { language: "French", languageOther: "", sortSkipWords: [] } }),
+    ).settings;
+    expect(restored?.language).toBe("");
+  });
+
   it("returns a conjugation table with its grid intact", () => {
     const [restored] = read(fileHolding()).verbTables;
     expect(restored).toEqual(table);

@@ -22,6 +22,8 @@ export function NameListEditor({
   onChange,
   minimum = 0,
   placeholder,
+  maxLength,
+  ordered = true,
 }: {
   legend: string;
   description: string;
@@ -30,6 +32,17 @@ export function NameListEditor({
   /** Below this many the remove buttons switch off. */
   minimum?: number;
   placeholder: string;
+  /**
+   * The longest one name may be, where the list has a limit of its own.
+   * Checked on Add with a message rather than set on the input, which would
+   * let the browser cut a pasted name short and save a different word.
+   */
+  maxLength?: number;
+  /**
+   * False for a list whose order means nothing, such as the words to skip
+   * when sorting, so there are no arrows implying that it does.
+   */
+  ordered?: boolean;
 }) {
   const inputId = useId();
   const [draft, setDraft] = useState("");
@@ -41,6 +54,10 @@ export function NameListEditor({
 
     if (names.some((existing) => foldName(existing) === foldName(name))) {
       setError(`"${name}" is already on the list.`);
+      return;
+    }
+    if (maxLength !== undefined && name.length > maxLength) {
+      setError(`That is longer than this list takes (${maxLength} characters).`);
       return;
     }
     if (names.length >= MAX_LIST_LENGTH) {
@@ -84,24 +101,28 @@ export function NameListEditor({
             className="flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 dark:border-slate-800"
           >
             <span className="flex-1 truncate text-sm">{name}</span>
-            <button
-              type="button"
-              className={arrow}
-              disabled={index === 0}
-              onClick={() => move(index, -1)}
-              aria-label={`Move ${name} up`}
-            >
-              ▲
-            </button>
-            <button
-              type="button"
-              className={arrow}
-              disabled={index === names.length - 1}
-              onClick={() => move(index, 1)}
-              aria-label={`Move ${name} down`}
-            >
-              ▼
-            </button>
+            {ordered && (
+              <>
+                <button
+                  type="button"
+                  className={arrow}
+                  disabled={index === 0}
+                  onClick={() => move(index, -1)}
+                  aria-label={`Move ${name} up`}
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  className={arrow}
+                  disabled={index === names.length - 1}
+                  onClick={() => move(index, 1)}
+                  aria-label={`Move ${name} down`}
+                >
+                  ▼
+                </button>
+              </>
+            )}
             <button
               type="button"
               className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30 dark:text-red-400 dark:hover:bg-red-950/40"

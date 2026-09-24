@@ -28,7 +28,8 @@ export const SETTINGS_SECTIONS: {
   {
     key: "glossary",
     label: "Glossary settings",
-    description: "The lists the word, phrase and conjugation forms offer.",
+    description:
+      "The language you are learning, and the lists the word, phrase and conjugation forms offer.",
   },
   {
     key: "flashcards",
