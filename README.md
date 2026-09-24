@@ -336,7 +336,8 @@ rather than going straight to one page:
   alphabetical order of every list, and the **Words to skip when sorting** that
   Vocabulary looks past. Eleven common languages are ready-made: seven fill the
   list with their articles, and Chinese, Japanese, Korean and Russian, which have
-  none, set only the order. Any other language, or one typed in by name, starts
+  none, set only the order. Eight also fill Verb persons in textbook order; the
+  three whose verbs do not change with the person leave that list alone. Any other language, or one typed in by name, starts
   with an empty list to fill in. Then Glossary Categories and Sources, plus Verb
   persons and Verb tenses. Categories, Sources and Verb tenses are kept in
   alphabetical order. Verb persons keep the order they were added in, since that

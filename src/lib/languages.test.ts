@@ -11,6 +11,7 @@ import {
   readLanguageName,
 } from "@/lib/languages";
 import { readSkipWords } from "@/lib/settings";
+import { readNameList } from "@/lib/types";
 
 describe("the ready-made lists", () => {
   it("are all storable as they are", () => {
@@ -25,6 +26,22 @@ describe("the ready-made lists", () => {
         expect(word.length).toBeLessThanOrEqual(MAX_SKIP_WORD);
       }
     }
+  });
+
+  it("have persons that are storable as they are", () => {
+    // The same reason as the words: choosing a language saves this list, and
+    // a name the settings reader would drop or the database refuse turns a
+    // pick from a menu into an error.
+    for (const preset of LANGUAGE_PRESETS) {
+      expect(readNameList(preset.verbPersons, MAX_LIST_LENGTH)).toEqual(preset.verbPersons);
+    }
+  });
+
+  it("give persons to every language whose verbs conjugate for them", () => {
+    const without = LANGUAGE_PRESETS.filter((preset) => preset.verbPersons.length === 0)
+      .map((preset) => preset.code)
+      .sort();
+    expect(without).toEqual(["ja", "ko", "zh"]);
   });
 
   it("cover each language once", () => {

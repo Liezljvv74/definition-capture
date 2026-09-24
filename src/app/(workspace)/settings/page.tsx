@@ -218,27 +218,44 @@ function sameWords(a: readonly string[], b: readonly string[]): boolean {
 }
 
 /**
+ * Two lists of persons that say the same thing, ignoring case but not order.
+ * Order counts here, unlike for the words to skip: it is a table's row order,
+ * and a reader who rearranged a ready-made list has made it their own.
+ */
+function samePersons(a: readonly string[], b: readonly string[]): boolean {
+  return (
+    a.length === b.length && a.every((name, index) => foldName(name) === foldName(b[index]))
+  );
+}
+
+/** A list a change of language would replace, waiting on the reader. */
+type ListOffer = {
+  list: "sortSkipWords" | "verbPersons";
+  /** Empty means the new language has none, so the offer is to clear. */
+  names: readonly string[];
+};
+
+/**
  * Which language is being learned. It sets the alphabetical order of every
- * list, and choosing one with a ready-made list fills the words to skip.
+ * list, and choosing one with ready-made lists fills the words to skip and
+ * the verb persons.
  *
- * Changing language never throws away words someone typed without asking.
- * The words are replaced without a question only when there is nothing of
- * the reader's own in them: an empty list, or exactly the list the previous
- * language came with. Otherwise the language changes at once and the words
- * wait on an answer, since keeping them is a reasonable thing to want for
- * someone learning two languages at once.
+ * Changing language never throws away names someone typed without asking.
+ * A list is replaced without a question only when there is nothing of the
+ * reader's own in it: empty, or exactly the list the previous language, or
+ * the new one, came with. Otherwise the language changes at once and that
+ * list waits on an answer, one list at a time, since keeping one is a
+ * reasonable thing to want for someone learning two languages at once.
  */
 function LanguageSection() {
   const { settings, loaded } = useSettings();
   const menu = useLanguageMenu();
   const selectId = useId();
-  const { language, languageOther, sortSkipWords } = settings;
+  const { language, languageOther, sortSkipWords, verbPersons } = settings;
 
   const [typingOther, setTypingOther] = useState(false);
-  /** Words waiting on the reader, for the language just chosen. */
-  const [offer, setOffer] = useState<{ name: string; words: readonly string[] } | null>(
-    null,
-  );
+  /** Lists waiting on the reader, for the language just chosen. */
+  const [offer, setOffer] = useState<{ name: string; lists: ListOffer[] } | null>(null);
 
   const chosenName = language ? languageName(language) : languageOther;
   // Typing a name wins over a saved code: the code stays saved until the
@@ -262,26 +279,62 @@ function LanguageSection() {
       return;
     }
 
-    const words = presetFor(code)?.skipWords ?? [];
-    const previous = presetFor(language)?.skipWords ?? [];
-    const nothingOfTheirOwn =
-      sortSkipWords.length === 0 ||
-      sameWords(sortSkipWords, previous) ||
-      sameWords(sortSkipWords, words);
     // Renaming a typed-in language, "Welsh" to "Cymraeg", is the same
-    // language spelled another way, and the words typed for it still apply.
-    const renamed = !code && !language && languageOther !== "";
-
-    if (renamed) {
+    // language spelled another way, and the lists made for it still apply.
+    if (!code && !language && languageOther !== "") {
       saveSettings({ language: code, languageOther: other });
       setOffer(null);
-    } else if (nothingOfTheirOwn) {
-      saveSettings({ language: code, languageOther: other, sortSkipWords: [...words] });
-      setOffer(null);
-    } else {
-      saveSettings({ language: code, languageOther: other });
-      setOffer({ name: code ? languageName(code) : other, words });
+      return;
     }
+
+    const next = presetFor(code);
+    const previous = presetFor(language);
+    const change: { sortSkipWords?: string[]; verbPersons?: string[] } = {};
+    const waiting: ListOffer[] = [];
+
+    // The words to skip always follow the language, cleared when it has none:
+    // another language's articles would only skip the wrong words.
+    const words = next?.skipWords ?? [];
+    if (
+      sortSkipWords.length === 0 ||
+      sameWords(sortSkipWords, previous?.skipWords ?? []) ||
+      sameWords(sortSkipWords, words)
+    ) {
+      change.sortSkipWords = [...words];
+    } else {
+      waiting.push({ list: "sortSkipWords", names: words });
+    }
+
+    // Persons follow only a language that has some. One whose verbs do not
+    // change with the person, or one with no ready-made list, leaves them as
+    // they are: a list of persons is still a starting point, and an empty one
+    // only means the Verbs page asks before the first table.
+    const persons = next?.verbPersons ?? [];
+    if (persons.length > 0) {
+      if (
+        verbPersons.length === 0 ||
+        samePersons(verbPersons, previous?.verbPersons ?? []) ||
+        samePersons(verbPersons, persons)
+      ) {
+        change.verbPersons = [...persons];
+      } else {
+        waiting.push({ list: "verbPersons", names: persons });
+      }
+    }
+
+    saveSettings({ language: code, languageOther: other, ...change });
+    setOffer(
+      waiting.length > 0 ? { name: code ? languageName(code) : other, lists: waiting } : null,
+    );
+  }
+
+  /** Answers one waiting list, and closes the panel once none are left. */
+  function answer(list: ListOffer["list"], replace: boolean) {
+    if (!offer) return;
+    const entry = offer.lists.find((item) => item.list === list);
+    if (replace && entry) saveSettings({ [list]: [...entry.names] });
+    const left = offer.lists.filter((item) => item.list !== list);
+    setOffer(left.length > 0 ? { ...offer, lists: left } : null);
   }
 
   function choose(next: string) {
@@ -357,30 +410,38 @@ function LanguageSection() {
       {offer && (
         <div
           role="status"
-          className="mt-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800"
+          className="mt-4 space-y-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800"
         >
-          <p>
-            {offer.words.length > 0
-              ? `Replace your words to skip with the ${offer.name} list (${offer.words.join(", ")})?`
-              : offer.name
-                ? `There is no list of words to skip for ${offer.name}. Clear yours?`
-                : "Clear your words to skip as well?"}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                saveSettings({ sortSkipWords: [...offer.words] });
-                setOffer(null);
-              }}
-            >
-              {offer.words.length > 0 ? "Replace" : "Clear"}
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setOffer(null)}>
-              Keep mine
-            </button>
-          </div>
+          {offer.lists.map(({ list, names }) => {
+            const label = list === "sortSkipWords" ? "words to skip" : "verb persons";
+            return (
+              <div key={list}>
+                <p>
+                  {names.length > 0
+                    ? `Replace your ${label} with the ${offer.name} list (${names.join(", ")})?`
+                    : offer.name
+                      ? `There is no list of ${label} for ${offer.name}. Clear yours?`
+                      : `Clear your ${label} as well?`}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => answer(list, true)}
+                  >
+                    {names.length > 0 ? "Replace" : "Clear"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => answer(list, false)}
+                  >
+                    Keep mine
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </SettingSection>

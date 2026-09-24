@@ -1,5 +1,6 @@
 /**
- * The languages Settings offers, and the words each one skips when sorting.
+ * The languages Settings offers, the words each one skips when sorting, and
+ * the persons its conjugation tables start from.
  *
  * A language is stored as its two-letter ISO 639-1 code (`fr`), never as its
  * name. A name depends on the language it is written in, "French" here and
@@ -16,6 +17,13 @@ export type LanguagePreset = {
    * that has none, where choosing it still sets the alphabetical order.
    */
   skipWords: readonly string[];
+  /**
+   * The people a conjugation table is built from, in the order a textbook
+   * lists them, with forms that share a conjugation joined by a slash. Empty
+   * for a language whose verbs do not change with the person, where choosing
+   * it leaves the reader's own list alone.
+   */
+  verbPersons: readonly string[];
 };
 
 /**
@@ -28,10 +36,23 @@ export type LanguagePreset = {
  * and a list of words cannot express it.
  */
 export const LANGUAGE_PRESETS: readonly LanguagePreset[] = [
-  { code: "zh", skipWords: [] },
-  { code: "nl", skipWords: ["de", "het", "een"] },
-  { code: "en", skipWords: ["the", "a", "an"] },
-  { code: "fr", skipWords: ["le", "la", "les", "l'", "un", "une", "des"] },
+  // Chinese, Japanese and Korean verbs do not conjugate for person.
+  { code: "zh", skipWords: [], verbPersons: [] },
+  {
+    code: "nl",
+    skipWords: ["de", "het", "een"],
+    verbPersons: ["ik", "jij/u", "hij/zij/het", "wij", "jullie", "zij"],
+  },
+  {
+    code: "en",
+    skipWords: ["the", "a", "an"],
+    verbPersons: ["I", "you", "he/she/it", "we", "you (plural)", "they"],
+  },
+  {
+    code: "fr",
+    skipWords: ["le", "la", "les", "l'", "un", "une", "des"],
+    verbPersons: ["je", "tu", "il/elle/on", "nous", "vous", "ils/elles"],
+  },
   {
     code: "de",
     skipWords: [
@@ -48,16 +69,37 @@ export const LANGUAGE_PRESETS: readonly LanguagePreset[] = [
       "einer",
       "eines",
     ],
+    verbPersons: ["ich", "du", "er/sie/es", "wir", "ihr", "sie/Sie"],
   },
   {
     code: "it",
     skipWords: ["il", "lo", "la", "i", "gli", "le", "l'", "un", "uno", "una", "un'"],
+    verbPersons: ["io", "tu", "lui/lei", "noi", "voi", "loro"],
   },
-  { code: "ja", skipWords: [] },
-  { code: "ko", skipWords: [] },
-  { code: "pt", skipWords: ["o", "a", "os", "as", "um", "uma", "uns", "umas"] },
-  { code: "ru", skipWords: [] },
-  { code: "es", skipWords: ["el", "la", "los", "las", "un", "una", "unos", "unas"] },
+  { code: "ja", skipWords: [], verbPersons: [] },
+  { code: "ko", skipWords: [], verbPersons: [] },
+  {
+    code: "pt",
+    skipWords: ["o", "a", "os", "as", "um", "uma", "uns", "umas"],
+    verbPersons: ["eu", "tu", "ele/ela/você", "nós", "vós", "eles/elas/vocês"],
+  },
+  {
+    code: "ru",
+    skipWords: [],
+    verbPersons: ["я", "ты", "он/она/оно", "мы", "вы", "они"],
+  },
+  {
+    code: "es",
+    skipWords: ["el", "la", "los", "las", "un", "una", "unos", "unas"],
+    verbPersons: [
+      "yo",
+      "tú",
+      "él/ella/usted",
+      "nosotros/nosotras",
+      "vosotros/vosotras",
+      "ellos/ellas/ustedes",
+    ],
+  },
 ];
 
 /**
