@@ -114,19 +114,26 @@ export function RowDeleteButton({
   label,
   onClick,
   className = "",
+  disabledReason,
 }: {
   /** The item's own name, so the button says what it deletes. */
   label: string;
   onClick: () => void;
   className?: string;
+  /**
+   * Why the item cannot be deleted right now, such as the last source a list
+   * must keep. Switches the button off and says so on hover.
+   */
+  disabledReason?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabledReason !== undefined}
       aria-label={`Delete ${label}`}
-      title={`Delete ${label}`}
-      className={`inline-flex cursor-pointer items-center justify-center rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400 ${className}`}
+      title={disabledReason ?? `Delete ${label}`}
+      className={`inline-flex cursor-pointer items-center justify-center rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 dark:hover:bg-red-500/10 dark:hover:text-red-400 ${className}`}
     >
       <TrashIcon />
     </button>

@@ -102,18 +102,21 @@ function readLanguage(code: unknown, other: unknown): Pick<Settings, "language" 
 }
 
 /**
- * Categories in alphabetical order, in the account's own language.
+ * A settings list in alphabetical order, in the account's own language.
  *
- * Kept sorted rather than in the order they were typed. The list has no order
- * anyone chose on purpose, unlike sources, where the order is a rough ranking
- * of trust, and a sorted list is the one a reader can find a name in. Sorted
- * where the list is read as well as where it is saved, so a list saved before
- * this rule shows in order everywhere without having to be saved again: the
- * word and phrase forms offer categories in this order, and the flashcard
- * filter takes its order from the saved list through `sync_category_tags`.
+ * Categories, sources and tenses are kept sorted rather than in the order
+ * they were typed, because a sorted list is the one a reader can find a name
+ * in. Sorted where the lists are read as well as where they are saved, so a
+ * list saved before this rule shows in order everywhere without having to be
+ * saved again: the forms offer these in this order, and the flashcard filter
+ * takes its category order from the saved list through `sync_category_tags`.
+ *
+ * Verb persons are the exception, and deliberately so. Their order is the row
+ * order of every new conjugation table, which follows grammar (ich, du,
+ * er/sie/es) rather than the alphabet, so they stay as the reader added them.
  */
-function sortedCategories(categories: string[], language: string): string[] {
-  return [...categories].sort(sortingFor(language, []).compareText);
+function sortedNames(names: string[], language: string): string[] {
+  return [...names].sort(sortingFor(language, []).compareText);
 }
 
 export type SettingsSnapshot = {
@@ -168,10 +171,15 @@ function fromRow(row: Record<string, unknown> | null): Settings {
   };
 }
 
-/** A row as settings, with the categories in order; see `sortedCategories`. */
+/** A row as settings, with the sorted lists in order; see `sortedNames`. */
 function fromRowSorted(row: Record<string, unknown> | null): Settings {
   const settings = fromRow(row);
-  return { ...settings, categories: sortedCategories(settings.categories, settings.language) };
+  return {
+    ...settings,
+    categories: sortedNames(settings.categories, settings.language),
+    sources: sortedNames(settings.sources, settings.language),
+    verbTenses: sortedNames(settings.verbTenses, settings.language),
+  };
 }
 
 async function load(userId: string): Promise<void> {
@@ -381,7 +389,9 @@ export function saveSettings(change: Partial<Settings>): void {
     sortSkipWords: readSkipWords(change.sortSkipWords ?? snapshot.settings.sortSkipWords),
   };
 
-  next.categories = sortedCategories(next.categories, next.language);
+  next.categories = sortedNames(next.categories, next.language);
+  next.sources = sortedNames(next.sources, next.language);
+  next.verbTenses = sortedNames(next.verbTenses, next.language);
 
   // The form guards against this too, but the database refuses an empty
   // source list outright and a rejected write would be a worse way to learn.

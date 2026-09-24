@@ -24,7 +24,7 @@ import {
   supportsExportFolder,
 } from "@/lib/exportFolder";
 import { MIN_PASSWORD, changePassword, sendPasswordReset, signOut } from "@/lib/session";
-import { renameCategory } from "@/lib/renameCategory";
+import { renameCategory, renameInList, renameSource } from "@/lib/renames";
 import { saveSettings } from "@/lib/settings";
 import { useExportFolder } from "@/lib/useExportFolder";
 import { useSession } from "@/lib/useSession";
@@ -88,9 +88,9 @@ function Settings() {
                 description="Leading words Vocabulary sorts past, usually articles. With der on the list, der Tisch sorts under T. A word ending in an apostrophe, such as l', needs no space after it."
                 names={settings.sortSkipWords}
                 onChange={(sortSkipWords) => saveSettings({ sortSkipWords })}
+                onRename={(from, to) => renameInList("sortSkipWords", from, to)}
                 placeholder="e.g. der"
                 maxLength={MAX_SKIP_WORD}
-                ordered={false}
               />
             </SettingSection>
 
@@ -107,7 +107,6 @@ function Settings() {
                 names={settings.categories}
                 onChange={(categories) => saveSettings({ categories })}
                 onRename={renameCategory}
-                ordered={false}
                 placeholder="e.g. Travel"
               />
             </SettingSection>
@@ -115,9 +114,10 @@ function Settings() {
             <SettingSection title="Sources">
               <NameListEditor
                 legend="Sources"
-                description="Where a definition came from. Shown on a word or phrase when you open it. The order you put them in is the order the form offers them, so the ones you use most belong at the top."
+                description="Where a definition came from. Shown on a word or phrase when you open it. Renaming one renames it on everything that came from it."
                 names={settings.sources}
                 onChange={(sources) => saveSettings({ sources })}
+                onRename={renameSource}
                 minimum={1}
                 placeholder="e.g. Textbook"
               />
@@ -126,9 +126,10 @@ function Settings() {
             <SettingSection title="Verb persons">
               <NameListEditor
                 legend="Verb persons"
-                description="The people a conjugation table is built from, in the order the rows should appear. Changing this shapes the next table you make; tables you already have keep the rows they were made with."
+                description="The people a conjugation table is built from, in the order the rows should appear: a person added here goes to the end. Changing this shapes the next table you make; tables you already have keep the rows they were made with."
                 names={settings.verbPersons}
                 onChange={(verbPersons) => saveSettings({ verbPersons })}
+                onRename={(from, to) => renameInList("verbPersons", from, to)}
                 placeholder="e.g. ich"
               />
             </SettingSection>
@@ -136,9 +137,10 @@ function Settings() {
             <SettingSection title="Verb tenses">
               <NameListEditor
                 legend="Verb tenses"
-                description="Offered when a conjugation table is made. A tense typed there is added here automatically; the order is the order the dropdown shows."
+                description="Offered when a conjugation table is made. A tense typed there is added here automatically. Renaming one here leaves tables you already have as they are."
                 names={settings.verbTenses}
                 onChange={(verbTenses) => saveSettings({ verbTenses })}
+                onRename={(from, to) => renameInList("verbTenses", from, to)}
                 placeholder="e.g. Present"
               />
             </SettingSection>

@@ -337,12 +337,16 @@ rather than going straight to one page:
   Vocabulary looks past. Eleven common languages are ready-made: seven fill the
   list with their articles, and Chinese, Japanese, Korean and Russian, which have
   none, set only the order. Any other language, or one typed in by name, starts
-  with an empty list to fill in. Then Glossary Categories and Sources, plus Verb persons and
-  Verb tenses. Categories are kept in alphabetical order, and the pencil on one
-  renames it on every word and phrase filed under it, merging it into another
-  category if the new name is already taken. Saving the category list also
-  brings the flashcard filter's copy of it into line. A category removed here is
-  deleted only if nothing is filed under it.
+  with an empty list to fill in. Then Glossary Categories and Sources, plus Verb
+  persons and Verb tenses. Categories, Sources and Verb tenses are kept in
+  alphabetical order. Verb persons keep the order they were added in, since that
+  is the row order of a new conjugation table. Every list has a pencil to rename a
+  name. A category is renamed on every word and phrase filed under it, merging
+  into another category if the new name is already taken, and a source on every
+  word and phrase that came from it. A person or tense is renamed for tables made
+  from then on, and existing tables keep what they were made with. Saving the category list also brings the
+  flashcard filter's copy of it into line. A category removed here is deleted
+  only if nothing is filed under it.
 - **Flashcard settings**: which characters separate one acceptable answer from the
   next.
 
@@ -558,7 +562,7 @@ src/
     StickyFilters.tsx     the classes that pin a page's filter row under the nav
     EmptyCell.tsx         the dash a blank cell shows instead of nothing
     StoreErrorBanner.tsx  says so when a read or a save did not reach the database
-    NameListEditor.tsx    add / remove / reorder a list of names in Settings
+    NameListEditor.tsx    add / rename / remove a list of names in Settings
     VerbTableControl.tsx  links to a verb's table, or to making one, from Edit word
     VerbTableCard.tsx     one conjugation table, rolled up until opened
     TenseChoice.tsx       picking a tense, or naming a new one
@@ -598,7 +602,7 @@ src/
     refSuggestions.ts     the names a Ref field offers to complete
     foldName.ts           the one way a name is folded before it is compared
     sortName.ts           sorting in the chosen language, past a leading skip word
-    renameCategory.ts     renaming a category on the list and everything filed under it
+    renames.ts            renaming a name on a Settings list, and on what carries it
     parseWord.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting

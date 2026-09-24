@@ -3,13 +3,14 @@
 import { foldName } from "@/lib/foldName";
 import { useId, useState } from "react";
 
+import { RowDeleteButton } from "@/components/DeleteControls";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
 
 /**
- * Add, remove, and reorder a short list of names, such as the categories and
- * the sources the word form offers. Order is kept as given: the source list is
- * a rough order of trust and the Source column sorts by it, and a list that
- * wants sorting, like the categories, arrives sorted.
+ * Add, rename and remove a short list of names, such as the categories and
+ * the sources the word form offers. There is no reordering: the lists arrive
+ * sorted from `settings.ts`, and the one that keeps its own order, the verb
+ * persons, takes the order names are added in.
  *
  * Adding and removing never touch what is already saved on a word: a word
  * filed under a category that is removed keeps it, and the form still offers
@@ -26,7 +27,6 @@ export function NameListEditor({
   minimum = 0,
   placeholder,
   maxLength,
-  ordered = true,
   onRename,
 }: {
   legend: string;
@@ -42,11 +42,6 @@ export function NameListEditor({
    * let the browser cut a pasted name short and save a different word.
    */
   maxLength?: number;
-  /**
-   * False for a list whose order means nothing, such as the words to skip
-   * when sorting, so there are no arrows implying that it does.
-   */
-  ordered?: boolean;
   /**
    * Shows a pencil on each row for renaming it. Resolves to an error message,
    * or null once the rename has been made, which is when the row closes.
@@ -134,16 +129,7 @@ export function NameListEditor({
     onChange(names.filter((_, position) => position !== index));
   }
 
-  function move(index: number, by: -1 | 1) {
-    const target = index + by;
-    if (target < 0 || target >= names.length) return;
-    const next = [...names];
-    [next[index], next[target]] = [next[target], next[index]];
-    setError(null);
-    onChange(next);
-  }
-
-  const arrow =
+  const iconButton =
     "cursor-pointer rounded px-1.5 py-0.5 text-xs text-slate-500 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-30 dark:text-slate-400 dark:hover:bg-slate-700";
 
   return (
@@ -207,7 +193,7 @@ export function NameListEditor({
             {onRename && editing !== name && (
               <button
                 type="button"
-                className={arrow}
+                className={iconButton}
                 disabled={busy}
                 onClick={() => startRenaming(name)}
                 aria-label={`Rename ${name}`}
@@ -216,43 +202,14 @@ export function NameListEditor({
                 <PencilIcon />
               </button>
             )}
-            {ordered && (
-              <>
-                <button
-                  type="button"
-                  className={arrow}
-                  disabled={index === 0}
-                  onClick={() => move(index, -1)}
-                  aria-label={`Move ${name} up`}
-                >
-                  ▲
-                </button>
-                <button
-                  type="button"
-                  className={arrow}
-                  disabled={index === names.length - 1}
-                  onClick={() => move(index, 1)}
-                  aria-label={`Move ${name} down`}
-                >
-                  ▼
-                </button>
-              </>
-            )}
             {editing !== name && (
-              <button
-                type="button"
-                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30 dark:text-red-400 dark:hover:bg-red-950/40"
-                disabled={names.length <= minimum}
+              <RowDeleteButton
+                label={name}
                 onClick={() => remove(index)}
-                aria-label={`Remove ${name}`}
-                title={
-                  names.length <= minimum
-                    ? "At least one has to stay on the list"
-                    : `Remove ${name}`
+                disabledReason={
+                  names.length <= minimum ? "At least one has to stay on the list" : undefined
                 }
-              >
-                Remove
-              </button>
+              />
             )}
           </li>
         ))}

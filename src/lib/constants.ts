@@ -8,7 +8,8 @@
  * begins with, not what an existing one sees.
  */
 
-export const DEFAULT_SOURCES = ["Manual", "Google", "Claude", "ChatGPT"] as const;
+/** Alphabetical, like every sorted settings list; see `sortedNames` in `settings.ts`. */
+export const DEFAULT_SOURCES = ["ChatGPT", "Claude", "Google", "Manual"] as const;
 
 /**
  * A source is whatever the reader has called one, so this is a plain string
@@ -22,7 +23,7 @@ export const DEFAULT_SOURCE: Source = "Manual";
 /**
  * The groups a word can be filed under, before Settings has been touched.
  * Alphabetical, because categories are always shown that way; see
- * `sortedCategories` in `settings.ts`.
+ * `sortedNames` in `settings.ts`.
  */
 export const DEFAULT_CATEGORIES = [
   "Careers",
