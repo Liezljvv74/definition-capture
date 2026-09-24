@@ -584,7 +584,7 @@ src/
     categoryOptions.ts    the categories a list's filter offers
     refSuggestions.ts     the names a Ref field offers to complete
     foldName.ts           the one way a name is folded before it is compared
-    sortName.ts           the comparison that skips a leading der / die / das
+    sortName.ts           the comparison that skips a leading der / ein, in any form
     parseWord.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting

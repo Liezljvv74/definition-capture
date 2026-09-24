@@ -67,7 +67,7 @@ export default function VocabularyPage() {
   const [onlyNeedsDefinition, setOnlyNeedsDefinition] = useState(false);
   /** Empty means every category; otherwise the one being shown. */
   const [category, setCategory] = useState("");
-  // Alphabetical by word, ignoring a leading der/die/das so the German
+  // Alphabetical by word, ignoring any form of a leading der or ein so the German
   // nouns file under their own first letter. Date added is no longer a
   // column and is now only the tie-breaker.
   const [sort, setSort] = useState<Sort>({ key: "word", direction: "asc" });

@@ -1,16 +1,22 @@
 /**
  * Name ordering for the lists.
  *
- * German nouns are saved with their article — `die Tür`, `der Tisch`,
- * `das Buch` — so sorting the raw strings piles most of the list under D and
- * hides the word you are actually looking for. The article is skipped for the
- * comparison only: nothing about the stored value changes, and a word that is
- * itself just `der`, `die`, or `das` keeps its whole name, since there is
- * nothing after it to sort on.
+ * German nouns are saved with their article (`die Tür`, `der Tisch`,
+ * `eine Menge`), so sorting the raw strings piles most of the list under D and
+ * E and hides the word you are actually looking for. The article is skipped
+ * for the comparison only: nothing about the stored value changes, and a word
+ * that is itself just an article, such as `der` or `ein`, keeps its whole
+ * name, since there is nothing after it to sort on.
  */
 
-/** Only the three definite articles, and only with a word behind them. */
-const LEADING_ARTICLE = /^(?:der|die|das)\s+/i;
+/**
+ * Every case form of the definite and the indefinite article, and only with
+ * a word behind them. The `\s+` is what keeps `Dessert`, `Denkmal` and
+ * `Einbahnstraße` whole: they begin with an article's letters, not with an
+ * article.
+ */
+const LEADING_ARTICLE =
+  /^(?:der|die|das|dem|den|des|einem|einen|einer|eines|eine|ein)\s+/i;
 
 /**
  * Built once, at module scope, and reused for every comparison.
