@@ -50,5 +50,7 @@ next-env.d.ts
 # `.agents/skills/` and skills-lock.json are committed so the skills travel
 # with the project. `.claude/skills/` only holds symlinks into `.agents/`, and
 # they store absolute paths from the machine that ran `npx skills add`, so
-# committing them would bake one person's home directory into the repo.
-/.claude/
+# committing them would bake one person's home directory into the repo. The
+# rest of `.claude/`, the subagents and the hook that guards one of them, is
+# ordinary project configuration and is committed.
+/.claude/skills/
