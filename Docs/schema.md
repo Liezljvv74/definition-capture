@@ -15,11 +15,21 @@ builder that skips items with no answer on the back; a mastery ladder that
 does not call one correct answer familiarity; the per-account answer
 separators, and brackets joining them as a choice; the ownership check in
 `apply_review` that an anonymous caller used to pass; and the review findings
-migration, which indexes the delete cascade, takes the client's insert policy
-off `review_logs`, filters the category aggregates by tag kind, keeps the two
-category lists in step, and splits the deck builder so the recent path can use
-its index. The last of them drops the three legacy tables, after checking that
-every row in them was still accounted for in `learning_items`.
+migration, which indexes the delete cascade, filters the category aggregates
+by tag kind, keeps the two category lists in step, and splits the deck builder
+so the recent path can use its index. The last of them drops the three legacy
+tables, after checking that every row in them was still accounted for in
+`learning_items`.
+
+The review findings migration also meant to take the client's insert policy
+off `review_logs`, and did not: it dropped a policy by a name that never
+existed, and `if exists` made that a silent no-op. A security audit found it,
+and `…_security_audit_findings.sql` drops the policy by its real name and
+then asserts that no writing policy is left. The same migration makes
+`apply_review` record a deck or session only when it is the caller's, has
+the `item_tags` and `deck_items` policies check ownership of both rows they
+join, gives every function an empty `search_path`, and takes execute on the
+remaining RPCs away from `anon`.
 
 The backfill was checked field by field against the tables it replaced, not
 merely counted: 103 words, 21 phrases and 3 verb tables, with every column and
