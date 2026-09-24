@@ -17,6 +17,7 @@ owner.
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 3, in the node environment; `npx vitest run` |
 | Tooling | Supabase CLI 2.117, ESLint 9 |
+| Hosting | Vercel, deployed from GitHub on every push to `main` |
 
 `npm run dev` serves on **port 3000**, pinned in `package.json`. The port is not
 arbitrary: a sign-in link only returns to an origin listed under Authentication →
@@ -24,12 +25,44 @@ URL Configuration → Redirect URLs in the Supabase dashboard, and
 `http://localhost:3000/auth/callback` is the one registered. Starting on another
 port bounces every link.
 
-There is no deployment at the moment. The app used to be a static export on
-GitHub Pages; that was given up to get a server, because a static host cannot
-check a session. That era is over and its remains have been deleted: the Pages
-workflow, the committed `out/` build, and the `asset()` base-path helper. Any
-host for this app has to run Node, and nothing should be designed around the
-absence of a server.
+## Deployment
+
+The app is hosted on **Vercel**, as the `definition-capture` project, and
+production is **https://definition-capture.vercel.app**. Vercel's GitHub
+integration builds and deploys every push to `main` on `origin`
+(`Liezljvv74/definition-capture`) on its own, usually within a minute or two,
+and reports back to GitHub: `vercel[bot]` records each one as a Production
+deployment on the commit. So pushing to `main` is releasing. There is nothing
+else to run, and nothing to run it from this repository.
+
+A few things follow from that:
+
+- **Migrations are not part of a deploy.** Vercel builds the Next.js app and
+  nothing else. `npx supabase db push` applies a migration to the one live
+  Supabase project that local development and production both use, and it has
+  to happen before code that needs it reaches `main`, or production breaks
+  with it. Push the migration first, then the code.
+- **The environment variables live in Vercel too.** The build reads
+  `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from
+  the project's Environment Variables in the Vercel dashboard, not from
+  `.env.local`, which is never committed. The same no-service-role rule
+  applies there.
+- **Emailed links need the production origin registered.** Supabase only
+  returns a sign-in or reset link to a URL listed under Authentication, URL
+  Configuration, Redirect URLs, and localhost alone does not cover the live
+  site. `https://definition-capture.vercel.app/auth/callback` and
+  `https://definition-capture.vercel.app/auth/reset` have to be listed beside
+  the localhost ones, and the Site URL should be the production origin.
+  Password sign-in does not depend on this.
+- **Per-deployment URLs are private.** Each deploy also gets its own
+  `definition-capture-<hash>-liezl.vercel.app` address, which Vercel puts
+  behind its own login. Only the production domain is public.
+
+The app used to be a static export on GitHub Pages; that was given up to get a
+server, because a static host cannot check a session. That era is over and its
+remains have been deleted: the Pages workflow, the committed `out/` build, and
+the `asset()` base-path helper. Any host for this app has to run Node, and
+nothing should be designed around the absence of a server.
 
 ## Authentication rules
 
