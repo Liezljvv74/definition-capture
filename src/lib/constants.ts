@@ -37,6 +37,12 @@ export const MAX_CATEGORIES = 3;
 /** A guard against a runaway list, matching the check constraint on the table. */
 export const MAX_LIST_LENGTH = 30;
 
+/**
+ * The longest word the sorting skip list takes. Articles are a few letters;
+ * this is a guard, matching the check constraint, not a considered maximum.
+ */
+export const MAX_SKIP_WORD = 20;
+
 
 /**
  * The characters that can be chosen as answer separators, and what to call

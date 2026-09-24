@@ -9,9 +9,9 @@ import { VerbTableCard } from "@/components/VerbTableCard";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
 import { saveSettings } from "@/lib/settings";
 import { createEntry, findByWord } from "@/lib/storage";
-import { compareText } from "@/lib/sortName";
 import { EMPTY_ENTRY_INPUT, readNameList } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
+import { useSorting } from "@/lib/useSorting";
 import { foldName } from "@/lib/foldName";
 import { ANOTHER, chosenTense, TenseChoice } from "@/components/TenseChoice";
 import { useVerbTables } from "@/lib/useVerbTables";
@@ -68,6 +68,7 @@ function VerbsShell({
 function VerbList() {
   const params = useSearchParams();
   const { tables, loaded } = useVerbTables();
+  const sorting = useSorting();
   const { loaded: settingsLoaded } = useSettings();
   const [query, setQuery] = useState("");
   /** True while a verb is being added from this page rather than a word. */
@@ -99,8 +100,8 @@ function VerbList() {
     const needle = foldName(query);
     return tables
       .filter((table) => !needle || foldName(table.verb).includes(needle))
-      .sort((a, b) => compareText(a.verb, b.verb));
-  }, [tables, query]);
+      .sort((a, b) => sorting.compareText(a.verb, b.verb));
+  }, [tables, query, sorting]);
 
   /**
    * A reload or a closed tab loses a draft the same way closing a card

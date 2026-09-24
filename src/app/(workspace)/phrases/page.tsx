@@ -18,13 +18,13 @@ import { EmptyCell } from "@/components/EmptyCell";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { deletePhrases } from "@/lib/phraseStorage";
-import { compareText } from "@/lib/sortName";
 import { categoryOptions } from "@/lib/categoryOptions";
 import { foldName } from "@/lib/foldName";
 import type { Phrase } from "@/lib/types";
 import { useListPage } from "@/lib/useListPage";
 import { type ListSelection } from "@/lib/useListSelection";
 import { usePhrases } from "@/lib/usePhrases";
+import { useSorting } from "@/lib/useSorting";
 import { useWideScreen } from "@/lib/useWideScreen";
 import { useWords } from "@/lib/useWords";
 
@@ -55,6 +55,7 @@ export default function PhrasesPage() {
   const { phrases, loaded } = usePhrases();
   const wide = useWideScreen();
   const { entries } = useWords();
+  const sorting = useSorting();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   /** Empty means every category; otherwise the one being shown. */
@@ -63,8 +64,8 @@ export default function PhrasesPage() {
 
   /** The same rule the vocabulary page uses; see `categoryOptions`. */
   const categories = useMemo(
-    () => categoryOptions(phrases, category),
-    [phrases, category],
+    () => categoryOptions(phrases, category, sorting.compareText),
+    [phrases, category, sorting],
   );
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
@@ -85,14 +86,14 @@ export default function PhrasesPage() {
     return [...phrases].sort((a, b) => {
       const result =
         sort.key === "phrase"
-          ? compareText(a.phrase, b.phrase)
-          : compareText(a.literalMeaning, b.literalMeaning);
+          ? sorting.compareText(a.phrase, b.phrase)
+          : sorting.compareText(a.literalMeaning, b.literalMeaning);
       if (result !== 0) return sort.direction === "asc" ? result : -result;
       // Phrases with nothing written yet would otherwise shuffle about, so
       // ties keep the newest-first order the list has underneath.
       return 0;
     });
-  }, [phrases, sort]);
+  }, [phrases, sort, sorting]);
 
   const visible = useMemo(() => {
     const needle = foldName(deferredQuery);

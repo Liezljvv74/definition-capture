@@ -1,5 +1,5 @@
 import { foldName } from "@/lib/foldName";
-import { compareText } from "@/lib/sortName";
+import type { Sorting } from "@/lib/sortName";
 
 /**
  * The categories a list's filter should offer.
@@ -24,10 +24,14 @@ import { compareText } from "@/lib/sortName";
  * Names are folded to compare and kept as written to display, so a category
  * saved as "Food" and another as "food" are one option, spelled the way it
  * was first met.
+ *
+ * `compareText` is passed in rather than imported because the order is the
+ * account's, set by the language chosen in Settings.
  */
 export function categoryOptions(
   items: readonly { categories: string[] }[],
   selected: string,
+  compareText: Sorting["compareText"],
 ): string[] {
   const byKey = new Map<string, string>();
 

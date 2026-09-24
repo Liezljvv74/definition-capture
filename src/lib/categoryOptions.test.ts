@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { categoryOptions } from "@/lib/categoryOptions";
+import { categoryOptions as withOrder } from "@/lib/categoryOptions";
+import { sortingFor } from "@/lib/sortName";
 
 /**
  * The two list pages had drifted on what their category filter offers, and
@@ -10,6 +11,10 @@ import { categoryOptions } from "@/lib/categoryOptions";
  * no-matches screen.
  */
 const filed = (...categories: string[]) => ({ categories });
+
+/** The neutral order; which language sorts the options is `sortName`'s concern. */
+const categoryOptions = (items: { categories: string[] }[], selected: string) =>
+  withOrder(items, selected, sortingFor("", []).compareText);
 
 describe("categoryOptions", () => {
   it("offers only groups something is actually filed under", () => {

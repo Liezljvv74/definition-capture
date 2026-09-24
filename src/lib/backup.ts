@@ -20,6 +20,7 @@ import {
   currentSettings,
   parseSettings,
   saveSettings,
+  type RestoredSettings,
   type Settings,
 } from "@/lib/settings";
 import {
@@ -75,10 +76,14 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * the absence of a field and a reader who turned every separator off are not
  * the same statement even though both read as "".
  *
+ * 9 carries `language`, `languageOther` and `sortSkipWords` in the settings
+ * block. A file without them leaves the reader's own language alone rather
+ * than clearing it; see `RestoredSettings`.
+ *
  * A missing list reads as an absent one, not an empty one, which is what
  * keeps Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 8;
+export const BACKUP_VERSION = 9;
 
 /**
  * The lists a backup carries, named once.
@@ -141,7 +146,7 @@ export type BackupContents = {
   words: Entry[];
   phrases: Phrase[];
   verbTables: VerbTable[];
-  settings: Settings | null;
+  settings: RestoredSettings | null;
   /** Rows in the file that could not be read as any of the kinds. */
   unreadable: number;
 };
