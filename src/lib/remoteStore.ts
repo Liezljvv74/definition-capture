@@ -64,6 +64,13 @@ export type RemoteStore<T> = {
   /** Clear the error banner. */
   clearError: () => void;
   /**
+   * Read the list again from the database, for a change made there rather
+   * than through this store: renaming a category rewrites every item filed
+   * under it without any of them passing through here. Does nothing for a
+   * list nobody has opened yet, since the first page to show it reads it.
+   */
+  reload: () => void;
+  /**
    * Watch only the error, without starting the store.
    *
    * `subscribe` doubles as "someone is looking at this list, go and fetch
@@ -449,6 +456,10 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
     getSnapshot: () => snapshot,
     getServerSnapshot: () => empty,
     items: () => snapshot.items,
+
+    reload() {
+      if (started) reload();
+    },
 
     insert(item) {
       const userId = currentUserId();

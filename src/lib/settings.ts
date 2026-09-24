@@ -20,6 +20,7 @@ import {
   readSeparators,
 } from "@/lib/constants";
 import { readLanguageCode, readLanguageName } from "@/lib/languages";
+import { sortingFor } from "@/lib/sortName";
 import {
   ABANDONED,
   readError,
@@ -100,6 +101,21 @@ function readLanguage(code: unknown, other: unknown): Pick<Settings, "language" 
   return { language, languageOther: language ? "" : readLanguageName(other) };
 }
 
+/**
+ * Categories in alphabetical order, in the account's own language.
+ *
+ * Kept sorted rather than in the order they were typed. The list has no order
+ * anyone chose on purpose, unlike sources, where the order is a rough ranking
+ * of trust, and a sorted list is the one a reader can find a name in. Sorted
+ * where the list is read as well as where it is saved, so a list saved before
+ * this rule shows in order everywhere without having to be saved again: the
+ * word and phrase forms offer categories in this order, and the flashcard
+ * filter takes its order from the saved list through `sync_category_tags`.
+ */
+function sortedCategories(categories: string[], language: string): string[] {
+  return [...categories].sort(sortingFor(language, []).compareText);
+}
+
 export type SettingsSnapshot = {
   settings: Settings;
   /** False until the first read has come back. */
@@ -152,6 +168,12 @@ function fromRow(row: Record<string, unknown> | null): Settings {
   };
 }
 
+/** A row as settings, with the categories in order; see `sortedCategories`. */
+function fromRowSorted(row: Record<string, unknown> | null): Settings {
+  const settings = fromRow(row);
+  return { ...settings, categories: sortedCategories(settings.categories, settings.language) };
+}
+
 async function load(userId: string): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) return;
@@ -181,7 +203,7 @@ async function load(userId: string): Promise<void> {
 
     lastLoadedAt = Date.now();
     publish({
-      settings: fromRow((data as Record<string, unknown> | null) ?? null),
+      settings: fromRowSorted((data as Record<string, unknown> | null) ?? null),
       loaded: true,
       // A failed save stays on screen until it is dismissed; a later read
       // succeeding is not the same as the save having worked.
@@ -359,6 +381,8 @@ export function saveSettings(change: Partial<Settings>): void {
     sortSkipWords: readSkipWords(change.sortSkipWords ?? snapshot.settings.sortSkipWords),
   };
 
+  next.categories = sortedCategories(next.categories, next.language);
+
   // The form guards against this too, but the database refuses an empty
   // source list outright and a rejected write would be a worse way to learn.
   if (next.sources.length === 0) next.sources = [...DEFAULT_SETTINGS.sources];
@@ -410,7 +434,9 @@ export function saveSettings(change: Partial<Settings>): void {
    * by the time this runs, and a failure here means the filter is briefly out
    * of step, not that anything the reader typed was lost.
    */
-  if (change.categories) {
+  // A change of language can reorder the categories without changing any of
+  // them, and the filter's copy takes its order from this list.
+  if (change.categories || change.language !== undefined) {
     void supabase.rpc("sync_category_tags", { names: next.categories });
   }
 }

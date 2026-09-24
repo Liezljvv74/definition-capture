@@ -24,6 +24,7 @@ import {
   supportsExportFolder,
 } from "@/lib/exportFolder";
 import { MIN_PASSWORD, changePassword, sendPasswordReset, signOut } from "@/lib/session";
+import { renameCategory } from "@/lib/renameCategory";
 import { saveSettings } from "@/lib/settings";
 import { useExportFolder } from "@/lib/useExportFolder";
 import { useSession } from "@/lib/useSession";
@@ -102,9 +103,11 @@ function Settings() {
             <SettingSection title="Glossary Categories">
               <NameListEditor
                 legend="Glossary Categories"
-                description={`The groups the word and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Removing one here leaves it on anything already filed under it.`}
+                description={`The groups the word and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Renaming one renames it on everything filed under it; removing one leaves it there.`}
                 names={settings.categories}
                 onChange={(categories) => saveSettings({ categories })}
+                onRename={renameCategory}
+                ordered={false}
                 placeholder="e.g. Travel"
               />
             </SettingSection>

@@ -145,6 +145,7 @@ export const clearError = store.clearError;
 export const subscribeToError = store.subscribeToError;
 export const getError = store.getError;
 export const settled = store.settled;
+export const reload = store.reload;
 
 /* --------------------------------------------------------------- mutations */
 

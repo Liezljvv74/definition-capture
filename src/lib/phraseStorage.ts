@@ -135,6 +135,7 @@ export const getServerSnapshot = store.getServerSnapshot;
 export const clearError = store.clearError;
 export const subscribeToError = store.subscribeToError;
 export const getError = store.getError;
+export const reload = store.reload;
 export const settled = store.settled;
 
 /* --------------------------------------------------------------- mutations */

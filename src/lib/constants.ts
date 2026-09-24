@@ -19,16 +19,20 @@ export type Source = string;
 
 export const DEFAULT_SOURCE: Source = "Manual";
 
-/** The groups a word can be filed under, before Settings has been touched. */
+/**
+ * The groups a word can be filed under, before Settings has been touched.
+ * Alphabetical, because categories are always shown that way; see
+ * `sortedCategories` in `settings.ts`.
+ */
 export const DEFAULT_CATEGORIES = [
-  "Nature",
-  "Home",
   "Careers",
-  "Office",
   "Food",
-  "Travel",
-  "People",
   "Health",
+  "Home",
+  "Nature",
+  "Office",
+  "People",
+  "Travel",
 ] as const;
 
 /** How many categories one word may carry. Not the size of the list to pick from. */

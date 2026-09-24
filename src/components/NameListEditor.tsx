@@ -6,14 +6,17 @@ import { useId, useState } from "react";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
 
 /**
- * Add, remove, and reorder a short list of names — the categories and the
- * sources the word form offers. Order is kept rather than sorted, because the
- * source list is a rough order of trust and the Source column sorts by it.
+ * Add, remove, and reorder a short list of names, such as the categories and
+ * the sources the word form offers. Order is kept as given: the source list is
+ * a rough order of trust and the Source column sorts by it, and a list that
+ * wants sorting, like the categories, arrives sorted.
  *
- * Editing here never touches what is already saved on a word: a word filed
- * under a category that is removed keeps it, and the form still offers that
- * one name while you are editing that word. Removing a name stops it being
- * suggested; it does not go back through the data.
+ * Adding and removing never touch what is already saved on a word: a word
+ * filed under a category that is removed keeps it, and the form still offers
+ * that one name while you are editing that word. Removing a name stops it
+ * being suggested; it does not go back through the data. Renaming is the one
+ * that does, and only where the list passes `onRename`, which decides what a
+ * rename reaches.
  */
 export function NameListEditor({
   legend,
@@ -24,6 +27,7 @@ export function NameListEditor({
   placeholder,
   maxLength,
   ordered = true,
+  onRename,
 }: {
   legend: string;
   description: string;
@@ -43,21 +47,41 @@ export function NameListEditor({
    * when sorting, so there are no arrows implying that it does.
    */
   ordered?: boolean;
+  /**
+   * Shows a pencil on each row for renaming it. Resolves to an error message,
+   * or null once the rename has been made, which is when the row closes.
+   */
+  onRename?: (from: string, to: string) => Promise<string | null>;
 }) {
   const inputId = useId();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  /** The name whose row is open for renaming, if any. */
+  const [editing, setEditing] = useState<string | null>(null);
+  const [rename, setRename] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  /** Why a name cannot join the list, or null when it can. `except` is the
+   *  name being renamed, which must not count as a clash with itself. */
+  function problemWith(name: string, except?: string): string | null {
+    const clash = names.some(
+      (existing) =>
+        existing !== except && foldName(existing) === foldName(name),
+    );
+    if (clash) return `"${name}" is already on the list.`;
+    if (maxLength !== undefined && name.length > maxLength) {
+      return `That is longer than this list takes (${maxLength} characters).`;
+    }
+    return null;
+  }
 
   function add() {
     const name = draft.trim();
     if (!name) return;
 
-    if (names.some((existing) => foldName(existing) === foldName(name))) {
-      setError(`"${name}" is already on the list.`);
-      return;
-    }
-    if (maxLength !== undefined && name.length > maxLength) {
-      setError(`That is longer than this list takes (${maxLength} characters).`);
+    const problem = problemWith(name);
+    if (problem) {
+      setError(problem);
       return;
     }
     if (names.length >= MAX_LIST_LENGTH) {
@@ -68,6 +92,41 @@ export function NameListEditor({
     setError(null);
     setDraft("");
     onChange([...names, name]);
+  }
+
+  function startRenaming(name: string) {
+    setEditing(name);
+    setRename(name);
+    setError(null);
+  }
+
+  function stopRenaming() {
+    setEditing(null);
+    setRename("");
+  }
+
+  async function saveRename() {
+    if (!onRename || editing === null) return;
+    const name = rename.trim();
+    if (!name || name === editing) {
+      stopRenaming();
+      return;
+    }
+    const problem = problemWith(name, editing);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    const failure = await onRename(editing, name);
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    stopRenaming();
   }
 
   function remove(index: number) {
@@ -100,7 +159,63 @@ export function NameListEditor({
             key={name}
             className="flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 dark:border-slate-800"
           >
-            <span className="flex-1 truncate text-sm">{name}</span>
+            {editing === name ? (
+              <>
+                <label htmlFor={`${inputId}-rename`} className="sr-only">
+                  {`New name for ${name}`}
+                </label>
+                <input
+                  id={`${inputId}-rename`}
+                  className="field flex-1 py-1"
+                  value={rename}
+                  disabled={busy}
+                  autoFocus
+                  onChange={(event) => {
+                    setRename(event.target.value);
+                    setError(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      stopRenaming();
+                    }
+                    if (event.key !== "Enter") return;
+                    event.preventDefault();
+                    void saveRename();
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary shrink-0 px-2.5 py-1 text-xs"
+                  disabled={busy || rename.trim() === ""}
+                  onClick={() => void saveRename()}
+                >
+                  {busy ? "Saving…" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary shrink-0 px-2.5 py-1 text-xs"
+                  disabled={busy}
+                  onClick={stopRenaming}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <span className="flex-1 truncate text-sm">{name}</span>
+            )}
+            {onRename && editing !== name && (
+              <button
+                type="button"
+                className={arrow}
+                disabled={busy}
+                onClick={() => startRenaming(name)}
+                aria-label={`Rename ${name}`}
+                title={`Rename ${name}`}
+              >
+                <PencilIcon />
+              </button>
+            )}
             {ordered && (
               <>
                 <button
@@ -123,20 +238,22 @@ export function NameListEditor({
                 </button>
               </>
             )}
-            <button
-              type="button"
-              className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30 dark:text-red-400 dark:hover:bg-red-950/40"
-              disabled={names.length <= minimum}
-              onClick={() => remove(index)}
-              aria-label={`Remove ${name}`}
-              title={
-                names.length <= minimum
-                  ? "At least one has to stay on the list"
-                  : `Remove ${name}`
-              }
-            >
-              Remove
-            </button>
+            {editing !== name && (
+              <button
+                type="button"
+                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30 dark:text-red-400 dark:hover:bg-red-950/40"
+                disabled={names.length <= minimum}
+                onClick={() => remove(index)}
+                aria-label={`Remove ${name}`}
+                title={
+                  names.length <= minimum
+                    ? "At least one has to stay on the list"
+                    : `Remove ${name}`
+                }
+              >
+                Remove
+              </button>
+            )}
           </li>
         ))}
       </ul>
@@ -178,5 +295,22 @@ export function NameListEditor({
         </p>
       )}
     </fieldset>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-3.5"
+    >
+      <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 1 1-3 7.5-7.5Z" />
+    </svg>
   );
 }

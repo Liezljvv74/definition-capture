@@ -338,9 +338,11 @@ rather than going straight to one page:
   list with their articles, and Chinese, Japanese, Korean and Russian, which have
   none, set only the order. Any other language, or one typed in by name, starts
   with an empty list to fill in. Then Glossary Categories and Sources, plus Verb persons and
-  Verb tenses. Saving the category list also brings the flashcard filter's copy of
-  it into line. A category removed here is deleted only if nothing is filed under
-  it.
+  Verb tenses. Categories are kept in alphabetical order, and the pencil on one
+  renames it on every word and phrase filed under it, merging it into another
+  category if the new name is already taken. Saving the category list also
+  brings the flashcard filter's copy of it into line. A category removed here is
+  deleted only if nothing is filed under it.
 - **Flashcard settings**: which characters separate one acceptable answer from the
   next.
 
@@ -596,6 +598,7 @@ src/
     refSuggestions.ts     the names a Ref field offers to complete
     foldName.ts           the one way a name is folded before it is compared
     sortName.ts           sorting in the chosen language, past a leading skip word
+    renameCategory.ts     renaming a category on the list and everything filed under it
     parseWord.ts          the paste-to-split rule
     parseRef.ts           turns a Ref value into text and link tokens
     format.ts             date formatting
