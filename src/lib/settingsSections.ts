@@ -29,7 +29,7 @@ export const SETTINGS_SECTIONS: {
     key: "glossary",
     label: "Glossary settings",
     description:
-      "The language you are learning, and the lists the word, phrase and conjugation forms offer.",
+      "The language you select affects how your lists are sorted, and the lists below prescribe the options available when adding a word, phrase or verb table.",
   },
   {
     key: "flashcards",

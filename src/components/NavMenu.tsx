@@ -144,7 +144,7 @@ export function NavMenu({
 
 /** The icon form of the trigger, for a menu with no room for a word. */
 const ICON_TAB =
-  "cursor-pointer rounded-md p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100";
+  "cursor-pointer rounded-md p-1.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100";
 
 /** The shape every item in one of these menus takes. */
 export const MENU_ITEM =
