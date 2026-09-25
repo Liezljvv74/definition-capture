@@ -51,7 +51,7 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
             phrase: editing.phrase,
             literalMeaning: editing.literalMeaning,
             usageExample: editing.usageExample,
-            categories: editing.categories,
+            collections: editing.collections,
             source: editing.source,
             ref: editing.ref,
           }}

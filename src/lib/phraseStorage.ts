@@ -14,7 +14,7 @@ import { planImport } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
 import type { Source } from "@/lib/constants";
 import {
-  readCategories,
+  readCollections,
   readSource,
   readString,
   type ImportCounts,
@@ -33,7 +33,7 @@ export type WirePhrase = {
   phrase: string;
   literalMeaning: string;
   usageExample: string;
-  categories: string[];
+  collections: string[];
   source: Source;
   ref: string;
   dateAdded: string;
@@ -46,7 +46,7 @@ export function toWirePhrase(phrase: Phrase): WirePhrase {
     phrase: phrase.phrase,
     literalMeaning: phrase.literalMeaning,
     usageExample: phrase.usageExample,
-    categories: phrase.categories,
+    collections: phrase.collections,
     source: phrase.source,
     ref: phrase.ref,
     dateAdded: phrase.dateAdded,
@@ -67,7 +67,8 @@ export function parsePhrase(raw: unknown, allowMissingId = false): Phrase | null
     phrase,
     literalMeaning: readString(value.literalMeaning),
     usageExample: readString(value.usageExample),
-    categories: readCategories(value.categories),
+    // `categories` is the spelling before version 10; see `parseEntry`.
+    collections: readCollections(value.collections ?? value.categories),
     source: readSource(value.source),
     ref: readString(value.ref),
     // A backup written before phrases carried a date has none to restore, so
@@ -80,11 +81,12 @@ export function parsePhrase(raw: unknown, allowMissingId = false): Phrase | null
 /**
  * A database row as a phrase, and back. Named and exported for the same reason
  * `parsePhrase` is: this pair decides what survives the trip, and a mistake in
- * it is silent. Column names are the view's, not the base table's.
+ * it is silent. The row is an `items` row with its source and collections
+ * already flattened to names by `remoteStore`.
  */
 export function fromPhraseRow(row: Record<string, unknown>): Phrase | null {
   const id = readString(row.id);
-  const phrase = readString(row.phrase).trim();
+  const phrase = readString(row.title).trim();
   if (!id || !phrase) return null;
 
   return {
@@ -92,7 +94,8 @@ export function fromPhraseRow(row: Record<string, unknown>): Phrase | null {
     phrase,
     literalMeaning: readString(row.literal_meaning),
     usageExample: readString(row.usage_example),
-    categories: readCategories(row.categories),
+    collections: readCollections(row.collections),
+    // A phrase without a source reads as the default; see `fromWordRow`.
     source: readSource(row.source),
     ref: readString(row.ref),
     // A row always has one, since the column is `not null` with a default.
@@ -103,30 +106,29 @@ export function fromPhraseRow(row: Record<string, unknown>): Phrase | null {
   };
 }
 
-export function toPhraseRow(phrase: Phrase): Record<string, unknown> {
+export function toPhrasePayload(phrase: Phrase): Record<string, unknown> {
   return {
     id: phrase.id,
-    phrase: phrase.phrase,
+    title: phrase.phrase,
     literal_meaning: phrase.literalMeaning,
     usage_example: phrase.usageExample,
-    categories: phrase.categories,
     source: phrase.source,
+    collections: phrase.collections,
     ref: phrase.ref,
-    // The view's trigger passes this to `learning_items.created_at` on insert
-    // and ignores it on update, so an imported phrase keeps the date it was
-    // captured rather than the date it was restored, and an edit cannot move
-    // a date the form never showed.
+    // `save_items` uses this for a new row and ignores it on an existing one,
+    // so an imported phrase keeps the date it was captured rather than the
+    // date it was restored, and an edit cannot move a date the form never
+    // showed.
     created_at: phrase.dateAdded,
   };
 }
 
 const store = createRemoteStore<Phrase>({
-  table: "phrases",
-  orderBy: "created_at",
+  itemType: "phrase",
   idOf: (phrase) => phrase.id,
   nameOf: (phrase) => phrase.phrase,
   fromRow: fromPhraseRow,
-  toRow: toPhraseRow,
+  toPayload: toPhrasePayload,
 });
 
 export const subscribe = store.subscribe;
@@ -147,7 +149,7 @@ function clean(input: PhraseInput) {
     usageExample: input.usageExample.trim(),
     // Trimmed, de-duplicated and capped here as well as in the form, so a
     // value arriving from an import obeys the same rule as a typed one.
-    categories: readCategories(input.categories),
+    collections: readCollections(input.collections),
     source: input.source,
     ref: input.ref.trim(),
   };

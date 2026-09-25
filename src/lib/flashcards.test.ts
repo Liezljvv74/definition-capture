@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cardBack,
   DEFAULT_DECK_SIZE,
   sizeOf,
   toDeckRequest,
@@ -21,7 +22,7 @@ import {
  */
 const ask = (over: Partial<DeckRequest> = {}): DeckRequest => ({
   sources: ["all"],
-  categoryIds: [],
+  collectionIds: [],
   needsReviewOnly: false,
   size: null,
   ...over,
@@ -30,17 +31,17 @@ const ask = (over: Partial<DeckRequest> = {}): DeckRequest => ({
 describe("toDeckRequest", () => {
   it("sends no types for All items, which is how the default means everything", () => {
     const sent = toDeckRequest(ask({ sources: ["all"] }));
-    expect(sent.sources).toEqual([]);
+    expect(sent.item_types).toEqual([]);
     expect(sent.only_recent).toBe(false);
   });
 
   it("sends nothing for an empty choice either, since it is the same request", () => {
-    expect(toDeckRequest(ask({ sources: [] })).sources).toEqual([]);
+    expect(toDeckRequest(ask({ sources: [] })).item_types).toEqual([]);
   });
 
   it("sends the types that were chosen, and only those", () => {
-    expect(toDeckRequest(ask({ sources: ["phrase"] })).sources).toEqual(["phrase"]);
-    expect(toDeckRequest(ask({ sources: ["word", "verb_table"] })).sources).toEqual([
+    expect(toDeckRequest(ask({ sources: ["phrase"] })).item_types).toEqual(["phrase"]);
+    expect(toDeckRequest(ask({ sources: ["word", "verb_table"] })).item_types).toEqual([
       "word",
       "verb_table",
     ]);
@@ -48,9 +49,9 @@ describe("toDeckRequest", () => {
 
   it("keeps the order the database expects, not the order they were ticked", () => {
     // The function takes a list to match against, so order is not meaningful
-    // to it; pinning it anyway keeps the request stable and the deck's
-    // `source_types` readable afterwards.
-    expect(toDeckRequest(ask({ sources: ["verb_table", "word"] })).sources).toEqual([
+    // to it; pinning it anyway keeps the request stable and readable in a
+    // log.
+    expect(toDeckRequest(ask({ sources: ["verb_table", "word"] })).item_types).toEqual([
       "word",
       "verb_table",
     ]);
@@ -60,27 +61,27 @@ describe("toDeckRequest", () => {
     const sent = toDeckRequest(ask({ sources: ["recent"] }));
     expect(sent.only_recent).toBe(true);
     // No type restriction: "the most recent things" means across all of them.
-    expect(sent.sources).toEqual([]);
+    expect(sent.item_types).toEqual([]);
   });
 
   it("can combine recency with a type", () => {
     const sent = toDeckRequest(ask({ sources: ["recent", "word"] }));
     expect(sent.only_recent).toBe(true);
-    expect(sent.sources).toEqual(["word"]);
+    expect(sent.item_types).toEqual(["word"]);
   });
 
   it("lets All items win over a type that is also ticked", () => {
     // The dialog does not allow this, and the translation must not depend on
     // the dialog behaving: both on means everything, not one of them.
     const sent = toDeckRequest(ask({ sources: ["all", "phrase"] as CardSource[] }));
-    expect(sent.sources).toEqual([]);
+    expect(sent.item_types).toEqual([]);
   });
 
   it("passes the filters through as they are", () => {
     const sent = toDeckRequest(
-      ask({ categoryIds: ["a", "b"], needsReviewOnly: true }),
+      ask({ collectionIds: ["a", "b"], needsReviewOnly: true }),
     );
-    expect(sent.category_ids).toEqual(["a", "b"]);
+    expect(sent.tag_ids).toEqual(["a", "b"]);
     expect(sent.only_needs_review).toBe(true);
   });
 });
@@ -105,13 +106,97 @@ describe("sizeOf", () => {
   });
 
   it("clamps to what the database will accept rather than being refused by it", () => {
-    // `flashcard_decks.requested_size` is checked between 1 and 500, so an
-    // unclamped 9000 would come back as a constraint violation the reader
-    // could do nothing with.
+    // `build_deck` clamps to between 1 and 500 as well, so an unclamped 9000
+    // would quietly become 500 there; clamping here keeps the number the
+    // dialog shows and the deck that arrives the same.
     expect(sizeOf(9000)).toBe(500);
   });
 
   it("takes a whole number of cards", () => {
     expect(sizeOf(12.7)).toBe(12);
+  });
+});
+
+describe("cardBack", () => {
+  const item = (over: Partial<Parameters<typeof cardBack>[0]>) => ({
+    item_type: "word",
+    title: "t",
+    definition: null,
+    literal_meaning: null,
+    usage_example: null,
+    tenses: null,
+    verb_rows: null,
+    ...over,
+  });
+
+  it("is a word's definition", () => {
+    expect(cardBack(item({ definition: "the dog" }))).toBe("the dog");
+  });
+
+  it("is a phrase's meaning and example, skipping whichever is blank", () => {
+    expect(cardBack(item({ item_type: "phrase", literal_meaning: "a", usage_example: "b" }))).toBe(
+      "a\n\nb",
+    );
+    expect(cardBack(item({ item_type: "phrase", literal_meaning: "", usage_example: "b" }))).toBe(
+      "b",
+    );
+  });
+
+  it("is a verb's conjugations, one person per line, lined up with the tenses", () => {
+    const back = cardBack(
+      item({
+        item_type: "verb_table",
+        tenses: ["Präsens", "Präteritum"],
+        verb_rows: [
+          { person: "ich", conjugations: ["gehe", "ging"], notes: "" },
+          { person: "du", conjugations: ["gehst", ""], notes: "" },
+          { person: "er", conjugations: ["", ""], notes: "" },
+        ],
+      }),
+    );
+    expect(back.split("\n")).toEqual([
+      "ich: Präsens gehe  ·  Präteritum ging",
+      "du: Präsens gehst",
+      "er: (not filled in)",
+    ]);
+  });
+
+  /**
+   * `items.has_answer` is the database's copy of one rule: whether a card has
+   * a back at all. A deck is filled with items where it is true, so if it
+   * disagreed with this function a deck could hold cards with blank backs, or
+   * leave out cards that have one. This is that rule as the migration
+   * `refactor_build_new_schema` writes it; change either, change both.
+   */
+  const hasAnswer = (row: ReturnType<typeof item>) => {
+    switch (row.item_type) {
+      case "word":
+        return (row.definition ?? "") !== "";
+      case "phrase":
+        return (row.literal_meaning ?? "") !== "" || (row.usage_example ?? "") !== "";
+      case "verb_table":
+        return Array.isArray(row.verb_rows) && row.verb_rows.length > 0;
+      default:
+        return false;
+    }
+  };
+
+  it("has a back exactly when the database says the item has an answer", () => {
+    const cases = [
+      item({ definition: "x" }),
+      item({ definition: "" }),
+      item({ item_type: "phrase", literal_meaning: "", usage_example: "" }),
+      item({ item_type: "phrase", literal_meaning: "", usage_example: "y" }),
+      item({ item_type: "phrase", literal_meaning: "z", usage_example: "" }),
+      item({ item_type: "verb_table", tenses: ["P"], verb_rows: [] }),
+      item({
+        item_type: "verb_table",
+        tenses: ["P"],
+        verb_rows: [{ person: "ich", conjugations: [""], notes: "" }],
+      }),
+    ];
+    for (const row of cases) {
+      expect(cardBack(row) !== "", JSON.stringify(row)).toBe(hasAnswer(row));
+    }
   });
 });

@@ -9,11 +9,11 @@ import {
   countMatching,
   DEFAULT_DECK_SIZE,
   FlashcardError,
-  listCategories,
+  listCollections,
   SOURCE_LABELS,
   SOURCE_ORDER,
   type CardSource,
-  type Category,
+  type Collection,
   type DeckRequest,
 } from "@/lib/flashcards";
 
@@ -43,32 +43,32 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
   const ids = useId();
 
   const [sources, setSources] = useState<CardSource[]>(["all"]);
-  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [collectionIds, setCollectionIds] = useState<string[]>([]);
   const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
   const [size, setSize] = useState("");
 
-  const [categories, setCategories] = useState<Category[] | null>(null);
+  const [collections, setCollections] = useState<Collection[] | null>(null);
   const [available, setAvailable] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const request: DeckRequest = {
     sources,
-    categoryIds,
+    collectionIds,
     needsReviewOnly,
     size: size.trim() === "" ? null : Number(size),
   };
 
   useEffect(() => {
     let current = true;
-    void listCategories()
+    void listCollections()
       .then((found) => {
-        if (current) setCategories(found);
+        if (current) setCollections(found);
       })
       .catch(() => {
-        // A failure here costs the category filter and nothing else, so the
+        // A failure here costs the collection filter and nothing else, so the
         // dialog carries on without it rather than refusing to open.
-        if (current) setCategories([]);
+        if (current) setCollections([]);
       });
     return () => {
       current = false;
@@ -89,7 +89,7 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     let current = true;
     const timer = window.setTimeout(() => {
-      void countMatching({ sources, categoryIds: [], needsReviewOnly, size: null })
+      void countMatching({ sources, collectionIds: [], needsReviewOnly, size: null })
         .then((found) => {
           if (current) setAvailable(found);
         })
@@ -117,8 +117,8 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
     });
   }
 
-  function toggleCategory(id: string) {
-    setCategoryIds((current) =>
+  function toggleCollection(id: string) {
+    setCollectionIds((current) =>
       current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
     );
   }
@@ -188,28 +188,28 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
             Only items marked as needing review
           </label>
 
-          {categories === null ? (
+          {collections === null ? (
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              Loading your categories…
+              Loading your collections…
             </p>
-          ) : categories.length === 0 ? (
+          ) : collections.length === 0 ? (
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              Nothing is filed under a category yet, so there is nothing to narrow by.
+              Nothing is filed under a collection yet, so there is nothing to narrow by.
             </p>
           ) : (
             <div className="mt-3">
               <p className="mb-1.5 text-xs text-slate-500 dark:text-slate-400">
-                Categories. Choosing none means all of them.
+                Collections. Choosing none means all of them.
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {categories.map((category) => {
-                  const on = categoryIds.includes(category.id);
+                {collections.map((collection) => {
+                  const on = collectionIds.includes(collection.id);
                   return (
                     <button
-                      key={category.id}
+                      key={collection.id}
                       type="button"
                       disabled={busy}
-                      onClick={() => toggleCategory(category.id)}
+                      onClick={() => toggleCollection(collection.id)}
                       aria-pressed={on}
                       className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition ${
                         on
@@ -217,7 +217,7 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
                           : "border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                       }`}
                     >
-                      {category.name}
+                      {collection.name}
                     </button>
                   );
                 })}

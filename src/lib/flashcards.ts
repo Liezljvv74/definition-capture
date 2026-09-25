@@ -2,6 +2,7 @@
 
 import { readError } from "@/lib/remoteStore";
 import { getSupabase } from "@/lib/supabaseClient";
+import { readTenses, readVerbRows } from "@/lib/types";
 
 /**
  * The flashcard feature's data access.
@@ -12,10 +13,9 @@ import { getSupabase } from "@/lib/supabaseClient";
  * nothing else on the screen needs to watch it. Plain async functions and the
  * caller's own state are the honest shape.
  *
- * Everything here talks to `learning_items` and the two database functions
- * rather than to the compatibility views. A flashcard is drawn from every
- * content type at once, which is the thing the old three-table arrangement
- * could not do, so there is no reason for this to pretend otherwise.
+ * Everything here talks to `items`, `deck_cards` and the two database
+ * functions, `build_deck` and `record_review`. A flashcard is drawn from every
+ * content type at once, and every type lives in the one table.
  */
 
 /**
@@ -41,26 +41,16 @@ export const SOURCE_ORDER: CardSource[] = ["all", "word", "phrase", "verb_table"
 
 export type DeckRequest = {
   sources: CardSource[];
-  categoryIds: string[];
+  collectionIds: string[];
   needsReviewOnly: boolean;
   /** Blank means "no preference", which is what makes the default apply. */
   size: number | null;
 };
 
-/**
- * How many ids travel in one `in (...)`.
- *
- * The same 200 `remoteStore` settled on, and for the same measured reason:
- * ids go in the query string, so a long list becomes a long request line and
- * a gateway in front of the database is entitled to refuse it. A deck can hold
- * 500 cards, so this is reached in ordinary use rather than in theory.
- */
-const ID_BATCH = 200;
-
 /** What the reader gets when they ask for a deck without saying how big. */
 export const DEFAULT_DECK_SIZE = 50;
 
-export type Category = { id: string; name: string };
+export type Collection = { id: string; name: string };
 
 export type Card = {
   id: string;
@@ -89,8 +79,7 @@ export type Card = {
  * scheduler already treats it as its own case, holding the streak while
  * zeroing the interval, and a screen that offers "not now" is the obvious
  * next one to build; it is headroom, not a path anybody takes. The names
- * match the check constraint on
- * `review_logs.outcome`.
+ * match the check constraint on `reviews.outcome`.
  */
 export type Outcome = "correct" | "again" | "revealed" | "skipped";
 
@@ -114,8 +103,8 @@ function client() {
  * that is noticed weeks later if at all.
  */
 export function toDeckRequest(request: DeckRequest): {
-  sources: string[];
-  category_ids: string[];
+  item_types: string[];
+  tag_ids: string[];
   only_needs_review: boolean;
   only_recent: boolean;
   size: number;
@@ -128,8 +117,8 @@ export function toDeckRequest(request: DeckRequest): {
   return {
     // Empty means every type. "All items" says so outright, and so does
     // picking nothing at all, which is the same request phrased by omission.
-    sources: chosen.has("all") ? [] : types,
-    category_ids: request.categoryIds,
+    item_types: chosen.has("all") ? [] : types,
+    tag_ids: request.collectionIds,
     only_needs_review: request.needsReviewOnly,
     only_recent: chosen.has("recent"),
     size: sizeOf(request.size),
@@ -142,16 +131,18 @@ export function sizeOf(size: number | null): number {
   return Math.min(500, Math.max(1, Math.floor(size)));
 }
 
-/** The categories a filter can offer: the reader's own, in their own order. */
-export async function listCategories(): Promise<Category[]> {
+/**
+ * The collections a filter can offer: the reader's own, alphabetically, which
+ * is the order Settings shows them in.
+ */
+export async function listCollections(): Promise<Collection[]> {
   const { data, error } = await client()
     .from("tags")
     .select("id, name")
-    .eq("kind", "category")
-    .order("position")
+    .eq("context", "collection")
     .order("name");
 
-  if (error) throw new FlashcardError(`Could not read your categories: ${readError(error)}.`);
+  if (error) throw new FlashcardError(`Could not read your collections: ${readError(error)}.`);
   return (data ?? []).map((row) => ({ id: String(row.id), name: String(row.name) }));
 }
 
@@ -166,138 +157,142 @@ export async function countMatching(request: DeckRequest): Promise<number> {
   const options = toDeckRequest(request);
 
   let query = client()
-    .from("card_faces")
+    .from("items")
     .select("id", { count: "exact", head: true })
     // A card with nothing on its back cannot be answered, so it is not a
     // card. A word saved without its definition yet is the usual case.
-    .not("back", "is", null)
-    .neq("back", "");
+    // `has_answer` is the database's copy of the rule `cardBack` applies.
+    .eq("has_answer", true);
 
-  if (options.sources.length > 0) query = query.in("item_type", options.sources);
+  if (options.item_types.length > 0) query = query.in("item_type", options.item_types);
   if (options.only_needs_review) query = query.eq("needs_review", true);
 
   const { count, error } = await query;
   if (error) throw new FlashcardError(`Could not count your items: ${readError(error)}.`);
 
-  // Categories are a join and cannot be expressed here without one, so a
+  // Collections are a join and cannot be expressed here without one, so a
   // filtered count is deliberately not offered: a number that ignored the
-  // category filter would be worse than no number. The dialog says as much.
+  // collection filter would be worse than no number. The dialog says as much.
   return count ?? 0;
 }
 
 /** Builds the deck and hands back its id. One round trip; the work is server-side. */
 export async function buildDeck(request: DeckRequest): Promise<string> {
-  const { data, error } = await client().rpc("build_flashcard_deck", {
-    ...toDeckRequest(request),
-    deck_name: "",
-  });
+  const { data, error } = await client().rpc("build_deck", toDeckRequest(request));
 
   if (error) throw new FlashcardError(`Could not build the deck: ${readError(error)}.`);
   if (!data) throw new FlashcardError("The deck came back empty.");
   return String(data);
 }
 
+/** The columns a card is built from. */
+type CardItem = {
+  item_type: string;
+  title: string;
+  definition: string | null;
+  literal_meaning: string | null;
+  usage_example: string | null;
+  tenses: string[] | null;
+  verb_rows: unknown;
+};
+
 /**
- * The cards in a deck, in order.
+ * What a conjugation with nothing written in it shows on a card. Words rather
+ * than a symbol, so the card reads the same to anyone.
+ */
+const EMPTY_CONJUGATION = "(not filled in)";
+
+/**
+ * The back of a card, from the item's own fields: a word's definition, a
+ * phrase's meaning and example, or a verb's conjugations one person per line.
  *
- * Two queries rather than one embedded select, because `card_faces` is a view
- * and PostgREST will not infer a relationship to one. Two small round trips
- * are a fair price for the type-specific work staying in the database.
+ * This used to be built in the database, in a view, and is built here now
+ * that the view is gone. Its one rule the database still needs, whether a
+ * card has a back at all, is kept there as `items.has_answer` so a deck can
+ * be filled without sending every item to the browser. The two must agree;
+ * `flashcards.test.ts` checks this function against that rule.
+ *
+ * A verb row is read against the tenses with `readVerbRows`, the same reader
+ * the conjugation table uses, so `conjugations[i]` lines up with `tenses[i]`
+ * here exactly as it does on screen.
+ */
+export function cardBack(item: CardItem): string {
+  switch (item.item_type) {
+    case "word":
+      return item.definition ?? "";
+    case "phrase":
+      return [item.literal_meaning, item.usage_example]
+        .filter((part): part is string => !!part)
+        .join("\n\n");
+    case "verb_table": {
+      const tenses = readTenses(item.tenses);
+      return readVerbRows(item.verb_rows, tenses.length)
+        .map((row) => {
+          const said = tenses
+            .map((tense, at) => [tense, row.conjugations[at]] as const)
+            .filter(([, conjugation]) => conjugation.trim() !== "")
+            .map(([tense, conjugation]) => `${tense} ${conjugation}`.trim());
+          return `${row.person}: ${said.length > 0 ? said.join("  ·  ") : EMPTY_CONJUGATION}`;
+        })
+        .join("\n");
+    }
+    default:
+      return "";
+  }
+}
+
+/**
+ * The cards in a deck, in order. One request: `deck_cards` embeds its items
+ * through the composite foreign key, and the back is built by `cardBack`.
+ *
+ * A deck pruned in another tab (only the newest ten are kept) reads as no
+ * cards rather than as an error.
  */
 export async function loadDeck(deckId: string): Promise<Card[]> {
-  const supabase = client();
-
-  const { data: entries, error: entriesError } = await supabase
-    .from("deck_items")
-    .select("item_id")
+  const { data, error } = await client()
+    .from("deck_cards")
+    .select(
+      "position, items(id, item_type, title, definition, literal_meaning, usage_example, tenses, verb_rows, needs_review)",
+    )
     .eq("deck_id", deckId)
     .order("position");
 
-  if (entriesError) {
-    throw new FlashcardError(`Could not read the deck: ${readError(entriesError)}.`);
-  }
-  const order = entries ?? [];
-  if (order.length === 0) return [];
+  if (error) throw new FlashcardError(`Could not read the deck: ${readError(error)}.`);
 
-  // In batches, for the reason `remoteStore` gives where it does the same
-  // thing: every id travels in the URL at roughly 37 bytes, and a deck of 500
-  // would put 19 KB in a request line that a gateway is entitled to refuse.
-  const ids = order.map((row) => String(row.item_id));
-  const faces: Record<string, unknown>[] = [];
-  for (let from = 0; from < ids.length; from += ID_BATCH) {
-    const { data, error } = await supabase
-      .from("card_faces")
-      .select("id, item_type, front, back, needs_review")
-      .in("id", ids.slice(from, from + ID_BATCH));
-
-    if (error) {
-      throw new FlashcardError(`Could not read the cards: ${readError(error)}.`);
-    }
-    faces.push(...(data ?? []));
-  }
-
-  const byId = new Map(
-    faces.map((row) => [
-      String(row.id),
-      {
-        itemType: String(row.item_type),
-        front: String(row.front ?? ""),
-        back: String(row.back ?? ""),
-        needsReview: row.needs_review === true,
-      },
-    ]),
-  );
-
-  // Ordered by the deck, not by the second query: `in` makes no promise about
-  // the order it returns rows in, and the deck's order is the whole point.
-  return order
+  return (data ?? [])
     .map((row) => {
-      const face = byId.get(String(row.item_id));
-      if (!face) return null;
-      return { id: String(row.item_id), ...face };
+      const item = (row as { items?: unknown }).items as
+        | (CardItem & { id: string; needs_review: boolean })
+        | null;
+      if (!item) return null;
+      return {
+        id: String(item.id),
+        itemType: String(item.item_type),
+        front: String(item.title ?? ""),
+        back: cardBack(item),
+        needsReview: item.needs_review === true,
+      };
     })
     .filter((card): card is Card => card !== null);
 }
 
 /**
- * The reader's own calendar day, as `YYYY-MM-DD`.
+ * Records one answer: the review, and the item's new place in the schedule,
+ * in the one transaction inside `record_review`.
  *
- * Built by hand rather than with `toISOString`, which would give the UTC day:
- * a review at eleven at night in Europe belongs to the day the reader thinks
- * it does, not to tomorrow. This is the only input to the streak, and it
- * cannot be recomputed afterwards, because `daily_study` is a counter and the
- * reader's offset is stored nowhere. Exported so that it can be tested, which
- * it could not be while it lived inside an async function that needs a
- * database.
- */
-export function localDayOf(when: Date): string {
-  return [
-    when.getFullYear(),
-    String(when.getMonth() + 1).padStart(2, "0"),
-    String(when.getDate()).padStart(2, "0"),
-  ].join("-");
-}
-
-/**
- * Records one answer: the review log, the schedule, the deck, the day's
- * count, all in the one transaction inside `apply_review`.
- *
- * The reader's own date is passed rather than left to the server, because a
- * review at eleven at night belongs to the day they think it does and the
- * server is somewhere else.
+ * No date is sent. A study day is worked out when a history is drawn, from
+ * each review's timestamp and the reader's own time zone, rather than stored
+ * as a counter nobody can correct afterwards.
  */
 export async function answerCard(
   itemId: string,
   outcome: Outcome,
-  deckId: string,
   tookMs: number | null,
 ): Promise<void> {
-  const { error } = await client().rpc("apply_review", {
+  const { error } = await client().rpc("record_review", {
     target_item: itemId,
     answer: outcome,
-    deck: deckId,
     took_ms: tookMs,
-    local_day: localDayOf(new Date()),
   });
 
   if (error) throw new FlashcardError(`Could not record that answer: ${readError(error)}.`);
@@ -342,15 +337,15 @@ export function flagAfterAnswer({
 /**
  * Marks an item as wanting another look, or clears the mark.
  *
- * Written straight to `learning_items` rather than through a store: the three
- * list stores read the compatibility views and hold their rows in memory, and
- * a flag flipped from the review screen would leave those caches stale until
- * the next read. The review screen is the honest place to set this, because it
- * is where you find out.
+ * Written straight to `items` rather than through a store. The list stores do
+ * not hold the flag, and their saves leave it alone (`save_items` keeps it
+ * when the key is absent), so a stale list cannot undo a mark made here. The
+ * review screen is the honest place to set this, because it is where you find
+ * out.
  */
 export async function setNeedsReview(itemId: string, value: boolean): Promise<void> {
   const { error } = await client()
-    .from("learning_items")
+    .from("items")
     .update({ needs_review: value })
     .eq("id", itemId);
 

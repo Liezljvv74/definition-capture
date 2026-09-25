@@ -16,7 +16,7 @@ import { createId, createRemoteStore } from "@/lib/remoteStore";
 import type { Source } from "@/lib/constants";
 import {
   needsDefinition,
-  readCategories,
+  readCollections,
   readSource,
   readString,
   type Entry,
@@ -51,7 +51,10 @@ export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
     word,
     definition,
     ref: readString(value.ref),
-    categories: readCategories(value.categories),
+    // `collections` is the current spelling and `categories` what every
+    // backup written before version 10 used, when collections were called
+    // categories. Both are read, so a file already on disk imports.
+    collections: readCollections(value.collections ?? value.categories),
     source: readSource(value.source),
     dateAdded: readString(value.dateAdded) || new Date().toISOString(),
     dateUpdated: typeof value.dateUpdated === "string" ? value.dateUpdated : null,
@@ -80,7 +83,7 @@ export type WireWord = {
   word: string;
   definition: string;
   ref: string;
-  categories: string[];
+  collections: string[];
   source: Source;
   dateAdded: string;
   dateUpdated: string | null;
@@ -93,49 +96,64 @@ export function toWireWord(entry: Entry): WireWord {
     word: entry.word,
     definition: entry.definition,
     ref: entry.ref,
-    categories: entry.categories,
+    collections: entry.collections,
     source: entry.source,
     dateAdded: entry.dateAdded,
     dateUpdated: entry.dateUpdated,
   };
 }
 
-const store = createRemoteStore<Entry>({
-  table: "words",
-  orderBy: "date_added",
-  idOf: (entry) => entry.id,
-  nameOf: (entry) => entry.word,
+/**
+ * A database row as a word, and back. Exported for the test that holds the
+ * pair together: this is where a field is lost without a word if it is lost.
+ */
+export function fromWordRow(row: Record<string, unknown>): Entry | null {
+  const id = readString(row.id);
+  const word = readString(row.title).trim();
+  if (!id || !word) return null;
 
-  fromRow(row) {
-    const id = readString(row.id);
-    const word = readString(row.word).trim();
-    if (!id || !word) return null;
+  const definition = readString(row.definition);
+  const dateAdded = readString(row.created_at);
+  const updatedAt = readString(row.updated_at);
+  return {
+    id,
+    word,
+    definition,
+    ref: readString(row.ref),
+    collections: readCollections(row.collections),
+    // A source in use cannot be deleted, so a word without one is one saved
+    // before sources were required; it reads as the default, as it always has.
+    source: readSource(row.source),
+    dateAdded,
+    // The database keeps `updated_at` itself and starts it at `created_at`,
+    // so the two being equal is what "never edited" looks like.
+    dateUpdated: updatedAt && updatedAt !== dateAdded ? updatedAt : null,
+    // Never trusted from storage — recomputed from the text, same as before.
+    needsDefinition: needsDefinition(definition),
+  };
+}
 
-    const definition = readString(row.definition);
-    return {
-      id,
-      word,
-      definition,
-      ref: readString(row.ref),
-      categories: readCategories(row.categories),
-      source: readSource(row.source),
-      dateAdded: readString(row.date_added),
-      dateUpdated: typeof row.date_updated === "string" ? row.date_updated : null,
-      // Never trusted from storage — recomputed from the text, same as before.
-      needsDefinition: needsDefinition(definition),
-    };
-  },
-
-  toRow: (entry) => ({
+export function toWordPayload(entry: Entry): Record<string, unknown> {
+  return {
     id: entry.id,
-    word: entry.word,
+    title: entry.word,
     definition: entry.definition,
     ref: entry.ref,
-    categories: entry.categories,
     source: entry.source,
-    date_added: entry.dateAdded,
-    date_updated: entry.dateUpdated,
-  }),
+    collections: entry.collections,
+    // Used for a new row only, so an imported word keeps its dates; on an
+    // existing one the database keeps `created_at` and sets `updated_at`.
+    created_at: entry.dateAdded,
+    updated_at: entry.dateUpdated ?? undefined,
+  };
+}
+
+const store = createRemoteStore<Entry>({
+  itemType: "word",
+  idOf: (entry) => entry.id,
+  nameOf: (entry) => entry.word,
+  fromRow: fromWordRow,
+  toPayload: toWordPayload,
 });
 
 export const subscribe = store.subscribe;
@@ -157,7 +175,7 @@ function clean(input: EntryInput) {
     ref: input.ref.trim(),
     // Trimmed, de-duplicated and capped here as well as in the form, so a
     // value arriving from an import obeys the same rule as a typed one.
-    categories: readCategories(input.categories),
+    collections: readCollections(input.collections),
     source: input.source,
     needsDefinition: needsDefinition(definition),
   };
@@ -238,10 +256,10 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts
       word: candidate.word,
       definition: candidate.definition,
       ref: candidate.ref,
-      // Categories are part of the entry the backup is restoring. Leaving
+      // Collections are part of the entry the backup is restoring. Leaving
       // them out kept whatever was already there and silently threw the
       // backup’s away, which is not what "update" promises.
-      categories: candidate.categories,
+      collections: candidate.collections,
       source: candidate.source,
       needsDefinition: candidate.needsDefinition,
       dateUpdated: now,

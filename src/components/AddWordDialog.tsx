@@ -55,7 +55,7 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
             word: editing.word,
             definition: editing.definition,
             ref: editing.ref,
-            categories: editing.categories,
+            collections: editing.collections,
             source: editing.source,
           }}
           submitLabel="Save changes"

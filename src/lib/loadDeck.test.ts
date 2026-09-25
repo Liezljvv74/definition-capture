@@ -3,134 +3,130 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadDeck } from "@/lib/flashcards";
 
 /**
- * Reading a deck back is two queries and a join done in TypeScript, and every
- * part of that join is a decision nothing else records.
+ * Reading a deck back is one request: `deck_cards` in position order, each
+ * with its item embedded, and the card back built by `cardBack`.
  *
- * `in (...)` makes no promise about the order rows come back in, so the deck's
- * order has to be reimposed from `deck_items.position`, and the deck's order
- * is the whole reason that column exists. Replacing the reordering with the
- * faces as they arrived would leave every test in the repo green and hand
- * readers a shuffled deck.
+ * The order is asked of the database rather than reimposed afterwards, so the
+ * thing to pin is that the request asks for it, and that the mapping keeps the
+ * rows in the order they arrive. A card whose item has gone (deleted since the
+ * deck was built) comes back with no item and must be dropped rather than
+ * shown blank.
  *
- * The ids also go in batches, because a deck of five hundred would otherwise
- * put roughly nineteen kilobytes of ids in one request line.
- *
- * A fake client rather than a database: these are decisions in the mapping,
- * and the mapping is what this can see.
+ * A fake client rather than a database: these are decisions in the request
+ * and the mapping, and those are what this can see.
  */
 type Answer = { data: unknown[] | null; error: unknown };
 
-const asked: { table: string; ids?: string[] }[] = [];
+const asked: { table: string; select?: string; order?: string; eq?: [string, string] }[] = [];
 let deckRows: unknown[] = [];
-let faceRows: unknown[] = [];
-let faceError: unknown = null;
-
-function builder(table: string) {
-  const call: { table: string; ids?: string[] } = { table };
-  const self = {
-    eq: () => self,
-    order: () => self,
-    in(_column: string, values: string[]) {
-      call.ids = values;
-      return self;
-    },
-    then<R>(onOk: (answer: Answer) => R): Promise<R> {
-      asked.push(call);
-      const answer: Answer =
-        table === "deck_items"
-          ? { data: deckRows, error: null }
-          : {
-              data: faceError ? null : faceRows.filter((row) => matches(row, call.ids ?? [])),
-              error: faceError,
-            };
-      return Promise.resolve(answer).then(onOk);
-    },
-  };
-  return self;
-}
-
-const matches = (row: unknown, ids: string[]) =>
-  ids.includes(String((row as { id: string }).id));
+let deckError: unknown = null;
 
 vi.mock("@/lib/supabaseClient", () => ({
   getSupabase: () => ({
-    from: (table: string) => ({ select: () => builder(table) }),
+    from: (table: string) => ({
+      select: (columns: string) => {
+        const call: (typeof asked)[number] = { table, select: columns };
+        const self = {
+          eq(column: string, value: string) {
+            call.eq = [column, value];
+            return self;
+          },
+          order(column: string) {
+            call.order = column;
+            return self;
+          },
+          then<R>(onOk: (answer: Answer) => R): Promise<R> {
+            asked.push(call);
+            return Promise.resolve<Answer>({
+              data: deckError ? null : deckRows,
+              error: deckError,
+            }).then(onOk);
+          },
+        };
+        return self;
+      },
+    }),
   }),
 }));
 
-const face = (id: string, over: Record<string, unknown> = {}) => ({
-  id,
-  item_type: "word",
-  front: `front ${id}`,
-  back: `back ${id}`,
-  needs_review: false,
-  ...over,
+const card = (id: string, over: Record<string, unknown> = {}) => ({
+  position: 1,
+  items: {
+    id,
+    item_type: "word",
+    title: `front ${id}`,
+    definition: `back ${id}`,
+    literal_meaning: null,
+    usage_example: null,
+    tenses: null,
+    verb_rows: null,
+    needs_review: false,
+    ...over,
+  },
 });
 
 beforeEach(() => {
   asked.length = 0;
-  faceError = null;
+  deckError = null;
 });
 
 describe("loadDeck", () => {
-  it("returns the cards in the deck's order, not the database's", () => {
-    deckRows = [{ item_id: "c" }, { item_id: "a" }, { item_id: "b" }];
-    // Deliberately the other way round, which is what `in` is entitled to do.
-    faceRows = [face("a"), face("b"), face("c")];
+  it("asks for this deck's cards in position order, in one request", async () => {
+    deckRows = [card("a")];
+    await loadDeck("deck-1");
 
-    return loadDeck("deck-1").then((cards) => {
-      expect(cards.map((card) => card.id)).toEqual(["c", "a", "b"]);
-      expect(cards[0].front).toBe("front c");
-    });
+    expect(asked).toHaveLength(1);
+    expect(asked[0].table).toBe("deck_cards");
+    expect(asked[0].eq).toEqual(["deck_id", "deck-1"]);
+    expect(asked[0].order).toBe("position");
+    expect(asked[0].select).toContain("items(");
   });
 
-  it("drops a card whose face has gone rather than showing a blank one", () => {
-    deckRows = [{ item_id: "a" }, { item_id: "deleted" }, { item_id: "b" }];
-    faceRows = [face("a"), face("b")];
+  it("keeps the order the rows arrive in", async () => {
+    deckRows = [card("c"), card("a"), card("b")];
+    const cards = await loadDeck("deck-1");
 
-    return loadDeck("deck-1").then((cards) => {
-      expect(cards.map((card) => card.id)).toEqual(["a", "b"]);
-    });
+    expect(cards.map((c) => c.id)).toEqual(["c", "a", "b"]);
+    expect(cards[0].front).toBe("front c");
+    expect(cards[0].back).toBe("back c");
   });
 
-  it("carries whether the item is already flagged for review", () => {
-    deckRows = [{ item_id: "a" }, { item_id: "b" }];
-    faceRows = [face("a", { needs_review: true }), face("b")];
+  it("drops a card whose item has gone rather than showing a blank one", async () => {
+    deckRows = [card("a"), { position: 2, items: null }, card("b")];
+    const cards = await loadDeck("deck-1");
 
-    return loadDeck("deck-1").then((cards) => {
-      expect(cards.map((card) => card.needsReview)).toEqual([true, false]);
-    });
+    expect(cards.map((c) => c.id)).toEqual(["a", "b"]);
   });
 
-  it("asks for the faces in batches, so the request line stays short", () => {
-    const ids = Array.from({ length: 450 }, (_, at) => `item-${at}`);
-    deckRows = ids.map((id) => ({ item_id: id }));
-    faceRows = ids.map((id) => face(id));
+  it("carries whether the item is already flagged for review", async () => {
+    deckRows = [card("a", { needs_review: true }), card("b")];
+    const cards = await loadDeck("deck-1");
 
-    return loadDeck("deck-1").then((cards) => {
-      expect(cards).toHaveLength(450);
-
-      const batches = asked.filter((call) => call.table === "card_faces");
-      expect(batches).toHaveLength(3);
-      expect(batches.map((call) => call.ids?.length)).toEqual([200, 200, 50]);
-    });
+    expect(cards.map((c) => c.needsReview)).toEqual([true, false]);
   });
 
-  it("asks for nothing at all when the deck is empty", () => {
+  it("builds each back from the item's own fields", async () => {
+    deckRows = [
+      card("p", {
+        item_type: "phrase",
+        definition: null,
+        literal_meaning: "good day",
+        usage_example: "Guten Tag.",
+      }),
+    ];
+    const [phrase] = await loadDeck("deck-1");
+
+    expect(phrase.itemType).toBe("phrase");
+    expect(phrase.back).toBe("good day\n\nGuten Tag.");
+  });
+
+  it("reads an empty deck, including one pruned in another tab, as no cards", async () => {
     deckRows = [];
-    faceRows = [];
-
-    return loadDeck("deck-1").then((cards) => {
-      expect(cards).toEqual([]);
-      expect(asked.filter((call) => call.table === "card_faces")).toHaveLength(0);
-    });
+    expect(await loadDeck("deck-1")).toEqual([]);
   });
 
-  it("says which half failed when the faces cannot be read", () => {
-    deckRows = [{ item_id: "a" }];
-    faceRows = [face("a")];
-    faceError = { message: "boom" };
-
-    return expect(loadDeck("deck-1")).rejects.toThrow("Could not read the cards");
+  it("says what failed when the deck cannot be read", async () => {
+    deckError = { message: "boom" };
+    await expect(loadDeck("deck-1")).rejects.toThrow("Could not read the deck");
   });
 });

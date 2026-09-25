@@ -65,7 +65,7 @@ export type RemoteStore<T> = {
   clearError: () => void;
   /**
    * Read the list again from the database, for a change made there rather
-   * than through this store: renaming a category rewrites every item filed
+   * than through this store: renaming a collection rewrites every item filed
    * under it without any of them passing through here. Does nothing for a
    * list nobody has opened yet, since the first page to show it reads it.
    */
@@ -222,14 +222,58 @@ export async function readWithSkewRetry<T extends { error: unknown }>(
   }
 }
 
+/** The kinds of item the `items` table holds, one list store each. */
+export type ItemType = "word" | "phrase" | "verb_table";
+
+/**
+ * What a list reads for each item: its own columns, plus the name of its
+ * source and the names of its collections, embedded in the same request.
+ * The embeds follow the composite foreign keys, so one round trip brings the
+ * whole item; `flattenRow` turns them into plain fields for `fromRow`.
+ */
+const ITEM_SELECT = "*, sources(name), item_tags(position, context, tags(name))";
+
+/**
+ * An `items` row with its embeds flattened: `source` is the source's name or
+ * "", and `collections` the collection names in the order they were given.
+ */
+function flattenRow(row: Row): Row {
+  const source = row.sources as { name?: unknown } | null;
+  const links = Array.isArray(row.item_tags) ? (row.item_tags as Row[]) : [];
+  const collections = links
+    .filter((link) => link.context === "collection")
+    .sort((a, b) => Number(a.position) - Number(b.position))
+    .map((link) => (link.tags as { name?: unknown } | null)?.name)
+    .filter((name): name is string => typeof name === "string");
+  return {
+    ...row,
+    source: typeof source?.name === "string" ? source.name : "",
+    collections,
+  };
+}
+
+/**
+ * How many items one `save_items` call carries.
+ *
+ * Each call is one transaction, so a save of this many or fewer is all or
+ * nothing. A restore larger than this is sent in sequence, a batch at a time,
+ * which keeps every request body a few hundred kilobytes at most; if a later
+ * batch fails, the reload in `send` shows exactly which rows made it.
+ */
+const SAVE_BATCH = 500;
+
 export type RemoteStoreConfig<T> = {
-  table: string;
-  /** Column the list is sorted by, newest first. */
-  orderBy: string;
-  /** Turns a database row into an app object. */
+  /** Which kind of item this list holds; every read and delete is limited to it. */
+  itemType: ItemType;
+  /** Turns an `items` row, embeds flattened, into an app object. */
   fromRow: (row: Row) => T | null;
-  /** Turns an app object into a database row, minus `user_id`. */
-  toRow: (item: T) => Row;
+  /**
+   * Turns an app object into one entry of a `save_items` payload: its id,
+   * its fields by column name, and `source` and `collections` by name. No
+   * `user_id` and no `item_type`; the store adds the type, and the database
+   * takes the owner from the session.
+   */
+  toPayload: (item: T) => Row;
   /** Reads the id off an app object. */
   idOf: (item: T) => string;
   /**
@@ -288,13 +332,15 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
         const answer = await readWithSkewRetry(
           () =>
             supabase
-              .from(config.table)
-              .select("*")
-              .order(config.orderBy, { ascending: false })
-              // Paging needs a total order, and `orderBy` is a timestamp that
-              // two rows can share. Without a tie-break the database is free to
-              // order tied rows differently for each page, which would drop some
-              // and repeat others across the boundary. The id settles it.
+              .from("items")
+              .select(ITEM_SELECT)
+              .eq("item_type", config.itemType)
+              .order("created_at", { ascending: false })
+              // Paging needs a total order, and `created_at` is a timestamp
+              // that two rows can share. Without a tie-break the database is
+              // free to order tied rows differently for each page, which would
+              // drop some and repeat others across the boundary. The id
+              // settles it.
               .order("id", { ascending: false })
               .range(offset, offset + PAGE_SIZE - 1),
           () => currentUserId() === userId,
@@ -328,7 +374,7 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
       }
 
       const items = data
-        .map((row) => config.fromRow(row as Row))
+        .map((row) => config.fromRow(flattenRow(row as Row)))
         .filter((item): item is T => item !== null);
       lastLoadedAt = Date.now();
       // `snapshot.error` rather than null: a write that failed is still a
@@ -420,17 +466,53 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
     // that follows shows exactly which rows really went. The batches are sent
     // together rather than in sequence because they are independent, and a
     // partial delete is already the failure mode `send` exists to report.
-    send(
-      Promise.all(
-        inBatches([...doomed], DELETE_BATCH).map((batch) =>
-          supabase.from(config.table).delete().in("id", batch),
-        ),
-      ).then((answers) => ({ error: answers.find((answer) => answer.error)?.error ?? null })),
-    );
+    send(deleteIds(supabase, [...doomed]));
   }
 
-  function rowFor(item: T, userId: string): Row {
-    return { ...config.toRow(item), user_id: userId };
+  /**
+   * Deletes by id, in batches, limited to this list's type. Every list shares
+   * the one `items` table, so the type filter is what makes certain that a
+   * delete meant for Vocabulary can never reach a phrase or a verb table, even
+   * if an id somehow crossed over.
+   */
+  function deleteIds(
+    supabase: NonNullable<ReturnType<typeof getSupabase>>,
+    ids: string[],
+  ): PromiseLike<{ error: unknown }> {
+    return Promise.all(
+      inBatches(ids, DELETE_BATCH).map((batch) =>
+        supabase.from("items").delete().eq("item_type", config.itemType).in("id", batch),
+      ),
+    ).then((answers) => ({ error: answers.find((answer) => answer.error)?.error ?? null }));
+  }
+
+  /**
+   * One entry of a `save_items` payload. The type is this list's, whatever
+   * `toPayload` said, and there is never an owner: the function takes it from
+   * the session and ignores one in the payload, and dropping it here as well
+   * means a `toPayload` that carried one by mistake cannot even appear to.
+   */
+  function payloadFor(item: T): Row {
+    const fields: Row = { ...config.toPayload(item), item_type: config.itemType };
+    delete fields.user_id;
+    return fields;
+  }
+
+  /**
+   * Saves items through `save_items`, a batch per call and the batches in
+   * sequence, stopping at the first failure; see `SAVE_BATCH`. An insert, an
+   * update and a whole import are the same call: the function updates the ids
+   * it finds and inserts the rest.
+   */
+  async function saveItems(
+    supabase: NonNullable<ReturnType<typeof getSupabase>>,
+    items: T[],
+  ): Promise<{ error: unknown }> {
+    for (const batch of inBatches(items, SAVE_BATCH)) {
+      const { error } = await supabase.rpc("save_items", { payload: batch.map(payloadFor) });
+      if (error) return { error };
+    }
+    return { error: null };
   }
 
   return {
@@ -462,28 +544,25 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
     },
 
     insert(item) {
-      const userId = currentUserId();
-      if (!userId) return;
+      if (!currentUserId()) return;
       setItems([item, ...snapshot.items]);
 
       const supabase = getSupabase();
-      if (supabase) send(supabase.from(config.table).insert(rowFor(item, userId)));
+      if (supabase) send(saveItems(supabase, [item]));
     },
 
     update(item) {
-      const userId = currentUserId();
-      if (!userId) return;
+      if (!currentUserId()) return;
       const id = config.idOf(item);
       setItems(
         snapshot.items.map((existing) => (config.idOf(existing) === id ? item : existing)),
       );
 
+      // No owner in the payload: `save_items` takes it from the session, and
+      // row level security already restricts an update to rows this reader
+      // owns.
       const supabase = getSupabase();
-      if (supabase) {
-        // No `user_id` filter needed — row level security already restricts an
-        // update to rows this reader owns.
-        send(supabase.from(config.table).update(config.toRow(item)).eq("id", id));
-      }
+      if (supabase) send(saveItems(supabase, [item]));
     },
 
     removeMany(ids) {
@@ -503,70 +582,53 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
 
     remove: removeIds,
 
+    /**
+     * A restore: the backup becomes the whole list.
+     *
+     * Save first, then delete what the backup does not have. It used to be the
+     * other way round, delete everything and insert the backup, and that
+     * erased the review history and schedule of every item it touched, even
+     * the ones the backup put straight back under the same id, because the
+     * delete cascaded into them. Saving over the top keeps an item that stays
+     * exactly as it was underneath, progress and all.
+     *
+     * Only this list's items are deleted, by id: the three lists share one
+     * table, and restoring Vocabulary must not touch a phrase.
+     */
     replaceAll(items) {
-      const userId = currentUserId();
-      if (!userId) return;
+      if (!currentUserId()) return;
+      const keep = new Set(items.map(config.idOf));
+      const doomed = snapshot.items.map(config.idOf).filter((id) => !keep.has(id));
       setItems(items);
 
       const supabase = getSupabase();
       if (!supabase) return;
 
-      // Delete-then-insert rather than an upsert: a restore means "the backup
-      // is now the whole list", so rows absent from the backup have to go. The
-      // two steps are not one transaction, so a failure between them can leave
-      // the list short — the reload in `send` will show exactly that rather
-      // than pretend otherwise.
       send(
-        supabase
-          .from(config.table)
-          .delete()
-          .eq("user_id", userId)
-          .then(({ error }) =>
-            error || items.length === 0
-              ? { error }
-              : supabase.from(config.table).insert(items.map((item) => rowFor(item, userId))),
-          ),
+        saveItems(supabase, items).then(({ error }) =>
+          error || doomed.length === 0 ? { error } : deleteIds(supabase, doomed),
+        ),
       );
     },
 
     insertMany(items) {
-      const userId = currentUserId();
-      if (!userId || items.length === 0) return;
+      if (!currentUserId() || items.length === 0) return;
       setItems([...items, ...snapshot.items]);
 
       const supabase = getSupabase();
-      if (supabase) {
-        send(supabase.from(config.table).insert(items.map((item) => rowFor(item, userId))));
-      }
+      if (supabase) send(saveItems(supabase, items));
     },
 
     /**
-     * The counterpart to `insertMany`, and it exists for the same reason.
+     * The counterpart to `insertMany`, for the rows an import matched.
      *
-     * An import that matches three hundred existing rows used to call
-     * `update` three hundred times: three hundred requests, three hundred
-     * full-array rebuilds, and three hundred renders of a page with a modal
-     * open over it — while the new rows beside them went in a single insert.
-     * One `upsert` keyed on the primary key does the whole set in one trip.
-     *
-     * It used to be one `upsert` keyed on the primary key, which was one trip
-     * for the whole set. That stopped working the day the three lists became
-     * views over `learning_items`: PostgREST turns an upsert into `insert ...
-     * on conflict (id) do update`, and Postgres infers the arbiter from the
-     * target's indexes. A view has none, so the statement is refused with
-     * 42P10 before the `instead of` trigger ever runs, and the import that
-     * overwrites matching rows failed outright.
-     *
-     * PostgREST has no bulk update, so the requests come back, but they are
-     * issued together and awaited as one: the screen still updates once, and
-     * one failure reloads once rather than three hundred times. `rowFor`
-     * stamps `user_id` from the session rather than from the file, and row
-     * level security still applies, so this cannot write another account's
-     * rows.
+     * One `save_items` call for the whole set. For a while this had to be one
+     * request per row, because the lists were views and a view cannot take an
+     * upsert; the lists are a table again, and the function does the set in
+     * one transaction.
      */
     updateMany(items) {
-      const userId = currentUserId();
-      if (!userId || items.length === 0) return;
+      if (!currentUserId() || items.length === 0) return;
 
       const replacements = new Map(items.map((item) => [config.idOf(item), item]));
       setItems(
@@ -574,23 +636,7 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
       );
 
       const supabase = getSupabase();
-      if (supabase) {
-        send(
-          Promise.all(
-            items.map((item) =>
-              supabase
-                .from(config.table)
-                .update(rowFor(item, userId))
-                .eq("id", config.idOf(item)),
-            ),
-          ).then((results) => ({
-            // The first failure is the one reported. They are all the same
-            // kind of failure in practice, and a banner listing three hundred
-            // of them says no more than a banner naming one.
-            error: results.find((result) => result.error)?.error ?? null,
-          })),
-        );
-      }
+      if (supabase) send(saveItems(supabase, items));
     },
 
     clearError() {

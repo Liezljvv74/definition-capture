@@ -158,7 +158,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             </p>
             <p className="mt-1">
               {state.result.settingsRestored
-                ? "Categories, sources, persons, and tenses restored from the file."
+                ? "Collections, sources, persons, and tenses restored from the file."
                 : "Left as they were."}
             </p>
           </div>
@@ -184,25 +184,29 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             label="Words"
             saved={entries.length}
             incoming={contents.words.length}
+            matching={preview.matchingWords}
             untouched={leavesListAlone(contents, "words", "replace")}
           />
           <ReplaceLine
             label="Phrases"
             saved={phrases.length}
             incoming={contents.phrases.length}
+            matching={preview.matchingPhrases}
             untouched={leavesListAlone(contents, "phrases", "replace")}
           />
           <ReplaceLine
             label="Verb tables"
             saved={tables.length}
             incoming={contents.verbTables.length}
+            matching={preview.matchingVerbTables}
             untouched={leavesListAlone(contents, "verbTables", "replace")}
           />
           <li className="flex flex-wrap gap-x-1.5">
             <span className="font-medium">Settings:</span>
             {restoresSettings(contents, "replace") ? (
               <span className="text-red-700 dark:text-red-300">
-                your categories, sources, persons, and tenses replaced by the file&rsquo;s
+                your collections, sources, persons, and tenses replaced by the file&rsquo;s,
+                except collections and sources your words and phrases still use
               </span>
             ) : (
               <span className="text-slate-600 dark:text-slate-300">

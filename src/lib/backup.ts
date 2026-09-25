@@ -80,10 +80,15 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * block. A file without them leaves the reader's own language alone rather
  * than clearing it; see `RestoredSettings`.
  *
+ * 10 renames `categories` to `collections`, on every word and phrase and in
+ * the settings block, when the app renamed them. The readers take either
+ * spelling, so a file from 9 or earlier restores exactly as it did; there is a
+ * test that fails if the old spelling stops being read.
+ *
  * A missing list reads as an absent one, not an empty one, which is what
  * keeps Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 9;
+export const BACKUP_VERSION = 10;
 
 /**
  * The lists a backup carries, named once.
@@ -115,7 +120,7 @@ export type Backup = {
   phrases: WirePhrase[];
   verbTables: WireVerbTable[];
   /**
-   * Categories, sources, persons, tenses and the display name. Not a list, so
+   * Collections, sources, persons, tenses and the display name. Not a list, so
    * it has no scope of its own: a full backup carries it and a scoped export
    * does not. Null means the file says nothing about settings, which is what
    * every backup written before version 3 looks like.
@@ -309,6 +314,29 @@ export function restoresSettings(contents: BackupContents, mode: ImportMode): bo
 }
 
 /**
+ * The file's settings, with every collection and source its own words and
+ * phrases use added to those two lists.
+ *
+ * An older file's settings list can lack a collection its words are in: the
+ * list and the words' names were two copies that could drift. Saving that
+ * list removes what it lacks, and removing a collection the restored words
+ * are about to be filed under would race `save_items` filing them there,
+ * which the database settles by refusing one of the two. Adding the names in
+ * use means the list never removes one the file itself needs.
+ */
+function withNamesInUse(contents: BackupContents): RestoredSettings {
+  const settings = contents.settings as RestoredSettings;
+  const items = [...contents.words, ...contents.phrases];
+  return {
+    ...settings,
+    collections: [...settings.collections, ...items.flatMap((item) => item.collections)],
+    sources: [...settings.sources, ...items.map((item) => item.source)].filter(
+      (name) => name.trim() !== "",
+    ),
+  };
+}
+
+/**
  * Applies a parsed backup to every list with the same mode. "Replace" only
  * wipes a list the file actually carries, so restoring a single-list export —
  * or a version 2 file written before conjugation tables existed — cannot
@@ -316,9 +344,9 @@ export function restoresSettings(contents: BackupContents, mode: ImportMode): bo
  */
 export function applyImport(contents: BackupContents, mode: ImportMode): ImportResult {
   const settingsRestored = restoresSettings(contents, mode);
-  // Before the lists, so a restored set of sources and categories is already
+  // Before the lists, so a restored set of sources and collections is already
   // in place for the entries that refer to them.
-  if (settingsRestored && contents.settings) saveSettings(contents.settings);
+  if (settingsRestored && contents.settings) saveSettings(withNamesInUse(contents));
 
   return {
     words: leavesListAlone(contents, "words", mode)

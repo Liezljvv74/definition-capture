@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddPhraseDialog } from "@/components/AddPhraseDialog";
-import { CategoryBadge } from "@/components/Badges";
+import { CollectionBadge } from "@/components/Badges";
 import {
   ConfirmDeleteDialog,
   RowDeleteButton,
@@ -18,7 +18,7 @@ import { EmptyCell } from "@/components/EmptyCell";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { deletePhrases } from "@/lib/phraseStorage";
-import { categoryOptions } from "@/lib/categoryOptions";
+import { collectionOptions } from "@/lib/collectionOptions";
 import { foldName } from "@/lib/foldName";
 import type { Phrase } from "@/lib/types";
 import { useListPage } from "@/lib/useListPage";
@@ -47,7 +47,7 @@ const COLUMNS: { key?: PhraseSortKey; label: string; className?: string }[] = [
   // this did: it cut Usage Example to 188px while widening its neighbour.
   { key: "literalMeaning", label: "Literal Meaning" },
   { label: "Usage Example" },
-  { label: "Category", className: "w-[12%]" },
+  { label: "Collection", className: "w-[12%]" },
   { label: "Ref", className: "w-[16%]" },
 ];
 
@@ -58,14 +58,14 @@ export default function PhrasesPage() {
   const sorting = useSorting();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
-  /** Empty means every category; otherwise the one being shown. */
-  const [category, setCategory] = useState("");
+  /** Empty means every collection; otherwise the one being shown. */
+  const [collection, setCollection] = useState("");
   const [sort, setSort] = useState<PhraseSort>(null);
 
-  /** The same rule the vocabulary page uses; see `categoryOptions`. */
-  const categories = useMemo(
-    () => categoryOptions(phrases, category, sorting.compareText),
-    [phrases, category, sorting],
+  /** The same rule the vocabulary page uses; see `collectionOptions`. */
+  const collections = useMemo(
+    () => collectionOptions(phrases, collection, sorting.compareText),
+    [phrases, collection, sorting],
   );
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
@@ -97,9 +97,9 @@ export default function PhrasesPage() {
 
   const visible = useMemo(() => {
     const needle = foldName(deferredQuery);
-    const wanted = foldName(category);
+    const wanted = foldName(collection);
     return sorted.filter((phrase) => {
-      if (wanted && !phrase.categories.some((name) => foldName(name) === wanted)) {
+      if (wanted && !phrase.collections.some((name) => foldName(name) === wanted)) {
         return false;
       }
       if (!needle) return true;
@@ -107,7 +107,7 @@ export default function PhrasesPage() {
         (field) => foldName(field).includes(needle),
       );
     });
-  }, [sorted, deferredQuery, category]);
+  }, [sorted, deferredQuery, collection]);
 
   // The same four pieces the word page uses; see `useListPage`.
   const {
@@ -161,19 +161,19 @@ export default function PhrasesPage() {
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </div>
-              {categories.length > 0 && (
+              {collections.length > 0 && (
                 <div className="w-full sm:w-44">
-                  <label htmlFor="phrase-category" className="sr-only">
-                    Filter by category
+                  <label htmlFor="phrase-collection" className="sr-only">
+                    Filter by collection
                   </label>
                   <select
-                    id="phrase-category"
+                    id="phrase-collection"
                     className="field"
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
+                    value={collection}
+                    onChange={(event) => setCollection(event.target.value)}
                   >
-                    <option value="">All categories</option>
-                    {categories.map((name) => (
+                    <option value="">All collections</option>
+                    {collections.map((name) => (
                       <option key={name} value={name}>
                         {name}
                       </option>
@@ -195,7 +195,7 @@ export default function PhrasesPage() {
               <NoMatches
                 onClear={() => {
                   setQuery("");
-                  setCategory("");
+                  setCollection("");
                 }}
               />
             ) : (
@@ -216,7 +216,7 @@ export default function PhrasesPage() {
                 {wide !== false && (
                 <PhraseTable
                   phrases={visible}
-                  onSelectCategory={setCategory}
+                  onSelectCollection={setCollection}
                   sort={sort}
                   onToggleSort={(key) =>
                     setSort((current) =>
@@ -281,7 +281,7 @@ export default function PhrasesPage() {
 
 function PhraseTable({
   phrases,
-  onSelectCategory,
+  onSelectCollection,
   sort,
   onToggleSort,
   linkIndex,
@@ -290,7 +290,7 @@ function PhraseTable({
   onDelete,
 }: {
   phrases: Phrase[];
-  onSelectCategory: (name: string) => void;
+  onSelectCollection: (name: string) => void;
   sort: PhraseSort;
   onToggleSort: (key: PhraseSortKey) => void;
   linkIndex: LinkIndex;
@@ -403,10 +403,10 @@ function PhraseTable({
                   )}
                 </td>
                 <td className="px-4 py-3 align-top">
-                  {phrase.categories.length > 0 ? (
+                  {phrase.collections.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
-                      {phrase.categories.map((name) => (
-                        <CategoryBadge key={name} name={name} onSelect={onSelectCategory} />
+                      {phrase.collections.map((name) => (
+                        <CollectionBadge key={name} name={name} onSelect={onSelectCollection} />
                       ))}
                     </div>
                   ) : (
@@ -502,10 +502,10 @@ function PhraseCards({
                     />
                   </div>
                 </div>
-                {phrase.categories.length > 0 && (
+                {phrase.collections.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1">
-                    {phrase.categories.map((name) => (
-                      <CategoryBadge key={name} name={name} />
+                    {phrase.collections.map((name) => (
+                      <CollectionBadge key={name} name={name} />
                     ))}
                   </div>
                 )}
@@ -558,12 +558,12 @@ function EmptyPhrases({ onAdd }: { onAdd: () => void }) {
 function NoMatches({ onClear }: { onClear: () => void }) {
   return (
     <div className="card p-8 text-center">
-      {/* "Filters" rather than "search": the button clears the category too,
-          and filtering by category alone produced copy about a search nobody
+      {/* "Filters" rather than "search": the button clears the collection too,
+          and filtering by collection alone produced copy about a search nobody
           had typed. The vocabulary page's twin says the same thing. */}
       <h2 className="font-semibold">No phrases match those filters</h2>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-        Try different wording, or another category.
+        Try different wording, or another collection.
       </p>
       <button type="button" className="btn btn-secondary mt-4" onClick={onClear}>
         Clear filters

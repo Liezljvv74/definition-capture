@@ -43,10 +43,16 @@ export type ImportRules<T> = {
  *  - A name introduced by the file itself is tracked by position in
  *    `toInsert`, so a later copy merges into the pending row rather than
  *    being addressed as a row that already exists.
- *  - Replace de-duplicates before anything is written, because `replaceAll`
- *    deletes the old list before inserting the new one — a duplicate name
- *    would be refused by the unique index after the delete had happened,
- *    leaving the list empty.
+ *  - Replace de-duplicates before anything is written: a duplicate name
+ *    would be refused by the unique index, and the whole restore with it.
+ *  - Replace gives each item in the file the id of the row it replaces.
+ *    `replaceAll` saves the file over the list and then deletes the rows the
+ *    file lacks, so an item that keeps its id keeps its review history. An
+ *    item matched by name takes that row's id, whatever id the file gave it;
+ *    one whose name is new but whose id is a row's (renamed since the backup)
+ *    keeps that id; the rest are new. Matching by name first is also what
+ *    stops a file item from being saved beside a row of the same name under a
+ *    different id, which the unique index would refuse.
  */
 export function planImport<T>(
   existing: readonly T[],
@@ -63,9 +69,30 @@ export function planImport<T>(
     // name.
     for (const item of incoming) byKey.set(keyOf(item), item);
 
+    const existingByKey = new Map(existing.map((item) => [keyOf(item), idOf(item)]));
+    const existingIds = new Set(existing.map(idOf));
+    const deduped = [...byKey.values()];
+
+    // Names first, so every row whose name the file repeats is saved over.
     const taken = new Set<string>();
-    const toReplace = [...byKey.values()].map((item) => {
-      const id = usableId(idOf(item), taken);
+    const byName = deduped.map((item) => {
+      const id = existingByKey.get(keyOf(item));
+      if (id !== undefined) taken.add(id);
+      return id;
+    });
+
+    const toReplace = deduped.map((item, at) => {
+      const matched = byName[at];
+      if (matched !== undefined) return withId(item, matched);
+      // A renamed row keeps its id, and so its history, if no name took it.
+      const own = idOf(item);
+      if (existingIds.has(own) && !taken.has(own)) {
+        taken.add(own);
+        return withId(item, own);
+      }
+      // Anything else is new: a fresh id if the file's is unusable or already
+      // spoken for by a row of this list.
+      const id = usableId(own, new Set([...taken, ...existingIds]));
       taken.add(id);
       return withId(item, id);
     });

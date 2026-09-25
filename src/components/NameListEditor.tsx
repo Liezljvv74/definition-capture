@@ -7,17 +7,18 @@ import { RowDeleteButton } from "@/components/DeleteControls";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
 
 /**
- * Add, rename and remove a short list of names, such as the categories and
+ * Add, rename and remove a short list of names, such as the collections and
  * the sources the word form offers. There is no reordering: the lists arrive
  * sorted from `settings.ts`, and the one that keeps its own order, the verb
  * persons, takes the order names are added in.
  *
- * Adding and removing never touch what is already saved on a word: a word
- * filed under a category that is removed keeps it, and the form still offers
- * that one name while you are editing that word. Removing a name stops it
- * being suggested; it does not go back through the data. Renaming is the one
- * that does, and only where the list passes `onRename`, which decides what a
- * rename reaches.
+ * What removing a name means depends on the list. Collections and sources are
+ * what words and phrases point at, so one still in use cannot be removed:
+ * those lists pass `removeBlockedBy`, which switches the bin off and says why,
+ * and the database refuses the delete as well. The other lists are only lists,
+ * and removing a name there changes nothing already saved. Renaming reaches
+ * the data only where the list passes `onRename`, which decides what a rename
+ * reaches.
  */
 export function NameListEditor({
   legend,
@@ -28,6 +29,7 @@ export function NameListEditor({
   placeholder,
   maxLength,
   onRename,
+  removeBlockedBy,
 }: {
   legend: string;
   description: string;
@@ -47,6 +49,8 @@ export function NameListEditor({
    * or null once the rename has been made, which is when the row closes.
    */
   onRename?: (from: string, to: string) => Promise<string | null>;
+  /** Why a name cannot be removed right now, or undefined when it can. */
+  removeBlockedBy?: (name: string) => string | undefined;
 }) {
   const inputId = useId();
   const [draft, setDraft] = useState("");
@@ -207,7 +211,9 @@ export function NameListEditor({
                 label={name}
                 onClick={() => remove(index)}
                 disabledReason={
-                  names.length <= minimum ? "At least one has to stay on the list" : undefined
+                  names.length <= minimum
+                    ? "At least one has to stay on the list"
+                    : removeBlockedBy?.(name)
                 }
               />
             )}

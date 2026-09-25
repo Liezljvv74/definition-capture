@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_TENSES,
   needsDefinition,
-  readCategories,
+  readCollections,
   readNameList,
   readSource,
   readString,
@@ -73,9 +73,9 @@ describe("readNameList", () => {
   });
 });
 
-describe("readCategories", () => {
-  it("caps at three, which is the limit a word may carry", () => {
-    expect(readCategories(["a", "b", "c", "d"])).toEqual(["a", "b", "c"]);
+describe("readCollections", () => {
+  it("caps at five, which is the limit a word may carry and the database checks", () => {
+    expect(readCollections(["a", "b", "c", "d", "e", "f"])).toEqual(["a", "b", "c", "d", "e"]);
   });
 });
 

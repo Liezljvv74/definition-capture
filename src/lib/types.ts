@@ -1,4 +1,4 @@
-import { DEFAULT_SOURCE, MAX_CATEGORIES, type Source } from "@/lib/constants";
+import { DEFAULT_SOURCE, MAX_COLLECTIONS, type Source } from "@/lib/constants";
 import { foldName } from "@/lib/foldName";
 
 /* ----------------------------------------------------------- word entries  */
@@ -10,8 +10,8 @@ export type Entry = {
   definition: string;
   /** Free-text reference; `parseRef` turns any links inside it into anchors. */
   ref: string;
-  /** Up to `MAX_CATEGORIES` group names; empty when the word is unfiled. */
-  categories: string[];
+  /** Up to `MAX_COLLECTIONS` group names; empty when the word is unfiled. */
+  collections: string[];
   source: Source;
   /** ISO timestamp, set once at creation and never changed by edits. */
   dateAdded: string;
@@ -26,7 +26,7 @@ export type EntryInput = {
   word: string;
   definition: string;
   ref: string;
-  categories: string[];
+  collections: string[];
   source: Source;
 };
 
@@ -34,7 +34,7 @@ export const EMPTY_ENTRY_INPUT: EntryInput = {
   word: "",
   definition: "",
   ref: "",
-  categories: [],
+  collections: [],
   source: DEFAULT_SOURCE,
 };
 
@@ -49,8 +49,8 @@ export type Phrase = {
   phrase: string;
   literalMeaning: string;
   usageExample: string;
-  /** Up to `MAX_CATEGORIES` group names, shared with the word list. */
-  categories: string[];
+  /** Up to `MAX_COLLECTIONS` group names, shared with the word list. */
+  collections: string[];
   /** Where it came from, from the same list the words draw on. */
   source: Source;
   ref: string;
@@ -67,7 +67,7 @@ export type PhraseInput = {
   phrase: string;
   literalMeaning: string;
   usageExample: string;
-  categories: string[];
+  collections: string[];
   source: Source;
   ref: string;
 };
@@ -76,7 +76,7 @@ export const EMPTY_PHRASE_INPUT: PhraseInput = {
   phrase: "",
   literalMeaning: "",
   usageExample: "",
-  categories: [],
+  collections: [],
   source: DEFAULT_SOURCE,
   ref: "",
 };
@@ -214,10 +214,10 @@ export function readNameList(value: unknown, limit: number): string[] {
 }
 
 /**
- * The categories on one word. Never a union of the configured names: a
- * category saved before the list was edited is still a real category on that
+ * The collections on one word. Never a union of the configured names: a
+ * collection saved before the list was edited is still a real collection on that
  * word, and dropping it silently would lose data.
  */
-export function readCategories(value: unknown): string[] {
-  return readNameList(value, MAX_CATEGORIES);
+export function readCollections(value: unknown): string[] {
+  return readNameList(value, MAX_COLLECTIONS);
 }

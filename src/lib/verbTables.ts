@@ -24,14 +24,13 @@ import {
 } from "@/lib/types";
 
 const store = createRemoteStore<VerbTable>({
-  table: "verb_tables",
-  orderBy: "created_at",
+  itemType: "verb_table",
   idOf: (table) => table.id,
   nameOf: (table) => table.verb,
 
   fromRow(row) {
     const id = readString(row.id);
-    const verb = readString(row.verb).trim();
+    const verb = readString(row.title).trim();
     if (!id || !verb) return null;
 
     const tenses = readTenses(row.tenses);
@@ -39,18 +38,19 @@ const store = createRemoteStore<VerbTable>({
       id,
       verb,
       tenses,
-      rows: readVerbRows(row.rows, tenses.length),
+      rows: readVerbRows(row.verb_rows, tenses.length),
       createdAt: readString(row.created_at),
     };
   },
 
-  toRow: (table) => ({
+  // No `source` and no `collections`: a table has neither, and leaving the
+  // keys out tells `save_items` to leave that part of the row alone.
+  toPayload: (table) => ({
     id: table.id,
-    verb: table.verb,
+    title: table.verb,
     tenses: table.tenses,
-    rows: table.rows,
+    verb_rows: table.rows,
     created_at: table.createdAt,
-    updated_at: new Date().toISOString(),
   }),
 });
 

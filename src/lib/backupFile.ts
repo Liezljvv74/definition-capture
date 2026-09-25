@@ -136,13 +136,13 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
       { width: 16 },
     ],
     data: [
-      headerRow(["Word", "Definition", "Category", "Source", "Ref", "Date added"]),
+      headerRow(["Word", "Definition", "Collection", "Source", "Ref", "Date added"]),
       ...backup.words.map<Row>((entry) => [
         { value: entry.word, type: String },
         { value: entry.definition, type: String, wrap: true },
-        // A spreadsheet cell cannot hold a list, so the three names are
+        // A spreadsheet cell cannot hold a list, so the collections are
         // joined the way a reader would write them.
-        { value: entry.categories.join(", "), type: String },
+        { value: entry.collections.join(", "), type: String },
         { value: entry.source, type: String },
         { value: entry.ref, type: String },
         { value: formatDate(entry.dateAdded), type: String },
@@ -166,7 +166,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
         "Phrase",
         "Literal meaning",
         "Usage example",
-        "Category",
+        "Collection",
         "Source",
         "Ref",
         "Date added",
@@ -177,7 +177,7 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
         { value: phrase.usageExample, type: String, wrap: true },
         // A spreadsheet cell cannot hold a list, so the names are joined the
         // way a reader would write them, as the Words sheet does.
-        { value: phrase.categories.join(", "), type: String },
+        { value: phrase.collections.join(", "), type: String },
         { value: phrase.source, type: String },
         { value: phrase.ref, type: String },
         { value: formatDate(phrase.dateAdded), type: String },

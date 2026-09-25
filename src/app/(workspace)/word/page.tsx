@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
-import { CategoryBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import { CollectionBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { EditWordDialog } from "@/components/EditWordDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -116,11 +116,11 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
           </div>
           <div>
             <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-              Category
+              Collection
             </dt>
             <dd className="mt-1.5 flex flex-wrap gap-1">
-              {entry.categories.length > 0 ? (
-                entry.categories.map((name) => <CategoryBadge key={name} name={name} />)
+              {entry.collections.length > 0 ? (
+                entry.collections.map((name) => <CollectionBadge key={name} name={name} />)
               ) : (
                 <span className="text-sm text-slate-400 italic dark:text-slate-500">None</span>
               )}

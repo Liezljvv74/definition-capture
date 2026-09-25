@@ -22,7 +22,7 @@ const entry: Entry = {
   word: "Tür",
   definition: "door",
   ref: "see [[Tor]]",
-  categories: ["Home", "Travel"],
+  collections: ["Home", "Travel"],
   source: "Manual",
   dateAdded: "2026-01-01T00:00:00.000Z",
   dateUpdated: "2026-02-02T00:00:00.000Z",
@@ -34,7 +34,7 @@ const phrase: Phrase = {
   phrase: "guten Tag",
   literalMeaning: "good day",
   usageExample: "Guten Tag, Frau Müller.",
-  categories: ["People"],
+  collections: ["People"],
   source: "Textbook",
   ref: "",
   dateAdded: "2026-02-03T09:15:00.000Z",
@@ -107,7 +107,7 @@ describe("what the writer writes, the reader reads", () => {
      */
     const olderSettings = {
       displayName: "Reader",
-      categories: ["Home"],
+      collections: ["Home"],
       sources: ["Manual"],
       verbPersons: ["ich"],
       verbTenses: ["Present"],
@@ -124,7 +124,7 @@ describe("what the writer writes, the reader reads", () => {
       fileHolding({
         settings: {
           displayName: "",
-          categories: ["Home"],
+          collections: ["Home"],
           sources: ["Manual"],
           verbPersons: [],
           verbTenses: [],
@@ -145,7 +145,7 @@ describe("what the writer writes, the reader reads", () => {
      */
     const olderSettings = {
       displayName: "",
-      categories: ["Home"],
+      collections: ["Home"],
       sources: ["Manual"],
       verbPersons: [],
       verbTenses: [],
@@ -164,7 +164,7 @@ describe("what the writer writes, the reader reads", () => {
       fileHolding({
         settings: {
           displayName: "",
-          categories: ["Home"],
+          collections: ["Home"],
           sources: ["Manual"],
           verbPersons: [],
           verbTenses: [],
@@ -240,7 +240,7 @@ describe("the file the writer produces", () => {
     // The point of having a writer: a field added to `Entry` for the screen's
     // benefit does not silently start appearing in everyone's backups.
     expect(Object.keys(toWireWord(entry)).sort()).toEqual([
-      "categories",
+      "collections",
       "dateAdded",
       "dateUpdated",
       "definition",

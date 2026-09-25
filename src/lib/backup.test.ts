@@ -28,7 +28,7 @@ const entry = (word: string): Entry => ({
   word,
   definition: "d",
   ref: "",
-  categories: [],
+  collections: [],
   source: "Manual",
   dateAdded: "2026-01-01T00:00:00.000Z",
   dateUpdated: null,
@@ -40,7 +40,7 @@ const phrase = (text: string): Phrase => ({
   phrase: text,
   literalMeaning: "",
   usageExample: "",
-  categories: [],
+  collections: [],
   source: "Manual",
   dateAdded: "2026-01-01T00:00:00.000Z",
   ref: "",
@@ -101,12 +101,12 @@ describe("parseBackup — reads", () => {
             rows: [{ person: "ich", conjugations: ["gehe"], notes: "" }],
           },
         ],
-        settings: { categories: ["Travel"], sources: ["Textbook"] },
+        settings: { collections: ["Travel"], sources: ["Textbook"] },
       }),
     );
     expect(parsed.verbTables).toHaveLength(1);
     expect(parsed.verbTables[0].rows[0].conjugations).toEqual(["gehe"]);
-    expect(parsed.settings?.categories).toEqual(["Travel"]);
+    expect(parsed.settings?.collections).toEqual(["Travel"]);
   });
 
   it("holds the conjugation invariant for a hand-edited table", () => {
@@ -150,6 +150,26 @@ describe("parseBackup — reads", () => {
     expect(parsed.words.map((w) => w.word)).toEqual(["Tür"]);
     expect(parsed.words[0].definition).toBe("door");
   });
+
+  /**
+   * Version 9 and earlier called collections `categories`, on every word and
+   * phrase and in the settings block. Every backup written before the rename
+   * spells it that way, so both spellings are read, and this is the test that
+   * stops a later tidy-up from dropping the old one.
+   */
+  it("reads a pre-version-10 file, which called collections categories", () => {
+    const parsed = ok(
+      JSON.stringify({
+        version: 9,
+        words: [{ id: crypto.randomUUID(), word: "Tür", definition: "door", categories: ["Home"] }],
+        phrases: [{ id: crypto.randomUUID(), phrase: "guten Tag", categories: ["People", "Travel"] }],
+        settings: { categories: ["Home", "People", "Travel"], sources: ["Manual"] },
+      }),
+    );
+    expect(parsed.words[0].collections).toEqual(["Home"]);
+    expect(parsed.phrases[0].collections).toEqual(["People", "Travel"]);
+    expect(parsed.settings?.collections).toEqual(["Home", "People", "Travel"]);
+  });
 });
 
 /**
@@ -191,7 +211,7 @@ describe("restoresSettings", () => {
   const withSettings = contents({
     settings: {
       displayName: "",
-      categories: ["Travel"],
+      collections: ["Travel"],
       sources: ["Manual"],
       verbPersons: [],
       verbTenses: [],

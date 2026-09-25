@@ -37,7 +37,7 @@ export function EditPhraseDialog({
     phrase: phrase.phrase,
     literalMeaning: phrase.literalMeaning,
     usageExample: phrase.usageExample,
-    categories: phrase.categories,
+    collections: phrase.collections,
     source: phrase.source,
     ref: phrase.ref,
   });

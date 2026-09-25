@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
-import { MAX_CATEGORIES, MAX_SKIP_WORD, SEPARATOR_CHOICES } from "@/lib/constants";
+import { MAX_COLLECTIONS, MAX_NAME, MAX_SKIP_WORD, SEPARATOR_CHOICES } from "@/lib/constants";
 import { foldName } from "@/lib/foldName";
 import {
   canSortIn,
@@ -24,11 +24,77 @@ import {
   supportsExportFolder,
 } from "@/lib/exportFolder";
 import { MIN_PASSWORD, changePassword, sendPasswordReset, signOut } from "@/lib/session";
-import { renameCategory, renameInList, renameSource } from "@/lib/renames";
+import { renameCollection, renameInList, renameSource } from "@/lib/renames";
 import { saveSettings } from "@/lib/settings";
+import { countUses, inUseReason } from "@/lib/inUse";
 import { useExportFolder } from "@/lib/useExportFolder";
+import { usePhrases } from "@/lib/usePhrases";
 import { useSession } from "@/lib/useSession";
 import { useSettings } from "@/lib/useSettings";
+import { useWords } from "@/lib/useWords";
+
+/**
+ * The two lists words and phrases point at. A collection or source still in
+ * use cannot be removed, since the database would refuse the delete, so the
+ * bin says so instead of failing. The counts come from the word and phrase
+ * lists the app already holds, which is why this section, and only this one,
+ * reads them; until both have arrived nothing can be removed, because a count
+ * of zero before the lists load would be a guess.
+ */
+function CollectionsAndSources() {
+  const { settings } = useSettings();
+  const { entries, loaded: wordsLoaded } = useWords();
+  const { phrases, loaded: phrasesLoaded } = usePhrases();
+  const listsLoaded = wordsLoaded && phrasesLoaded;
+
+  const collectionUses = countUses([
+    ...entries.map((entry) => entry.collections),
+    ...phrases.map((phrase) => phrase.collections),
+  ]);
+  const sourceUses = countUses([
+    ...entries.map((entry) => [entry.source]),
+    ...phrases.map((phrase) => [phrase.source]),
+  ]);
+  const blocked = (uses: Map<string, number>) => (name: string) =>
+    listsLoaded ? inUseReason(uses, name) : "Checking whether anything uses it";
+
+  return (
+    <>
+      {/*
+       * "Glossary Collections" rather than "Collections": the one list is
+       * offered on the word form and the phrase form alike, and naming the
+       * section after the tab those two share says so without spelling out
+       * both.
+       */}
+      <SettingSection title="Glossary Collections">
+        <NameListEditor
+          legend="Glossary Collections"
+          description={`The groups the word and phrase forms offer. A word or phrase can be in up to ${MAX_COLLECTIONS} of them. Renaming one renames it everywhere it is used, and renaming it to the name of another merges the two. One that is in use cannot be removed.`}
+          names={settings.collections}
+          onChange={(collections) => saveSettings({ collections })}
+          onRename={renameCollection}
+          removeBlockedBy={blocked(collectionUses)}
+          maxLength={MAX_NAME}
+          placeholder="e.g. Travel"
+        />
+      </SettingSection>
+
+      <SettingSection title="Sources">
+        <NameListEditor
+          legend="Sources"
+          description="Where a definition came from. Shown on a word or phrase when you open it. Renaming one renames it on everything that came from it. One that is in use cannot be removed."
+          names={settings.sources}
+          onChange={(sources) => saveSettings({ sources })}
+          onRename={renameSource}
+          removeBlockedBy={blocked(sourceUses)}
+          maxLength={MAX_NAME}
+          minimum={1}
+          placeholder="e.g. Textbook"
+        />
+      </SettingSection>
+    </>
+  );
+}
 
 /**
  * Settings: who you are, the lists the forms offer, and where exports are
@@ -37,7 +103,7 @@ import { useSettings } from "@/lib/useSettings";
  *
  * Every section is rolled up to its name and what it is currently set to, so
  * the page reads as a summary and opens only what you came to change. The
- * list sections show their name alone: spelling out eight categories on a row
+ * list sections show their name alone: spelling out eight collections on a row
  * meant to be skimmed would defeat the point of rolling it up.
  *
  * The lists and the name are per account and follow you between devices. The
@@ -94,34 +160,7 @@ function Settings() {
               />
             </SettingSection>
 
-            {/*
-             * "Glossary Categories" rather than "Categories": the one list is
-             * offered on the word form and the phrase form alike, and naming the
-             * section after the tab those two share says so without spelling out
-             * both.
-             */}
-            <SettingSection title="Glossary Categories">
-              <NameListEditor
-                legend="Glossary Categories"
-                description={`The groups the word and phrase forms offer. One entry can still carry up to ${MAX_CATEGORIES} of them. Renaming one renames it on everything filed under it; removing one leaves it there.`}
-                names={settings.categories}
-                onChange={(categories) => saveSettings({ categories })}
-                onRename={renameCategory}
-                placeholder="e.g. Travel"
-              />
-            </SettingSection>
-
-            <SettingSection title="Sources">
-              <NameListEditor
-                legend="Sources"
-                description="Where a definition came from. Shown on a word or phrase when you open it. Renaming one renames it on everything that came from it."
-                names={settings.sources}
-                onChange={(sources) => saveSettings({ sources })}
-                onRename={renameSource}
-                minimum={1}
-                placeholder="e.g. Textbook"
-              />
-            </SettingSection>
+            <CollectionsAndSources />
 
             <SettingSection title="Verb persons">
               <NameListEditor

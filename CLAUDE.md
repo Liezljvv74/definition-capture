@@ -139,45 +139,60 @@ in the same migration that creates it.
 
 **`src/lib/remoteStore.ts` is the only thing that talks to Supabase for list
 data.** All three list stores are built from that one factory, so they cannot drift
-apart in how they load, save, or report failure. `src/lib/settings.ts` deliberately
-does not use it, being one row with no id and no order, but it shares the functions
-where drifting would be a bug. Writes are optimistic: the screen updates first, and
-a failure reloads the list and puts a message in the banner.
+apart in how they load, save, or report failure. Each reads its own `item_type` out
+of `items` and writes through the `save_items` function, one transaction per call;
+every delete is limited to its type as well as its ids, because the three lists
+share one table. `src/lib/settings.ts` deliberately does not use it, being one row
+with no id and no order, but it shares the functions where drifting would be a bug.
+Writes are optimistic: the screen updates first, and a failure reloads the list and
+puts a message in the banner.
 
 **A backup file has a declared shape, and the old spellings still have to
 read.** Each list has a `toWire` beside its `parse`, and `buildBackup` maps
 through them, so renaming a field on a domain type is a compile error rather
-than a silent change to the format everyone's saved files use. Two things that
+than a silent change to the format everyone's saved files use. Three things that
 look like leftovers are not: `parseBackup` accepting `entries` as well as
-`words`, and `parseEntry` accepting `term` as well as `word`. Every backup
-written before version 6 spells them the old way, and those files are still in
-people's Downloads folders. There is a test that fails if either is dropped.
+`words`, `parseEntry` accepting `term` as well as `word`, and every reader
+accepting `categories` as well as `collections`. Backups before version 6 spell
+the first two the old way and backups before version 10 the third, and those
+files are still in people's Downloads folders. There are tests that fail if any
+of them is dropped.
+
+**A Replace restore keeps what it replaces.** `replaceAll` saves the file over
+the list and then deletes only the rows the file lacks, and `planImport` gives
+each file item the id of the row it replaces (by name, else by id). Deleting
+first, as it once did, cascaded into every item's review history and schedule.
 
 **The glossary is called Vocabulary and its items are words.** The label and the
-identifiers behind it do not all agree, deliberately. The table is `words` with a
-`word` column and the routes are `/vocabulary` and `/word?id=`, but `/terms` and
-`/term?id=` still redirect to them, `parseEntry` still reads a `term` field, and
-the `Entry` type keeps the name it had two renames ago, from when the table was
-`entries`. Check what a name actually reaches before renaming it.
+identifiers behind it do not all agree, deliberately. A word is a row of `items`
+with `item_type = 'word'` and its text in `title`; the routes are `/vocabulary` and
+`/word?id=`, but `/terms` and `/term?id=` still redirect to them, `parseEntry`
+still reads a `term` field, and the `Entry` type keeps the name it had three
+renames ago, from when the table was `entries`. Check what a name actually reaches
+before renaming it.
 
-**The flashcard work is a schema change, and it is designed before it is
-built.** `Docs/schema.md` is the design of record: one `learning_items` table
-as the spine, a typed detail table per content type, an append-only
-`review_logs`, and `progress_summary` derived from it so dashboards are fast.
-Eleven migrations carry it and **all are applied**; `Docs/schema.md` lists what
-each of them does. The three names the app reads, `words`, `phrases` and
-`verb_tables`, survive as views with `instead of` triggers, so applying them
-changed nothing in `src/`. Read that document before adding a table. A new
-content type is a row in `item_types`, one detail table, a partial unique
-index and a branch in `card_faces`: the first three are what make it a first
-class list, and the fourth is what makes it produce flashcards, which nothing
-will tell you about if it is left out.
+**What the app calls a Collection is a tag.** An item can be in up to five and a
+collection holds many items, so it is a row of `tags` with `context =
+'collection'`, linked through `item_tags`. Tags have a context because they are
+expected to serve other purposes later. The word "category" is retired, in the
+interface and in code, except where an old backup file is read. A source is not a
+tag: an item has at most one, so it is a row of `sources` that `items.source_id`
+points at. A collection or source still in use cannot be deleted; the database
+refuses it and Settings switches the bin off.
 
-A view cannot take `on conflict`, so nothing may `upsert` against `words`,
-`phrases` or `verb_tables`. Postgres infers the arbiter from the target's
-indexes and a view has none, so the request is refused with 42P10 before the
-`instead of` trigger ever runs. `remoteStore` updates row by row for this
-reason.
+**`Docs/schema.md` is the design of record, and it is read before a table is
+added.** Nine tables, no views, and seven functions, none of them `security
+definer`: `items` holds every word, phrase and verb table, with a check per type
+on its detail columns; `tags`, `item_tags` and `sources` label them; `decks`,
+`deck_cards`, `progress` and an append-only `reviews` carry the flashcards; and
+`user_settings` is one row of preferences. Every owned row carries `user_id`, and
+composite foreign keys `(x_id, user_id)` make a link between two accounts' rows
+impossible. `Docs/db-refactor-plan.md` records how the schema got here and why.
+
+A new kind of item is a value in the `item_type` check, its detail columns with a
+check, a branch in `items.has_answer` and the same branch in `cardBack`, and its
+fields in `save_items`. The `has_answer` branch is what makes it produce
+flashcards, and nothing will tell you if it is left out.
 
 **Migrations are imperative and hand-written.** Create one with
 `npx supabase migration new <name>` (never invent a filename) and apply with

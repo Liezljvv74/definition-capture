@@ -15,12 +15,11 @@ type Row = { id: string; name: string };
 
 const make = () =>
   createRemoteStore<Row>({
-    table: "rows",
-    orderBy: "created_at",
+    itemType: "word",
     idOf: (row) => row.id,
     nameOf: (row) => row.name,
     fromRow: (row) => ({ id: String(row.id), name: String(row.name) }),
-    toRow: (row) => ({ id: row.id, name: row.name }),
+    toPayload: (row) => ({ id: row.id, title: row.name }),
   });
 
 describe("findByName", () => {

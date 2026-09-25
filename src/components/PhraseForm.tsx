@@ -3,7 +3,7 @@
 import { useId, useMemo, useState, type FormEvent } from "react";
 
 import { RefField } from "@/components/RefField";
-import { MAX_CATEGORIES } from "@/lib/constants";
+import { MAX_COLLECTIONS } from "@/lib/constants";
 import { EMPTY_PHRASE_INPUT, type PhraseInput } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
 
@@ -29,18 +29,18 @@ export function PhraseForm({
 
   /**
    * The standing list, plus anything this phrase already carries that is no
-   * longer offered. Editing a phrase must not quietly strip a category that
+   * longer offered. Editing a phrase must not quietly strip a collection that
    * has since been removed from Settings, which is the same guard the word
    * form makes for its own.
    */
-  const categoryOptions = useMemo(() => {
-    const standing = settings.categories;
-    const extras = initialValue.categories.filter((name) => !standing.includes(name));
+  const collectionOptions = useMemo(() => {
+    const standing = settings.collections;
+    const extras = initialValue.collections.filter((name) => !standing.includes(name));
     return [...standing, ...extras];
-  }, [initialValue, settings.categories]);
+  }, [initialValue, settings.collections]);
 
   /**
-   * Same rule as the categories: the configured list, plus this phrase's own
+   * Same rule as the collections: the configured list, plus this phrase's own
    * source if it has since been taken off. Saving must not quietly relabel
    * where it came from.
    */
@@ -51,13 +51,13 @@ export function PhraseForm({
       : [...standing, initialValue.source];
   }, [initialValue.source, settings.sources]);
 
-  function toggleCategory(name: string) {
+  function toggleCollection(name: string) {
     setValue((current) => {
-      if (current.categories.includes(name)) {
-        return { ...current, categories: current.categories.filter((c) => c !== name) };
+      if (current.collections.includes(name)) {
+        return { ...current, collections: current.collections.filter((c) => c !== name) };
       }
-      if (current.categories.length >= MAX_CATEGORIES) return current;
-      return { ...current, categories: [...current.categories, name] };
+      if (current.collections.length >= MAX_COLLECTIONS) return current;
+      return { ...current, collections: [...current.collections, name] };
     });
   }
 
@@ -73,7 +73,7 @@ export function PhraseForm({
       phrase,
       literalMeaning: value.literalMeaning.trim(),
       usageExample: value.usageExample.trim(),
-      categories: value.categories,
+      collections: value.collections,
       source: value.source,
       ref: value.ref.trim(),
     });
@@ -129,13 +129,13 @@ export function PhraseForm({
       </div>
 
       <fieldset>
-        <legend className="mb-1.5 block text-sm font-medium">Category</legend>
+        <legend className="mb-1.5 block text-sm font-medium">Collection</legend>
         <div className="flex flex-wrap gap-1.5">
-          {categoryOptions.map((name) => {
-            const checked = value.categories.includes(name);
+          {collectionOptions.map((name) => {
+            const checked = value.collections.includes(name);
             // At the cap the unchosen ones go quiet rather than vanishing, so
             // the list does not jump about while you are picking.
-            const blocked = !checked && value.categories.length >= MAX_CATEGORIES;
+            const blocked = !checked && value.collections.length >= MAX_COLLECTIONS;
             return (
               <label
                 key={name}
@@ -154,7 +154,7 @@ export function PhraseForm({
                   className="sr-only"
                   checked={checked}
                   disabled={blocked}
-                  onChange={() => toggleCategory(name)}
+                  onChange={() => toggleCollection(name)}
                 />
                 {name}
               </label>
@@ -162,8 +162,8 @@ export function PhraseForm({
           })}
         </div>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          The same groups the words use. Up to {MAX_CATEGORIES}
-          {value.categories.length > 0 && `, ${value.categories.length} chosen`}.
+          The same groups the words use. Up to {MAX_COLLECTIONS}
+          {value.collections.length > 0 && `, ${value.collections.length} chosen`}.
         </p>
       </fieldset>
 

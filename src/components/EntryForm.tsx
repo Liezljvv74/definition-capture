@@ -3,7 +3,7 @@
 import { useId, useMemo, useState, type ClipboardEvent, type FormEvent } from "react";
 
 import { RefField } from "@/components/RefField";
-import { MAX_CATEGORIES } from "@/lib/constants";
+import { MAX_COLLECTIONS } from "@/lib/constants";
 import { splitWordAndDefinition } from "@/lib/parseWord";
 import { EMPTY_ENTRY_INPUT, type EntryInput } from "@/lib/types";
 import { VerbTableControl } from "@/components/VerbTableControl";
@@ -66,14 +66,14 @@ export function EntryForm({
 
   /**
    * The standing list, plus any name this entry already carries that is no
-   * longer offered — editing a word must not quietly strip a category just
+   * longer offered — editing a word must not quietly strip a collection just
    * because the list in `constants.ts` has moved on since it was filed.
    */
-  const categoryOptions = useMemo(() => {
-    const standing = settings.categories;
-    const extras = initialValue.categories.filter((name) => !standing.includes(name));
+  const collectionOptions = useMemo(() => {
+    const standing = settings.collections;
+    const extras = initialValue.collections.filter((name) => !standing.includes(name));
     return [...standing, ...extras];
-  }, [initialValue, settings.categories]);
+  }, [initialValue, settings.collections]);
 
   /**
    * Same rule for sources: the configured list, plus this entry's own
@@ -87,13 +87,13 @@ export function EntryForm({
       : [...standing, initialValue.source];
   }, [initialValue.source, settings.sources]);
 
-  function toggleCategory(name: string) {
+  function toggleCollection(name: string) {
     setValue((current) => {
-      if (current.categories.includes(name)) {
-        return { ...current, categories: current.categories.filter((c) => c !== name) };
+      if (current.collections.includes(name)) {
+        return { ...current, collections: current.collections.filter((c) => c !== name) };
       }
-      if (current.categories.length >= MAX_CATEGORIES) return current;
-      return { ...current, categories: [...current.categories, name] };
+      if (current.collections.length >= MAX_COLLECTIONS) return current;
+      return { ...current, collections: [...current.collections, name] };
     });
   }
 
@@ -154,13 +154,13 @@ export function EntryForm({
       </div>
 
       <fieldset>
-        <legend className="mb-1.5 block text-sm font-medium">Category</legend>
+        <legend className="mb-1.5 block text-sm font-medium">Collection</legend>
         <div className="flex flex-wrap gap-1.5">
-          {categoryOptions.map((name) => {
-            const checked = value.categories.includes(name);
+          {collectionOptions.map((name) => {
+            const checked = value.collections.includes(name);
             // At the cap the unchosen ones go quiet rather than vanishing, so
             // the list does not jump about while you are picking.
-            const blocked = !checked && value.categories.length >= MAX_CATEGORIES;
+            const blocked = !checked && value.collections.length >= MAX_COLLECTIONS;
             return (
               <label
                 key={name}
@@ -179,7 +179,7 @@ export function EntryForm({
                   className="sr-only"
                   checked={checked}
                   disabled={blocked}
-                  onChange={() => toggleCategory(name)}
+                  onChange={() => toggleCollection(name)}
                 />
                 {name}
               </label>
@@ -187,8 +187,8 @@ export function EntryForm({
           })}
         </div>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          Groups words that belong together. Up to {MAX_CATEGORIES}
-          {value.categories.length > 0 && `, ${value.categories.length} chosen`}.
+          Groups words that belong together. Up to {MAX_COLLECTIONS}
+          {value.collections.length > 0 && `, ${value.collections.length} chosen`}.
         </p>
       </fieldset>
 

@@ -101,7 +101,6 @@ function Deck() {
         <CardFace
           key={card.id}
           card={card}
-          deckId={deckId}
           onProblem={setError}
           onFinished={(outcome) => {
             setDone((count) =>
@@ -122,12 +121,10 @@ type Phase = "asking" | "correct" | "wrong" | "revealed";
 
 function CardFace({
   card,
-  deckId,
   onFinished,
   onProblem,
 }: {
   card: Card;
-  deckId: string;
   /** Called once this card is done with, with what it counted as. */
   onFinished: (outcome: "correct" | "wrong") => void;
   onProblem: (message: string) => void;
@@ -156,7 +153,7 @@ function CardFace({
 
   async function record(outcome: Outcome) {
     try {
-      await answerCard(card.id, outcome, deckId, Date.now() - shownAt.current);
+      await answerCard(card.id, outcome, Date.now() - shownAt.current);
     } catch (cause) {
       onProblem(
         cause instanceof FlashcardError ? cause.message : "That answer could not be recorded.",

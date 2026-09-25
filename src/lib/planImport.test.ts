@@ -114,9 +114,8 @@ describe("planImport — replace", () => {
   });
 
   it("de-duplicates by name before anything is written", () => {
-    // `replaceAll` deletes the old list before inserting the new one, so a
-    // duplicate reaching the database would be refused by the unique index
-    // *after* the delete — leaving the list empty rather than restored.
+    // A duplicate reaching the database would be refused by the unique index,
+    // and the whole restore with it.
     const result = plan([], [row("Tür", "a"), row("TÜR", "b")], "replace");
 
     expect(result.toReplace).toHaveLength(1);
@@ -127,6 +126,34 @@ describe("planImport — replace", () => {
   it("reports the de-duplicated count, not the file's row count", () => {
     const result = plan([], [row("a"), row("a"), row("a")], "replace");
     expect(result.counts.added).toBe(1);
+  });
+
+  /**
+   * `replaceAll` saves over the list and deletes only what the file lacks, so
+   * the id each file item is given decides whose review history it keeps.
+   */
+  it("saves over the row with the same name, whatever id the file gave it", () => {
+    const mine = row("Tür", "door", "11111111-1111-4111-8111-111111111111");
+    const result = plan([mine], [row("tür", "DOOR", "99999999-9999-4999-8999-999999999999")], "replace");
+    expect(result.toReplace?.[0].id).toBe(mine.id);
+    expect(result.toReplace?.[0].body).toBe("DOOR");
+  });
+
+  it("keeps the id of a row renamed since the backup", () => {
+    const mine = row("Tor", "", "22222222-2222-4222-8222-222222222222");
+    const result = plan([mine], [row("Tür", "", mine.id)], "replace");
+    expect(result.toReplace?.[0].id).toBe(mine.id);
+  });
+
+  it("does not let an id match take a row a name has already claimed", () => {
+    // The file's "Buch" carries the id of "Tür", and the file also has "Tür".
+    // The name wins, so "Buch" becomes new rather than overwriting "Tür".
+    const tuer = row("Tür", "", "33333333-3333-4333-8333-333333333333");
+    const result = plan([tuer], [row("Buch", "", tuer.id), row("Tür")], "replace");
+    const [buch, door] = result.toReplace ?? [];
+    expect(door.id).toBe(tuer.id);
+    expect(buch.id).not.toBe(tuer.id);
+    expect(buch.id).toMatch(UUID);
   });
 
   it("is null for toReplace in the merge modes, so the caller cannot confuse them", () => {

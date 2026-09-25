@@ -22,10 +22,10 @@ export const DEFAULT_SOURCE: Source = "Manual";
 
 /**
  * The groups a word can be filed under, before Settings has been touched.
- * Alphabetical, because categories are always shown that way; see
+ * Alphabetical, because collections are always shown that way; see
  * `sortedNames` in `settings.ts`.
  */
-export const DEFAULT_CATEGORIES = [
+export const DEFAULT_COLLECTIONS = [
   "Careers",
   "Food",
   "Health",
@@ -36,11 +36,14 @@ export const DEFAULT_CATEGORIES = [
   "Travel",
 ] as const;
 
-/** How many categories one word may carry. Not the size of the list to pick from. */
-export const MAX_CATEGORIES = 3;
+/** How many collections one word may carry. Not the size of the list to pick from. */
+export const MAX_COLLECTIONS = 5;
 
 /** A guard against a runaway list, matching the check constraint on the table. */
 export const MAX_LIST_LENGTH = 30;
+
+/** The longest collection or source name, matching the checks on `tags` and `sources`. */
+export const MAX_NAME = 60;
 
 /**
  * The longest word the sorting skip list takes. Articles are a few letters;

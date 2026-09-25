@@ -29,8 +29,10 @@ type Answer = { data: unknown[] | null; error: unknown };
 
 /** One request, as the fake saw it. */
 type Call = {
-  verb: "select" | "insert" | "update" | "upsert" | "delete";
+  verb: "select" | "insert" | "update" | "upsert" | "delete" | "rpc";
+  /** The table, or for `rpc` the function's name. */
   table: string;
+  /** Rows written, or for `save_items` the payload. */
   rows?: Row[];
   /** The ids named by `.in("id", …)`, which is how a bulk delete travels. */
   ids?: string[];
@@ -80,6 +82,13 @@ function fakeSupabase() {
 
   const asRows = (rows: Row | Row[]): Row[] => (Array.isArray(rows) ? rows : [rows]);
 
+  function rpc(name: string, args: Record<string, unknown>) {
+    const call: Call = { verb: "rpc", table: name, rows: (args.payload as Row[]) ?? [] };
+    calls.push(call);
+    onAnswer(call);
+    return Promise.resolve(answerFor("rpc"));
+  }
+
   return {
     calls,
     answers,
@@ -90,6 +99,7 @@ function fakeSupabase() {
       return calls.filter((call) => call.verb === verb);
     },
     client: {
+      rpc,
       from(table: string) {
         return {
           select: () => builder({ verb: "select", table }),
@@ -119,12 +129,11 @@ type Item = { id: string; name: string };
 
 const make = () =>
   createRemoteStore<Item>({
-    table: "things",
-    orderBy: "created_at",
+    itemType: "word",
     idOf: (item) => item.id,
     nameOf: (item) => item.name,
     fromRow: (row) => ({ id: String(row.id), name: String(row.name) }),
-    toRow: (item) => ({ id: item.id, name: item.name }),
+    toPayload: (item) => ({ id: item.id, title: item.name }),
   });
 
 const rows = (count: number, from = 0): Row[] =>
@@ -153,7 +162,7 @@ beforeEach(() => {
 
 describe("a write that fails", () => {
   it("says so in the banner and reloads, so the screen matches the database", async () => {
-    fake.answers.insert = [fails("duplicate key")];
+    fake.answers.rpc = [fails("duplicate key")];
     fake.answers.select = [ok(rows(1))];
     const store = make();
 
@@ -173,7 +182,7 @@ describe("a write that fails", () => {
   it("does not let its own reload clear the banner a moment later", async () => {
     // The regression the comment in `load` records: the reload succeeds, and
     // clearing the error there made the failure flash and vanish.
-    fake.answers.insert = [fails()];
+    fake.answers.rpc = [fails()];
     fake.answers.select = [ok(rows(1))];
     const store = make();
 
@@ -219,6 +228,12 @@ describe("a bulk delete", () => {
 
     const sizes = fake.of("delete").map((call) => call.ids?.length ?? 0);
     expect(sizes).toEqual([200, 200, 50]);
+    // The three lists share one table, so every batch is held to this list's
+    // type as well as to its ids.
+    for (const call of fake.of("delete")) {
+      expect(call.table).toBe("items");
+      expect(call.eq).toEqual({ item_type: "word" });
+    }
     // Every id is named exactly once, across the batches.
     const sent = fake.of("delete").flatMap((call) => call.ids ?? []);
     expect(new Set(sent).size).toBe(450);
@@ -241,7 +256,7 @@ describe("reading the list", () => {
   it("asks for another page until a short one arrives", async () => {
     // The truncation this exists to prevent: PostgREST caps a response at 1000
     // rows and says nothing, so a single select looked like a complete list.
-    fake.answers.insert = [fails()];
+    fake.answers.rpc = [fails()];
     fake.answers.select = [ok(rows(1000)), ok(rows(3, 1000))];
     const store = make();
 
@@ -253,10 +268,15 @@ describe("reading the list", () => {
       [0, 999],
       [1000, 1999],
     ]);
+    // Every page is this list's own type out of the shared table.
+    for (const call of fake.of("select")) {
+      expect(call.table).toBe("items");
+      expect(call.eq).toEqual({ item_type: "word" });
+    }
   });
 
   it("publishes nothing when a later page fails, rather than a short list", async () => {
-    fake.answers.insert = [fails()];
+    fake.answers.rpc = [fails()];
     fake.answers.select = [ok(rows(1000)), fails("network")];
     const store = make();
 
@@ -272,7 +292,7 @@ describe("reading the list", () => {
   });
 
   it("keeps the rows already on screen when the read fails outright", async () => {
-    fake.answers.insert = [ok(), fails()];
+    fake.answers.rpc = [ok(), fails()];
     fake.answers.select = [fails("offline")];
     const store = make();
 
@@ -287,7 +307,7 @@ describe("reading the list", () => {
   });
 
   it("drops rows that arrive after the reader has changed", async () => {
-    fake.answers.insert = [fails()];
+    fake.answers.rpc = [fails()];
     fake.answers.select = [ok(rows(2))];
     const store = make();
     // A sign-out or account switch while the read is in flight.
@@ -306,90 +326,143 @@ describe("reading the list", () => {
 });
 
 describe("replaceAll, which a restore uses", () => {
-  it("deletes this reader's rows before inserting the file's", async () => {
+  /**
+   * A restore used to delete the whole list and insert the file. The delete
+   * cascaded into every item's review history and schedule, so restoring a
+   * backup erased flashcard progress even for items it put straight back
+   * under the same id. It now saves the file over the top first, and then
+   * deletes only what the file does not have.
+   */
+  const seed = async (store: ReturnType<typeof make>, ids: string[]) => {
+    store.insertMany(ids.map((id) => ({ id, name: id.toUpperCase() })));
+    await store.settled();
+    fake.calls.length = 0;
+  };
+
+  it("saves the file first, then deletes only the ids it lacks", async () => {
     const store = make();
+    await seed(store, ["a", "b", "c"]);
+
+    store.replaceAll([
+      { id: "a", name: "A2" },
+      { id: "d", name: "D" },
+    ]);
+    await store.settled();
+
+    expect(fake.calls.map((call) => call.verb)).toEqual(["rpc", "delete"]);
+    expect(fake.of("rpc")[0].table).toBe("save_items");
+    expect(fake.of("rpc")[0].rows?.map((row) => row.id)).toEqual(["a", "d"]);
+    // "a" stays, so it is saved over rather than deleted: its history survives.
+    expect(fake.of("delete")[0].ids?.sort()).toEqual(["b", "c"]);
+    expect(fake.of("delete")[0].eq).toEqual({ item_type: "word" });
+  });
+
+  it("deletes nothing when the file has everything", async () => {
+    const store = make();
+    await seed(store, ["a"]);
+
     store.replaceAll([{ id: "a", name: "A" }]);
     await store.settled();
 
-    expect(fake.calls.map((call) => call.verb)).toEqual(["delete", "insert"]);
-    expect(fake.of("delete")[0].eq).toEqual({ user_id: "user-1" });
-    expect(fake.of("insert")[0].rows?.[0]).toMatchObject({ id: "a", user_id: "user-1" });
+    expect(fake.calls.map((call) => call.verb)).toEqual(["rpc"]);
   });
 
-  it("sends no insert at all for an empty list", async () => {
+  it("deletes the whole list, and nothing else, for an empty file", async () => {
     const store = make();
+    await seed(store, ["a", "b"]);
+
     store.replaceAll([]);
     await store.settled();
 
-    expect(fake.calls.map((call) => call.verb)).toEqual(["delete"]);
+    expect(fake.of("delete")[0].ids?.sort()).toEqual(["a", "b"]);
+    expect(fake.of("delete")[0].eq).toEqual({ item_type: "word" });
     expect(store.items()).toEqual([]);
   });
 
-  it("does not insert when the delete failed", async () => {
-    fake.answers.delete = [fails("denied")];
-    fake.answers.select = [ok([])];
+  it("does not delete anything when the save failed", async () => {
     const store = make();
+    await seed(store, ["a", "b"]);
+    fake.answers.rpc = [fails("denied")];
+    fake.answers.select = [ok([])];
 
     store.replaceAll([{ id: "a", name: "A" }]);
     await store.settled();
 
-    expect(fake.of("insert")).toHaveLength(0);
+    expect(fake.of("delete")).toHaveLength(0);
     expect(store.getError()).toContain("denied");
   });
 });
 
-describe("writes stamp the owner from the session", () => {
+describe("saving many at once", () => {
+  it("sends batches in sequence, each one call", async () => {
+    const store = make();
+    store.insertMany(rows(550).map((row) => ({ id: String(row.id), name: String(row.name) })));
+    await store.settled();
+
+    expect(fake.of("rpc").map((call) => call.rows?.length)).toEqual([500, 50]);
+  });
+
+  it("stops at the first batch that fails", async () => {
+    fake.answers.rpc = [fails("too big"), ok()];
+    fake.answers.select = [ok([])];
+    const store = make();
+
+    store.insertMany(rows(550).map((row) => ({ id: String(row.id), name: String(row.name) })));
+    await store.settled();
+
+    expect(fake.of("rpc")).toHaveLength(1);
+    expect(store.getError()).toContain("too big");
+  });
+});
+
+describe("the payload carries no owner and the list's own type", () => {
   /**
-   * `rowFor` spreads the item first and sets `user_id` afterwards, so a row
-   * that already carries one cannot keep it. Row level security would refuse
-   * such a write anyway, but a rejected write is a banner and a lost edit,
-   * and this is the line that stops it being sent at all.
-   *
-   * The store under test hands back a `user_id` of its own on purpose. No real
-   * `toRow` does, which is exactly why reversing the spread would otherwise go
-   * unnoticed until something did.
+   * `save_items` takes the owner from the session and ignores one in the
+   * payload, but the store drops it as well, and sets the type itself. The
+   * store under test hands back a `user_id` and a wrong `item_type` on
+   * purpose: no real `toPayload` does, which is exactly why a change here
+   * would otherwise go unnoticed until something did.
    */
   const hostile = () =>
     createRemoteStore<Item>({
-      table: "things",
-      orderBy: "created_at",
+      itemType: "word",
       idOf: (item) => item.id,
       nameOf: (item) => item.name,
       fromRow: (row) => ({ id: String(row.id), name: String(row.name) }),
-      toRow: (item) => ({ id: item.id, name: item.name, user_id: "someone-else" }),
+      toPayload: (item) => ({
+        id: item.id,
+        title: item.name,
+        user_id: "someone-else",
+        item_type: "phrase",
+      }),
     });
 
-  it("overrides an owner the row arrived with, on every kind of write", async () => {
+  it("holds on every kind of write", async () => {
     const store = hostile();
     store.insert({ id: "a", name: "A" });
+    store.update({ id: "a", name: "A1" });
     store.insertMany([{ id: "b", name: "B" }]);
     store.updateMany([{ id: "b", name: "B2" }]);
     store.replaceAll([{ id: "c", name: "C" }]);
     await store.settled();
 
-    const written = [
-      ...fake.of("insert"),
-      ...fake.of("upsert"),
-      ...fake.of("update"),
-    ].flatMap((call) => call.rows ?? []);
-    expect(written.length).toBeGreaterThan(0);
-    for (const row of written) expect(row.user_id).toBe("user-1");
+    const written = fake.of("rpc").flatMap((call) => call.rows ?? []);
+    expect(written.length).toBe(5);
+    for (const row of written) {
+      expect(row).not.toHaveProperty("user_id");
+      expect(row.item_type).toBe("word");
+    }
   });
 });
 
 describe("updateMany", () => {
   /*
-   * The three lists are views over `learning_items`, not tables, and a view
-   * has no index for `on conflict` to infer an arbiter from: PostgREST's
-   * upsert is refused with 42P10 before the `instead of` trigger runs. So the
-   * bulk path that an import's "overwrite matching rows" mode depends on has
-   * to be updates, one per row, however much one round trip would be nicer.
-   *
-   * Asserting on the verb rather than on the outcome, because the fake answers
-   * every call the same way: what broke in production was the shape of the
-   * request, and that is the thing this can see.
+   * One `save_items` call for the whole set. While the lists were views this
+   * had to be one update request per row, because a view cannot take an
+   * upsert (42P10); they are one table again, and the function does the set
+   * in a single transaction.
    */
-  it("updates each row by id rather than upserting", async () => {
+  it("saves every row in one call", async () => {
     const store = make();
     store.updateMany([
       { id: "a", name: "A2" },
@@ -397,17 +470,14 @@ describe("updateMany", () => {
     ]);
     await store.settled();
 
-    expect(fake.of("upsert")).toHaveLength(0);
-
-    const updates = fake.of("update");
-    expect(updates).toHaveLength(2);
-    expect(updates.map((call) => call.eq?.id)).toEqual(["a", "b"]);
-    expect(updates.map((call) => call.rows?.[0]?.name)).toEqual(["A2", "B2"]);
+    expect(fake.of("update")).toHaveLength(0);
+    expect(fake.of("rpc")).toHaveLength(1);
+    expect(fake.of("rpc")[0].rows?.map((row) => row.title)).toEqual(["A2", "B2"]);
   });
 
-  it("reports one failure out of a batch, and reloads once", async () => {
+  it("reports a failure once, and reloads once", async () => {
     const store = make();
-    fake.answers.update = [fails("no")];
+    fake.answers.rpc = [fails("no")];
 
     store.updateMany([
       { id: "a", name: "A2" },
@@ -416,7 +486,6 @@ describe("updateMany", () => {
     await store.settled();
 
     expect(store.getError()).toContain("Could not save to the database");
-    // One reload for the batch, not one per row.
     expect(fake.of("select")).toHaveLength(1);
   });
 });
@@ -427,12 +496,11 @@ describe("settled", () => {
     store.insert({ id: "a", name: "A" });
     store.insert({ id: "b", name: "B" });
 
-    expect(fake.of("insert").length).toBeLessThanOrEqual(2);
+    expect(fake.of("rpc").length).toBeLessThanOrEqual(2);
     await store.settled();
 
-    // The legacy import deletes the only other copy once this resolves, so
-    // "resolved" has to mean the writes really answered.
-    expect(fake.of("insert")).toHaveLength(2);
+    // "Resolved" has to mean the writes really answered.
+    expect(fake.of("rpc")).toHaveLength(2);
   });
 });
 
@@ -517,7 +585,7 @@ describe("coming back to the tab", () => {
     // The other half of splitting the sets: an error-only watcher has to keep
     // hearing about errors, or the banner goes quiet instead of going quiet
     // about fetching.
-    fake.answers.insert = [fails("denied")];
+    fake.answers.rpc = [fails("denied")];
     const store = make();
     let told = 0;
     const stop = store.subscribeToError(() => {

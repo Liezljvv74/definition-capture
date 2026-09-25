@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Renaming a category or a source rewrites what is filed under it, so the
+ * Renaming a collection or a source reaches everything filed under it, so the
  * order of the steps is the whole of the correctness: the database rename
- * first, then the Settings list, then the lists read again. A rename that
- * fails must change nothing, or the Settings list would say one name and every
- * word another. The other lists rename the list and nothing else.
+ * first, then the Settings list shown with the new name, then the lists read
+ * again. A rename that fails must change nothing, or the Settings list would
+ * say one name and every word another. A name that is only one of the unsaved
+ * defaults has no row to rename, so it is saved as a list change instead. The
+ * other lists rename the list and nothing else.
  *
  * Every collaborator is mocked, and each records itself in `calls`, so these
  * assert the sequence rather than the effects of any one step.
@@ -15,6 +17,7 @@ const state = vi.hoisted(() => ({
   calls: [] as string[],
   rpcError: null as { message: string } | null,
   lists: {} as Record<string, string[]>,
+  stored: {} as Record<string, string[]>,
 }));
 
 vi.mock("@/lib/supabaseClient", () => ({
@@ -30,6 +33,10 @@ vi.mock("@/lib/session", () => ({ currentUserId: () => "user-1" }));
 
 vi.mock("@/lib/settings", () => ({
   currentSettings: () => state.lists,
+  storedNames: async (list: string) => ({ error: null, names: state.stored[list] ?? [] }),
+  noteRenamed: vi.fn((list: string, from: string, to: string) => {
+    state.calls.push(`note:${list}:${from}->${to}`);
+  }),
   saveSettings: vi.fn((change: Record<string, string[]>) => {
     for (const [key, value] of Object.entries(change)) {
       state.calls.push(`save:${key}:${value.join(",")}`);
@@ -40,60 +47,69 @@ vi.mock("@/lib/settings", () => ({
 vi.mock("@/lib/storage", () => ({ reload: () => state.calls.push("reload:words") }));
 vi.mock("@/lib/phraseStorage", () => ({ reload: () => state.calls.push("reload:phrases") }));
 
-import { renameCategory, renameInList, renameSource } from "@/lib/renames";
+import { renameCollection, renameInList, renameSource } from "@/lib/renames";
 
 beforeEach(() => {
   state.calls = [];
   state.rpcError = null;
   state.lists = {
-    categories: ["Food", "Meal", "Travel"],
+    collections: ["Food", "Meal", "Travel"],
     sources: ["Claude", "Google", "Manual"],
     verbPersons: ["ich", "du", "er/sie/es"],
     verbTenses: ["Past", "Present"],
     sortSkipWords: ["der", "die"],
   };
+  state.stored = { collections: ["Food", "Meal", "Travel"], sources: ["Claude", "Google", "Manual"] };
 });
 
-describe("renameCategory", () => {
-  it("renames in the database, then saves the list, then reads the lists again", async () => {
-    expect(await renameCategory("Meal", "Dinner")).toBeNull();
+describe("renameCollection", () => {
+  it("renames in the database, then shows it on the list, then reads the lists again", async () => {
+    expect(await renameCollection("Meal", "Dinner")).toBeNull();
     expect(state.calls).toEqual([
-      "rpc:rename_category:Meal->Dinner",
-      "save:categories:Food,Dinner,Travel",
+      "rpc:rename_tag:Meal->Dinner",
+      "note:collections:Meal->Dinner",
       "reload:words",
       "reload:phrases",
     ]);
   });
 
+  it("saves the list instead for a default nobody has stored yet", async () => {
+    // An untouched account is shown the defaults without a row behind any of
+    // them, so there is nothing for the database to rename.
+    state.stored.collections = [];
+    expect(await renameCollection("Meal", "Dinner")).toBeNull();
+    expect(state.calls).toEqual(["save:collections:Food,Dinner,Travel"]);
+  });
+
   it("changes nothing when the database refuses", async () => {
     // The list must not be saved with a name the words do not carry.
     state.rpcError = { message: "boom" };
-    const result = await renameCategory("Meal", "Dinner");
+    const result = await renameCollection("Meal", "Dinner");
     expect(result).toMatch(/Could not rename/);
-    expect(state.calls).toEqual(["rpc:rename_category:Meal->Dinner"]);
+    expect(state.calls).toEqual(["rpc:rename_tag:Meal->Dinner"]);
   });
 
   it("matches the old name however it is cased", async () => {
-    await renameCategory("meal", "Dinner");
-    expect(state.calls).toContain("save:categories:Food,Dinner,Travel");
+    await renameCollection("meal", "Dinner");
+    expect(state.calls[0]).toBe("rpc:rename_tag:meal->Dinner");
   });
 
   it("trims the new name, and refuses an empty one without asking the database", async () => {
-    await renameCategory("Meal", "  Dinner  ");
-    expect(state.calls[0]).toBe("rpc:rename_category:Meal->Dinner");
+    await renameCollection("Meal", "  Dinner  ");
+    expect(state.calls[0]).toBe("rpc:rename_tag:Meal->Dinner");
 
     state.calls = [];
-    expect(await renameCategory("Meal", "   ")).toMatch(/needs a name/);
+    expect(await renameCollection("Meal", "   ")).toMatch(/needs a name/);
     expect(state.calls).toEqual([]);
   });
 });
 
 describe("renameSource", () => {
-  it("goes through the database in the same order as a category", async () => {
+  it("goes through the database in the same order as a collection", async () => {
     expect(await renameSource("Google", "Google Translate")).toBeNull();
     expect(state.calls).toEqual([
-      "rpc:rename_source:Google->Google Translate",
-      "save:sources:Claude,Google Translate,Manual",
+      "rpc:rename_item_source:Google->Google Translate",
+      "note:sources:Google->Google Translate",
       "reload:words",
       "reload:phrases",
     ]);
@@ -102,7 +118,7 @@ describe("renameSource", () => {
   it("changes nothing when the database refuses", async () => {
     state.rpcError = { message: "boom" };
     expect(await renameSource("Google", "Bing")).toMatch(/Could not rename that source/);
-    expect(state.calls).toEqual(["rpc:rename_source:Google->Bing"]);
+    expect(state.calls).toEqual(["rpc:rename_item_source:Google->Bing"]);
   });
 });
 

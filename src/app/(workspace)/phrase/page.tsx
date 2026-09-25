@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
-import { CategoryBadge, SourceBadge } from "@/components/Badges";
+import { CollectionBadge, SourceBadge } from "@/components/Badges";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -111,11 +111,11 @@ function PhraseDetailCard({
           <SourceBadge source={phrase.source} />
         </Field>
 
-        <Field label="Category" empty="None">
-          {phrase.categories.length > 0 && (
+        <Field label="Collection" empty="None">
+          {phrase.collections.length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {phrase.categories.map((name) => (
-                <CategoryBadge key={name} name={name} />
+              {phrase.collections.map((name) => (
+                <CollectionBadge key={name} name={name} />
               ))}
             </div>
           )}

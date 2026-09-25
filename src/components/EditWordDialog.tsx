@@ -39,7 +39,7 @@ export function EditWordDialog({
     word: entry.word,
     definition: entry.definition,
     ref: entry.ref,
-    categories: entry.categories,
+    collections: entry.collections,
     source: entry.source,
   });
 

@@ -2,18 +2,31 @@
 
 import type { ImportCounts, ImportMode } from "@/lib/types";
 
-/** One line of the "this is what Replace will do" list. */
+/**
+ * One line of the "this is what Replace will do" list.
+ *
+ * Replace saves the file over the list and deletes only what the file does
+ * not have, so the line names that number rather than the whole list.
+ * `matching` is the preview's count of file rows whose name is saved already,
+ * so the number is an estimate either way: a row renamed since the backup is
+ * matched by id as well and survives (fewer go than it says), while a name the
+ * file repeats is counted twice (more go than it says).
+ */
 export function ReplaceLine({
   label,
   saved,
   incoming,
+  matching,
   untouched,
 }: {
   label: string;
   saved: number;
   incoming: number;
+  /** How many of the saved rows the file has too. */
+  matching: number;
   untouched: boolean;
 }) {
+  const removed = Math.max(0, saved - matching);
   return (
     <li className="flex flex-wrap gap-x-1.5">
       <span className="font-medium">{label}:</span>
@@ -23,8 +36,9 @@ export function ReplaceLine({
           {saved === 1 ? "item stays" : "items stay"} as they are
         </span>
       ) : (
-        <span className="text-red-700 dark:text-red-300">
-          your {saved} deleted, replaced by {incoming} from the file
+        <span className={removed > 0 ? "text-red-700 dark:text-red-300" : ""}>
+          replaced by the {incoming} in the file
+          {removed > 0 ? `, and ${removed} of yours not in it deleted` : ", nothing deleted"}
         </span>
       )}
     </li>
@@ -144,7 +158,7 @@ export const MODE_OPTIONS: { value: ImportMode; label: string; hint: string }[] 
   {
     value: "replace",
     label: "Replace everything with this backup",
-    hint: "What is saved now is deleted first.",
+    hint: "Anything saved now that is not in the backup is deleted.",
   },
 ];
 

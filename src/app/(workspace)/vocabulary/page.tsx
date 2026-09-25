@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddWordDialog } from "@/components/AddWordDialog";
-import { CategoryBadge, NeedsDefinitionBadge } from "@/components/Badges";
+import { CollectionBadge, NeedsDefinitionBadge } from "@/components/Badges";
 import {
   ConfirmDeleteDialog,
   RowDeleteButton,
@@ -19,7 +19,7 @@ import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { deleteEntries } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
-import { categoryOptions } from "@/lib/categoryOptions";
+import { collectionOptions } from "@/lib/collectionOptions";
 import { foldName } from "@/lib/foldName";
 import { useWords } from "@/lib/useWords";
 import { useWideScreen } from "@/lib/useWideScreen";
@@ -36,7 +36,7 @@ type Sort = { key: SortKey; direction: SortDirection };
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
   { key: "word", label: "Word", className: "w-[22%]" },
   { key: "definition", label: "Definition" },
-  { key: null, label: "Category", className: "w-[14%]" },
+  { key: null, label: "Collection", className: "w-[14%]" },
   { key: null, label: "Ref", className: "w-[20%]" },
 ];
 
@@ -67,17 +67,17 @@ export default function VocabularyPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [onlyNeedsDefinition, setOnlyNeedsDefinition] = useState(false);
-  /** Empty means every category; otherwise the one being shown. */
-  const [category, setCategory] = useState("");
+  /** Empty means every collection; otherwise the one being shown. */
+  const [collection, setCollection] = useState("");
   // Alphabetical by word, looking past a leading word from the skip list in
   // Settings, so nouns saved with their article file under their own first
   // letter. Date added is no longer a column and is now only the tie-breaker.
   const [sort, setSort] = useState<Sort>({ key: "word", direction: "asc" });
 
-  /** See `categoryOptions`: in use only, plus whatever is being filtered by. */
-  const categories = useMemo(
-    () => categoryOptions(entries, category, sorting.compareText),
-    [entries, category, sorting],
+  /** See `collectionOptions`: in use only, plus whatever is being filtered by. */
+  const collections = useMemo(
+    () => collectionOptions(entries, collection, sorting.compareText),
+    [entries, collection, sorting],
   );
 
   /**
@@ -115,10 +115,10 @@ export default function VocabularyPage() {
 
   const visible = useMemo(() => {
     const needle = foldName(deferredQuery);
-    const wanted = foldName(category);
+    const wanted = foldName(collection);
     return sorted.filter((entry) => {
       if (onlyNeedsDefinition && !entry.needsDefinition) return false;
-      if (wanted && !entry.categories.some((name) => foldName(name) === wanted)) {
+      if (wanted && !entry.collections.some((name) => foldName(name) === wanted)) {
         return false;
       }
       if (!needle) return true;
@@ -128,7 +128,7 @@ export default function VocabularyPage() {
         foldName(entry.ref).includes(needle)
       );
     });
-  }, [sorted, deferredQuery, onlyNeedsDefinition, category]);
+  }, [sorted, deferredQuery, onlyNeedsDefinition, collection]);
 
   // Selection, the row being edited, and the names the delete dialog lists —
   // the four pieces the phrase page also needs, and the ones where the two
@@ -144,7 +144,7 @@ export default function VocabularyPage() {
 
   const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
-  const isFiltered = query.trim() !== "" || onlyNeedsDefinition || category !== "";
+  const isFiltered = query.trim() !== "" || onlyNeedsDefinition || collection !== "";
 
   function toggleSort(key: SortKey) {
     setSort((current) =>
@@ -211,19 +211,19 @@ export default function VocabularyPage() {
 
               {/* Width sits on the wrapper, not the select: `field` already sets
                   w-full, and two utilities of equal weight would be a coin toss. */}
-              {categories.length > 0 && (
+              {collections.length > 0 && (
                 <div className="w-full sm:w-44">
-                  <label htmlFor="category" className="sr-only">
-                    Filter by category
+                  <label htmlFor="collection" className="sr-only">
+                    Filter by collection
                   </label>
                   <select
-                    id="category"
+                    id="collection"
                     className="field"
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
+                    value={collection}
+                    onChange={(event) => setCollection(event.target.value)}
                   >
-                    <option value="">All categories</option>
-                    {categories.map((name) => (
+                    <option value="">All collections</option>
+                    {collections.map((name) => (
                       <option key={name} value={name}>
                         {name}
                       </option>
@@ -259,7 +259,7 @@ export default function VocabularyPage() {
                 onClear={() => {
                   setQuery("");
                   setOnlyNeedsDefinition(false);
-                  setCategory("");
+                  setCollection("");
                 }}
               />
             ) : (
@@ -283,7 +283,7 @@ export default function VocabularyPage() {
                     entries={visible}
                     sort={sort}
                     onSort={toggleSort}
-                    onSelectCategory={setCategory}
+                    onSelectCollection={setCollection}
                     linkIndex={linkIndex}
                     selection={selection}
                     onEdit={setEditingId}
@@ -293,7 +293,7 @@ export default function VocabularyPage() {
                 {wide !== true && (
                   <EntryCards
                     entries={visible}
-                    onSelectCategory={setCategory}
+                    onSelectCollection={setCollection}
                     linkIndex={linkIndex}
                     selection={selection}
                     onEdit={setEditingId}
@@ -339,7 +339,7 @@ function EntryTable({
   entries,
   sort,
   onSort,
-  onSelectCategory,
+  onSelectCollection,
   linkIndex,
   selection,
   onEdit,
@@ -348,7 +348,7 @@ function EntryTable({
   entries: Entry[];
   sort: Sort;
   onSort: (key: SortKey) => void;
-  onSelectCategory: (name: string) => void;
+  onSelectCollection: (name: string) => void;
   linkIndex: LinkIndex;
   selection: ListSelection;
   onEdit: (id: string) => void;
@@ -443,10 +443,10 @@ function EntryTable({
                   )}
                 </td>
                 <td className="px-4 py-3 align-top">
-                  {entry.categories.length > 0 ? (
+                  {entry.collections.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
-                      {entry.categories.map((name) => (
-                        <CategoryBadge key={name} name={name} onSelect={onSelectCategory} />
+                      {entry.collections.map((name) => (
+                        <CollectionBadge key={name} name={name} onSelect={onSelectCollection} />
                       ))}
                     </div>
                   ) : (
@@ -481,14 +481,14 @@ function EntryTable({
 
 function EntryCards({
   entries,
-  onSelectCategory,
+  onSelectCollection,
   linkIndex,
   selection,
   onEdit,
   onDelete,
 }: {
   entries: Entry[];
-  onSelectCategory: (name: string) => void;
+  onSelectCollection: (name: string) => void;
   linkIndex: LinkIndex;
   selection: ListSelection;
   onEdit: (id: string) => void;
@@ -552,8 +552,8 @@ function EntryCards({
                   </p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  {entry.categories.map((name) => (
-                    <CategoryBadge key={name} name={name} onSelect={onSelectCategory} />
+                  {entry.collections.map((name) => (
+                    <CollectionBadge key={name} name={name} onSelect={onSelectCollection} />
                   ))}
                 </div>
               </div>

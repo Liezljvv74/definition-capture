@@ -29,7 +29,7 @@ const saved = (() => {
     ...EMPTY_ENTRY_INPUT,
     word: "Tür",
     definition: "door",
-    categories: ["Home"],
+    collections: ["Home"],
   });
   const phrase = createPhrase({
     ...EMPTY_PHRASE_INPUT,
@@ -57,7 +57,7 @@ describe("buildBackup, with something to back up", () => {
       word: "Tür",
       definition: "door",
       ref: "",
-      categories: ["Home"],
+      collections: ["Home"],
       source: saved.entry.source,
       dateAdded: saved.entry.dateAdded,
       dateUpdated: null,
@@ -72,7 +72,7 @@ describe("buildBackup, with something to back up", () => {
       phrase: "guten Tag",
       literalMeaning: "good day",
       usageExample: "",
-      categories: [],
+      collections: [],
       source: saved.phrase.source,
       ref: "",
       dateAdded: saved.phrase.dateAdded,

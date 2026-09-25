@@ -67,7 +67,7 @@ const word = (text: string): Entry => ({
   word: text,
   definition: "d",
   ref: "",
-  categories: [],
+  collections: [],
   source: "Manual",
   dateAdded: "2026-01-01T00:00:00.000Z",
   dateUpdated: null,
@@ -79,7 +79,7 @@ const phrase = (text: string): Phrase => ({
   phrase: text,
   literalMeaning: "",
   usageExample: "",
-  categories: [],
+  collections: [],
   source: "Manual",
   dateAdded: "2026-01-01T00:00:00.000Z",
   ref: "",
@@ -87,7 +87,7 @@ const phrase = (text: string): Phrase => ({
 
 const settings: Settings = {
   displayName: "",
-  categories: ["Food"],
+  collections: ["Food"],
   sources: ["Manual"],
   verbPersons: [],
   verbTenses: [],
@@ -179,11 +179,29 @@ describe("the merge modes", () => {
 });
 
 describe("settings", () => {
-  it("are written before any list, so a restored category exists for the rows using it", () => {
+  it("are written before any list, so a restored collection exists for the rows using it", () => {
     applyImport(contents({ words: [word("Tür")], settings }), "replace");
 
-    expect(spies.saveSettings).toHaveBeenCalledWith(settings);
+    expect(spies.saveSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ displayName: settings.displayName, collections: ["Food"] }),
+    );
     expect(spies.order[0]).toBe("settings");
+  });
+
+  /**
+   * An older file's settings list can lack a collection its own words are in.
+   * Saving the list as it stands would remove that collection while the same
+   * restore files the words under it, and the database refuses one of the
+   * two. So the restored list always includes what the file's items use.
+   */
+  it("keep every collection and source the file's own items use", () => {
+    const filed = { ...word("Tür"), collections: ["Home"], source: "Textbook" };
+    const said = { ...phrase("guten Tag"), collections: ["People"] };
+    applyImport(contents({ words: [filed], phrases: [said], settings }), "replace");
+
+    const saved = (spies.saveSettings.mock.calls as unknown as Settings[][])[0][0];
+    expect(saved.collections).toEqual(expect.arrayContaining(["Food", "Home", "People"]));
+    expect(saved.sources).toEqual(expect.arrayContaining(["Manual", "Textbook"]));
   });
 
   it("are left alone in skip mode, which has nothing to mean for one row", () => {
