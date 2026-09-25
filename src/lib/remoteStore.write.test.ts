@@ -37,7 +37,9 @@ type Call = {
   /** The ids named by `.in("id", …)`, which is how a bulk delete travels. */
   ids?: string[];
   eq?: Record<string, string>;
-  range?: [number, number];
+  /** The keyset filter a page after the first carries. */
+  or?: string;
+  limit?: number;
 };
 
 const ok = (data: unknown[] = []): Answer => ({ data, error: null });
@@ -59,8 +61,12 @@ function fakeSupabase() {
   function builder(call: Call) {
     const self = {
       order: () => self,
-      range: (from: number, to: number) => {
-        call.range = [from, to];
+      limit: (count: number) => {
+        call.limit = count;
+        return self;
+      },
+      or: (filter: string) => {
+        call.or = filter;
         return self;
       },
       eq: (column: string, value: string) => {
@@ -137,7 +143,11 @@ const make = () =>
   });
 
 const rows = (count: number, from = 0): Row[] =>
-  Array.from({ length: count }, (_, at) => ({ id: `id-${from + at}`, name: `n${from + at}` }));
+  Array.from({ length: count }, (_, at) => ({
+    id: `id-${from + at}`,
+    name: `n${from + at}`,
+    created_at: `2026-01-01T00:00:${String((from + at) % 60).padStart(2, "0")}.000000+00:00`,
+  }));
 
 /**
  * Waits for a condition rather than for a fixed number of microtasks. The
@@ -264,10 +274,16 @@ describe("reading the list", () => {
     await store.settled();
     await until(() => store.items().length === 1003, "both pages");
 
-    expect(fake.of("select").map((call) => call.range)).toEqual([
-      [0, 999],
-      [1000, 1999],
-    ]);
+    // Keyset paging: the first page has no cursor, and the second starts
+    // after the last row of the first, by timestamp with the id breaking ties.
+    const [first, second] = fake.of("select");
+    expect(first.limit).toBe(1000);
+    expect(first.or).toBeUndefined();
+    expect(second.limit).toBe(1000);
+    expect(second.or).toBe(
+      'created_at.lt."2026-01-01T00:00:39.000000+00:00",' +
+        'and(created_at.eq."2026-01-01T00:00:39.000000+00:00",id.lt.id-999)',
+    );
     // Every page is this list's own type out of the shared table.
     for (const call of fake.of("select")) {
       expect(call.table).toBe("items");

@@ -327,22 +327,41 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
     loading = true;
     try {
       const data: unknown[] = [];
+      /** Where the last page ended, or null before the first. */
+      let after: { createdAt: string; id: string } | null = null;
 
-      for (let offset = 0; ; offset += PAGE_SIZE) {
+      for (;;) {
+        const cursor = after;
         const answer = await readWithSkewRetry(
-          () =>
-            supabase
+          () => {
+            let query = supabase
               .from("items")
               .select(ITEM_SELECT)
-              .eq("item_type", config.itemType)
-              .order("created_at", { ascending: false })
-              // Paging needs a total order, and `created_at` is a timestamp
-              // that two rows can share. Without a tie-break the database is
-              // free to order tied rows differently for each page, which would
-              // drop some and repeat others across the boundary. The id
-              // settles it.
-              .order("id", { ascending: false })
-              .range(offset, offset + PAGE_SIZE - 1),
+              .eq("item_type", config.itemType);
+            // Keyset paging: each page starts after the last row of the one
+            // before, rather than at an offset. An offset makes the database
+            // produce and discard every row before it, embeds included, so
+            // the last page of a 14,000-word list took about 15 times as long
+            // as the first (measured, 959 ms against 62). A cursor makes every
+            // page cost the same. The values are quoted because a timestamp
+            // carries characters the filter syntax treats as separators.
+            if (cursor) {
+              query = query.or(
+                `created_at.lt."${cursor.createdAt}",` +
+                  `and(created_at.eq."${cursor.createdAt}",id.lt.${cursor.id})`,
+              );
+            }
+            return (
+              query
+                .order("created_at", { ascending: false })
+                // Paging needs a total order, and `created_at` is a timestamp
+                // that two rows can share. The id settles ties, and the cursor
+                // above uses the same pair, so no row is dropped or repeated
+                // across a page boundary.
+                .order("id", { ascending: false })
+                .limit(PAGE_SIZE)
+            );
+          },
           () => currentUserId() === userId,
         );
 
@@ -371,6 +390,8 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
         // so ask again — including the exact-multiple case, where the next
         // request comes back empty and ends the loop.
         if (batch.length < PAGE_SIZE) break;
+        const last = batch[batch.length - 1] as Row;
+        after = { createdAt: String(last.created_at), id: String(last.id) };
       }
 
       const items = data

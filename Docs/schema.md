@@ -8,6 +8,7 @@ shape, and the reasoning behind each decision, is in `Docs/db-refactor-plan.md`.
 | --- | --- |
 | `…_refactor_build_new_schema.sql` | the nine tables, their policies and functions, and the copy of every row out of the old schema, proved by assertions |
 | `…_refactor_drop_old_schema.sql` | drops the old schema, then asserts the finished shape: the tables, the policies, the functions and the grants |
+| `…_optimise_indexes_for_scale.sql` | two indexes found by measuring every query at scale; see "Measured at scale" below |
 
 Everything before those two built the schema they replaced: `learning_items`
 with a detail table per type, compatibility views over it with `instead of`
@@ -119,13 +120,17 @@ deck pruned while open in another tab loads as empty.
 
 One row per item that has been answered: times seen and correct, streak,
 lapses, ease, interval, due date, last review. Mastery is not stored; it can
-be read off the streak and the interval.
+be read off the streak and the interval. Besides the primary key on
+`item_id`, `(user_id, item_id) include (due_at)` finds one account's rows,
+which the deck builder joins to without reading the table.
 
 ### `reviews`
 
 Append-only: every answer, with its outcome, response time, and the schedule
 before and after (`prior_ease`, `prior_interval_days`, `next_due_at`). It is
-what a history of improvement is drawn from: accuracy and speed over time,
+what a history of improvement is drawn from, through the covering index
+`(user_id, reviewed_at desc) include (outcome, response_ms)`: accuracy and
+speed over time,
 study days (grouped by the reader's own time zone when drawn, not stored as a
 counter), and how strongly each item is known. There is no update or delete
 policy, and those commands are revoked as well.
@@ -179,12 +184,66 @@ Leaked password protection is a dashboard setting, not a migration.
 
 | Path | What runs |
 | --- | --- |
-| Load a list | one request per 1,000 rows: `items` of one type, newest first, with `sources(name)` and `item_tags(position, context, tags(name))` embedded through the composite keys |
+| Load a list | one request per 1,000 rows: `items` of one type, newest first, with `sources(name)` and `item_tags(position, context, tags(name))` embedded through the composite keys. Paged by keyset (after the last row's `created_at` and `id`), never by offset |
 | Save one or many | one `save_items` call per 500 items |
 | Restore, Replace | `save_items` for the file, then a delete of this list's ids the file lacks. Each file item takes the id of the row it replaces (by name, else by id), so progress and history survive |
 | Build a deck | one `build_deck` call, over `items_user_answerable_idx` |
 | Load a deck | one request: `deck_cards` with `items(...)` embedded |
 | Answer a card | one `record_review` call |
+
+---
+
+## Measured at scale
+
+Every query path was timed with `explain analyze` on a local database of
+1,001 accounts: one with 20,000 items (14,000 words), 15,000 progress rows and
+300,000 reviews, and a thousand others with 200 items each. In all, 220,000
+items, 320,000 collection links, 360,000 reviews and 500,000 deck cards, with
+row level security applied as the app applies it. Times are for the heavy
+account with a warm cache.
+
+| Path | Time |
+| --- | --- |
+| A page of 1,000 words with source and collections | 60 to 90 ms, the same for every page |
+| Flashcard dialog count | 7 ms |
+| Build a deck (due first, whole call) | 50 to 60 ms |
+| Build a deck (newest first, or one collection) | 12 to 17 ms |
+| Load a deck | 1 ms |
+| Answer a card | under 1 ms for the lookups, about 20 ms for the call |
+| Settings lists, renames, one item's delete with its cascades | under 2 ms each |
+| Reviews per day for 90 days (37,000 reviews) | 33 ms, from the index alone |
+| Save 500 items | 170 to 350 ms |
+
+What changed because of it:
+
+- **Keyset paging for lists.** With an offset, the database produces and
+  throws away every row before the page, embeds included: the last page of
+  14,000 words took 959 ms against 62 for the first. From the browser, all
+  fourteen pages took 17.3 s through the API with offsets and 10.9 s with a
+  cursor.
+- **`progress (user_id, item_id) include (due_at)`.** `progress` was the one
+  table whose policy column led no index, so the deck builder read every
+  account's progress and kept the caller's. That cost grew with the number of
+  accounts; it is now an index-only scan of the caller's rows.
+- **A covering index for the review history,** replacing the plain one on the
+  same key: 111 ms became 33.
+
+What did not change, and why:
+
+- The due-first deck sorts every card that could be in it, because the order
+  is due date and then random. At 20,000 items that is about 50 ms; it only
+  becomes worth a different approach (drawing due cards from
+  `progress_user_item_idx` first) well beyond that.
+- Each owned table has both a primary key on `id` and a unique key on
+  `(id, user_id)`. The second is what the composite foreign keys point at;
+  it is the price of making a cross-account link impossible, and it is small.
+- The advisor's three "unindexed foreign key" notes are covered by primary
+  keys that lead with the same column.
+
+Beyond the database, the next limit at this size is the browser: drawing a
+table of 14,000 rows took about 20 s in development mode. A list that shows a
+window of rows at a time (virtualised) or pages on screen is the change that
+would matter next, followed by selecting only the columns each list shows.
 
 ---
 
