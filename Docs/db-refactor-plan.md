@@ -1,10 +1,13 @@
 # Database refactor plan
 
-Status: **implemented and rehearsed locally; not yet applied to the live
-project.** Written 2026-09-25. Steps 0 to 3 were run against a local copy of
-the live database (Docker): both migrations applied with every assertion
-passing, the rollback script was tested, and the app was driven through a
-browser against the result before and after step 3.
+Status: **done, and live since 2026-09-25.** Steps 0 to 3 were first run
+against a local copy of the live database (Docker): both migrations applied
+with every assertion passing, the rollback script was tested, and the app was
+driven through a browser against the result before and after step 3. The live
+rollout then followed the same steps: a fresh backup and pre-flight, step 1,
+the app deployed from `main` and checked on production, then step 3. The
+advisors afterwards showed no security findings from the schema; the one
+remaining warning, leaked password protection, is a dashboard setting.
 
 ## Where the implementation differs from the plan below
 
