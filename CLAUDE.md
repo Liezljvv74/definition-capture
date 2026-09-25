@@ -16,7 +16,7 @@ owner.
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 3, in the node environment; `npx vitest run` |
-| Tooling | Supabase CLI 2.117, ESLint 9 |
+| Tooling | Supabase CLI 2.118, ESLint 9 |
 | Hosting | Vercel, deployed from GitHub on every push to `main` |
 
 `npm run dev` serves on **port 3000**, pinned in `package.json`. The port is not
