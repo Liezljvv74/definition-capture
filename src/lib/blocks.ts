@@ -149,8 +149,14 @@ export function flattenBlocks(blocks: Block[]): string {
           return plainText(block.text);
         case "table":
           return block.cells.map((row) => row.map(plainText).join(" | ")).join("\n");
-        case "example":
-          return `${plainText(block.sentence)} (${block.translation})`;
+        case "example": {
+          const sentence = plainText(block.sentence);
+          // A blank translation is common: not every example needs one, and
+          // flattening it anyway left a trailing empty pair of brackets on
+          // the spreadsheet row, `sentence ()`, that read as a typo rather
+          // than as nothing to show.
+          return block.translation.trim() === "" ? sentence : `${sentence} (${block.translation})`;
+        }
       }
     })
     .filter((text) => text.trim() !== "")

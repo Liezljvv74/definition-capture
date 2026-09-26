@@ -126,4 +126,12 @@ describe("flattenBlocks", () => {
     ]);
     expect(text).toBe("Wem?\n\nm | f\ndem | der\n\nIch gebe dem Mann (I give the man)");
   });
+
+  it("leaves off the empty brackets an example with no translation would otherwise flatten to", async () => {
+    const { flattenBlocks } = await import("@/lib/blocks");
+    const text = flattenBlocks([
+      { kind: "example", id: "e", sentence: "Ich gebe {dem} Mann", translation: "" },
+    ]);
+    expect(text).toBe("Ich gebe dem Mann");
+  });
 });
