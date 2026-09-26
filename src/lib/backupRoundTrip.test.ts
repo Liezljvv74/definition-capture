@@ -49,6 +49,7 @@ const table: VerbTable = {
     { person: "ich", conjugations: ["gehe", "ging"], notes: "regular enough" },
     { person: "du", conjugations: ["gehst", "gingst"], notes: "" },
   ],
+  ref: "",
   createdAt: "2026-01-03T00:00:00.000Z",
 };
 

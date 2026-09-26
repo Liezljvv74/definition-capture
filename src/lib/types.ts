@@ -106,6 +106,8 @@ export type VerbTable = {
    */
   tenses: string[];
   rows: VerbRow[];
+  /** Free text that renders links, the same field words and phrases call Ref. */
+  ref: string;
   createdAt: string;
 };
 

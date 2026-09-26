@@ -39,6 +39,7 @@ const store = createRemoteStore<VerbTable>({
       verb,
       tenses,
       rows: readVerbRows(row.verb_rows, tenses.length),
+      ref: readString(row.ref),
       createdAt: readString(row.created_at),
     };
   },
@@ -50,6 +51,7 @@ const store = createRemoteStore<VerbTable>({
     title: table.verb,
     tenses: table.tenses,
     verb_rows: table.rows,
+    ref: table.ref,
     created_at: table.createdAt,
   }),
 });
@@ -60,6 +62,8 @@ export const getServerSnapshot = store.getServerSnapshot;
 export const clearError = store.clearError;
 export const subscribeToError = store.subscribeToError;
 export const getError = store.getError;
+// Task 4's rename rewrite uses this to update many tables at once.
+export const updateVerbTables = store.updateMany;
 
 /* ----------------------------------------------------------------- queries */
 
@@ -90,6 +94,7 @@ export function createVerbTable(
     verb: verb.trim(),
     tenses: [tense.trim()],
     rows: persons.map((person) => ({ person, conjugations: [""], notes: "" })),
+    ref: "",
     createdAt: new Date().toISOString(),
   };
   store.insert(table);
@@ -100,11 +105,12 @@ export function createVerbTable(
  * Saves the columns and what has been written into them. Both together,
  * because a tense and its conjugations are the same edit: saving one
  * without the other would leave the headings and the rows disagreeing.
+ * The notes are saved with the rest of the card, by the same Save.
  */
-export function saveVerbTable(id: string, tenses: string[], rows: VerbRow[]): void {
+export function saveVerbTable(id: string, tenses: string[], rows: VerbRow[], ref: string): void {
   const existing = store.items().find((table) => table.id === id);
   if (!existing) return;
-  store.update({ ...existing, tenses, rows });
+  store.update({ ...existing, tenses, rows, ref: ref.trim() });
 }
 
 export function deleteVerbTable(id: string): void {
@@ -134,6 +140,7 @@ export type WireVerbTable = {
   verb: string;
   tenses: string[];
   rows: { person: string; conjugations: string[]; notes: string }[];
+  ref: string;
   createdAt: string;
 };
 
@@ -148,6 +155,7 @@ export function toWireVerbTable(table: VerbTable): WireVerbTable {
       conjugations: row.conjugations,
       notes: row.notes,
     })),
+    ref: table.ref,
     createdAt: table.createdAt,
   };
 }
@@ -167,6 +175,7 @@ export function parseVerbTable(raw: unknown, allowMissingId = false): VerbTable 
     verb,
     tenses,
     rows: readVerbRows(value.rows, tenses.length),
+    ref: readString(value.ref).trim(),
     createdAt: readString(value.createdAt) || new Date().toISOString(),
   };
 }
@@ -199,6 +208,7 @@ export function importVerbTables(incoming: VerbTable[], mode: ImportMode): Impor
       verb: candidate.verb,
       tenses: candidate.tenses,
       rows: candidate.rows,
+      ref: candidate.ref,
     }),
   });
 

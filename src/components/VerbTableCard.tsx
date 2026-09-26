@@ -117,7 +117,7 @@ export function VerbTableCard({
   }
 
   function save() {
-    saveVerbTable(table.id, tenses, rows);
+    saveVerbTable(table.id, tenses, rows, table.ref);
     onFinish();
   }
 
