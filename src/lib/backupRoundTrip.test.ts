@@ -126,6 +126,11 @@ describe("what the writer writes, the reader reads", () => {
 
     const restored = read(fileHolding({ settings: olderSettings })).settings;
     expect(restored?.answerSeparators).toBe(DEFAULT_ANSWER_SEPARATORS);
+    // Review Focus 4: a file from before topics existed must leave the key
+    // undefined, not restore an empty list over whatever the reader has
+    // already named. `[]` here would be indistinguishable from "no topics
+    // left", and a Replace restore would delete every one of them.
+    expect(restored?.topics).toBeUndefined();
   });
 
   it("takes an empty separator string in a current file at its word", () => {

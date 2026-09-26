@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { applyImport, leavesListAlone, type BackupContents } from "@/lib/backup";
-import type { Settings } from "@/lib/settings";
+import type { RestoredSettings, Settings } from "@/lib/settings";
 import { NO_IMPORT, type Entry, type ImportMode, type Phrase, type Rule } from "@/lib/types";
 
 /**
@@ -111,6 +111,16 @@ const settings: Settings = {
   language: "",
   languageOther: "",
   sortSkipWords: [],
+};
+
+/** A settings block from a file written before topics existed: the key is absent, not empty. */
+const settingsWithoutTopics: RestoredSettings = {
+  displayName: "",
+  collections: ["Food"],
+  sources: ["Manual"],
+  verbPersons: [],
+  verbTenses: [],
+  answerSeparators: ",/",
 };
 
 const contents = (over: Partial<BackupContents> = {}): BackupContents => ({
@@ -250,5 +260,22 @@ describe("settings", () => {
 
     expect(spies.saveSettings).not.toHaveBeenCalled();
     expect(result.settingsRestored).toBe(false);
+  });
+
+  /**
+   * The topics half of Review Focus 4. `withNamesInUse` must leave `topics`
+   * undefined when the file's settings predate it, even though this restore
+   * also carries a rule whose topic would otherwise seem worth adding to the
+   * list. Getting this wrong would run `saveNames("topics", [])` and delete
+   * every topic the reader has already named that no rule in the file uses.
+   */
+  it("passes topics as undefined when the file's settings predate them, even with a rule restored", () => {
+    applyImport(
+      contents({ rules: [rule("Dative")], settings: settingsWithoutTopics }),
+      "replace",
+    );
+
+    const saved = (spies.saveSettings.mock.calls as unknown as Settings[][])[0][0];
+    expect(saved.topics).toBeUndefined();
   });
 });
