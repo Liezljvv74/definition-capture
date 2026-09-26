@@ -89,6 +89,7 @@ const settings: Settings = {
   displayName: "",
   collections: ["Food"],
   sources: ["Manual"],
+  topics: [],
   verbPersons: [],
   verbTenses: [],
   answerSeparators: ",/",

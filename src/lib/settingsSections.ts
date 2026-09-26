@@ -1,5 +1,5 @@
 /**
- * The three groups Settings is divided into.
+ * The four groups Settings is divided into.
  *
  * One list, shared by the menu that offers them and the page that renders
  * them, so a group cannot be offered and then not exist. It lives here rather
@@ -10,9 +10,9 @@
  * Settings grew a section at a time until it was eight of them on one scroll,
  * which is a list to hunt through rather than a page to read. The grouping is
  * by what somebody came to change: who they are, how their glossary is
- * organised, or how their answers are marked.
+ * organised, how a grammar rule is filed, or how their answers are marked.
  */
-export type SettingsSectionKey = "profile" | "glossary" | "flashcards";
+export type SettingsSectionKey = "profile" | "glossary" | "grammar" | "flashcards";
 
 export const SETTINGS_SECTIONS: {
   key: SettingsSectionKey;
@@ -30,6 +30,11 @@ export const SETTINGS_SECTIONS: {
     label: "Glossary settings",
     description:
       "The language you select affects how your lists are sorted, and the lists below prescribe the options available when adding a word, phrase or verb table.",
+  },
+  {
+    key: "grammar",
+    label: "Grammar settings",
+    description: "The topics a grammar rule is filed under.",
   },
   {
     key: "flashcards",

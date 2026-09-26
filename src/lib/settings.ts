@@ -1,14 +1,16 @@
 /**
  * Per-account settings: the display name, and the lists the forms offer. One
  * row in `public.user_settings`, or none at all, plus the account's rows in
- * `tags` (its collections) and `sources`. An account that has never changed
- * anything has none of these, and reads as the defaults in `constants.ts`.
- * The first save creates what it needs.
+ * `tags` (its collections, and its topics, told apart by context) and
+ * `sources`. An account that has never changed anything has none of these,
+ * and reads as the defaults in `constants.ts`. The first save creates what
+ * it needs.
  *
- * Collections and sources are not columns on the settings row. They are rows
- * that words and phrases point at, so the list here and the names on every
- * item are the same thing rather than two copies to keep in step. Saving one
- * of those lists writes the names added and removed, not the whole list.
+ * Collections, sources and topics are not columns on the settings row. They
+ * are rows that words, phrases and rules point at, so the list here and the
+ * names on every item are the same thing rather than two copies to keep in
+ * step. Saving one of those lists writes the names added and removed, not
+ * the whole list.
  *
  * Shaped like the list stores in `remoteStore.ts` and read the same way, but
  * deliberately not built on them: that factory is about a list of rows with
@@ -45,6 +47,8 @@ export type Settings = {
   collections: string[];
   /** In the reader's own order, which is what the Source column sorts by. */
   sources: string[];
+  /** The groupings a grammar rule is filed under, one per rule. Empty until the reader adds one. */
+  topics: string[];
   /**
    * The people every conjugation table is built from — ich, du, er/sie/es,
    * and so on. Empty means never asked, which is what makes the first verb
@@ -78,6 +82,10 @@ export const DEFAULT_SETTINGS: Settings = {
   displayName: "",
   collections: [...DEFAULT_COLLECTIONS],
   sources: [...DEFAULT_SOURCES],
+  // No default topics: unlike collections and sources, there is nothing an
+  // untouched account should be shown here, so the list starts empty rather
+  // than seeded.
+  topics: [],
   // Deliberately empty: there is no sensible default set of persons, and
   // emptiness is the signal to ask.
   verbPersons: [],
@@ -163,8 +171,9 @@ function publish(next: SettingsSnapshot): void {
  */
 let storedCollections: string[] = [];
 let storedSources: string[] = [];
+let storedTopics: string[] = [];
 
-/** For the two lists that are rows rather than a capped array; see `fromRow`. */
+/** For the three lists that are rows rather than a capped array; see `fromRow`. */
 const NO_LIMIT = Number.MAX_SAFE_INTEGER;
 
 /** A row, or the absence of one, and the account's list names, as settings. */
@@ -172,6 +181,7 @@ function fromRow(
   row: Record<string, unknown> | null,
   collectionNames: string[],
   sourceNames: string[],
+  topicNames: string[],
 ): Settings {
   // Not capped at `MAX_LIST_LENGTH` like the other lists. These are rows,
   // and a save deletes whatever is stored but missing from the list, so a
@@ -184,6 +194,10 @@ function fromRow(
     // from — a form with no options is not a state worth honouring.
     collections: collections.length > 0 ? collections : [...DEFAULT_COLLECTIONS],
     sources: sources.length > 0 ? sources : [...DEFAULT_SOURCES],
+    // No fallback to defaults here: there are none. An account with no
+    // topics yet is an account that has not written a rule yet, not one
+    // waiting to be shown a starter list.
+    topics: readNameList(topicNames, NO_LIMIT),
   };
   if (!row) return { ...DEFAULT_SETTINGS, ...lists };
   return {
@@ -206,12 +220,14 @@ function fromRowSorted(
   row: Record<string, unknown> | null,
   collectionNames: string[],
   sourceNames: string[],
+  topicNames: string[],
 ): Settings {
-  const settings = fromRow(row, collectionNames, sourceNames);
+  const settings = fromRow(row, collectionNames, sourceNames, topicNames);
   return {
     ...settings,
     collections: sortedNames(settings.collections, settings.language),
     sources: sortedNames(settings.sources, settings.language),
+    topics: sortedNames(settings.topics, settings.language),
     verbTenses: sortedNames(settings.verbTenses, settings.language),
   };
 }
@@ -227,19 +243,24 @@ async function load(userId: string): Promise<void> {
     // it guards against: it runs on the first workspace page after signing in,
     // with a token minted a moment earlier.
     const stillWanted = () => currentUserId() === userId;
-    const [row, collections, sources] = await Promise.all([
+    const [row, collections, sources, topics] = await Promise.all([
       readWithSkewRetry(() => supabase.from("user_settings").select("*").maybeSingle(), stillWanted),
       readWithSkewRetry(
         () => supabase.from("tags").select("name").eq("context", "collection"),
         stillWanted,
       ),
       readWithSkewRetry(() => supabase.from("sources").select("name"), stillWanted),
+      readWithSkewRetry(
+        () => supabase.from("tags").select("name").eq("context", "grammar"),
+        stillWanted,
+      ),
     ]);
 
     // A sign-out or account switch while the requests were in flight.
-    if (row === ABANDONED || collections === ABANDONED || sources === ABANDONED) return;
+    if (row === ABANDONED || collections === ABANDONED || sources === ABANDONED || topics === ABANDONED)
+      return;
 
-    const error = row.error ?? collections.error ?? sources.error;
+    const error = row.error ?? collections.error ?? sources.error ?? topics.error;
     if (error) {
       // Hold on to the settings already in hand rather than snapping the
       // form back to defaults because one read failed.
@@ -249,6 +270,7 @@ async function load(userId: string): Promise<void> {
 
     storedCollections = namesOf(collections.data);
     storedSources = namesOf(sources.data);
+    storedTopics = namesOf(topics.data);
     lastLoadedAt = Date.now();
     seedDefaults(supabase, userId);
     publish({
@@ -256,6 +278,7 @@ async function load(userId: string): Promise<void> {
         (row.data as Record<string, unknown> | null) ?? null,
         storedCollections,
         storedSources,
+        storedTopics,
       ),
       loaded: true,
       // A failed save stays on screen until it is dismissed; a later read
@@ -280,14 +303,16 @@ function seedDefaults(
   supabase: NonNullable<ReturnType<typeof getSupabase>>,
   userId: string,
 ): void {
-  const seed = (table: "tags" | "sources", names: readonly string[]) =>
-    saveNames(supabase, userId, table, [...names]).then(({ error, stored }) => {
+  const seed = (list: "collections" | "sources", names: readonly string[]) =>
+    saveNames(supabase, userId, list, [...names]).then(({ error, stored }) => {
       if (error || currentUserId() !== userId) return;
-      if (table === "tags") storedCollections = stored;
+      if (list === "collections") storedCollections = stored;
       else storedSources = stored;
     });
-  if (storedCollections.length === 0) void seed("tags", DEFAULT_COLLECTIONS);
+  if (storedCollections.length === 0) void seed("collections", DEFAULT_COLLECTIONS);
   if (storedSources.length === 0) void seed("sources", DEFAULT_SOURCES);
+  // No topics seeded: there is no default set, and an empty list here is the
+  // correct starting state rather than one waiting to be filled in.
 }
 
 /** The `name` column off a list of rows, skipping anything that is not one. */
@@ -317,6 +342,7 @@ function syncToSession(): void {
 
   storedCollections = [];
   storedSources = [];
+  storedTopics = [];
   if (!userId) {
     publish(EMPTY);
     return;
@@ -365,9 +391,16 @@ export function currentSettings(): Settings {
  * with the defaults. There is no such answer here: the old fixed rule was
  * German, and restoring a file is no reason to decide the reader is learning
  * German.
+ *
+ * `topics` is optional for the same reason as the language fields: a file
+ * from before grammar rules existed says nothing about them, and restoring it
+ * should leave the reader's own topics alone rather than clear them.
  */
-export type RestoredSettings = Omit<Settings, "language" | "languageOther" | "sortSkipWords"> &
-  Partial<Pick<Settings, "language" | "languageOther" | "sortSkipWords">>;
+export type RestoredSettings = Omit<
+  Settings,
+  "language" | "languageOther" | "sortSkipWords" | "topics"
+> &
+  Partial<Pick<Settings, "language" | "languageOther" | "sortSkipWords" | "topics">>;
 
 /**
  * Settings out of a backup file. Reads the camelCase shape an export writes,
@@ -411,6 +444,7 @@ export function parseSettings(raw: unknown): RestoredSettings | null {
     ...(value.sortSkipWords === undefined
       ? {}
       : { sortSkipWords: readSkipWords(value.sortSkipWords) }),
+    ...(value.topics === undefined ? {} : { topics: readNameList(value.topics, NO_LIMIT) }),
   };
 }
 
@@ -446,6 +480,7 @@ export function saveSettings(change: Partial<Settings>): void {
     displayName: (change.displayName ?? snapshot.settings.displayName).trim(),
     collections: readNameList(change.collections ?? snapshot.settings.collections, NO_LIMIT),
     sources: readNameList(change.sources ?? snapshot.settings.sources, NO_LIMIT),
+    topics: readNameList(change.topics ?? snapshot.settings.topics, NO_LIMIT),
     verbPersons: readNameList(
       change.verbPersons ?? snapshot.settings.verbPersons,
       MAX_LIST_LENGTH,
@@ -467,6 +502,7 @@ export function saveSettings(change: Partial<Settings>): void {
 
   next.collections = sortedNames(next.collections, next.language);
   next.sources = sortedNames(next.sources, next.language);
+  next.topics = sortedNames(next.topics, next.language);
   next.verbTenses = sortedNames(next.verbTenses, next.language);
 
   // The form guards against this too. An empty source list would read back as
@@ -507,7 +543,7 @@ export function saveSettings(change: Partial<Settings>): void {
     });
 
   if (change.collections) {
-    void saveNames(supabase, userId, "tags", next.collections).then(
+    void saveNames(supabase, userId, "collections", next.collections).then(
       ({ error, stored, kept }) => {
         if (error) return failed(error);
         storedCollections = stored;
@@ -526,15 +562,35 @@ export function saveSettings(change: Partial<Settings>): void {
       },
     );
   }
+  if (change.topics) {
+    void saveNames(supabase, userId, "topics", next.topics).then(({ error, stored, kept }) => {
+      if (error) return failed(error);
+      storedTopics = stored;
+      if (kept) reload();
+    });
+  }
 }
 
 /** The Postgres error code off a Supabase error, if it has one. */
 const codeOf = (error: unknown) => (error as { code?: string } | null)?.code;
 
 /**
- * Makes the stored collections or sources match `wanted`: inserts the names
- * that are new, deletes the ones that went. Names are matched the way every
- * name is (`foldName`), so a change of case alone is neither.
+ * The three name lists that are rows: where each lives, and its tag context
+ * if it is a tag. Collections and topics are both rows in `tags`, told apart
+ * by context, which is why every query against `tags` below needs one; a
+ * source is its own table and has no context at all.
+ */
+type NameList = "collections" | "sources" | "topics";
+const NAME_ROWS: Record<NameList, { table: "tags" | "sources"; context: string | null }> = {
+  collections: { table: "tags", context: "collection" },
+  sources: { table: "sources", context: null },
+  topics: { table: "tags", context: "grammar" },
+};
+
+/**
+ * Makes the stored names for a list match `wanted`: inserts the names that
+ * are new, deletes the ones that went. Names are matched the way every name
+ * is (`foldName`), so a change of case alone is neither.
  *
  * Two refusals are expected and absorbed rather than reported:
  *
@@ -560,26 +616,29 @@ const codeOf = (error: unknown) => (error as { code?: string } | null)?.code;
 async function saveNames(
   supabase: NonNullable<ReturnType<typeof getSupabase>>,
   userId: string,
-  table: "tags" | "sources",
+  list: NameList,
   wanted: string[],
 ): Promise<{ error: unknown; stored: string[]; kept: boolean }> {
-  const read = await readNames(supabase, table);
+  const { table, context } = NAME_ROWS[list];
+  const read = await readNames(supabase, list);
   if (read.error) return { error: read.error, stored: [], kept: false };
   const stored = read.names;
   const storedKeys = new Set(stored.map(foldName));
   const wantedKeys = new Set(wanted.map(foldName));
   const added = wanted.filter((name) => !storedKeys.has(foldName(name)));
   const removed = stored.filter((name) => !wantedKeys.has(foldName(name)));
-  const context = table === "tags" ? { context: "collection" } : {};
 
   const remove = async (names: string[]) => {
     let query = supabase.from(table).delete().in("name", names);
-    if (table === "tags") query = query.eq("context", "collection");
+    if (context) query = query.eq("context", context);
     return (await query).error;
   };
   const insert = async (names: string[]) =>
-    (await supabase.from(table).insert(names.map((name) => ({ user_id: userId, name, ...context }))))
-      .error;
+    (
+      await supabase
+        .from(table)
+        .insert(names.map((name) => ({ user_id: userId, name, ...(context ? { context } : {}) })))
+    ).error;
 
   const keptNames: string[] = [];
   if (removed.length > 0) {
@@ -608,13 +667,14 @@ async function saveNames(
   return { error: null, stored: [...wanted, ...keptNames], kept: keptNames.length > 0 };
 }
 
-/** The account's collection or source names, read now from the database. */
+/** The account's names for a list, read now from the database. */
 async function readNames(
   supabase: NonNullable<ReturnType<typeof getSupabase>>,
-  table: "tags" | "sources",
+  list: NameList,
 ): Promise<{ error: unknown; names: string[] }> {
+  const { table, context } = NAME_ROWS[list];
   let query = supabase.from(table).select("name");
-  if (table === "tags") query = query.eq("context", "collection");
+  if (context) query = query.eq("context", context);
   const { data, error } = await query;
   return { error, names: namesOf(data) };
 }
@@ -624,12 +684,10 @@ async function readNames(
  * rename has to know whether there is a row to rename, and a list loaded
  * when the page opened cannot say, since saving a word can create one.
  */
-export async function storedNames(
-  list: "collections" | "sources",
-): Promise<{ error: unknown; names: string[] }> {
+export async function storedNames(list: NameList): Promise<{ error: unknown; names: string[] }> {
   const supabase = getSupabase();
   if (!supabase) return { error: { message: "no database" }, names: [] };
-  return readNames(supabase, list === "collections" ? "tags" : "sources");
+  return readNames(supabase, list);
 }
 
 /**
@@ -637,14 +695,15 @@ export async function storedNames(
  * the rename itself went through `rename_tag` or `rename_item_source`, and
  * saving the list here would try to insert a name that now exists.
  */
-export function noteRenamed(list: "collections" | "sources", from: string, to: string): void {
+export function noteRenamed(list: NameList, from: string, to: string): void {
   const swap = (names: readonly string[]) => {
     const renamed = names.map((name) => (foldName(name) === foldName(from) ? to : name));
     // A rename onto a name already there was a merge, so the two become one.
     return readNameList(renamed, NO_LIMIT);
   };
   if (list === "collections") storedCollections = swap(storedCollections);
-  else storedSources = swap(storedSources);
+  else if (list === "sources") storedSources = swap(storedSources);
+  else storedTopics = swap(storedTopics);
 
   const settings = snapshot.settings;
   publish({

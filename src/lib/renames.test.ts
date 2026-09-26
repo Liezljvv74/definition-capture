@@ -23,7 +23,9 @@ const state = vi.hoisted(() => ({
 vi.mock("@/lib/supabaseClient", () => ({
   getSupabase: () => ({
     rpc: vi.fn(async (name: string, args: Record<string, unknown>) => {
-      state.calls.push(`rpc:${name}:${args.from_name}->${args.to_name}`);
+      state.calls.push(
+        `rpc:${name}:${args.tag_context ? args.tag_context + ":" : ""}${args.from_name}->${args.to_name}`,
+      );
       return { error: state.rpcError };
     }),
   }),
@@ -46,8 +48,9 @@ vi.mock("@/lib/settings", () => ({
 
 vi.mock("@/lib/storage", () => ({ reload: () => state.calls.push("reload:words") }));
 vi.mock("@/lib/phraseStorage", () => ({ reload: () => state.calls.push("reload:phrases") }));
+vi.mock("@/lib/rules", () => ({ reload: () => state.calls.push("reload:rules") }));
 
-import { renameCollection, renameInList, renameSource } from "@/lib/renames";
+import { renameCollection, renameInList, renameSource, renameTopic } from "@/lib/renames";
 
 beforeEach(() => {
   state.calls = [];
@@ -55,18 +58,23 @@ beforeEach(() => {
   state.lists = {
     collections: ["Food", "Meal", "Travel"],
     sources: ["Claude", "Google", "Manual"],
+    topics: ["Cases", "Word order"],
     verbPersons: ["ich", "du", "er/sie/es"],
     verbTenses: ["Past", "Present"],
     sortSkipWords: ["der", "die"],
   };
-  state.stored = { collections: ["Food", "Meal", "Travel"], sources: ["Claude", "Google", "Manual"] };
+  state.stored = {
+    collections: ["Food", "Meal", "Travel"],
+    sources: ["Claude", "Google", "Manual"],
+    topics: ["Cases", "Word order"],
+  };
 });
 
 describe("renameCollection", () => {
   it("renames in the database, then shows it on the list, then reads the lists again", async () => {
     expect(await renameCollection("Meal", "Dinner")).toBeNull();
     expect(state.calls).toEqual([
-      "rpc:rename_tag:Meal->Dinner",
+      "rpc:rename_tag:collection:Meal->Dinner",
       "note:collections:Meal->Dinner",
       "reload:words",
       "reload:phrases",
@@ -86,17 +94,17 @@ describe("renameCollection", () => {
     state.rpcError = { message: "boom" };
     const result = await renameCollection("Meal", "Dinner");
     expect(result).toMatch(/Could not rename/);
-    expect(state.calls).toEqual(["rpc:rename_tag:Meal->Dinner"]);
+    expect(state.calls).toEqual(["rpc:rename_tag:collection:Meal->Dinner"]);
   });
 
   it("matches the old name however it is cased", async () => {
     await renameCollection("meal", "Dinner");
-    expect(state.calls[0]).toBe("rpc:rename_tag:meal->Dinner");
+    expect(state.calls[0]).toBe("rpc:rename_tag:collection:meal->Dinner");
   });
 
   it("trims the new name, and refuses an empty one without asking the database", async () => {
     await renameCollection("Meal", "  Dinner  ");
-    expect(state.calls[0]).toBe("rpc:rename_tag:Meal->Dinner");
+    expect(state.calls[0]).toBe("rpc:rename_tag:collection:Meal->Dinner");
 
     state.calls = [];
     expect(await renameCollection("Meal", "   ")).toMatch(/needs a name/);
@@ -119,6 +127,23 @@ describe("renameSource", () => {
     state.rpcError = { message: "boom" };
     expect(await renameSource("Google", "Bing")).toMatch(/Could not rename that source/);
     expect(state.calls).toEqual(["rpc:rename_item_source:Google->Bing"]);
+  });
+});
+
+describe("renameTopic", () => {
+  it("renames the grammar tag, shows it, and reads the rules again", async () => {
+    expect(await renameTopic("Cases", "Fälle")).toBeNull();
+    expect(state.calls).toEqual([
+      "rpc:rename_tag:grammar:Cases->Fälle",
+      "note:topics:Cases->Fälle",
+      "reload:rules",
+    ]);
+  });
+
+  it("changes nothing when the database refuses", async () => {
+    state.rpcError = { message: "boom" };
+    expect(await renameTopic("Cases", "Fälle")).toMatch(/Could not rename that topic/);
+    expect(state.calls).toEqual(["rpc:rename_tag:grammar:Cases->Fälle"]);
   });
 });
 

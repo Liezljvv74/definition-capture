@@ -51,7 +51,7 @@ export function AccountMenu() {
  * The gear, which opens rather than navigates.
  *
  * Settings was one page of eight sections, which is a list to hunt through
- * rather than a page to read. It is three groups now, and the gear names them
+ * rather than a page to read. It is four groups now, and the gear names them
  * for the same reason the Glossary tab opens a menu: it stands for more than
  * one destination, so going somewhere on click would mean quietly preferring
  * one of them.
