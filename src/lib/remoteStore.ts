@@ -223,7 +223,7 @@ export async function readWithSkewRetry<T extends { error: unknown }>(
 }
 
 /** The kinds of item the `items` table holds, one list store each. */
-export type ItemType = "word" | "phrase" | "verb_table";
+export type ItemType = "word" | "phrase" | "verb_table" | "grammar";
 
 /**
  * What a list reads for each item: its own columns, plus the name of its
@@ -235,20 +235,27 @@ const ITEM_SELECT = "*, sources(name), item_tags(position, context, tags(name))"
 
 /**
  * An `items` row with its embeds flattened: `source` is the source's name or
- * "", and `collections` the collection names in the order they were given.
+ * "", `collections` the collection names in the order they were given, and
+ * `topic` the one grammar topic or "". Exported for its test.
  */
-function flattenRow(row: Row): Row {
+export function flattenRow(row: Row): Row {
   const source = row.sources as { name?: unknown } | null;
   const links = Array.isArray(row.item_tags) ? (row.item_tags as Row[]) : [];
+  const nameOf = (link: Row) => {
+    const name = (link.tags as { name?: unknown } | null)?.name;
+    return typeof name === "string" ? name : null;
+  };
   const collections = links
     .filter((link) => link.context === "collection")
     .sort((a, b) => Number(a.position) - Number(b.position))
-    .map((link) => (link.tags as { name?: unknown } | null)?.name)
-    .filter((name): name is string => typeof name === "string");
+    .map(nameOf)
+    .filter((name): name is string => name !== null);
+  const topic = links.filter((link) => link.context === "grammar").map(nameOf).find(Boolean) ?? "";
   return {
     ...row,
     source: typeof source?.name === "string" ? source.name : "",
     collections,
+    topic,
   };
 }
 

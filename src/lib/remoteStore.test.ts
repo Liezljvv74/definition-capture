@@ -113,3 +113,28 @@ describe("the helpers survive being handed out detached", () => {
     expect(findByName("tür")?.id).toBe("1");
   });
 });
+
+describe("flattenRow", () => {
+  it("reads the source, the collections in order, and the one topic off an items row", async () => {
+    const { flattenRow } = await import("@/lib/remoteStore");
+    const row = flattenRow({
+      id: "a",
+      sources: { name: "Manual" },
+      item_tags: [
+        { position: 2, context: "collection", tags: { name: "Home" } },
+        { position: 1, context: "grammar", tags: { name: "Cases" } },
+        { position: 1, context: "collection", tags: { name: "Food" } },
+      ],
+    });
+    expect(row.source).toBe("Manual");
+    expect(row.collections).toEqual(["Food", "Home"]);
+    expect(row.topic).toBe("Cases");
+  });
+
+  it("reads no topic and no source as empty strings", async () => {
+    const { flattenRow } = await import("@/lib/remoteStore");
+    const row = flattenRow({ id: "a", sources: null, item_tags: [] });
+    expect(row.topic).toBe("");
+    expect(row.source).toBe("");
+  });
+});
