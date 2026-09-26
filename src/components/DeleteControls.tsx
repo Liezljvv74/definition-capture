@@ -166,6 +166,7 @@ export function ConfirmDeleteDialog({
   names,
   noun,
   nounPlural,
+  warning,
   onConfirm,
   onCancel,
 }: {
@@ -173,6 +174,12 @@ export function ConfirmDeleteDialog({
   names: string[];
   noun: string;
   nounPlural: string;
+  /**
+   * What else will break, such as links from surviving rules that resolve
+   * here. Only rules pass this today; the other three lists have nothing
+   * that reads their text back to look for a broken reference.
+   */
+  warning?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -195,6 +202,8 @@ export function ConfirmDeleteDialog({
           </>
         )}
       </p>
+
+      {warning && <p className="mt-3 text-sm font-medium text-amber-700 dark:text-amber-400">{warning}</p>}
 
       {many && (
         <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-300">

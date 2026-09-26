@@ -1,11 +1,15 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { saveSettings } from "@/lib/settings";
 import { MAX_TENSES, type VerbRow, type VerbTable } from "@/lib/types";
 import { ANOTHER, chosenTense, TenseChoice } from "@/components/TenseChoice";
+import { LinkedFrom } from "@/components/LinkedFrom";
+import { RefField } from "@/components/RefField";
+import { RefText } from "@/components/RefText";
 import { foldName } from "@/lib/foldName";
+import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useSettings } from "@/lib/useSettings";
 import { deleteVerbTable, saveVerbTable } from "@/lib/verbTables";
 
@@ -35,6 +39,7 @@ export function VerbTableCard({
   table,
   open,
   asking,
+  highlighted,
   onToggle,
   onEdited,
   onKeep,
@@ -44,6 +49,14 @@ export function VerbTableCard({
   open: boolean;
   /** True while the page is waiting to hear what to do with unsaved work. */
   asking: boolean;
+  /**
+   * True when a link last named this table. The card scrolls to itself the
+   * moment this turns true, and rings for as long as it stays true, which is
+   * until the reader opens or closes something with their own click, not
+   * just once, since the ring is meant to survive a card that a dirty-draft
+   * guard held back from opening straight away.
+   */
+  highlighted: boolean;
   /** Asks the page to open this table, or to close it. May be held back. */
   onToggle: () => void;
   /** The draft has changed; from here on, closing it is guarded. */
@@ -54,9 +67,12 @@ export function VerbTableCard({
   onFinish: () => void;
 }) {
   const bodyId = useId();
+  const sectionRef = useRef<HTMLElement>(null);
   const { settings } = useSettings();
+  const { linkIndex } = useLinkTargets();
   const [tenses, setTenses] = useState<string[]>(table.tenses);
   const [rows, setRows] = useState<VerbRow[]>(table.rows);
+  const [ref, setRef] = useState(table.ref);
   /** Which row has its notes showing, by index. */
   const [notesOpen, setNotesOpen] = useState<number | null>(null);
   /**
@@ -117,12 +133,18 @@ export function VerbTableCard({
   }
 
   function save() {
-    saveVerbTable(table.id, tenses, rows);
+    saveVerbTable(table.id, tenses, rows, ref);
     onFinish();
   }
 
+  // A link to this table lands here: bring it into view once, on arrival.
+  useEffect(() => {
+    if (highlighted) sectionRef.current?.scrollIntoView({ block: "center" });
+  }, [highlighted]);
+
   return (
     <section
+      ref={sectionRef}
       className={`card px-3 py-2 ${
         // Rolled up, a verb is just its name, so the row is only as wide as
         // it needs to be. Opened, it takes what its columns need.
@@ -131,7 +153,7 @@ export function VerbTableCard({
             ? "w-full max-w-4xl"
             : "w-full max-w-sm"
           : "w-full sm:w-1/2 lg:w-[12.5%] lg:min-w-44"
-      }`}
+      } ${highlighted ? "ring-2 ring-amber-400" : ""}`}
     >
       <button
         type="button"
@@ -216,6 +238,42 @@ export function VerbTableCard({
             </tbody>
           </table>
         </div>
+
+        {/* `RefField` and `LinkedFrom` each look up the whole link index and,
+            for `LinkedFrom`, scan every target's text; doing that for every
+            closed card on the page (every one of them mounted, just hidden by
+            the `hidden` attribute above) was pure waste. Rendering them only
+            while open means a closed card costs nothing beyond its row. */}
+        {open && (
+          <>
+            <div className="mt-3">
+              <label
+                htmlFor={`${bodyId}-ref`}
+                className="mb-1 block text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400"
+              >
+                Notes
+              </label>
+              <RefField
+                id={`${bodyId}-ref`}
+                value={ref}
+                exclude={[table.verb]}
+                selfKind="verb_table"
+                onChange={(next) => {
+                  onEdited();
+                  setRef(next);
+                }}
+                placeholder="Anything about this verb. [[Name]] links to anything you have saved."
+              />
+              {table.ref && (
+                <p className="mt-1.5 text-sm break-words text-slate-700 dark:text-slate-300">
+                  <RefText value={table.ref} linkIndex={linkIndex} />
+                </p>
+              )}
+            </div>
+
+            <LinkedFrom href={`/verbs?verb=${encodeURIComponent(table.verb)}`} />
+          </>
+        )}
 
         {adding !== null && (
           <NameTense

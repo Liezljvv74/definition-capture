@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useState } from "react";
 
 import { CollectionBadge, SourceBadge } from "@/components/Badges";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
-import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { LinkedFrom } from "@/components/LinkedFrom";
+import { RefText } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
+import type { LinkIndex } from "@/lib/links";
 import type { Phrase } from "@/lib/types";
-import { useWords } from "@/lib/useWords";
+import { useLinkTargets } from "@/lib/useLinkTargets";
 import { usePhrases } from "@/lib/usePhrases";
 
 /**
@@ -45,10 +47,9 @@ function DetailSkeleton() {
 function PhraseDetail() {
   const id = useSearchParams().get("id") ?? "";
   const { phrases, loaded } = usePhrases();
-  const { entries } = useWords();
   const phrase = phrases.find((candidate) => candidate.id === id);
 
-  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
+  const { linkIndex } = useLinkTargets();
 
   return (
     <>
@@ -139,6 +140,8 @@ function PhraseDetailCard({
             </p>
           )}
         </Field>
+
+        <LinkedFrom href={`/phrase?id=${phrase.id}`} />
 
         {/* Editing is offered here so a cross-link that lands on a typo can fix
             it on the spot. Deleting is not — the list owns that. */}

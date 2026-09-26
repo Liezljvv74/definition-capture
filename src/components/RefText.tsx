@@ -4,29 +4,8 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { foldName } from "@/lib/foldName";
+import type { LinkIndex } from "@/lib/links";
 import { parseRef } from "@/lib/parseRef";
-import type { Entry, Phrase } from "@/lib/types";
-
-/** Folded name (see `foldName`) → the page it lives on, so `[[Name]]` finds it. */
-export type LinkIndex = Map<string, string>;
-
-/**
- * Both lists share one namespace, so a `[[Name]]` can point at either of them.
- *
- * Built lowest precedence first, because a later `set` wins a name clash:
- * phrases, then words. Words stay on top, being the most specific thing
- * to link to, so a list added later must not quietly re-point existing links.
- */
-export function buildLinkIndex(entries: Entry[], phrases: Phrase[] = []): LinkIndex {
-  const index: LinkIndex = new Map();
-  for (const phrase of phrases) {
-    index.set(foldName(phrase.phrase), `/phrase?id=${phrase.id}`);
-  }
-  for (const entry of entries) {
-    index.set(foldName(entry.word), `/word?id=${entry.id}`);
-  }
-  return index;
-}
 
 const linkClass =
   "text-indigo-700 underline underline-offset-2 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200";

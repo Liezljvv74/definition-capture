@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { BlockView } from "@/components/grammar/BlockView";
-import type { LinkIndex } from "@/components/RefText";
+import type { LinkIndex } from "@/lib/links";
 
 /**
  * Rendered to a string, as `MainNav.test.tsx` is, so this needs no jsdom.

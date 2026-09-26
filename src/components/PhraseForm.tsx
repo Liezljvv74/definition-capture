@@ -199,6 +199,7 @@ export function PhraseForm({
           onChange={(ref) => setValue((current) => ({ ...current, ref }))}
           // The phrase being edited cannot usefully refer to itself.
           exclude={[initialValue.phrase, value.phrase]}
+          selfKind="phrase"
         />
       </div>
 

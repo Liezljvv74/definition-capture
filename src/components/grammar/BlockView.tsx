@@ -1,8 +1,8 @@
 "use client";
 
 import { InlineText, RichText } from "@/components/grammar/RichText";
-import type { LinkIndex } from "@/components/RefText";
 import { splitGaps } from "@/lib/blockText";
+import type { LinkIndex } from "@/lib/links";
 import type { Block, ExampleBlock, TableBlock } from "@/lib/types";
 
 /** One block, as the reader sees it. */

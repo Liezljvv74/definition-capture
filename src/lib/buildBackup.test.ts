@@ -88,6 +88,7 @@ describe("buildBackup, with something to back up", () => {
         { person: "ich", conjugations: [""], notes: "" },
         { person: "du", conjugations: [""], notes: "" },
       ],
+      ref: "",
       createdAt: saved.table.createdAt,
     });
   });

@@ -3,17 +3,17 @@
  * only offers the `[[Name]]` form of an internal link while you are typing a
  * name, and never rewrites anything on its own.
  *
- * Words and phrases share one namespace here, exactly as they do in
- * `buildLinkIndex`: a Ref written in either form can point at either list, so
- * both forms offer both lists.
+ * All four kinds share one namespace here, exactly as they do in
+ * `buildLinkIndex`: a Ref written in either form can point at any of them, so
+ * the suggestion box offers all four.
  */
 
 import { foldName } from "@/lib/foldName";
-import type { Entry, Phrase } from "@/lib/types";
+import type { LinkKind, LinkTarget } from "@/lib/links";
 
 export type RefSuggestion = {
   name: string;
-  kind: "word" | "phrase";
+  kind: LinkKind;
 };
 
 /** The stretch of the field a completion would replace. */
@@ -82,18 +82,20 @@ function normalise(text: string): string {
 /**
  * Names matching what has been typed, prefix matches first and each group in
  * alphabetical order, so the list only ever shrinks as more is typed. Names
- * in `exclude` are left out entirely.
+ * in `exclude` are left out when the link would reach the item being edited,
+ * which is of kind `selfKind`.
  *
- * Words win a name clash, the same rule `buildLinkIndex` follows when it
- * resolves `[[Name]]` back to a page — offering a phrase that the link would
- * not actually reach would be a lie.
+ * `targets` must be in `LINK_ORDER` (which `linkTargets` ensures), and the
+ * highest-precedence kind wins a name clash, the same rule `buildLinkIndex`
+ * follows when it resolves `[[Name]]` back to a page: offering a kind the
+ * link would not actually reach would be a lie.
  */
 export function suggestRefs(
-  entries: readonly Entry[],
-  phrases: readonly Phrase[],
+  targets: readonly LinkTarget[],
   query: string,
   exclude: readonly string[] = [],
   limit: number = SUGGESTION_LIMIT,
+  selfKind?: LinkKind,
 ): RefSuggestion[] {
   const needle = normalise(query);
   if (!needle) return [];
@@ -101,23 +103,24 @@ export function suggestRefs(
   // Whatever is open in the form cannot be a useful reference: a Ref that
   // points at its own entry is a link back to the page you are already on.
   // Both the saved name and the one being typed are dropped, so renaming
-  // something mid-edit cannot make it offer itself.
+  // something mid-edit cannot make it offer itself. Only when the name would
+  // reach the item itself, though: the word "arbeiten" linking to the verb
+  // table "arbeiten" is the most natural link there is, and the table wins
+  // that name, so it stays on offer. Without `selfKind` every excluded name
+  // is dropped, as before.
   const skip = new Set(
     exclude.map(foldName).filter(Boolean),
   );
 
   const byName = new Map<string, RefSuggestion>();
-  for (const phrase of phrases) {
-    byName.set(foldName(phrase.phrase), { name: phrase.phrase, kind: "phrase" });
-  }
-  for (const entry of entries) {
-    byName.set(foldName(entry.word), { name: entry.word, kind: "word" });
+  for (const target of [...targets].reverse()) {
+    byName.set(foldName(target.name), { name: target.name, kind: target.kind });
   }
 
   const prefix: RefSuggestion[] = [];
   const elsewhere: RefSuggestion[] = [];
   for (const [lowered, suggestion] of byName) {
-    if (skip.has(lowered)) continue;
+    if (skip.has(lowered) && (!selfKind || suggestion.kind === selfKind)) continue;
     if (lowered.startsWith(needle)) prefix.push(suggestion);
     else if (lowered.includes(needle)) elsewhere.push(suggestion);
   }

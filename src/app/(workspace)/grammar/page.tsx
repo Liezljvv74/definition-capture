@@ -10,7 +10,9 @@ import { AddRuleDialog } from "@/components/grammar/AddRuleDialog";
 import { RowEditButton } from "@/components/RowEditButton";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { foldName } from "@/lib/foldName";
+import { linkWarning } from "@/lib/links";
 import { deleteRules } from "@/lib/rules";
+import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useListPage } from "@/lib/useListPage";
 import { useRules } from "@/lib/useRules";
 import { useSettings } from "@/lib/useSettings";
@@ -25,6 +27,7 @@ export default function GrammarPage() {
   const router = useRouter();
   const { rules, loaded } = useRules();
   const { settings } = useSettings();
+  const { targets, linkIndex } = useLinkTargets();
   const sorting = useSorting();
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("");
@@ -146,6 +149,7 @@ export default function GrammarPage() {
           names={pendingNames}
           noun="rule"
           nounPlural="rules"
+          warning={linkWarning(targets, linkIndex, targets.filter((t) => t.kind === "rule" && pendingDelete.includes(t.id)))}
           onConfirm={() => {
             deleteRules(pendingDelete);
             setPendingDelete(null);

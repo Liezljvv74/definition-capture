@@ -7,6 +7,7 @@
  * which `save_items` resolves to the tag and creates when missing.
  */
 
+import { rewriteLinks } from "@/lib/linkRenames";
 import { readBlocks } from "@/lib/blocks";
 import { foldName } from "@/lib/foldName";
 import { planImport } from "@/lib/planImport";
@@ -117,6 +118,7 @@ export const subscribeToError = store.subscribeToError;
 export const getError = store.getError;
 export const settled = store.settled;
 export const reload = store.reload;
+export const updateRules = store.updateMany;
 
 /* ----------------------------------------------------------------- queries */
 
@@ -154,6 +156,7 @@ export function updateRule(id: string, input: RuleInput): Rule | null {
     dateUpdated: new Date().toISOString(),
   };
   store.update(updated);
+  rewriteLinks("rule", id, existing.title, updated.title);
   return updated;
 }
 
