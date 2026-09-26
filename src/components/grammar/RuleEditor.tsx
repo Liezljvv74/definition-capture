@@ -3,8 +3,8 @@
 import { useId, useState } from "react";
 
 import { BlockEditor } from "@/components/grammar/BlockEditor";
+import { TopicSelect } from "@/components/grammar/TopicSelect";
 import { moveBlock, newExampleBlock, newTableBlock, newTextBlock } from "@/lib/blocks";
-import { MAX_NAME } from "@/lib/constants";
 import { findByTitle } from "@/lib/rules";
 import type { Block, Rule, RuleInput } from "@/lib/types";
 
@@ -20,7 +20,7 @@ export function RuleEditor({
   onCancel,
 }: {
   rule: Rule;
-  /** The topics on the Settings list, offered as suggestions. A new one may be typed. */
+  /** The topics on the Settings list; a rule picks one, and new ones are made in Settings. */
   topics: readonly string[];
   onSave: (input: RuleInput) => void;
   onCancel: () => void;
@@ -66,14 +66,7 @@ export function RuleEditor({
           <label htmlFor={`${inputId}-topic`} className="mb-1 block text-sm font-medium">
             Topic
           </label>
-          {/* A datalist rather than a select, so a topic can be typed the
-              first time it is needed instead of going to Settings first. */}
-          <input id={`${inputId}-topic`} className="field" list={`${inputId}-topics`} value={topic} maxLength={MAX_NAME} onChange={(event) => setTopic(event.target.value)} />
-          <datalist id={`${inputId}-topics`}>
-            {topics.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
+          <TopicSelect id={`${inputId}-topic`} topics={topics} value={topic} onChange={setTopic} />
         </div>
       </div>
 

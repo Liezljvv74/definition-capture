@@ -42,3 +42,18 @@ describe("RuleEditor", () => {
     expect(markup).not.toMatch(/<button type="submit"[^>]*disabled=""/);
   });
 });
+
+describe("RuleEditor topic", () => {
+  it("offers only the topics from Settings, with no field to type a new one", () => {
+    const markup = renderToStaticMarkup(
+      <RuleEditor rule={rule} topics={["Cases", "Word order"]} onSave={() => {}} onCancel={() => {}} />,
+    );
+    expect(markup).toContain("<select");
+    expect(markup).toContain(">Word order</option>");
+    expect(markup).not.toContain("<datalist");
+  });
+
+  it("points to Settings when there are no topics yet", () => {
+    expect(html({ ...rule, topic: "" })).toContain('href="/settings?section=grammar"');
+  });
+});

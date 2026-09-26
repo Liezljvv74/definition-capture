@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import { Modal } from "@/components/Modal";
-import { MAX_NAME } from "@/lib/constants";
+import { TopicSelect } from "@/components/grammar/TopicSelect";
 import { createRule, findByTitle } from "@/lib/rules";
 
 /**
@@ -40,12 +40,7 @@ export function AddRuleDialog({ topics, onClose }: { topics: readonly string[]; 
         </div>
         <div>
           <label htmlFor={`${inputId}-topic`} className="mb-1 block text-sm font-medium">Topic</label>
-          <input id={`${inputId}-topic`} className="field" list={`${inputId}-topics`} value={topic} maxLength={MAX_NAME} onChange={(event) => setTopic(event.target.value)} placeholder="e.g. Cases" />
-          <datalist id={`${inputId}-topics`}>
-            {topics.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
+          <TopicSelect id={`${inputId}-topic`} topics={topics} value={topic} onChange={setTopic} />
         </div>
         {problem && title.trim() !== "" && (
           <p role="alert" className="text-sm text-red-600 dark:text-red-400">{problem}</p>
