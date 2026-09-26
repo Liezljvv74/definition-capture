@@ -17,15 +17,26 @@ export function BlockView({ block, linkIndex }: { block: Block; linkIndex: LinkI
   }
 }
 
+/**
+ * A table grows past the card, equally left and right, as far as the window
+ * allows, and scrolls only beyond that. Anything narrower than the card stays
+ * the card's width. The rule page keeps its narrow column for reading text;
+ * only tables break out of it, because a paradigm with long cells otherwise
+ * squeezes into a strip in the middle of a wide screen.
+ */
+export const wideTableClass =
+  "relative left-1/2 w-max min-w-full max-w-[calc(100vw-3rem)] -translate-x-1/2 overflow-x-auto";
+
+// `overflow-wrap: anywhere` lets a long unbroken word wrap inside its cell
+// instead of forcing the whole table into a scroll.
 const headerClass =
-  "border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-left text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
+  "border border-slate-200 bg-slate-50 px-2.5 py-1.5 align-top [overflow-wrap:anywhere] text-left text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
 const cellClass =
-  "border border-slate-200 px-2.5 py-1.5 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-200";
+  "border border-slate-200 px-2.5 py-1.5 align-top [overflow-wrap:anywhere] text-sm text-slate-800 dark:border-slate-700 dark:text-slate-200";
 
 function TableView({ table, linkIndex }: { table: TableBlock; linkIndex: LinkIndex }) {
   return (
-    // Its own scroll container, so a wide paradigm never widens the page.
-    <div className="overflow-x-auto">
+    <div className={wideTableClass}>
       <table className="border-collapse">
         <tbody>
           {table.cells.map((row, r) => (

@@ -2,6 +2,8 @@
 
 import { useId } from "react";
 
+import { wideTableClass } from "@/components/grammar/BlockView";
+
 import {
   MAX_TABLE_COLUMNS,
   MAX_TABLE_ROWS,
@@ -100,7 +102,7 @@ function TableFields({ block, onChange, inputId }: { block: TableBlock; onChange
   const small = "btn btn-secondary px-2.5 py-1 text-xs";
   return (
     <div className="space-y-2">
-      <div className="overflow-x-auto">
+      <div className={wideTableClass}>
         <table className="border-collapse">
           <tbody>
             {block.cells.map((row, r) => (
@@ -114,7 +116,9 @@ function TableFields({ block, onChange, inputId }: { block: TableBlock; onChange
                       </label>
                       <input
                         id={`${inputId}-${r}-${c}`}
-                        className={`field min-w-24 py-1 ${isHeader ? "font-semibold" : ""}`}
+                        // Sized to what is typed, so a long cell widens its column
+                        // rather than hiding its end inside a fixed-width box.
+                        className={`field min-w-24 max-w-xl py-1 [field-sizing:content] ${isHeader ? "font-semibold" : ""}`}
                         value={cell}
                         onChange={(event) => onChange(withCell(block, r, c, event.target.value))}
                       />
