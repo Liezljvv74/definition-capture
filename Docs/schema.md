@@ -275,8 +275,11 @@ To add, say, sentences:
 1. Add `'sentence'` to the `item_type` check on `items`, and its detail
    columns, nullable, with a check tying them to the type like the others.
 2. A branch in `has_answer`, and the same branch in `cardBack`.
-3. Its fields in `save_items`'s record type and shaping. The new columns have
-   to be declared in both `save_items` and `set_updated_at`.
+3. Its fields in `save_items`'s record type and shaping. A new column is
+   declared in `save_items` (its record type, shaping, update and insert); it
+   is added to `set_updated_at`'s exclusion list only when changing it must
+   not count as an edit, as `map_x` and `map_y` are, because the trigger
+   already sees every other column on its own.
 4. A store built on `remoteStore` with `itemType: "sentence"`, and a page,
    form and dialogs as for any list.
 
