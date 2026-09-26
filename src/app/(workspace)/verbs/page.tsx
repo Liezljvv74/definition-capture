@@ -73,12 +73,8 @@ function VerbList() {
   const [query, setQuery] = useState("");
   /** True while a verb is being added from this page rather than a word. */
   const [adding, setAdding] = useState(false);
-  /**
-   * The one table that is open, if any. Undefined until the reader opens or
-   * closes something, which is what lets a link decide the first one
-   * without an effect writing state on arrival.
-   */
-  const [chosen, setChosen] = useState<string | null | undefined>(undefined);
+  /** The one table that is open, if any. Null until anything is opened. */
+  const [chosen, setChosen] = useState<string | null>(null);
   /** True once the open table has been edited and not yet saved. */
   const [dirty, setDirty] = useState(false);
   /**
@@ -86,6 +82,22 @@ function VerbList() {
    * table id, or null for closing outright. Undefined when nothing waits.
    */
   const [waiting, setWaiting] = useState<string | null | undefined>(undefined);
+  /**
+   * The last `wanted` (below) this page has already acted on, folded the way
+   * every name is. Null before anything has arrived. Comparing against a
+   * stored value, rather than deriving the open table from the URL afresh on
+   * every render, is what tells a genuinely new link apart from the page
+   * re-rendering for some other reason (a keystroke in the open card, say),
+   * where nothing about where the reader meant to be has changed.
+   */
+  const [arrivedAt, setArrivedAt] = useState<string | null>(null);
+  /**
+   * The table a link last named, so it can be rung and scrolled to. Cleared
+   * the moment the reader opens or closes anything by hand, which is what
+   * stops the ring from following a table the reader has since moved away
+   * from under their own steam.
+   */
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   /** A verb arriving from the Edit word screen, still to be made. */
   const pending = (params.get("new") ?? "").trim();
@@ -115,13 +127,6 @@ function VerbList() {
   }, [dirty]);
 
   /**
-   * Nothing is open until something asks: a link naming a verb, or a click.
-   * One at a time, so opening a table rolls up whichever was open before.
-   */
-  const targeted = tables.find((table) => foldName(table.verb) === wanted);
-  const openId = chosen === undefined ? (targeted?.id ?? null) : chosen;
-
-  /**
    * Opening a card remounts it from what is stored, so whatever was being
    * typed in the one that was open is gone. Once a table has been edited
    * that stops being something to do quietly: the card is asked first.
@@ -131,7 +136,7 @@ function VerbList() {
     // screen to be asked: a search that filters it away, or a table deleted
     // from another device, would otherwise leave the page unable to open
     // anything and nothing visible to say why.
-    if (dirty && visible.some((table) => table.id === openId)) {
+    if (dirty && visible.some((table) => table.id === chosen)) {
       setWaiting(id);
       return;
     }
@@ -139,10 +144,38 @@ function VerbList() {
     setChosen(id);
   }
 
+  /**
+   * A link naming a verb is a request to open it, exactly like a click on a
+   * card, and has to be asked about the same way: without this, following
+   * `[[haben]]` out of a card with unsaved edits would swap the open card out
+   * from under the reader with nothing to undo it by, and once any card had
+   * ever been opened by hand a link stopped doing anything at all, since App
+   * Router does not remount this page for a search-param-only navigation.
+   *
+   * This runs during render rather than in an effect, adjusting state before
+   * the page paints, because all it is doing is keeping `chosen` in step
+   * with a prop (`wanted`) that changed: the pattern React's own docs give
+   * for exactly this, rather than an effect that would paint the old card
+   * for a frame and only then flip to the new one.
+   *
+   * Skipped while a `?new=` verb has no table yet: `wanted` reads the same
+   * folded name before and after `NewTableForm` makes one, and marking it
+   * arrived here, while there is nothing to find, would stop the table from
+   * being opened once `router.replace` hands the very same name back as
+   * `?verb=`.
+   */
+  if (loaded && wanted !== "" && wanted !== arrivedAt && !(pending !== "" && !has(pending))) {
+    setArrivedAt(wanted);
+    const target = tables.find((table) => foldName(table.verb) === wanted);
+    setHighlightId(target?.id ?? null);
+    requestOpen(target?.id ?? null);
+  }
+
   /** Saved, discarded or deleted: nothing is owed, so go where was asked. */
   function settle() {
     setChosen(waiting === undefined ? null : waiting);
     setWaiting(undefined);
+    setHighlightId(null);
     setDirty(false);
   }
 
@@ -229,7 +262,7 @@ function VerbList() {
 
       <div className="space-y-1.5">
         {visible.map((table) => {
-          const isOpen = table.id === openId;
+          const isOpen = table.id === chosen;
           return (
             <VerbTableCard
               // Whether it is open is part of the key, so opening a card
@@ -240,8 +273,11 @@ function VerbList() {
               table={table}
               open={isOpen}
               asking={isOpen && waiting !== undefined}
-              highlighted={table.id === targeted?.id && chosen === undefined}
-              onToggle={() => requestOpen(isOpen ? null : table.id)}
+              highlighted={table.id === highlightId}
+              onToggle={() => {
+                setHighlightId(null);
+                requestOpen(isOpen ? null : table.id);
+              }}
               onEdited={() => setDirty(true)}
               onKeep={() => setWaiting(undefined)}
               onFinish={settle}

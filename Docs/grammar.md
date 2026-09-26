@@ -94,21 +94,26 @@ that explains it carries its reason with it.
 
 What changes:
 
-- **Rules and verb tables become link targets.** Today only words and phrases
-  can be. The suggestion box in `RefField` offers all four types. A link to a
-  verb table opens the Verbs page scrolled to that table and highlighted
+- **Rules and verb tables are link targets**, the same as words and phrases.
+  The suggestion box in `RefField` offers all four types. A link to a verb
+  table opens the Verbs page scrolled to that table and highlighted
   (`/verbs?verb=<name>`).
 - **Verb tables get a notes field** that renders links, as words and phrases
   have. It is the `ref` column every item already carries; the verb table
   store simply starts sending and showing it.
 - **Shared names.** A shared name resolves by a fixed order: rule, verb table,
   word, phrase. The owner chose this on 26 September over recording which item
-  a link meant, which is deferred until clashes actually happen.
-- **Renames update links.** Renaming any item rewrites every `[[Old name]]` that
-  points at it, for all four types, rewritten in the browser through the stores,
-  one write per list (`src/lib/linkRenames.ts`). A rename that changes only case
-  or accents rewrites nothing, because names are matched with `foldName` and
-  already resolve. A name owned by a higher-precedence item is left alone.
+  a link meant, which is deferred until clashes actually happen. This is a
+  real change for a link that already existed: before this stage a shared
+  name always resolved to the word, so an existing `[[sein]]` that used to
+  reach the word now re-points to a verb table or rule named "sein" once one
+  exists.
+- **Renames update links.** Renaming a rule, word or phrase rewrites every
+  `[[Old name]]` that points at it, one write per affected list
+  (`src/lib/linkRenames.ts`); a verb table cannot be renamed, so it is never
+  the source of a rewrite. A rename that changes only case or accents
+  rewrites nothing, since names are matched with `foldName` and already
+  resolve, and a name a higher-precedence item already owns is left alone.
 - **Deleting a rule that is linked to** warns first ("3 rules and 2 words link
   to Dative. Their links will stop working.") and then leaves those links
   dotted. A new rule of the same name brings them back.

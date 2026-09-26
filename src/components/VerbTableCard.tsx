@@ -49,7 +49,13 @@ export function VerbTableCard({
   open: boolean;
   /** True while the page is waiting to hear what to do with unsaved work. */
   asking: boolean;
-  /** True when a link just landed here; the card scrolls to itself and rings once. */
+  /**
+   * True when a link last named this table. The card scrolls to itself the
+   * moment this turns true, and rings for as long as it stays true, which is
+   * until the reader opens or closes something with their own click, not
+   * just once, since the ring is meant to survive a card that a dirty-draft
+   * guard held back from opening straight away.
+   */
   highlighted: boolean;
   /** Asks the page to open this table, or to close it. May be held back. */
   onToggle: () => void;
@@ -233,31 +239,40 @@ export function VerbTableCard({
           </table>
         </div>
 
-        <div className="mt-3">
-          <label
-            htmlFor={`${bodyId}-ref`}
-            className="mb-1 block text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400"
-          >
-            Notes
-          </label>
-          <RefField
-            id={`${bodyId}-ref`}
-            value={ref}
-            exclude={[table.verb]}
-            onChange={(next) => {
-              onEdited();
-              setRef(next);
-            }}
-            placeholder="Anything about this verb. [[Name]] links to a rule, word or phrase."
-          />
-          {table.ref && (
-            <p className="mt-1.5 text-sm break-words text-slate-700 dark:text-slate-300">
-              <RefText value={table.ref} linkIndex={linkIndex} />
-            </p>
-          )}
-        </div>
+        {/* `RefField` and `LinkedFrom` each look up the whole link index and,
+            for `LinkedFrom`, scan every target's text; doing that for every
+            closed card on the page (every one of them mounted, just hidden by
+            the `hidden` attribute above) was pure waste. Rendering them only
+            while open means a closed card costs nothing beyond its row. */}
+        {open && (
+          <>
+            <div className="mt-3">
+              <label
+                htmlFor={`${bodyId}-ref`}
+                className="mb-1 block text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400"
+              >
+                Notes
+              </label>
+              <RefField
+                id={`${bodyId}-ref`}
+                value={ref}
+                exclude={[table.verb]}
+                onChange={(next) => {
+                  onEdited();
+                  setRef(next);
+                }}
+                placeholder="Anything about this verb. [[Name]] links to anything you have saved."
+              />
+              {table.ref && (
+                <p className="mt-1.5 text-sm break-words text-slate-700 dark:text-slate-300">
+                  <RefText value={table.ref} linkIndex={linkIndex} />
+                </p>
+              )}
+            </div>
 
-        <LinkedFrom href={`/verbs?verb=${encodeURIComponent(table.verb)}`} />
+            <LinkedFrom href={`/verbs?verb=${encodeURIComponent(table.verb)}`} />
+          </>
+        )}
 
         {adding !== null && (
           <NameTense

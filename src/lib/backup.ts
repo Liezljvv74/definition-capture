@@ -98,10 +98,22 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * leaves the rules already saved alone, as it does for any list the file
  * lacks.
  *
+ * 12 adds `ref` to a conjugation table, so a verb table can carry notes and
+ * links like every other item. A file from before that field existed has no
+ * `ref` key on its tables at all, and an Update merge onto a table that
+ * already has notes leaves them exactly as they were rather than reading
+ * that silence as "clear them"; a table whose file spells the field `ref: ""`
+ * is still taken at its word, since writing an empty string is a real answer
+ * and its absence is not. See `ParsedVerbTable` and `mergeVerbTable` in
+ * `verbTables.ts`. Replace needs no equivalent of its own: it already
+ * overwrites a matched row's every field with whatever the file records for
+ * it, blank or missing alike, which is what Replace has always meant, unlike
+ * Update's selective merge.
+ *
  * A missing list reads as an absent one, not an empty one, which is what
  * keeps Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 11;
+export const BACKUP_VERSION = 12;
 
 /**
  * The lists a backup carries, named once.

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 
 import { KIND_LABEL, linkedFrom } from "@/lib/links";
 import { useLinkTargets } from "@/lib/useLinkTargets";
@@ -12,7 +13,11 @@ import { useLinkTargets } from "@/lib/useLinkTargets";
  */
 export function LinkedFrom({ href }: { href: string }) {
   const { targets, linkIndex } = useLinkTargets();
-  const linkers = linkedFrom(targets, linkIndex, href);
+  // `targets` and `linkIndex` are themselves cached (see `useLinkTargets.ts`),
+  // so this only redoes the scan over every target's text when one of them
+  // actually changed, rather than on every render of a card that happens to
+  // sit on a page with this mounted.
+  const linkers = useMemo(() => linkedFrom(targets, linkIndex, href), [targets, linkIndex, href]);
   if (linkers.length === 0) return null;
   return (
     <section className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">

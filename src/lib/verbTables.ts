@@ -160,7 +160,18 @@ export function toWireVerbTable(table: VerbTable): WireVerbTable {
   };
 }
 
-export function parseVerbTable(raw: unknown, allowMissingId = false): VerbTable | null {
+/**
+ * A table as `parseVerbTable` hands it back, with one extra fact `VerbTable`
+ * itself has no business carrying: whether the file's item had no `ref` key
+ * at all, as opposed to one written as `""`. `toWireVerbTable` below and the
+ * database payload in `toPayload` both build their object literal field by
+ * field, so this can never leak into either; only the merge in
+ * `importVerbTables` reads it, in the one call `applyImport` makes moments
+ * after parsing a file.
+ */
+export type ParsedVerbTable = VerbTable & { refKeyMissing?: true };
+
+export function parseVerbTable(raw: unknown, allowMissingId = false): ParsedVerbTable | null {
   if (typeof raw !== "object" || raw === null) return null;
   const value = raw as Record<string, unknown>;
 
@@ -177,17 +188,43 @@ export function parseVerbTable(raw: unknown, allowMissingId = false): VerbTable 
     rows: readVerbRows(value.rows, tenses.length),
     ref: readString(value.ref).trim(),
     createdAt: readString(value.createdAt) || new Date().toISOString(),
+    // Set only when the key is missing outright. A file that spells the
+    // field `ref: ""` is a reader's own answer and is taken at its word; only
+    // silence is worth telling apart from it, which `value.ref === undefined`
+    // does and a check against `""` could not.
+    ...(value.ref === undefined ? { refKeyMissing: true } : {}),
   };
 }
 
 export function parseVerbTableList(list: unknown[]): {
-  tables: VerbTable[];
+  tables: ParsedVerbTable[];
   unreadable: number;
 } {
   const tables = list
     .map((item) => parseVerbTable(item, true))
-    .filter((table): table is VerbTable => table !== null);
+    .filter((table): table is ParsedVerbTable => table !== null);
   return { tables, unreadable: list.length - tables.length };
+}
+
+/**
+ * What an existing table becomes when Update mode's merge overwrites it with
+ * a candidate out of a backup file. Exported for its own test.
+ *
+ * Notes are the one field not simply taken from the candidate: a file from
+ * before verb tables had notes carries no `ref` key at all, and taking
+ * `candidate.ref` regardless would read that silence as "clear them," wiping
+ * every note already saved the moment such a file was merged in. Keeping
+ * `existing.ref` when `refKeyMissing` is set is what an Update merge is for
+ * in the first place: touching only what the file actually says.
+ */
+export function mergeVerbTable(existing: VerbTable, candidate: ParsedVerbTable): VerbTable {
+  return {
+    ...existing,
+    verb: candidate.verb,
+    tenses: candidate.tenses,
+    rows: candidate.rows,
+    ref: candidate.refKeyMissing ? existing.ref : candidate.ref,
+  };
 }
 
 /**
@@ -195,7 +232,7 @@ export function parseVerbTableList(list: unknown[]): {
  * same rule `findVerbTable` and the unique index already use — a second table
  * for the same verb is not a thing that can exist.
  */
-export function importVerbTables(incoming: VerbTable[], mode: ImportMode): ImportCounts {
+export function importVerbTables(incoming: ParsedVerbTable[], mode: ImportMode): ImportCounts {
   const plan = planImport(store.items(), incoming, mode, {
     keyOf: (table) => foldName(table.verb),
     idOf: (table) => table.id,
@@ -203,16 +240,17 @@ export function importVerbTables(incoming: VerbTable[], mode: ImportMode): Impor
     // Columns and cells travel together, for the reason `saveVerbTable`
     // gives: taking one from the backup and leaving the other would put the
     // headings and the rows out of step.
-    merge: (existing, candidate) => ({
-      ...existing,
-      verb: candidate.verb,
-      tenses: candidate.tenses,
-      rows: candidate.rows,
-      ref: candidate.ref,
-    }),
+    merge: mergeVerbTable,
   });
 
   if (plan.toReplace) {
+    // `refKeyMissing` is not consulted here. Replace saves the file over the
+    // list, matched rows included, so every field of a matched row becomes
+    // whatever the file records for it, blank or missing alike, the same as
+    // it always has for every other field on every other list. A restore
+    // is meant to make the file the truth, not a selective patch. That is
+    // what tells it apart from Update's merge above, which is deliberately
+    // selective; Replace never has been.
     store.replaceAll(plan.toReplace);
     return plan.counts;
   }

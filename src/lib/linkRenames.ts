@@ -13,6 +13,18 @@
  * The stores import this module and it imports them. That cycle is safe
  * because nothing here runs while the modules load, only when a rename
  * happens.
+ *
+ * A list that has not finished loading yet, or whose first read failed, is
+ * read here as empty: `getEntries()` and the rest hand back whatever is
+ * cached, nothing more. Its links are not rewritten, and until it loads
+ * they show dotted, the same as any other link to a name nothing resolves.
+ *
+ * This runs against `to`, the renamed item's new name, written optimistically
+ * before its own save is known to have landed. If that save fails, the item
+ * reloads back to `from`, but the rewrites already sent for `to` do not know
+ * to undo themselves: every link this already reached now names something
+ * nothing has, and stays dotted, until the item is renamed to `to` again and
+ * the name exists for them to resolve against.
  */
 
 import { planLinkRewrites, type LinkKind } from "@/lib/links";
