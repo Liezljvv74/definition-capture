@@ -37,6 +37,10 @@ describe("BlockView", () => {
     });
     expect(markup.match(/<th/g)).toHaveLength(3);
     expect(markup.match(/<td/g)).toHaveLength(1);
+    // Exactly one of each: the (0,1) cell heads its column, the (1,0) cell
+    // heads its row, and the corner cell (0,0), which is both, heads neither.
+    expect(markup.match(/scope="col"/g)).toHaveLength(1);
+    expect(markup.match(/scope="row"/g)).toHaveLength(1);
   });
 
   it("shows an example's gaps without their braces", () => {

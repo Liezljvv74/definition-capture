@@ -31,10 +31,21 @@ function TableView({ table, linkIndex }: { table: TableBlock; linkIndex: LinkInd
           {table.cells.map((row, r) => (
             <tr key={r}>
               {row.map((cell, c) => {
-                const isHeader = (table.headerRow && r === 0) || (table.headerColumn && c === 0);
+                const inHeaderRow = table.headerRow && r === 0;
+                const inHeaderColumn = table.headerColumn && c === 0;
+                const isHeader = inHeaderRow || inHeaderColumn;
                 const Cell = isHeader ? "th" : "td";
+                // The corner cell, when both flags are on, labels neither an
+                // axis on its own, so it gets no `scope`: a screen reader
+                // would otherwise be told a cell that names both a row and a
+                // column heads only one of them.
+                const scope = inHeaderRow && !inHeaderColumn
+                  ? "col"
+                  : inHeaderColumn && !inHeaderRow
+                    ? "row"
+                    : undefined;
                 return (
-                  <Cell key={c} className={isHeader ? headerClass : cellClass} scope={isHeader ? (r === 0 ? "col" : "row") : undefined}>
+                  <Cell key={c} className={isHeader ? headerClass : cellClass} scope={scope}>
                     <InlineText text={cell} linkIndex={linkIndex} />
                   </Cell>
                 );

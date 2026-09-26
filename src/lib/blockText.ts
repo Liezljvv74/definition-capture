@@ -41,36 +41,29 @@ function pushText(tokens: InlineToken[], value: string): void {
 
 export function parseInline(text: string): InlineToken[] {
   const tokens: InlineToken[] = [];
-  for (const segment of text.split(LINK)) {
-    if (!segment) continue;
-    if (LINK.test(segment) && segment.startsWith("[[")) {
+  text.split(LINK).forEach((segment, i) => {
+    if (!segment) return;
+    // `String.split` with a capturing pattern alternates plain text and the
+    // matched groups themselves, so the item at an odd index is exactly what
+    // LINK or EMPHASIS matched already; testing it again, as this used to,
+    // could only ever repeat the same answer the split had already given.
+    if (i % 2 === 1) {
       const name = segment.slice(2, -2).trim();
       if (name) tokens.push({ kind: "link", name });
       else pushText(tokens, segment);
-      continue;
+      return;
     }
-    for (const part of segment.split(EMPHASIS)) {
-      if (!part) continue;
-      // Only treat as markup if the part was matched by the pattern, not just if it looks like markup.
-      if (
-        EMPHASIS.test(part) &&
-        part.startsWith("**") &&
-        part.endsWith("**") &&
-        part.length > 4
-      ) {
-        tokens.push({ kind: "bold", value: part.slice(2, -2) });
-      } else if (
-        EMPHASIS.test(part) &&
-        part.startsWith("*") &&
-        part.endsWith("*") &&
-        part.length > 2
-      ) {
-        tokens.push({ kind: "italic", value: part.slice(1, -1) });
-      } else {
+    segment.split(EMPHASIS).forEach((part, j) => {
+      if (!part) return;
+      if (j % 2 !== 1) {
         pushText(tokens, part);
+      } else if (part.startsWith("**")) {
+        tokens.push({ kind: "bold", value: part.slice(2, -2) });
+      } else {
+        tokens.push({ kind: "italic", value: part.slice(1, -1) });
       }
-    }
-  }
+    });
+  });
   return tokens;
 }
 

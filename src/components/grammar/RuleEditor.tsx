@@ -87,8 +87,14 @@ export function RuleEditor({
           <div
             key={block.id}
             onDrop={(event) => {
+              // A drag not started from this editor's own handles, such as a
+              // reader dragging selected text into a textarea, must reach the
+              // input the way it would anywhere else in the browser: calling
+              // `preventDefault` unconditionally cancelled every native text
+              // drop inside a block.
+              if (dragging === null) return;
               event.preventDefault();
-              if (dragging !== null) setBlocks((current) => moveBlock(current, dragging, index));
+              setBlocks((current) => moveBlock(current, dragging, index));
               setDragging(null);
             }}
           >
@@ -100,6 +106,11 @@ export function RuleEditor({
               onRemove={() => setBlocks((current) => current.filter((_, at) => at !== index))}
               onMove={(to) => setBlocks((current) => moveBlock(current, index, to))}
               onDragStart={() => setDragging(index)}
+              // A drag that ends without landing on a block, dropped outside
+              // the list or cancelled with Escape, never fires this section's
+              // `onDrop`, and a stale `dragging` from it would make the next
+              // unrelated text drag reorder blocks instead of doing nothing.
+              onDragEnd={() => setDragging(null)}
             />
           </div>
         ))}

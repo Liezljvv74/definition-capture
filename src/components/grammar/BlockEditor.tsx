@@ -2,7 +2,15 @@
 
 import { useId } from "react";
 
-import { withCell, withColumn, withoutLastColumn, withoutLastRow, withRow } from "@/lib/blocks";
+import {
+  MAX_TABLE_COLUMNS,
+  MAX_TABLE_ROWS,
+  withCell,
+  withColumn,
+  withoutLastColumn,
+  withoutLastRow,
+  withRow,
+} from "@/lib/blocks";
 import type { Block, ExampleBlock, TableBlock, TextBlock } from "@/lib/types";
 
 const KIND_LABEL: Record<Block["kind"], string> = { text: "Text", table: "Table", example: "Example" };
@@ -20,6 +28,7 @@ export function BlockEditor({
   onRemove,
   onMove,
   onDragStart,
+  onDragEnd,
 }: {
   block: Block;
   index: number;
@@ -28,6 +37,7 @@ export function BlockEditor({
   onRemove: () => void;
   onMove: (to: number) => void;
   onDragStart: () => void;
+  onDragEnd: () => void;
 }) {
   const inputId = useId();
   const menuButton =
@@ -39,6 +49,7 @@ export function BlockEditor({
         <span
           draggable
           onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
           title="Drag to reorder"
           aria-hidden="true"
           className="cursor-grab select-none px-1 text-slate-400"
@@ -116,9 +127,9 @@ function TableFields({ block, onChange, inputId }: { block: TableBlock; onChange
         </table>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={small} onClick={() => onChange(withRow(block))}>Add row</button>
+        <button type="button" className={small} disabled={block.cells.length >= MAX_TABLE_ROWS} onClick={() => onChange(withRow(block))}>Add row</button>
         <button type="button" className={small} disabled={block.cells.length <= 1} onClick={() => onChange(withoutLastRow(block))}>Remove last row</button>
-        <button type="button" className={small} onClick={() => onChange(withColumn(block))}>Add column</button>
+        <button type="button" className={small} disabled={block.cells[0].length >= MAX_TABLE_COLUMNS} onClick={() => onChange(withColumn(block))}>Add column</button>
         <button type="button" className={small} disabled={block.cells[0].length <= 1} onClick={() => onChange(withoutLastColumn(block))}>Remove last column</button>
         <label className="ml-2 inline-flex items-center gap-1.5 text-sm">
           <input type="checkbox" className="accent-indigo-600" checked={block.headerRow} onChange={(event) => onChange({ ...block, headerRow: event.target.checked })} />
