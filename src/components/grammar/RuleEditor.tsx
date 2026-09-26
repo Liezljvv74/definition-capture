@@ -111,7 +111,7 @@ export function RuleEditor({
         <button type="button" className="btn btn-secondary" onClick={() => add(newExampleBlock())}>+ Example</button>
       </div>
 
-      {problem && title.trim() !== "" && (
+      {problem && (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {problem}
         </p>
