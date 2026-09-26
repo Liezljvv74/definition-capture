@@ -13,7 +13,7 @@ Data section, which now names the tables and functions that exist, and the
 word for a rule's grouping, which is Topic: "category" was retired from the
 app in the refactor, and a rule's one grouping is not a Collection either.
 
-**Stage 1 is built** (26 September 2026): rules, blocks, the reading view and Edit, topics in Settings, the tab, the home card, backup and export. Stages 2 to 5 remain.
+**Stages 1 and 2 are built** (26 September 2026): rules, blocks, the reading view and Edit, topics in Settings, the tab, the home card, backup and export, and links. Stages 3 to 5 remain.
 
 The feature is for the account owner's own study. Its purpose is to record
 grammar rules in a structured way, link concepts to each other and to the
@@ -95,21 +95,20 @@ that explains it carries its reason with it.
 What changes:
 
 - **Rules and verb tables become link targets.** Today only words and phrases
-  can be. The suggestion box in `RefField` offers all four types.
+  can be. The suggestion box in `RefField` offers all four types. A link to a
+  verb table opens the Verbs page scrolled to that table and highlighted
+  (`/verbs?verb=<name>`).
 - **Verb tables get a notes field** that renders links, as words and phrases
   have. It is the `ref` column every item already carries; the verb table
   store simply starts sending and showing it.
-- **Shared names.** Today a word wins over a phrase with the same title. With
-  four types, clashes get likelier ("sein" the verb table and "sein" the word).
-  When a target is picked from the suggestion box and its name is shared, the
-  link records which item was meant; it still reads as normal text. Unshared
-  names stay plain `[[Name]]`, and a plain link to a shared name falls back to
-  the existing order. A fixed order alone was rejected because the right target
-  depends on the sentence: "see [[sein]]" in a grammar rule means the table.
+- **Shared names.** A shared name resolves by a fixed order: rule, verb table,
+  word, phrase. The owner chose this on 26 September over recording which item
+  a link meant, which is deferred until clashes actually happen.
 - **Renames update links.** Renaming any item rewrites every `[[Old name]]` that
-  points at it, for all four types. Today a rename silently turns incoming
-  links into dotted text; since the map is drawn from links, that would remove
-  lines from it without a word.
+  points at it, for all four types, rewritten in the browser through the stores,
+  one write per list (`src/lib/linkRenames.ts`). A rename that changes only case
+  or accents rewrites nothing, because names are matched with `foldName` and
+  already resolve. A name owned by a higher-precedence item is left alone.
 - **Deleting a rule that is linked to** warns first ("3 rules and 2 words link
   to Dative. Their links will stop working.") and then leaves those links
   dotted. A new rule of the same name brings them back.

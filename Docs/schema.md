@@ -59,8 +59,10 @@ Nine tables, no views, seven functions, none of them `security definer`.
 ### `items`
 
 `item_type` is `word`, `phrase` or `verb_table`, checked. The common columns
-are `title`, `ref`, `source_id`, `needs_review` and the two timestamps. The
-detail columns belong to one type each: `definition` to a word,
+are `title`, `ref`, `source_id`, `needs_review` and the two timestamps. `ref`
+is a notes field that renders links, shown and edited by the browser; words and
+phrases have always carried it, and verb tables use it for notes on the table.
+The detail columns belong to one type each: `definition` to a word,
 `literal_meaning` and `usage_example` to a phrase, `tenses` and `verb_rows` to
 a verb table. A check per type says a column is set exactly when the item is
 of its type, so a word cannot carry a phrase's fields and a phrase cannot lack
