@@ -60,22 +60,31 @@ function blockTexts(blocks: Block[]): string[] {
   );
 }
 
-/** All four lists as targets, in precedence order. */
+/**
+ * All four lists as targets, in the precedence order given by LINK_ORDER.
+ * Precedence is determined by position in LINK_ORDER, not by position in the
+ * returned array.
+ */
 export function linkTargets(
   entries: readonly Entry[],
   phrases: readonly Phrase[],
   tables: readonly VerbTable[],
   rules: readonly Rule[],
 ): LinkTarget[] {
-  return [
-    ...rules.map((r) => ({ kind: "rule" as const, id: r.id, name: r.title, href: `/rule?id=${r.id}`, texts: blockTexts(r.blocks) })),
-    ...tables.map((t) => ({ kind: "verb_table" as const, id: t.id, name: t.verb, href: `/verbs?verb=${encodeURIComponent(t.verb)}`, texts: [t.ref] })),
-    ...entries.map((e) => ({ kind: "word" as const, id: e.id, name: e.word, href: `/word?id=${e.id}`, texts: [e.ref] })),
-    ...phrases.map((p) => ({ kind: "phrase" as const, id: p.id, name: p.phrase, href: `/phrase?id=${p.id}`, texts: [p.ref] })),
-  ];
+  const byKind: Record<LinkKind, LinkTarget[]> = {
+    rule: rules.map((r) => ({ kind: "rule" as const, id: r.id, name: r.title, href: `/rule?id=${r.id}`, texts: blockTexts(r.blocks) })),
+    verb_table: tables.map((t) => ({ kind: "verb_table" as const, id: t.id, name: t.verb, href: `/verbs?verb=${encodeURIComponent(t.verb)}`, texts: [t.ref] })),
+    word: entries.map((e) => ({ kind: "word" as const, id: e.id, name: e.word, href: `/word?id=${e.id}`, texts: [e.ref] })),
+    phrase: phrases.map((p) => ({ kind: "phrase" as const, id: p.id, name: p.phrase, href: `/phrase?id=${p.id}`, texts: [p.ref] })),
+  };
+  return LINK_ORDER.flatMap((kind) => byKind[kind]);
 }
 
-/** Lowest precedence set first, because a later `set` wins a clash. */
+/**
+ * Index from folded names to hrefs. Input targets must be in LINK_ORDER
+ * (which linkTargets ensures). Reverses them so lower-precedence kinds set
+ * their entries first and higher-precedence kinds overwrite on clash.
+ */
 export function buildLinkIndex(targets: readonly LinkTarget[]): LinkIndex {
   const index: LinkIndex = new Map();
   for (const target of [...targets].reverse()) index.set(foldName(target.name), target.href);
