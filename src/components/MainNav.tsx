@@ -49,6 +49,12 @@ function inGlossary(path: string): boolean {
  */
 const LINKS = [
   { href: "/verbs", label: "Verbs", isActive: (path: string) => path.startsWith("/verbs") },
+  // A rule's own page counts as the list, the way a word's does.
+  {
+    href: "/grammar",
+    label: "Grammar",
+    isActive: (path: string) => path.startsWith("/grammar") || path.startsWith("/rule"),
+  },
 ] as const;
 
 /**
