@@ -24,11 +24,12 @@ import {
   supportsExportFolder,
 } from "@/lib/exportFolder";
 import { MIN_PASSWORD, changePassword, sendPasswordReset, signOut } from "@/lib/session";
-import { renameCollection, renameInList, renameSource } from "@/lib/renames";
+import { renameCollection, renameInList, renameSource, renameTopic } from "@/lib/renames";
 import { saveSettings } from "@/lib/settings";
 import { countUses, inUseReason } from "@/lib/inUse";
 import { useExportFolder } from "@/lib/useExportFolder";
 import { usePhrases } from "@/lib/usePhrases";
+import { useRules } from "@/lib/useRules";
 import { useSession } from "@/lib/useSession";
 import { useSettings } from "@/lib/useSettings";
 import { useWords } from "@/lib/useWords";
@@ -93,6 +94,34 @@ function CollectionsAndSources() {
         />
       </SettingSection>
     </>
+  );
+}
+
+/**
+ * The topics rules are filed under. One per rule, so a topic still on a rule
+ * cannot be removed, for the reason a collection in use cannot: the database
+ * refuses the delete, and the bin says so first.
+ */
+function Topics() {
+  const { settings } = useSettings();
+  const { rules, loaded } = useRules();
+  const uses = countUses(rules.map((rule) => [rule.topic]));
+
+  return (
+    <SettingSection title="Topics">
+      <NameListEditor
+        legend="Topics"
+        description="What a grammar rule is filed under: Cases, Word order, Tenses. Every rule has one. Renaming one renames it on every rule, and renaming it to the name of another merges the two. One that is in use cannot be removed."
+        names={settings.topics}
+        onChange={(topics) => saveSettings({ topics })}
+        onRename={renameTopic}
+        removeBlockedBy={(name) =>
+          loaded ? inUseReason(uses, name, "rule", "rules") : "Checking whether anything uses it"
+        }
+        maxLength={MAX_NAME}
+        placeholder="e.g. Cases"
+      />
+    </SettingSection>
   );
 }
 
@@ -185,6 +214,8 @@ function Settings() {
             </SettingSection>
           </>
         )}
+
+        {section.key === "grammar" && <Topics />}
 
         {section.key === "flashcards" && <AnswerSeparatorsSection />}
       </div>

@@ -155,6 +155,55 @@ export function readVerbRows(value: unknown, tenseCount: number): VerbRow[] {
   return rows;
 }
 
+/* ----------------------------------------------------------------- grammar */
+
+/** One passage of a rule, in the app's own light markup; see `blockText.ts`. */
+export type TextBlock = { kind: "text"; id: string; text: string };
+
+/**
+ * A free grid, `cells[row][column]`, every row the same width. The two flags
+ * say whether the first row and the first column are labels rather than
+ * content, which is what names a hidden cell when a rule is practised.
+ */
+export type TableBlock = {
+  kind: "table";
+  id: string;
+  headerRow: boolean;
+  headerColumn: boolean;
+  cells: string[][];
+};
+
+/**
+ * A sentence in the language with its translation. Words the example is
+ * about are marked in braces, `Ich gebe {dem} Mann das Buch`, and are what
+ * practice blanks out.
+ */
+export type ExampleBlock = {
+  kind: "example";
+  id: string;
+  sentence: string;
+  translation: string;
+};
+
+export type Block = TextBlock | TableBlock | ExampleBlock;
+
+/**
+ * A grammar rule: a title, one topic, and an ordered stack of blocks. The
+ * blocks are one jsonb array on the row, so a new block type is a new shape
+ * here and in `readBlocks`, not a schema change.
+ */
+export type Rule = {
+  id: string;
+  title: string;
+  /** Exactly one, from the topics list in Settings. */
+  topic: string;
+  blocks: Block[];
+  dateAdded: string;
+  dateUpdated: string | null;
+};
+
+export type RuleInput = { title: string; topic: string; blocks: Block[] };
+
 /* ------------------------------------------------------------------ import */
 
 /** How an imported list should meet the list already saved. */

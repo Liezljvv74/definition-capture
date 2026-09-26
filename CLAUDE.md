@@ -138,10 +138,10 @@ including `with check` on insert and update. A new table gets the same treatment
 in the same migration that creates it.
 
 **`src/lib/remoteStore.ts` is the only thing that talks to Supabase for list
-data.** All three list stores are built from that one factory, so they cannot drift
+data.** All four list stores are built from that one factory, so they cannot drift
 apart in how they load, save, or report failure. Each reads its own `item_type` out
 of `items` and writes through the `save_items` function, one transaction per call;
-every delete is limited to its type as well as its ids, because the three lists
+every delete is limited to its type as well as its ids, because the four lists
 share one table. `src/lib/settings.ts` deliberately does not use it, being one row
 with no id and no order, but it shares the functions where drifting would be a bug.
 Writes are optimistic: the screen updates first, and a failure reloads the list and

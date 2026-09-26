@@ -16,6 +16,7 @@
 import type { Row, Sheet } from "write-excel-file/browser";
 
 import { buildBackup, type Backup, type BackupList, type BackupScope } from "@/lib/backup";
+import { flattenBlocks } from "@/lib/blocks";
 import { saveToExportFolder } from "@/lib/exportFolder";
 import { formatDate } from "@/lib/format";
 
@@ -34,6 +35,7 @@ const SCOPE_FILE_WORD: Record<BackupScope, string> = {
   words: "words",
   phrases: "phrases",
   verbTables: "verbs",
+  rules: "grammar",
 };
 
 /** The file name says what is inside, so scoped exports are told apart later. */
@@ -112,6 +114,7 @@ function countOf(backup: Backup): number {
     words: backup.words,
     phrases: backup.phrases,
     verbTables: backup.verbTables,
+    rules: backup.rules,
   };
   return Object.values(lists).reduce((total, list) => total + list.length, 0);
 }
@@ -210,13 +213,29 @@ export async function downloadExcelBackup(scope: BackupScope = "all"): Promise<E
     ],
   };
 
+  const rules: Sheet<Blob> = {
+    sheet: "Grammar",
+    columns: [{ width: 28 }, { width: 18 }, { width: 80 }, { width: 16 }],
+    data: [
+      headerRow(["Title", "Topic", "Content", "Date added"]),
+      ...backup.rules.map<Row>((rule) => [
+        { value: rule.title, type: String },
+        { value: rule.topic, type: String },
+        // Tables and examples flattened to lines; the JSON backup protects
+        // the content, and the sheet is for glancing at it.
+        { value: flattenBlocks(rule.blocks), type: String, wrap: true },
+        { value: formatDate(rule.dateAdded), type: String },
+      ]),
+    ],
+  };
+
   // A workbook must have at least one sheet, so a scoped export drops the
   // others. A `Record` rather than an array literal: this is the exact spot
   // the header of `backup.ts` warns about, where a third list was added and
   // this module was not widened, and an array would still compile with one
   // missing. Listed by what is included rather than excluded, for the reason
   // `buildBackup` gives.
-  const all: Record<BackupList, Sheet<Blob>> = { words, phrases, verbTables: verbs };
+  const all: Record<BackupList, Sheet<Blob>> = { words, phrases, verbTables: verbs, rules };
   const sheets = (Object.keys(all) as BackupList[])
     .filter((list) => scope === "all" || scope === list)
     .map((list) => all[list]);

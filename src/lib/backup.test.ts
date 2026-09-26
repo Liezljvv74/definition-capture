@@ -18,6 +18,7 @@ const contents = (over: Partial<BackupContents> = {}): BackupContents => ({
   words: [],
   phrases: [],
   verbTables: [],
+  rules: [],
   settings: null,
   unreadable: 0,
   ...over,
@@ -170,6 +171,18 @@ describe("parseBackup — reads", () => {
     expect(parsed.phrases[0].collections).toEqual(["People", "Travel"]);
     expect(parsed.settings?.collections).toEqual(["Home", "People", "Travel"]);
   });
+
+  it("reads rules, and a version 10 file without them as having none", () => {
+    const parsed = ok(
+      JSON.stringify({
+        version: 11,
+        words: [],
+        rules: [{ id: crypto.randomUUID(), title: "Dative", topic: "Cases", blocks: [] }],
+      }),
+    );
+    expect(parsed.rules.map((rule) => rule.title)).toEqual(["Dative"]);
+    expect(ok(JSON.stringify({ version: 10, words: [entry("Tür")] })).rules).toEqual([]);
+  });
 });
 
 /**
@@ -194,6 +207,11 @@ describe("Replace only touches the lists the file carries", () => {
     });
     expect(leavesListAlone(both, "words", "replace")).toBe(false);
     expect(leavesListAlone(both, "phrases", "replace")).toBe(false);
+  });
+
+  it("leaves rules alone when a file from before rules is restored", () => {
+    const old = contents({ words: [entry("Tür")] });
+    expect(leavesListAlone(old, "rules", "replace")).toBe(true);
   });
 
   it("never counts as leaving anything alone in the merge modes", () => {

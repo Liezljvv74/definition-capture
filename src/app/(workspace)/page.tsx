@@ -39,10 +39,10 @@ export default function HomePage() {
            * One colour per list, in the logo's hues at about a third of its
            * saturation: the full-strength version read as something made for a
            * child. Hover dims by 5% rather than swapping in an indigo, which
-           * would have had to sit against three different colours and suit
+           * would have had to sit against four different colours and suit
            * none of them.
            */}
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Link
               href="/vocabulary"
               className="rounded-2xl bg-card-blue p-5 transition hover:brightness-95"
@@ -70,6 +70,16 @@ export default function HomePage() {
               <h3 className="text-xl font-semibold text-slate-900">Verbs</h3>
               <p className="mt-2 text-sm leading-6 text-slate-800">
                 Track conjugation patterns.
+              </p>
+            </Link>
+
+            <Link
+              href="/grammar"
+              className="rounded-2xl bg-card-rose p-5 transition hover:brightness-95"
+            >
+              <h3 className="text-xl font-semibold text-slate-900">Grammar</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-800">
+                Write down the rules, with tables and examples.
               </p>
             </Link>
           </section>

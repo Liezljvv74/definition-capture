@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 import { BACKUP_FORMAT, BACKUP_VERSION, buildBackup, parseBackup } from "@/lib/backup";
 import { DEFAULT_ANSWER_SEPARATORS } from "@/lib/constants";
 import { toWirePhrase } from "@/lib/phraseStorage";
+import { toWireRule } from "@/lib/rules";
 import { toWireWord } from "@/lib/storage";
-import type { Entry, Phrase, VerbTable } from "@/lib/types";
+import type { Entry, Phrase, Rule, VerbTable } from "@/lib/types";
 import { toWireVerbTable } from "@/lib/verbTables";
 
 /**
@@ -51,6 +52,15 @@ const table: VerbTable = {
   createdAt: "2026-01-03T00:00:00.000Z",
 };
 
+const rule: Rule = {
+  id: crypto.randomUUID(),
+  title: "Dative",
+  topic: "Cases",
+  blocks: [],
+  dateAdded: "2026-01-04T00:00:00.000Z",
+  dateUpdated: null,
+};
+
 /** A file of exactly the shape `buildBackup` writes, from known rows. */
 const fileHolding = (over: Record<string, unknown> = {}) =>
   JSON.stringify({
@@ -60,6 +70,7 @@ const fileHolding = (over: Record<string, unknown> = {}) =>
     words: [toWireWord(entry)],
     phrases: [toWirePhrase(phrase)],
     verbTables: [toWireVerbTable(table)],
+    rules: [toWireRule(rule)],
     settings: null,
     ...over,
   });
@@ -115,6 +126,11 @@ describe("what the writer writes, the reader reads", () => {
 
     const restored = read(fileHolding({ settings: olderSettings })).settings;
     expect(restored?.answerSeparators).toBe(DEFAULT_ANSWER_SEPARATORS);
+    // Review Focus 4: a file from before topics existed must leave the key
+    // undefined, not restore an empty list over whatever the reader has
+    // already named. `[]` here would be indistinguishable from "no topics
+    // left", and a Replace restore would delete every one of them.
+    expect(restored?.topics).toBeUndefined();
   });
 
   it("takes an empty separator string in a current file at its word", () => {
@@ -214,6 +230,10 @@ describe("what the writer writes, the reader reads", () => {
     }
   });
 
+  it("returns a grammar rule field for field", () => {
+    expect(read(fileHolding()).rules).toEqual([rule]);
+  });
+
   it("survives accented and non-Latin text", () => {
     const text = fileHolding({
       words: [toWireWord({ ...entry, word: "Tür", definition: "ある 🇩🇪" })],
@@ -262,7 +282,7 @@ describe("buildBackup", () => {
 
   it("carries settings only in a full export, since a scope has no room for them", () => {
     expect(buildBackup("all").settings).not.toBeNull();
-    for (const scope of ["words", "phrases", "verbTables"] as const) {
+    for (const scope of ["words", "phrases", "verbTables", "rules"] as const) {
       expect(buildBackup(scope).settings).toBeNull();
     }
   });
@@ -272,6 +292,14 @@ describe("buildBackup", () => {
     // is asserted here is the shape, which is what Import reads to decide
     // whether Replace may touch a list.
     const scoped = buildBackup("words");
+    expect(scoped.phrases).toEqual([]);
+    expect(scoped.verbTables).toEqual([]);
+    expect(scoped.rules).toEqual([]);
+  });
+
+  it("leaves words, phrases, and verb tables empty in a rules-only export", () => {
+    const scoped = buildBackup("rules");
+    expect(scoped.words).toEqual([]);
     expect(scoped.phrases).toEqual([]);
     expect(scoped.verbTables).toEqual([]);
   });

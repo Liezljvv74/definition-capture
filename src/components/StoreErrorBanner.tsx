@@ -8,6 +8,11 @@ import {
   subscribeToError as watchPhraseError,
 } from "@/lib/phraseStorage";
 import {
+  clearError as clearRuleError,
+  getError as getRuleError,
+  subscribeToError as watchRuleError,
+} from "@/lib/rules";
+import {
   clearError as clearSettingsError,
   getError as getSettingsError,
   subscribeToError as watchSettingsError,
@@ -28,6 +33,7 @@ const STORES = [
   { watch: watchEntryError, get: getEntryError, clear: clearEntryError },
   { watch: watchPhraseError, get: getPhraseError, clear: clearPhraseError },
   { watch: watchVerbError, get: getVerbError, clear: clearVerbError },
+  { watch: watchRuleError, get: getRuleError, clear: clearRuleError },
   { watch: watchSettingsError, get: getSettingsError, clear: clearSettingsError },
 ];
 

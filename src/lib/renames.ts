@@ -1,6 +1,7 @@
 import { foldName } from "@/lib/foldName";
 import { reload as reloadPhrases } from "@/lib/phraseStorage";
 import { readError } from "@/lib/remoteStore";
+import { reload as reloadRules } from "@/lib/rules";
 import { currentUserId } from "@/lib/session";
 import {
   currentSettings,
@@ -15,19 +16,20 @@ import { getSupabase } from "@/lib/supabaseClient";
 /**
  * Renaming a name on one of the Settings lists.
  *
- * What a rename reaches depends on what the name is. A collection and a source
- * are carried by the words and phrases filed under them, so renaming only the
- * list would leave every one of those on the old name: those two go through
- * the database first. Verb persons and tenses shape the next conjugation
- * table and leave existing tables with what they were made with, the rule
- * Settings states for them, and the words to skip are only a list; those
- * three rename the list alone.
+ * What a rename reaches depends on what the name is. A collection and a
+ * source are carried by the words and phrases filed under them, and a topic
+ * by the rules filed under it, so renaming only the list would leave every
+ * one of those on the old name: those three go through the database first.
+ * Verb persons and tenses shape the next conjugation table and leave
+ * existing tables with what they were made with, the rule Settings states
+ * for them, and the words to skip are only a list; those three rename the
+ * list alone.
  */
 
 /** The lists a rename can apply to. */
 type RenamableList = keyof Pick<
   Settings,
-  "collections" | "sources" | "verbPersons" | "verbTenses" | "sortSkipWords"
+  "collections" | "sources" | "topics" | "verbPersons" | "verbTenses" | "sortSkipWords"
 >;
 
 /** The list with `from` replaced by `to`, matched the way every name is. */
@@ -42,7 +44,7 @@ function renamedIn(list: RenamableList, from: string, to: string): string[] {
  * resolves at once; a failed save shows in the banner the way any other does.
  */
 export async function renameInList(
-  list: Exclude<RenamableList, "collections" | "sources">,
+  list: Exclude<RenamableList, "collections" | "sources" | "topics">,
   from: string,
   to: string,
 ): Promise<string | null> {
@@ -72,7 +74,7 @@ export async function renameInList(
  * Returns an error message, or null when it worked.
  */
 async function renameThroughDatabase(
-  list: "collections" | "sources",
+  list: "collections" | "sources" | "topics",
   noun: string,
   from: string,
   to: string,
@@ -91,19 +93,24 @@ async function renameThroughDatabase(
   }
 
   const { error } =
-    list === "collections"
-      ? await supabase.rpc("rename_tag", {
-          tag_context: "collection",
+    list === "sources"
+      ? await supabase.rpc("rename_item_source", { from_name: from, to_name: name })
+      : await supabase.rpc("rename_tag", {
+          tag_context: list === "topics" ? "grammar" : "collection",
           from_name: from,
           to_name: name,
-        })
-      : await supabase.rpc("rename_item_source", { from_name: from, to_name: name });
+        });
   if (error) return `Could not rename that ${noun}: ${readError(error)}`;
 
   noteRenamed(list, from, name);
 
-  reloadWords();
-  reloadPhrases();
+  // A topic is carried by rules, not by words or phrases, so it reloads the
+  // list that shows it rather than the two the other database renames reach.
+  if (list === "topics") reloadRules();
+  else {
+    reloadWords();
+    reloadPhrases();
+  }
   return null;
 }
 
@@ -122,4 +129,9 @@ export function renameCollection(from: string, to: string): Promise<string | nul
  */
 export function renameSource(from: string, to: string): Promise<string | null> {
   return renameThroughDatabase("sources", "source", from, to);
+}
+
+/** A topic, on the list and on every rule filed under it; merges like a collection. */
+export function renameTopic(from: string, to: string): Promise<string | null> {
+  return renameThroughDatabase("topics", "topic", from, to);
 }

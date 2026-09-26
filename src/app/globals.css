@@ -36,6 +36,9 @@
   --color-card-blue: #aec0db;
   --color-card-green: #a2cdb5;
   --color-card-purple: #bfb6dd;
+  /* Grammar. Chosen at the same lightness as the three above, and it clears
+     4.8:1 against slate 700. */
+  --color-card-rose: #e6c3c0;
 
   /*
    * The flashcard feature's own four.

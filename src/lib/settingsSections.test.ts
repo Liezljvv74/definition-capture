@@ -27,10 +27,11 @@ describe("readSection", () => {
     }
   });
 
-  it("offers the three groups the gear menu offers", () => {
+  it("offers the four groups the gear menu offers", () => {
     expect(SETTINGS_SECTIONS.map((section) => section.key)).toEqual([
       "profile",
       "glossary",
+      "grammar",
       "flashcards",
     ]);
   });
