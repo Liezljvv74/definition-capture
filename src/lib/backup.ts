@@ -31,11 +31,19 @@ import {
   type WireWord,
 } from "@/lib/storage";
 import {
+  getRules,
+  importRules,
+  parseRuleList,
+  toWireRule,
+  type WireRule,
+} from "@/lib/rules";
+import {
   NO_IMPORT,
   type Entry,
   type ImportCounts,
   type ImportMode,
   type Phrase,
+  type Rule,
   type VerbTable,
 } from "@/lib/types";
 import {
@@ -85,10 +93,15 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * spelling, so a file from 9 or earlier restores exactly as it did; there is a
  * test that fails if the old spelling stops being read.
  *
+ * 11 adds `rules`, the grammar rules, each with its title, topic and blocks. A
+ * file without the key has no rules, and a Replace restore of such a file
+ * leaves the rules already saved alone, as it does for any list the file
+ * lacks.
+ *
  * A missing list reads as an absent one, not an empty one, which is what
  * keeps Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 10;
+export const BACKUP_VERSION = 11;
 
 /**
  * The lists a backup carries, named once.
@@ -100,7 +113,7 @@ export const BACKUP_VERSION = 10;
  * third list and this module never being widened, so Export left them out and
  * a Replace import then deleted them.
  */
-export type BackupList = "words" | "phrases" | "verbTables";
+export type BackupList = "words" | "phrases" | "verbTables" | "rules";
 
 export type Backup = {
   format: typeof BACKUP_FORMAT;
@@ -119,6 +132,7 @@ export type Backup = {
   words: WireWord[];
   phrases: WirePhrase[];
   verbTables: WireVerbTable[];
+  rules: WireRule[];
   /**
    * Collections, sources, persons, tenses and the display name. Not a list, so
    * it has no scope of its own: a full backup carries it and a scoped export
@@ -143,6 +157,7 @@ export function buildBackup(scope: BackupScope = "all"): Backup {
     words: wants("words") ? getEntries().map(toWireWord) : [],
     phrases: wants("phrases") ? getPhrases().map(toWirePhrase) : [],
     verbTables: wants("verbTables") ? getVerbTables().map(toWireVerbTable) : [],
+    rules: wants("rules") ? getRules().map(toWireRule) : [],
     settings: scope === "all" ? currentSettings() : null,
   };
 }
@@ -151,6 +166,7 @@ export type BackupContents = {
   words: Entry[];
   phrases: Phrase[];
   verbTables: VerbTable[];
+  rules: Rule[];
   settings: RestoredSettings | null;
   /** Rows in the file that could not be read as any of the kinds. */
   unreadable: number;
@@ -181,6 +197,7 @@ export function parseBackup(text: string): BackupParse {
           words: entries,
           phrases: [],
           verbTables: [],
+          rules: [],
           settings: null,
           unreadable,
         }
@@ -200,18 +217,21 @@ export function parseBackup(text: string): BackupParse {
     entries: rawEntries,
     phrases: rawPhrases,
     verbTables: rawVerbTables,
+    rules: rawRules,
     settings: rawSettings,
   } = raw as {
     words?: unknown;
     entries?: unknown;
     phrases?: unknown;
     verbTables?: unknown;
+    rules?: unknown;
     settings?: unknown;
   };
   // `words` since version 6, `entries` before it. Whichever the file has.
   const entryList = asArray(rawWords) ?? asArray(rawEntries);
   const phraseList = asArray(rawPhrases);
   const verbTableList = asArray(rawVerbTables);
+  const ruleList = asArray(rawRules);
 
   const parsedEntries = entryList
     ? parseEntryList(entryList)
@@ -222,6 +242,7 @@ export function parseBackup(text: string): BackupParse {
   const parsedVerbTables = verbTableList
     ? parseVerbTableList(verbTableList)
     : { tables: [], unreadable: 0 };
+  const parsedRules = ruleList ? parseRuleList(ruleList) : { rules: [], unreadable: 0 };
 
   /**
    * What each list turned out to be, one row per list.
@@ -247,6 +268,11 @@ export function parseBackup(text: string): BackupParse {
         readable: parsedVerbTables.tables.length,
         unreadable: parsedVerbTables.unreadable,
       },
+      rules: {
+        present: ruleList !== null,
+        readable: parsedRules.rules.length,
+        unreadable: parsedRules.unreadable,
+      },
     };
   const found = Object.values(lists);
 
@@ -270,6 +296,7 @@ export function parseBackup(text: string): BackupParse {
     words: parsedEntries.entries,
     phrases: parsedPhrases.phrases,
     verbTables: parsedVerbTables.tables,
+    rules: parsedRules.rules,
     settings: parseSettings(rawSettings),
     unreadable: found.reduce((total, list) => total + list.unreadable, 0),
   };
@@ -279,6 +306,7 @@ export type ImportResult = {
   words: ImportCounts;
   phrases: ImportCounts;
   verbTables: ImportCounts;
+  rules: ImportCounts;
   /** Whether the file's settings were written over the reader's own. */
   settingsRestored: boolean;
 };
@@ -315,14 +343,18 @@ export function restoresSettings(contents: BackupContents, mode: ImportMode): bo
 
 /**
  * The file's settings, with every collection and source its own words and
- * phrases use added to those two lists.
+ * phrases use added to those two lists, and every topic its own rules use
+ * added to that one.
  *
  * An older file's settings list can lack a collection its words are in: the
  * list and the words' names were two copies that could drift. Saving that
  * list removes what it lacks, and removing a collection the restored words
  * are about to be filed under would race `save_items` filing them there,
  * which the database settles by refusing one of the two. Adding the names in
- * use means the list never removes one the file itself needs.
+ * use means the list never removes one the file itself needs. Topics carry
+ * the same risk for rules, but only when the file has a topics list at all: a
+ * file from before topics existed must leave that key undefined, not save an
+ * empty one over whatever the reader has already named.
  */
 function withNamesInUse(contents: BackupContents): RestoredSettings {
   const settings = contents.settings as RestoredSettings;
@@ -333,6 +365,12 @@ function withNamesInUse(contents: BackupContents): RestoredSettings {
     sources: [...settings.sources, ...items.map((item) => item.source)].filter(
       (name) => name.trim() !== "",
     ),
+    topics:
+      settings.topics === undefined
+        ? undefined
+        : [...settings.topics, ...contents.rules.map((rule) => rule.topic)].filter(
+            (name) => name.trim() !== "",
+          ),
   };
 }
 
@@ -358,6 +396,9 @@ export function applyImport(contents: BackupContents, mode: ImportMode): ImportR
     verbTables: leavesListAlone(contents, "verbTables", mode)
       ? { ...NO_IMPORT }
       : importVerbTables(contents.verbTables, mode),
+    rules: leavesListAlone(contents, "rules", mode)
+      ? { ...NO_IMPORT }
+      : importRules(contents.rules, mode),
     settingsRestored,
   };
 }

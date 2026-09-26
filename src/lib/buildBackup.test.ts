@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { buildBackup } from "@/lib/backup";
 import { createPhrase } from "@/lib/phraseStorage";
+import { createRule } from "@/lib/rules";
 import { createEntry } from "@/lib/storage";
 import { EMPTY_ENTRY_INPUT, EMPTY_PHRASE_INPUT } from "@/lib/types";
 import { createVerbTable } from "@/lib/verbTables";
@@ -37,7 +38,8 @@ const saved = (() => {
     literalMeaning: "good day",
   });
   const table = createVerbTable("gehen", ["ich", "du"], "Present");
-  return { entry, phrase, table };
+  const rule = createRule({ title: "Dative", topic: "Cases" });
+  return { entry, phrase, table, rule };
 })();
 
 describe("buildBackup, with something to back up", () => {
@@ -47,6 +49,7 @@ describe("buildBackup, with something to back up", () => {
     expect(backup.words).toHaveLength(1);
     expect(backup.phrases).toHaveLength(1);
     expect(backup.verbTables).toHaveLength(1);
+    expect(backup.rules).toHaveLength(1);
 
     // The store holds a `needsDefinition` on every entry. The file must not,
     // because it is derived and the reader works it out again.
@@ -89,6 +92,19 @@ describe("buildBackup, with something to back up", () => {
     });
   });
 
+  it("writes the rule the reader will get back", () => {
+    const backup = buildBackup();
+
+    expect(backup.rules[0]).toEqual({
+      id: saved.rule.id,
+      title: "Dative",
+      topic: "Cases",
+      blocks: [],
+      dateAdded: saved.rule.dateAdded,
+      dateUpdated: null,
+    });
+  });
+
   it("carries only the list a scoped export names", () => {
     // This is what Import reads to decide whether Replace may touch a list, so
     // a scope that leaked another list would turn a safe restore destructive.
@@ -96,10 +112,18 @@ describe("buildBackup, with something to back up", () => {
     expect(words.words).toHaveLength(1);
     expect(words.phrases).toEqual([]);
     expect(words.verbTables).toEqual([]);
+    expect(words.rules).toEqual([]);
 
     const tables = buildBackup("verbTables");
     expect(tables.verbTables).toHaveLength(1);
     expect(tables.words).toEqual([]);
     expect(tables.phrases).toEqual([]);
+    expect(tables.rules).toEqual([]);
+
+    const rules = buildBackup("rules");
+    expect(rules.rules).toHaveLength(1);
+    expect(rules.words).toEqual([]);
+    expect(rules.phrases).toEqual([]);
+    expect(rules.verbTables).toEqual([]);
   });
 });

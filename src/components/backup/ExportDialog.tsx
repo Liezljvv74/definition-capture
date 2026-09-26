@@ -16,6 +16,7 @@ import {
   clearExportFolder,
   ExportFolderError,
 } from "@/lib/exportFolder";
+import { useRules } from "@/lib/useRules";
 import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
 import { useVerbTables } from "@/lib/useVerbTables";
@@ -42,17 +43,19 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const { entries, loaded: wordsLoaded } = useWords();
   const { phrases, loaded: phrasesLoaded } = usePhrases();
   const { tables, loaded: tablesLoaded } = useVerbTables();
+  const { rules, loaded: rulesLoaded } = useRules();
   const [scope, setScope] = useState<BackupScope>("all");
   const [state, setState] = useState<State>({ step: "choosing" });
 
-  const ready = wordsLoaded && phrasesLoaded && tablesLoaded;
+  const ready = wordsLoaded && phrasesLoaded && tablesLoaded && rulesLoaded;
   const busy = state.step === "working";
 
   const counts: Record<BackupScope, number> = {
-    all: entries.length + phrases.length + tables.length,
+    all: entries.length + phrases.length + tables.length + rules.length,
     words: entries.length,
     phrases: phrases.length,
     verbTables: tables.length,
+    rules: rules.length,
   };
 
   async function runExport(format: ExportFormat) {
@@ -212,6 +215,13 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 disabled={busy}
                 onSelect={() => setScope("verbTables")}
               />
+              <ScopeChoice
+                label="Grammar rules"
+                detail={`${counts.rules} ${counts.rules === 1 ? "rule" : "rules"}`}
+                checked={scope === "rules"}
+                disabled={busy}
+                onSelect={() => setScope("rules")}
+              />
             </div>
           </fieldset>
 
@@ -224,7 +234,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             title="Excel workbook (.xlsx)"
             detail={
               scope === "all"
-                ? "Words, Phrases, and Verb tables on separate sheets. Best for reading, sorting, or printing outside the app."
+                ? "Words, Phrases, Verb tables, and Grammar rules on separate sheets. Best for reading, sorting, or printing outside the app."
                 : "One sheet. Best for reading, sorting, or printing outside the app."
             }
             disabled={busy || counts[scope] === 0}

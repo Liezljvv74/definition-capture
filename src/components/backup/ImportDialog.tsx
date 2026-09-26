@@ -20,6 +20,7 @@ import {
 import { readFileAsText } from "@/lib/backupFile";
 import { foldName } from "@/lib/foldName";
 import type { ImportMode } from "@/lib/types";
+import { useRules } from "@/lib/useRules";
 import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
 import { useVerbTables } from "@/lib/useVerbTables";
@@ -30,6 +31,7 @@ type Preview = {
   matchingWords: number;
   matchingPhrases: number;
   matchingVerbTables: number;
+  matchingRules: number;
 };
 
 type State =
@@ -52,10 +54,11 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
   const { entries, loaded: wordsLoaded } = useWords();
   const { phrases, loaded: phrasesLoaded } = usePhrases();
   const { tables, loaded: tablesLoaded } = useVerbTables();
+  const { rules, loaded: rulesLoaded } = useRules();
   const [state, setState] = useState<State>({ step: "reading" });
   const [mode, setMode] = useState<ImportMode>("skip");
 
-  const ready = wordsLoaded && phrasesLoaded && tablesLoaded;
+  const ready = wordsLoaded && phrasesLoaded && tablesLoaded && rulesLoaded;
 
   useEffect(() => {
     if (!ready) return;
@@ -80,6 +83,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
       const savedWords = new Set(entries.map((entry) => foldName(entry.word)));
       const savedPhrases = new Set(phrases.map((phrase) => foldName(phrase.phrase)));
       const savedVerbs = new Set(tables.map((table) => foldName(table.verb)));
+      const savedRules = new Set(rules.map((rule) => foldName(rule.title)));
 
       setState({
         step: "preview",
@@ -88,6 +92,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             words: parsed.words,
             phrases: parsed.phrases,
             verbTables: parsed.verbTables,
+            rules: parsed.rules,
             settings: parsed.settings,
             unreadable: parsed.unreadable,
           },
@@ -99,6 +104,9 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
           ).length,
           matchingVerbTables: parsed.verbTables.filter((table) =>
             savedVerbs.has(foldName(table.verb)),
+          ).length,
+          matchingRules: parsed.rules.filter((rule) =>
+            savedRules.has(foldName(rule.title)),
           ).length,
         },
       });
@@ -152,6 +160,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             counts={state.result.verbTables}
             mode={state.mode}
           />
+          <ResultBlock label="Grammar rules" counts={state.result.rules} mode={state.mode} />
           <div>
             <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
               Settings
@@ -201,6 +210,13 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             matching={preview.matchingVerbTables}
             untouched={leavesListAlone(contents, "verbTables", "replace")}
           />
+          <ReplaceLine
+            label="Grammar rules"
+            saved={rules.length}
+            incoming={contents.rules.length}
+            matching={preview.matchingRules}
+            untouched={leavesListAlone(contents, "rules", "replace")}
+          />
           <li className="flex flex-wrap gap-x-1.5">
             <span className="font-medium">Settings:</span>
             {restoresSettings(contents, "replace") ? (
@@ -244,6 +260,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
   const wordCount = contents.words.length;
   const phraseCount = contents.phrases.length;
   const verbTableCount = contents.verbTables.length;
+  const ruleCount = contents.rules.length;
 
   return (
     <Modal title="Import a backup" onClose={onClose}>
@@ -265,6 +282,11 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
               {verbTableCount} {verbTableCount === 1 ? "verb table" : "verb tables"}:{" "}
               {verbTableCount - preview.matchingVerbTables} new to you,{" "}
               {preview.matchingVerbTables} of your {tables.length} already saved.
+            </li>
+            <li>
+              {ruleCount} {ruleCount === 1 ? "grammar rule" : "grammar rules"}:{" "}
+              {ruleCount - preview.matchingRules} new to you,{" "}
+              {preview.matchingRules} of your {rules.length} already saved.
             </li>
             <li>
               {!contents.settings

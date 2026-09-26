@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { applyImport, type BackupContents } from "@/lib/backup";
+import { applyImport, leavesListAlone, type BackupContents } from "@/lib/backup";
 import type { Settings } from "@/lib/settings";
-import { NO_IMPORT, type Entry, type ImportMode, type Phrase } from "@/lib/types";
+import { NO_IMPORT, type Entry, type ImportMode, type Phrase, type Rule } from "@/lib/types";
 
 /**
  * Restoring a backup is the one thing this app does that can destroy data, and
@@ -35,6 +35,7 @@ const spies = vi.hoisted(() => {
     importEntries: importer("words"),
     importPhrases: importer("phrases"),
     importVerbTables: importer("verbTables"),
+    importRules: importer("rules"),
     saveSettings: vi.fn(() => {
       order.push("settings");
     }),
@@ -55,6 +56,11 @@ vi.mock("@/lib/verbTables", () => ({
   getVerbTables: () => [],
   parseVerbTableList: () => ({ tables: [], unreadable: 0 }),
   importVerbTables: spies.importVerbTables,
+}));
+vi.mock("@/lib/rules", () => ({
+  getRules: () => [],
+  parseRuleList: () => ({ rules: [], unreadable: 0 }),
+  importRules: spies.importRules,
 }));
 vi.mock("@/lib/settings", () => ({
   currentSettings: () => null,
@@ -85,6 +91,15 @@ const phrase = (text: string): Phrase => ({
   ref: "",
 });
 
+const rule = (title: string): Rule => ({
+  id: crypto.randomUUID(),
+  title,
+  topic: "Cases",
+  blocks: [],
+  dateAdded: "2026-01-01T00:00:00.000Z",
+  dateUpdated: null,
+});
+
 const settings: Settings = {
   displayName: "",
   collections: ["Food"],
@@ -102,6 +117,7 @@ const contents = (over: Partial<BackupContents> = {}): BackupContents => ({
   words: [],
   phrases: [],
   verbTables: [],
+  rules: [],
   settings: null,
   unreadable: 0,
   ...over,
@@ -112,6 +128,7 @@ beforeEach(() => {
   spies.importEntries.mockClear();
   spies.importPhrases.mockClear();
   spies.importVerbTables.mockClear();
+  spies.importRules.mockClear();
   spies.saveSettings.mockClear();
 });
 
@@ -150,6 +167,22 @@ describe("Replace only reaches the lists the file carries", () => {
     expect(spies.importPhrases).not.toHaveBeenCalled();
     expect(spies.importVerbTables).not.toHaveBeenCalled();
     expect(result.words).toEqual(NO_IMPORT);
+  });
+
+  it("leaves rules alone when the file holds only words", () => {
+    const only = contents({ words: [word("Tür")] });
+    expect(leavesListAlone(only, "rules", "replace")).toBe(true);
+
+    applyImport(only, "replace");
+    expect(spies.importRules).not.toHaveBeenCalled();
+  });
+
+  it("calls the rules importer with the mode when the file carries rules", () => {
+    const result = applyImport(contents({ rules: [rule("Dative")] }), "replace");
+
+    expect(spies.importRules).toHaveBeenCalledTimes(1);
+    expect(spies.importRules.mock.calls[0][1]).toBe("replace");
+    expect(result.rules.added).toBe(1);
   });
 });
 
