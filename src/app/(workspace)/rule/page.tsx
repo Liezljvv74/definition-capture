@@ -47,7 +47,7 @@ function RuleDetail() {
 
   return (
     <>
-      <header className="bg-card-rose">
+      <header className="bg-card-sage">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link href="/grammar" className="text-sm font-medium text-slate-900 hover:underline">
             ← Back to Grammar

@@ -75,7 +75,7 @@ export default function HomePage() {
 
             <Link
               href="/grammar"
-              className="rounded-2xl bg-card-rose p-5 transition hover:brightness-95"
+              className="rounded-2xl bg-card-sage p-5 transition hover:brightness-95"
             >
               <h3 className="text-xl font-semibold text-slate-900">Grammar</h3>
               <p className="mt-2 text-sm leading-6 text-slate-800">

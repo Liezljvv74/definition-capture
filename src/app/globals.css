@@ -36,9 +36,10 @@
   --color-card-blue: #aec0db;
   --color-card-green: #a2cdb5;
   --color-card-purple: #bfb6dd;
-  /* Grammar. Chosen at the same lightness as the three above, and it clears
-     4.8:1 against slate 700. */
-  --color-card-rose: #e6c3c0;
+  /* Grammar: a green-grey, kept greyer than the Phrases green so the two
+     read as different places. It clears 6:1 against slate 700. It used to be
+     a rose, given up so that red means only a warning or an error. */
+  --color-card-sage: #bdc9bf;
 
   /*
    * The flashcard feature's own four.

@@ -63,7 +63,7 @@ export default function GrammarPage() {
 
   return (
     <>
-      <header className="bg-card-rose">
+      <header className="bg-card-sage">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">Grammar</h1>
