@@ -227,6 +227,7 @@ export function EntryForm({
             // already on. Both names are excluded so a rename mid-edit cannot
             // make the old one selectable again.
             exclude={[initialValue.word, value.word]}
+            selfKind="word"
           />
         </div>
       </div>

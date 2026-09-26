@@ -10,7 +10,7 @@ import {
   type KeyboardEvent,
 } from "react";
 
-import { KIND_LABEL } from "@/lib/links";
+import { KIND_LABEL, type LinkKind } from "@/lib/links";
 import {
   activeRefQuery,
   applyRefSuggestion,
@@ -43,6 +43,8 @@ type RefFieldProps = {
   placeholder?: string;
   /** Names the form must not offer — normally whatever it is editing. */
   exclude?: readonly string[];
+  /** The kind of item the form edits, so an excluded name is only dropped when the link would reach that item. */
+  selfKind?: LinkKind;
 };
 
 export function RefField({
@@ -51,6 +53,7 @@ export function RefField({
   onChange,
   placeholder,
   exclude,
+  selfKind,
 }: RefFieldProps) {
   const { targets } = useLinkTargets();
 
@@ -70,8 +73,8 @@ export function RefField({
 
   const suggestions = useMemo(() => {
     if (!query || looksLikeUrl(query.text)) return [];
-    return suggestRefs(targets, query.text, excluded ? excluded.split("\n") : []);
-  }, [targets, query, excluded]);
+    return suggestRefs(targets, query.text, excluded ? excluded.split("\n") : [], undefined, selfKind);
+  }, [targets, query, excluded, selfKind]);
 
   const isOpen = suggestions.length > 0;
   // A list that shrank under the highlight would otherwise leave it pointing

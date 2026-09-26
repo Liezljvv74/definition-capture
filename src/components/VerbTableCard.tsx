@@ -257,6 +257,7 @@ export function VerbTableCard({
                 id={`${bodyId}-ref`}
                 value={ref}
                 exclude={[table.verb]}
+                selfKind="verb_table"
                 onChange={(next) => {
                   onEdited();
                   setRef(next);

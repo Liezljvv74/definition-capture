@@ -82,7 +82,8 @@ function normalise(text: string): string {
 /**
  * Names matching what has been typed, prefix matches first and each group in
  * alphabetical order, so the list only ever shrinks as more is typed. Names
- * in `exclude` are left out entirely.
+ * in `exclude` are left out when the link would reach the item being edited,
+ * which is of kind `selfKind`.
  *
  * `targets` must be in `LINK_ORDER` (which `linkTargets` ensures), and the
  * highest-precedence kind wins a name clash, the same rule `buildLinkIndex`
@@ -94,6 +95,7 @@ export function suggestRefs(
   query: string,
   exclude: readonly string[] = [],
   limit: number = SUGGESTION_LIMIT,
+  selfKind?: LinkKind,
 ): RefSuggestion[] {
   const needle = normalise(query);
   if (!needle) return [];
@@ -101,7 +103,11 @@ export function suggestRefs(
   // Whatever is open in the form cannot be a useful reference: a Ref that
   // points at its own entry is a link back to the page you are already on.
   // Both the saved name and the one being typed are dropped, so renaming
-  // something mid-edit cannot make it offer itself.
+  // something mid-edit cannot make it offer itself. Only when the name would
+  // reach the item itself, though: the word "arbeiten" linking to the verb
+  // table "arbeiten" is the most natural link there is, and the table wins
+  // that name, so it stays on offer. Without `selfKind` every excluded name
+  // is dropped, as before.
   const skip = new Set(
     exclude.map(foldName).filter(Boolean),
   );
@@ -114,7 +120,7 @@ export function suggestRefs(
   const prefix: RefSuggestion[] = [];
   const elsewhere: RefSuggestion[] = [];
   for (const [lowered, suggestion] of byName) {
-    if (skip.has(lowered)) continue;
+    if (skip.has(lowered) && (!selfKind || suggestion.kind === selfKind)) continue;
     if (lowered.startsWith(needle)) prefix.push(suggestion);
     else if (lowered.includes(needle)) elsewhere.push(suggestion);
   }

@@ -21,3 +21,23 @@ describe("suggestRefs", () => {
     expect(suggestRefs(targets, "dat")).toEqual([{ name: "Dativ", kind: "rule" }]);
   });
 });
+
+describe("suggestRefs, leaving out the item being edited", () => {
+  const word = {
+    id: "w", word: "arbeiten", definition: "", ref: "", collections: [], source: "Manual",
+    dateAdded: "", dateUpdated: null, needsDefinition: false,
+  };
+  const arbeiten: VerbTable = { ...table, id: "t2", verb: "arbeiten" };
+
+  it("offers a word its own verb table, which shares its name", () => {
+    const targets = linkTargets([word], [], [arbeiten], []);
+    expect(suggestRefs(targets, "arb", ["arbeiten"], undefined, "word")).toEqual([
+      { name: "arbeiten", kind: "verb_table" },
+    ]);
+  });
+
+  it("does not offer a verb table itself, since the link would reach the table", () => {
+    const targets = linkTargets([word], [], [arbeiten], []);
+    expect(suggestRefs(targets, "arb", ["arbeiten"], undefined, "verb_table")).toEqual([]);
+  });
+});
