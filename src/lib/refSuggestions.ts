@@ -3,17 +3,17 @@
  * only offers the `[[Name]]` form of an internal link while you are typing a
  * name, and never rewrites anything on its own.
  *
- * Words and phrases share one namespace here, exactly as they do in
- * `buildLinkIndex`: a Ref written in either form can point at either list, so
- * both forms offer both lists.
+ * All four kinds share one namespace here, exactly as they do in
+ * `buildLinkIndex`: a Ref written in either form can point at any of them, so
+ * the suggestion box offers all four.
  */
 
 import { foldName } from "@/lib/foldName";
-import type { Entry, Phrase } from "@/lib/types";
+import type { LinkKind, LinkTarget } from "@/lib/links";
 
 export type RefSuggestion = {
   name: string;
-  kind: "word" | "phrase";
+  kind: LinkKind;
 };
 
 /** The stretch of the field a completion would replace. */
@@ -84,13 +84,13 @@ function normalise(text: string): string {
  * alphabetical order, so the list only ever shrinks as more is typed. Names
  * in `exclude` are left out entirely.
  *
- * Words win a name clash, the same rule `buildLinkIndex` follows when it
- * resolves `[[Name]]` back to a page — offering a phrase that the link would
- * not actually reach would be a lie.
+ * `targets` must be in `LINK_ORDER` (which `linkTargets` ensures), and the
+ * highest-precedence kind wins a name clash, the same rule `buildLinkIndex`
+ * follows when it resolves `[[Name]]` back to a page: offering a kind the
+ * link would not actually reach would be a lie.
  */
 export function suggestRefs(
-  entries: readonly Entry[],
-  phrases: readonly Phrase[],
+  targets: readonly LinkTarget[],
   query: string,
   exclude: readonly string[] = [],
   limit: number = SUGGESTION_LIMIT,
@@ -107,11 +107,8 @@ export function suggestRefs(
   );
 
   const byName = new Map<string, RefSuggestion>();
-  for (const phrase of phrases) {
-    byName.set(foldName(phrase.phrase), { name: phrase.phrase, kind: "phrase" });
-  }
-  for (const entry of entries) {
-    byName.set(foldName(entry.word), { name: entry.word, kind: "word" });
+  for (const target of [...targets].reverse()) {
+    byName.set(foldName(target.name), { name: target.name, kind: target.kind });
   }
 
   const prefix: RefSuggestion[] = [];

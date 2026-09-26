@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
-import type { LinkIndex } from "@/components/RefText";
 import { parseInline, parseTextBlock, type InlineToken, type TextLine } from "@/lib/blockText";
 import { foldName } from "@/lib/foldName";
+import type { LinkIndex } from "@/lib/links";
 
 const linkClass =
   "text-indigo-700 underline underline-offset-2 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200";

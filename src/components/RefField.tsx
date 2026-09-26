@@ -10,6 +10,7 @@ import {
   type KeyboardEvent,
 } from "react";
 
+import { KIND_LABEL } from "@/lib/links";
 import {
   activeRefQuery,
   applyRefSuggestion,
@@ -17,8 +18,7 @@ import {
   suggestRefs,
   type RefQuery,
 } from "@/lib/refSuggestions";
-import { usePhrases } from "@/lib/usePhrases";
-import { useWords } from "@/lib/useWords";
+import { useLinkTargets } from "@/lib/useLinkTargets";
 
 /** Matches `max-h-56` on the list below; used to decide which way it opens. */
 const LIST_MAX_HEIGHT = 224;
@@ -28,9 +28,10 @@ const LIST_GAP = 4;
 
 /**
  * The Ref input, with an inline lookup over everything you have saved. Typing
- * a name offers the words and phrases it matches; picking one writes it in as
- * `[[Name]]`. Everything else — notes, URLs, `/word?id=…`, `#anchor` — is
- * typed exactly as before, and the value handed back is always a plain string.
+ * a name offers whatever it matches, out of all four kinds (rules, verb
+ * tables, words and phrases); picking one writes it in as `[[Name]]`.
+ * Everything else, notes, URLs, `/word?id=…`, `#anchor`, is typed exactly as
+ * before, and the value handed back is always a plain string.
  *
  * The lists come from the same stores the pages read, so there is nothing here
  * to keep in step with them.
@@ -51,8 +52,7 @@ export function RefField({
   placeholder,
   exclude,
 }: RefFieldProps) {
-  const { entries } = useWords();
-  const { phrases } = usePhrases();
+  const { targets } = useLinkTargets();
 
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,8 +70,8 @@ export function RefField({
 
   const suggestions = useMemo(() => {
     if (!query || looksLikeUrl(query.text)) return [];
-    return suggestRefs(entries, phrases, query.text, excluded ? excluded.split("\n") : []);
-  }, [entries, phrases, query, excluded]);
+    return suggestRefs(targets, query.text, excluded ? excluded.split("\n") : []);
+  }, [targets, query, excluded]);
 
   const isOpen = suggestions.length > 0;
   // A list that shrank under the highlight would otherwise leave it pointing
@@ -183,7 +183,7 @@ export function RefField({
         <ul
           id={listId}
           role="listbox"
-          aria-label="Saved words and phrases"
+          aria-label="Saved items"
           className={`card absolute z-10 max-h-56 w-full overflow-y-auto p-1 shadow-lg ${
             dropUp ? "bottom-full mb-1" : "top-full mt-1"
           }`}
@@ -207,7 +207,7 @@ export function RefField({
             >
               <span className="truncate">{suggestion.name}</span>
               <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {suggestion.kind === "word" ? "Word" : "Phrase"}
+                {KIND_LABEL[suggestion.kind]}
               </span>
             </li>
           ))}

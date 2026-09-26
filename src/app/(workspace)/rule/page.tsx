@@ -2,19 +2,18 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useState } from "react";
 
 import { TopicBadge } from "@/components/Badges";
 import { BlockView } from "@/components/grammar/BlockView";
 import { RuleEditor } from "@/components/grammar/RuleEditor";
-import { buildLinkIndex, type LinkIndex } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
+import type { LinkIndex } from "@/lib/links";
 import { updateRule } from "@/lib/rules";
 import type { Rule } from "@/lib/types";
-import { usePhrases } from "@/lib/usePhrases";
+import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useRules } from "@/lib/useRules";
 import { useSettings } from "@/lib/useSettings";
-import { useWords } from "@/lib/useWords";
 
 /**
  * One rule, addressed as `/rule?id=abc`, the shape every item page has. It
@@ -42,12 +41,8 @@ function RuleDetail() {
   const params = useSearchParams();
   const id = params.get("id") ?? "";
   const { rules, loaded } = useRules();
-  const { entries } = useWords();
-  const { phrases } = usePhrases();
   const rule = rules.find((candidate) => candidate.id === id);
-  // Rules and verb tables become link targets in stage 2; until then a
-  // `[[Name]]` in a rule reaches what a Ref reaches: words and phrases.
-  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
+  const { linkIndex } = useLinkTargets();
 
   return (
     <>

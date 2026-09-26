@@ -13,20 +13,21 @@ import {
   SelectRowCheckbox,
 } from "@/components/DeleteControls";
 import { EditWordDialog } from "@/components/EditWordDialog";
-import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { RefText } from "@/components/RefText";
 import { EmptyCell } from "@/components/EmptyCell";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { deleteEntries } from "@/lib/storage";
+import type { LinkIndex } from "@/lib/links";
 import type { Entry } from "@/lib/types";
 import { collectionOptions } from "@/lib/collectionOptions";
 import { foldName } from "@/lib/foldName";
+import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useWords } from "@/lib/useWords";
 import { useWideScreen } from "@/lib/useWideScreen";
 import { useListPage } from "@/lib/useListPage";
 import { type ListSelection } from "@/lib/useListSelection";
 import type { Sorting } from "@/lib/sortName";
-import { usePhrases } from "@/lib/usePhrases";
 import { useSorting } from "@/lib/useSorting";
 
 type SortKey = "word" | "definition" | "dateAdded";
@@ -62,7 +63,6 @@ function compare(a: Entry, b: Entry, key: SortKey, sorting: Sorting): number {
 export default function VocabularyPage() {
   const { entries, loaded } = useWords();
   const wide = useWideScreen();
-  const { phrases } = usePhrases();
   const sorting = useSorting();
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
@@ -142,7 +142,7 @@ export default function VocabularyPage() {
     pendingNames,
   } = useListPage(visible, idOfEntry, nameOfEntry);
 
-  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
+  const { linkIndex } = useLinkTargets();
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
   const isFiltered = query.trim() !== "" || onlyNeedsDefinition || collection !== "";
 

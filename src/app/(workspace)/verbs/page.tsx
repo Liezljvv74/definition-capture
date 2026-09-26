@@ -240,6 +240,7 @@ function VerbList() {
               table={table}
               open={isOpen}
               asking={isOpen && waiting !== undefined}
+              highlighted={table.id === targeted?.id && chosen === undefined}
               onToggle={() => requestOpen(isOpen ? null : table.id)}
               onEdited={() => setDirty(true)}
               onKeep={() => setWaiting(undefined)}

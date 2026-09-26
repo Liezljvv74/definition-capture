@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useState } from "react";
 
 import { CollectionBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { EditWordDialog } from "@/components/EditWordDialog";
-import { buildLinkIndex, RefText, type LinkIndex } from "@/components/RefText";
+import { RefText } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
+import type { LinkIndex } from "@/lib/links";
 import type { Entry } from "@/lib/types";
+import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useWords } from "@/lib/useWords";
-import { usePhrases } from "@/lib/usePhrases";
 
 /**
  * Where a `[[Name]]` reference lands, addressed as `/word?id=abc123`.
@@ -46,10 +47,9 @@ function DetailSkeleton() {
 function WordDetail() {
   const id = useSearchParams().get("id") ?? "";
   const { entries, loaded } = useWords();
-  const { phrases } = usePhrases();
   const entry = entries.find((candidate) => candidate.id === id);
 
-  const linkIndex = useMemo(() => buildLinkIndex(entries, phrases), [entries, phrases]);
+  const { linkIndex } = useLinkTargets();
 
   return (
     <>
