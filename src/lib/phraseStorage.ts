@@ -9,6 +9,7 @@
  * worth discarding on the way in.
  */
 
+import { rewriteLinks } from "@/lib/linkRenames";
 import { foldName } from "@/lib/foldName";
 import { planImport } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
@@ -139,6 +140,7 @@ export const subscribeToError = store.subscribeToError;
 export const getError = store.getError;
 export const reload = store.reload;
 export const settled = store.settled;
+export const updatePhrases = store.updateMany;
 
 /* --------------------------------------------------------------- mutations */
 
@@ -172,6 +174,7 @@ export function updatePhrase(id: string, input: PhraseInput): Phrase | null {
 
   const updated: Phrase = { ...existing, ...clean(input) };
   store.update(updated);
+  rewriteLinks("phrase", id, existing.phrase, updated.phrase);
   return updated;
 }
 

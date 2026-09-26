@@ -10,6 +10,7 @@
  * failure it can no longer block on.
  */
 
+import { rewriteLinks } from "@/lib/linkRenames";
 import { foldName } from "@/lib/foldName";
 import { planImport } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
@@ -164,6 +165,7 @@ export const subscribeToError = store.subscribeToError;
 export const getError = store.getError;
 export const settled = store.settled;
 export const reload = store.reload;
+export const updateEntries = store.updateMany;
 
 /* --------------------------------------------------------------- mutations */
 
@@ -203,6 +205,7 @@ export function updateEntry(id: string, input: EntryInput): Entry | null {
     dateUpdated: new Date().toISOString(),
   };
   store.update(updated);
+  rewriteLinks("word", id, existing.word, updated.word);
   return updated;
 }
 
