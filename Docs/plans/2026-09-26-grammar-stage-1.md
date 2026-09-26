@@ -31,7 +31,7 @@ Inputs the spec implies that no task's tests would otherwise exercise, each pinn
 2. **Markup that never closes**, such as `**bold` or `[[name` or a lone `*`. Expected: shown as the literal characters, never swallowed and never a crash. Test: Task 3.
 3. **A table row shorter or longer than the others**, from a hand-edited backup. Expected: every row read to the same width; nothing dropped silently beyond the caps. Test: Task 2.
 4. **A backup from version 10 or earlier**, which has no `rules` and no `topics`. Expected: imports exactly as before, and a Replace restore does not touch the rules or topics already saved. Tests: Task 9.
-5. **Two rules with the same title differing only in case or accents.** Expected: the add dialog and the editor refuse the second, matching the way words are matched (`foldName`), because the database's unique index would refuse it anyway with a worse message. Test: Task 4 (`findByTitle`), Task 8 (dialog uses it).
+5. **Two rules with the same title differing only in case.** Expected: the add dialog and the editor refuse the second, matching the way words are matched (`foldName`), because the database's unique index would refuse it anyway with a worse message. Test: Task 4 (`findByTitle`), Task 8 (dialog uses it).
 
 ---
 

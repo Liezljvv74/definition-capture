@@ -1,11 +1,11 @@
 # Design: grammar rules
 
-The design of record for the grammar feature. Stage 1 of the build order below is built; stages 2 to 5 are not. It
-was worked out question by question before any code was written, because the
-first grammar page (added on 20 September, removed the next day in `fbaa483`)
-was taken out for want of a clear approach, not for want of need. Each section
-records what was decided and, where it matters, the alternative that was
-turned down.
+The design of record for the grammar feature. Stages 2 to 5 of the build order
+below are not built yet. It was worked out question by question before any code
+was written, because the first grammar page (added on 20 September, removed the
+next day in `fbaa483`) was taken out for want of a clear approach, not for want
+of need. Each section records what was decided and, where it matters, the
+alternative that was turned down.
 
 Reviewed on 26 September against the database refactor of the day before
 (`Docs/db-refactor-plan.md`). Every decision below stood; what changed is the

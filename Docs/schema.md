@@ -25,7 +25,7 @@ Nine tables, no views, seven functions, none of them `security definer`.
 | Table | Holds | Written by |
 | --- | --- | --- |
 | `items` | every word, phrase, verb table and grammar rule | `save_items`; `needs_review` directly |
-| `tags` | the account's tags; today every one is a collection | Settings, `save_items`, `rename_tag` |
+| `tags` | the account's tags, in two contexts: a collection, or a rule's topic | Settings, `save_items`, `rename_tag` |
 | `item_tags` | which item carries which tag, in order | `save_items`, `rename_tag` |
 | `sources` | where a definition came from | Settings, `save_items`, `rename_item_source` |
 | `decks` | a deck asked for once and played | `build_deck` |
@@ -92,7 +92,11 @@ from` and only a real change is refused.
 
 ### `tags` and `item_tags`
 
-A tag has a `context` saying what it is for. `collection` is one context; `grammar` is the other: a rule's topic, exactly one per rule. `item_tags_grammar_one` holds it to one, and `save_items` refuses a rule with none. Contexts exist because tags are expected to serve other purposes later, and each context keeps its own names and its own rules.
+A tag has a `context` saying what it is for. `collection` is one context;
+`grammar` is the other: a rule's topic, exactly one per rule.
+`item_tags_grammar_one` holds it to one, and `save_items` refuses a rule with
+none. Contexts exist because tags are expected to serve other purposes later,
+and each context keeps its own names and its own rules.
 
 `item_tags` copies the tag's `context`, held to it by the composite foreign
 key `(tag_id, context, user_id)`, which is what lets a per-context rule live
@@ -100,12 +104,13 @@ in a check rather than a trigger: at most five collections per item.
 `position` keeps the order they were given in.
 
 A tag still on an item cannot be deleted. Settings switches the bin off for
-one in use and says how many words and phrases use it; renaming, which can
-merge two, is how one in use changes. The foreign key is deferred to the end
-of the transaction: each request from the app is its own transaction, so a
-delete of a tag in use is still refused, but deleting a whole account removes
-its items and its tags in one cascade, and an immediate check fires part way
-through that cascade and refuses it.
+one in use and says how many things use it: words and phrases for a
+collection, rules for a topic. Renaming, which can merge two, is how one in
+use changes. The foreign key is deferred to the end of the transaction: each
+request from the app is its own transaction, so a delete of a tag in use is
+still refused, but deleting a whole account removes its items and its tags in
+one cascade, and an immediate check fires part way through that cascade and
+refuses it.
 
 ### `sources`
 
@@ -281,7 +286,8 @@ To add, say, sentences:
    not count as an edit, as `map_x` and `map_y` are, because the trigger
    already sees every other column on its own.
 4. A store built on `remoteStore` with `itemType: "sentence"`, and a page,
-   form and dialogs as for any list.
+   form and dialogs as for any list, and an entry in `STORES` in
+   `StoreErrorBanner.tsx`, or its failures are silent.
 
 Collections, sources, decks, progress and reviews work on the new type the
 moment its rows exist, because each of them references `items` and not a
