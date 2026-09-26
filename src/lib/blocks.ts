@@ -87,7 +87,12 @@ export function readBlocks(value: unknown): Block[] {
     .filter((block): block is Block => block !== null);
 }
 
-/** The list with the block at `from` moved to `to`; the same list when there is nothing to do. */
+/**
+ * The list with the block at `from` moved to `to`; the same list when there is nothing to do.
+ * The type parameter preserves the block type so TextBlock[] input returns TextBlock[],
+ * which is why the test holds TextBlock[] locals; with Block[] the signature reads
+ * as (blocks: Block[], from: number, to: number) => Block[].
+ */
 export function moveBlock<T extends Block>(blocks: T[], from: number, to: number): T[] {
   const inRange = (at: number) => at >= 0 && at < blocks.length;
   if (from === to || !inRange(from) || !inRange(to)) return blocks;
