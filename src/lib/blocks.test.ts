@@ -115,3 +115,15 @@ describe("table edits", () => {
     expect(JSON.stringify(table)).toBe(before);
   });
 });
+
+describe("flattenBlocks", () => {
+  it("writes a rule as readable lines for a spreadsheet", async () => {
+    const { flattenBlocks } = await import("@/lib/blocks");
+    const text = flattenBlocks([
+      { kind: "text", id: "a", text: "**Wem?**" },
+      { kind: "table", id: "b", headerRow: true, headerColumn: false, cells: [["m", "f"], ["dem", "der"]] },
+      { kind: "example", id: "c", sentence: "Ich gebe {dem} Mann", translation: "I give the man" },
+    ]);
+    expect(text).toBe("Wem?\n\nm | f\ndem | der\n\nIch gebe dem Mann (I give the man)");
+  });
+});
