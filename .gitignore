@@ -54,3 +54,6 @@ next-env.d.ts
 # rest of `.claude/`, the subagents and the hook that guards one of them, is
 # ordinary project configuration and is committed.
 /.claude/skills/
+
+# Scratch for plan execution; the git history is the record.
+.superpowers/
