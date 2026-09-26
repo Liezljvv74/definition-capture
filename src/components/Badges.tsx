@@ -48,14 +48,14 @@ export function NeedsDefinitionBadge() {
 /** A rule's topic. Given `onSelect` it filters the Grammar list to that topic. */
 export function TopicBadge({ name, onSelect }: { name: string; onSelect?: (name: string) => void }) {
   const base =
-    "inline-flex items-center rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-rose-700 dark:bg-rose-500/15 dark:text-rose-300";
+    "inline-flex items-center rounded-md bg-olive-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-olive-700 dark:bg-olive-400/15 dark:text-olive-300";
   if (!onSelect) return <span className={base}>{name}</span>;
   return (
     <button
       type="button"
       onClick={() => onSelect(name)}
       title={`Show only ${name}`}
-      className={`${base} cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-500/25`}
+      className={`${base} cursor-pointer hover:bg-olive-200 dark:hover:bg-olive-400/25`}
     >
       {name}
     </button>
