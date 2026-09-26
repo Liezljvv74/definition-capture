@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { fromRuleRow, parseRule, toRulePayload, toWireRule } from "@/lib/rules";
+import { createRule, findByTitle, fromRuleRow, parseRule, toRulePayload, toWireRule } from "@/lib/rules";
 import type { Rule } from "@/lib/types";
 
 vi.mock("@/lib/supabaseClient", () => ({ getSupabase: () => null }));
@@ -76,5 +76,26 @@ describe("the backup shape", () => {
 
   it("refuses a rule without a title", () => {
     expect(parseRule({ id: "x", topic: "Cases" })).toBeNull();
+  });
+
+  it("refuses a rule without a topic, rather than sinking the whole import batch", () => {
+    // `save_items` refuses a rule with no topic for the whole call, up to 500
+    // rows at once, after the import dialog has already shown a success count.
+    // Treating a blank topic as unreadable here, like a missing title, keeps
+    // one bad row from taking the rest of the file down with it.
+    expect(parseRule({ id: "x", title: "Dative", topic: " " })).toBeNull();
+    expect(parseRule({ id: "x", title: "Dative" })).toBeNull();
+  });
+});
+
+describe("findByTitle", () => {
+  it("matches case-insensitively, excludes the rule named by its own id, and is undefined for no match", () => {
+    // Review Focus 5: a duplicate title differing only in case must be
+    // refused the same way the database's unique index would refuse it,
+    // matching by `foldName` the way every name in the app is matched.
+    const created = createRule({ title: "Dative", topic: "Cases" });
+    expect(findByTitle("DATIVE")?.id).toBe(created.id);
+    expect(findByTitle("Dative", created.id)).toBeUndefined();
+    expect(findByTitle("Genitive")).toBeUndefined();
   });
 });

@@ -83,12 +83,18 @@ export function parseRule(raw: unknown, allowMissingId = false): Rule | null {
   const rawId = readString(value.id).trim();
   const id = rawId || (allowMissingId ? "" : null);
   const title = readString(value.title).trim() || null;
-  if (id === null || !title) return null;
+  const topic = readString(value.topic).trim();
+  // `save_items` refuses a rule with no topic, and one bad row must not sink
+  // the rest of the file's rules. Treating a blank topic as unreadable here,
+  // the same as a missing title, means the import dialog counts it among the
+  // rows it could not read instead of sending the whole batch to a call that
+  // was always going to be rejected.
+  if (id === null || !title || !topic) return null;
 
   return {
     id,
     title,
-    topic: readString(value.topic).trim(),
+    topic,
     blocks: readBlocks(value.blocks),
     dateAdded: readString(value.dateAdded) || new Date().toISOString(),
     dateUpdated: typeof value.dateUpdated === "string" ? value.dateUpdated : null,
@@ -118,7 +124,7 @@ export function getRules(): Rule[] {
   return store.items();
 }
 
-/** Case- and accent-insensitive, the way every name in the app is matched. */
+/** Case-insensitive, and blind to how an accent is encoded, the way every name in the app is matched. */
 export const findByTitle = store.findByName;
 
 /* --------------------------------------------------------------- mutations */
