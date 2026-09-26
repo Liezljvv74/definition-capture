@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 import { TopicBadge } from "@/components/Badges";
+import { LinkedFrom } from "@/components/LinkedFrom";
 import { BlockView } from "@/components/grammar/BlockView";
 import { RuleEditor } from "@/components/grammar/RuleEditor";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -122,6 +123,8 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
           </dd>
         </div>
       </dl>
+
+      <LinkedFrom href={`/rule?id=${rule.id}`} />
 
       {/* Deleting is not offered here; the Grammar list owns that, as the word list does. */}
       <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">

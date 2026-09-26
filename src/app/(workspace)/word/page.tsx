@@ -6,6 +6,7 @@ import { Suspense, useState } from "react";
 
 import { CollectionBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { EditWordDialog } from "@/components/EditWordDialog";
+import { LinkedFrom } from "@/components/LinkedFrom";
 import { RefText } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { LinkIndex } from "@/lib/links";
@@ -155,6 +156,8 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
             </dd>
           </div>
         </dl>
+
+        <LinkedFrom href={`/word?id=${entry.id}`} />
 
         {/* Editing is offered here so a cross-link that lands on a typo can fix
             it on the spot. Deleting is not — the word list owns that. */}

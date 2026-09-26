@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { saveSettings } from "@/lib/settings";
 import { MAX_TENSES, type VerbRow, type VerbTable } from "@/lib/types";
 import { ANOTHER, chosenTense, TenseChoice } from "@/components/TenseChoice";
+import { LinkedFrom } from "@/components/LinkedFrom";
 import { RefField } from "@/components/RefField";
 import { RefText } from "@/components/RefText";
 import { foldName } from "@/lib/foldName";
@@ -255,6 +256,8 @@ export function VerbTableCard({
             </p>
           )}
         </div>
+
+        <LinkedFrom href={`/verbs?verb=${encodeURIComponent(table.verb)}`} />
 
         {adding !== null && (
           <NameTense
