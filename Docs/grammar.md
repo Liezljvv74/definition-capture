@@ -13,6 +13,8 @@ Data section, which now names the tables and functions that exist, and the
 word for a rule's grouping, which is Topic: "category" was retired from the
 app in the refactor, and a rule's one grouping is not a Collection either.
 
+**Stage 1 is built** (26 September 2026): rules, blocks, the reading view and Edit, topics in Settings, the tab, the home card, backup and export. Stages 2 to 5 remain.
+
 The feature is for the account owner's own study. Its purpose is to record
 grammar rules in a structured way, link concepts to each other and to the
 existing lists, and see the language learned as a whole.

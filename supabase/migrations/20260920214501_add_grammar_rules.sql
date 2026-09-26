@@ -1,5 +1,5 @@
--- Grammar rules. The fourth list, and the first one the Grammar page has had
--- — until now that route was a heading over an empty page.
+-- Grammar rules. The fourth list, and the first one the Grammar page has had.
+-- Until now that route was a heading over an empty page.
 --
 -- A rule is a title, the explanation, the examples that make it land, and a
 -- Ref like every other list has. `category` is free text on the row rather
