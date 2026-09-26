@@ -175,7 +175,10 @@ function VerbList() {
   function settle() {
     setChosen(waiting === undefined ? null : waiting);
     setWaiting(undefined);
-    setHighlightId(null);
+    // A link held back by unsaved work is still the reason this table is
+    // opening, so it keeps its ring; anything else the reader settled on
+    // by hand does not get one.
+    if (waiting !== highlightId) setHighlightId(null);
     setDirty(false);
   }
 
