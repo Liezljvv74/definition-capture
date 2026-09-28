@@ -13,7 +13,7 @@ Data section, which now names the tables and functions that exist, and the
 word for a rule's grouping, which is Topic: "category" was retired from the
 app in the refactor, and a rule's one grouping is not a Collection either.
 
-**Stages 1 and 2 are built** (26 September 2026): rules, blocks, the reading view and Edit, topics in Settings, the tab, the home card, backup and export, and links. Stages 3 to 5 remain.
+**Stages 1 to 3 are built** (26 to 28 September 2026): rules, blocks, the reading view and Edit, topics in Settings, the tab, the home card, backup and export, links, and the reading tools: highlights, Link to… and New rule from this. Stages 4 and 5 remain.
 
 The feature is for the account owner's own study. Its purpose is to record
 grammar rules in a structured way, link concepts to each other and to the
@@ -46,8 +46,11 @@ layout leaves empty sections on rules that do not need them.
 The first version has three block types:
 
 - **Text.** Line breaks, `**bold**`, `*italic*`, bullet lists written as
-  `- item`, and `[[links]]`. Rendered by the app's own code; no markdown or
-  rich text library is installed, and this small set does not justify one.
+  `- item`, `[[links]]` (`[[Name|shown words]]` to link words other than the
+  target's name), and `==y:highlighted words==`. Rendered by the app's own
+  code; no markdown or rich text library is installed, and this small set
+  does not justify one. The edit box grows with the text rather than
+  scrolling, so a long block stays readable while it is written.
 - **Table.** A free grid: rows and columns added and removed at will, with an
   optional header row and an optional header column. Cells accept links, bold
   and italic, so a case table can link "dem" to the rule that explains it.
@@ -71,18 +74,34 @@ rendered. In Edit mode each block shows its own controls.
 
 The reading view is not inert. Selecting text offers:
 
-- **Highlight** in yellow, green or pink, and Remove highlight on text already
-  marked. The app gives the colours no meaning; the reader decides. Highlights
-  work in text blocks, examples and table cells. They are stored inside the
-  text as markup rather than as character offsets, so editing the words around
-  a highlight cannot make it drift. In Edit mode they show as highlighted text,
-  not as raw markers.
-- **Link to…**, which searches every rule, word, phrase and verb table and
-  turns the selection into a link.
-- **New rule from this**, which creates an empty rule titled with the
-  selection, links the selection to it, and keeps the reader on the page. The
-  empty rule appears on the map with a marker, so named but unwritten concepts
-  become a visible to-do list.
+- **Highlight** in yellow, green, blue or purple, and Remove highlight on text
+  already marked. Blue replaced pink on 28 September, since red, rose and pink
+  are kept for warnings, and the owner added purple the same day. The app
+  gives the colours no meaning; the reader decides. Highlights work in text
+  blocks, examples and table cells, and are stored inside the text as markup,
+  `==y:…==`, `==g:…==`, `==b:…==` and `==p:…==`, rather than as character
+  offsets, so editing the words around a highlight cannot make it drift. A
+  selection across table cells covers the rectangle between its corner cells,
+  so a row, a column or the whole table can be highlighted or cleared at once,
+  with an outline drawn over that rectangle in place of the browser's own
+  row-by-row selection; outside a table, a selection works within one field
+  and one line. An edit is refused rather than made whenever it would change
+  the words the rule shows or leave a marker that would not read back where it
+  was put, for example when text typed earlier on the line already holds an
+  unclosed `==g:`; a selection across table cells leaves such cells, and empty
+  ones, unchanged and highlights the rest. In Edit mode the markers show in
+  faint grey with a tint behind them, the owner's choice on 28 September over
+  invisible markers or a rich text editor, both turned down for their cost.
+  Examples take highlights but not links.
+- **Link to…**, which searches every rule, word, phrase and verb table, turns
+  the selection into a link, and keeps the selected words, writing
+  `[[Name|words]]` when they are not the name.
+- **New rule from this**, which asks for the title and topic, starting from
+  the selected words and this rule's topic, creates an empty rule, links the
+  selection to it, and keeps the reader on the page. The empty rule appears on
+  the map with a marker, so named but unwritten concepts become a visible
+  to-do list. A title cannot contain `|`, `[` or `]`, since links are written
+  with them, and the dialog refuses one that does.
 
 ## Links
 
@@ -98,6 +117,8 @@ What changes:
   The suggestion box in `RefField` offers all four types. A link to a verb
   table opens the Verbs page scrolled to that table and highlighted
   (`/verbs?verb=<name>`).
+- **A link may carry the words it shows**, `[[Dativ|dem]]`, when the linked
+  words are not the target's name; renaming the target keeps them.
 - **Verb tables get a notes field** that renders links, as words and phrases
   have. It is the `ref` column every item already carries; the verb table
   store simply starts sending and showing it.
@@ -232,7 +253,7 @@ Too much for one change. Suggested stages, each usable on its own:
    Settings, navigation and the home page card, backup and export.
 2. **Links.** Rules and verb tables as targets, the verb table notes field,
    shared-name links, rename rewriting, the delete warning, Linked from.
-3. **Reading tools.** Highlights, Link to…, New rule from this.
+3. **Reading tools** (built 28 September 2026). Highlights, Link to…, New rule from this.
 4. **Map.** The toggle, saved positions, selection showing linked items.
 5. **Practice.** The three question kinds, answer checking, recording, needs
    review, and the home page card.
