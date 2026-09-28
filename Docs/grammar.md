@@ -54,6 +54,14 @@ The first version has three block types:
 - **Table.** A free grid: rows and columns added and removed at will, with an
   optional header row and an optional header column. Cells accept links, bold
   and italic, so a case table can link "dem" to the rule that explains it.
+  In Edit mode, handles above the columns and beside the rows select them,
+  Shift-click selects the block between two cells, and the selection can be
+  copied, cut and pasted. The clipboard holds the block the way spreadsheets
+  do, a tab between cells and a line per row, so a block goes between two
+  rules and to and from Excel or Google Sheets, markup included. Cut empties
+  the cells and keeps the rows; a paste grows the table to fit, up to its
+  limits, and says so if anything was left out (the owner's choices on 28
+  September).
 - **Example.** A sentence in the language with its translation underneath,
   styled to stand apart from explanation. Gap words are marked in braces,
   `Ich gebe {dem} Mann das Buch`, and are what practice blanks out. An example

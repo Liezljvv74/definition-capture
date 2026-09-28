@@ -135,6 +135,61 @@ export function withCell(table: TableBlock, row: number, column: number, value: 
   };
 }
 
+/* Copy, cut and paste in the table editor. The clipboard holds a block the
+   way spreadsheets write one, a tab between cells and a line per row, so the
+   same text goes between two rules and to and from Excel or Google Sheets.
+   Cells travel as written, markup and all, so a highlight pasted back into a
+   rule is still a highlight. */
+
+/** A rectangle of cells, both corners included. */
+export type CellRange = { top: number; left: number; bottom: number; right: number };
+
+/** The rectangle two cells span, whichever corner came first. */
+export function cellRange(a: [number, number], b: [number, number]): CellRange {
+  return { top: Math.min(a[0], b[0]), left: Math.min(a[1], b[1]), bottom: Math.max(a[0], b[0]), right: Math.max(a[1], b[1]) };
+}
+
+export function cellsToText(table: TableBlock, range: CellRange): string {
+  return table.cells
+    .slice(range.top, range.bottom + 1)
+    .map((row) => row.slice(range.left, range.right + 1).join("\t"))
+    .join("\n");
+}
+
+/**
+ * Clipboard text as rows of cells. Excel ends a copied block with a line
+ * break, which would otherwise read as an empty last row.
+ */
+// ponytail: no quoted cells, so a spreadsheet cell holding a line break arrives as two rows; parse Excel's quoting if that shows up.
+export function textToGrid(text: string): string[][] {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .replace(/\n$/, "")
+    .split("\n")
+    .map((line) => line.split("\t"));
+}
+
+export function clearCells(table: TableBlock, range: CellRange): TableBlock {
+  const inside = (r: number, c: number) => r >= range.top && r <= range.bottom && c >= range.left && c <= range.right;
+  return { ...table, cells: table.cells.map((row, r) => row.map((cell, c) => (inside(r, c) ? "" : cell))) };
+}
+
+/**
+ * The table with `grid` written in from (`top`, `left`), grown to fit up to
+ * the table's limits. `cut` says whether anything fell past those limits, so
+ * the editor can say so rather than drop it silently.
+ */
+export function pasteGrid(table: TableBlock, top: number, left: number, grid: string[][]): { table: TableBlock; cut: boolean } {
+  const gridWidth = Math.max(0, ...grid.map((row) => row.length));
+  const rows = Math.min(MAX_TABLE_ROWS, Math.max(table.cells.length, top + grid.length));
+  const columns = Math.min(MAX_TABLE_COLUMNS, Math.max(table.cells[0]?.length ?? 1, left + gridWidth));
+  const cells = Array.from({ length: rows }, (_, r) =>
+    Array.from({ length: columns }, (_, c) => grid[r - top]?.[c - left] ?? table.cells[r]?.[c] ?? ""),
+  );
+  const cut = top + grid.length > MAX_TABLE_ROWS || left + gridWidth > MAX_TABLE_COLUMNS;
+  return { table: { ...table, cells }, cut };
+}
+
 /**
  * A rule's content as one string, for the Excel sheet, where a cell cannot
  * hold blocks. Tables become one line per row with cells separated by a
