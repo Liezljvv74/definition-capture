@@ -16,9 +16,9 @@ const html = (block: Parameters<typeof BlockView>[0]["block"]) =>
 describe("BlockView", () => {
   it("renders text with bold, italic, bullets and a resolved link", () => {
     const markup = html({ kind: "text", id: "a", text: "**Wem?** *dem*\n- one\nsee [[Cases]] and [[Nothing]]" });
-    expect(markup).toContain("<strong>Wem?</strong>");
-    expect(markup).toContain("<em>dem</em>");
-    expect(markup).toContain("<li><span>one</span></li>");
+    expect(markup).toContain('<strong data-at="2">Wem?</strong>');
+    expect(markup).toContain('<em data-at="10">dem</em>');
+    expect(markup).toContain('<li><span data-at="17">one</span></li>');
     expect(markup).toContain('href="/rule?id=r1"');
     // An unresolved name reads as dotted text, as it does in a Ref.
     expect(markup).toContain("decoration-dotted");
@@ -48,5 +48,27 @@ describe("BlockView", () => {
     expect(markup).not.toContain("{");
     expect(markup).toContain(">dem<");
     expect(markup).toContain("I give the man");
+  });
+
+  it("draws highlights, with the markup inside them", () => {
+    const markup = html({ kind: "text", id: "a", text: "==y:**Dativ**== und ==b:wem==" });
+    expect(markup).toMatch(/<mark class="[^"]*bg-yellow-200[^"]*"><strong data-at="6">Dativ<\/strong><\/mark>/);
+    expect(markup).toContain("bg-sky-200");
+    expect(markup).not.toContain("==");
+  });
+
+  it("labels every block, field and run of words with where it came from", () => {
+    const table = html({ kind: "table", id: "t", headerRow: false, headerColumn: false, cells: [["a", "b [[Cases|c]]"]] });
+    expect(table).toContain('data-block="t"');
+    expect(table).toContain('data-field="cell:0:1"');
+    expect(table).toContain('data-at="10"');
+    expect(table).toContain(">c</a>");
+
+    const example = html({ kind: "example", id: "e", sentence: "Ich gebe ==g:{dem}== Mann", translation: "I give ==b:the== man" });
+    expect(example).toContain('data-field="sentence"');
+    expect(example).toContain('data-field="translation"');
+    expect(example).toContain(">dem<");
+    expect(example).not.toContain("{");
+    expect(example).not.toContain("==");
   });
 });

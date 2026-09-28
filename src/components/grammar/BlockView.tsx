@@ -1,19 +1,24 @@
 "use client";
 
 import { InlineText, RichText } from "@/components/grammar/RichText";
-import { splitGaps } from "@/lib/blockText";
 import type { LinkIndex } from "@/lib/links";
 import type { Block, ExampleBlock, TableBlock } from "@/lib/types";
 
 /** One block, as the reader sees it. */
 export function BlockView({ block, linkIndex }: { block: Block; linkIndex: LinkIndex }) {
+  // `data-block` and each field's `data-field` name the text a selection was
+  // made in; see `readSelection.ts`.
+  return <div data-block={block.id}>{blockContent(block, linkIndex)}</div>;
+}
+
+function blockContent(block: Block, linkIndex: LinkIndex) {
   switch (block.kind) {
     case "text":
       return <RichText text={block.text} linkIndex={linkIndex} />;
     case "table":
       return <TableView table={block} linkIndex={linkIndex} />;
     case "example":
-      return <ExampleView example={block} />;
+      return <ExampleView example={block} linkIndex={linkIndex} />;
   }
 }
 
@@ -56,7 +61,7 @@ function TableView({ table, linkIndex }: { table: TableBlock; linkIndex: LinkInd
                     ? "row"
                     : undefined;
                 return (
-                  <Cell key={c} className={isHeader ? headerClass : cellClass} scope={scope}>
+                  <Cell key={c} data-field={`cell:${r}:${c}`} className={isHeader ? headerClass : cellClass} scope={scope}>
                     <InlineText text={cell} linkIndex={linkIndex} />
                   </Cell>
                 );
@@ -70,26 +75,18 @@ function TableView({ table, linkIndex }: { table: TableBlock; linkIndex: LinkInd
 }
 
 /**
- * Set apart from explanation: a left rule and a tint. The gaps are shown
- * underlined and without their braces; the braces are for the author and
- * for practice, not the reader.
+ * Set apart from explanation: a left rule and a tint.
  */
-function ExampleView({ example }: { example: ExampleBlock }) {
+function ExampleView({ example, linkIndex }: { example: ExampleBlock; linkIndex: LinkIndex }) {
   return (
     <figure className="rounded-r-lg border-l-4 border-emerald-400 bg-emerald-50/60 px-4 py-3 dark:border-emerald-500 dark:bg-emerald-500/10">
-      <p className="text-slate-900 dark:text-slate-100">
-        {splitGaps(example.sentence).map((part, index) =>
-          part.gap ? (
-            <span key={index} className="font-semibold underline decoration-emerald-500 underline-offset-4">
-              {part.value}
-            </span>
-          ) : (
-            <span key={index}>{part.value}</span>
-          ),
-        )}
+      <p data-field="sentence" className="text-slate-900 dark:text-slate-100">
+        <InlineText text={example.sentence} linkIndex={linkIndex} mode="sentence" />
       </p>
       {example.translation && (
-        <figcaption className="mt-1 text-sm text-slate-600 dark:text-slate-300">{example.translation}</figcaption>
+        <figcaption data-field="translation" className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <InlineText text={example.translation} linkIndex={linkIndex} mode="plain" />
+        </figcaption>
       )}
     </figure>
   );

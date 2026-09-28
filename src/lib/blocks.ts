@@ -155,7 +155,7 @@ export function flattenBlocks(blocks: Block[]): string {
           // flattening it anyway left a trailing empty pair of brackets on
           // the spreadsheet row, `sentence ()`, that read as a typo rather
           // than as nothing to show.
-          return block.translation.trim() === "" ? sentence : `${sentence} (${block.translation})`;
+          return block.translation.trim() === "" ? sentence : `${sentence} (${plainText(block.translation)})`;
         }
       }
     })

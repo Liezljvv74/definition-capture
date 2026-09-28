@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseInline, parseTextBlock, plainText, splitGaps } from "@/lib/blockText";
+import { parseInline, parseTextBlock, plainText, shownText, type InlineToken, type LeafToken } from "@/lib/blockText";
 
 /**
  * The markup is deliberately tiny: bold, italic, bullets and `[[links]]`.
@@ -10,7 +10,7 @@ import { parseInline, parseTextBlock, plainText, splitGaps } from "@/lib/blockTe
  */
 describe("parseInline", () => {
   it("reads bold, italic and links in among plain text", () => {
-    expect(parseInline("Der **Dativ** ist *wichtig*, siehe [[Cases]].")).toEqual([
+    expect(parseInline("Der **Dativ** ist *wichtig*, siehe [[Cases]].")).toMatchObject([
       { kind: "text", value: "Der " },
       { kind: "bold", value: "Dativ" },
       { kind: "text", value: " ist " },
@@ -22,14 +22,14 @@ describe("parseInline", () => {
   });
 
   it("shows unclosed markup as the characters typed", () => {
-    expect(parseInline("a **b")).toEqual([{ kind: "text", value: "a **b" }]);
-    expect(parseInline("a *b")).toEqual([{ kind: "text", value: "a *b" }]);
-    expect(parseInline("a [[b")).toEqual([{ kind: "text", value: "a [[b" }]);
-    expect(parseInline("2 * 3 * 4")).toEqual([{ kind: "text", value: "2 * 3 * 4" }]);
+    expect(parseInline("a **b")).toMatchObject([{ kind: "text", value: "a **b" }]);
+    expect(parseInline("a *b")).toMatchObject([{ kind: "text", value: "a *b" }]);
+    expect(parseInline("a [[b")).toMatchObject([{ kind: "text", value: "a [[b" }]);
+    expect(parseInline("2 * 3 * 4")).toMatchObject([{ kind: "text", value: "2 * 3 * 4" }]);
   });
 
   it("does not read across a line break", () => {
-    expect(parseInline("**a\nb**")).toEqual([{ kind: "text", value: "**a\nb**" }]);
+    expect(parseInline("**a\nb**")).toMatchObject([{ kind: "text", value: "**a\nb**" }]);
   });
 
   it("returns nothing for an empty string", () => {
@@ -37,7 +37,7 @@ describe("parseInline", () => {
   });
 
   it("reads a labelled link", () => {
-    expect(parseInline("gebe [[Dativ|dem]] Mann")).toEqual([
+    expect(parseInline("gebe [[Dativ|dem]] Mann")).toMatchObject([
       { kind: "text", value: "gebe " },
       { kind: "link", name: "Dativ", label: "dem" },
       { kind: "text", value: " Mann" },
@@ -48,7 +48,7 @@ describe("parseInline", () => {
 
 describe("parseTextBlock", () => {
   it("makes a paragraph of each line and a bullet of each line starting with a dash", () => {
-    expect(parseTextBlock("First.\n- one\n- two\nLast.")).toEqual([
+    expect(parseTextBlock("First.\n- one\n- two\nLast.")).toMatchObject([
       { kind: "paragraph", tokens: [{ kind: "text", value: "First." }] },
       { kind: "bullet", tokens: [{ kind: "text", value: "one" }] },
       { kind: "bullet", tokens: [{ kind: "text", value: "two" }] },
@@ -57,27 +57,10 @@ describe("parseTextBlock", () => {
   });
 
   it("drops blank lines, and keeps a dash that is not a bullet", () => {
-    expect(parseTextBlock("a\n\n\n-b")).toEqual([
+    expect(parseTextBlock("a\n\n\n-b")).toMatchObject([
       { kind: "paragraph", tokens: [{ kind: "text", value: "a" }] },
       { kind: "paragraph", tokens: [{ kind: "text", value: "-b" }] },
     ]);
-  });
-});
-
-describe("splitGaps", () => {
-  it("marks the words in braces", () => {
-    expect(splitGaps("Ich gebe {dem} Mann {das} Buch")).toEqual([
-      { value: "Ich gebe ", gap: false },
-      { value: "dem", gap: true },
-      { value: " Mann ", gap: false },
-      { value: "das", gap: true },
-      { value: " Buch", gap: false },
-    ]);
-  });
-
-  it("leaves an unclosed or empty brace as text", () => {
-    expect(splitGaps("a {b")).toEqual([{ value: "a {b", gap: false }]);
-    expect(splitGaps("a {} b")).toEqual([{ value: "a {} b", gap: false }]);
   });
 });
 
@@ -86,5 +69,101 @@ describe("plainText", () => {
     expect(plainText("**Dativ** und *Akkusativ*, siehe [[Cases]]: {dem}")).toBe(
       "Dativ und Akkusativ, siehe Cases: dem",
     );
+  });
+
+  it("leaves out highlight markers", () => {
+    expect(plainText("==y:**Dativ**== und ==b:{dem}==")).toBe("Dativ und dem");
+  });
+});
+
+/** Every leaf, including those inside highlights. */
+function leaves(tokens: InlineToken[]): LeafToken[] {
+  return tokens.flatMap((t) => (t.kind === "highlight" ? leaves(t.tokens) : [t]));
+}
+
+/**
+ * The contract the selection toolbar stands on: a leaf's words sit in the
+ * source exactly where `at` says, inside the span `from` and `to` give.
+ */
+function expectPositions(source: string, tokens: InlineToken[]) {
+  for (const leaf of leaves(tokens)) {
+    const words = shownText(leaf);
+    expect(source.slice(leaf.at, leaf.at + words.length)).toBe(words);
+    expect(source.slice(leaf.from, leaf.to)).toContain(words);
+  }
+}
+
+describe("positions", () => {
+  it("records where every token's words sit in the source", () => {
+    const source = "Der **Dativ**, *wem*, [[ Cases ]] und [[Dativ| dem ]] ==g:hier **fett**==.";
+    expectPositions(source, parseInline(source));
+  });
+
+  it("counts from the start of the whole block, past bullets and blank lines", () => {
+    const source = "Erst.\n\n- **eins** und [[zwei]]\nDrei ==y:vier==";
+    expectPositions(source, parseTextBlock(source).flatMap((line) => line.tokens));
+  });
+
+  it("records gaps in a sentence", () => {
+    const source = "Ich gebe ==b:{dem} Mann== das Buch";
+    expectPositions(source, parseInline(source, "sentence"));
+  });
+});
+
+describe("highlights", () => {
+  it("reads a highlight and the markup inside it", () => {
+    expect(parseInline("a ==y:**b** c== d")).toMatchObject([
+      { kind: "text", value: "a " },
+      {
+        kind: "highlight",
+        colour: "yellow",
+        from: 2,
+        to: 15,
+        tokens: [
+          { kind: "bold", value: "b" },
+          { kind: "text", value: " c" },
+        ],
+      },
+      { kind: "text", value: " d" },
+    ]);
+  });
+
+  it("reads every colour", () => {
+    const colours = parseInline("==y:a== ==g:b== ==b:c== ==p:d==").flatMap((t) => (t.kind === "highlight" ? [t.colour] : []));
+    expect(colours).toEqual(["yellow", "green", "blue", "purple"]);
+  });
+
+  it("leaves anything that is not a highlight as typed", () => {
+    for (const text of ["a == b", "x==y", "==y:==", "==q:word==", "==y:open"]) {
+      const tokens = parseInline(text);
+      expect(tokens.some((t) => t.kind === "highlight")).toBe(false);
+      expect(leaves(tokens).map(shownText).join("")).toBe(text);
+    }
+  });
+
+  it("takes no links or bold in a translation, only highlights", () => {
+    expect(parseInline("the ==g:**man**== [[x]]", "plain")).toMatchObject([
+      { kind: "text", value: "the " },
+      { kind: "highlight", tokens: [{ kind: "text", value: "**man**" }] },
+      { kind: "text", value: " [[x]]" },
+    ]);
+  });
+});
+
+describe("gaps in a sentence", () => {
+  it("marks the words in braces", () => {
+    expect(parseInline("Ich gebe {dem} Mann {das} Buch", "sentence")).toMatchObject([
+      { kind: "text", value: "Ich gebe " },
+      { kind: "gap", value: "dem" },
+      { kind: "text", value: " Mann " },
+      { kind: "gap", value: "das" },
+      { kind: "text", value: " Buch" },
+    ]);
+  });
+
+  it("leaves an unclosed or empty brace as text, and reads no links or bold", () => {
+    expect(parseInline("a {b", "sentence")).toMatchObject([{ kind: "text", value: "a {b" }]);
+    expect(parseInline("a {} b", "sentence")).toMatchObject([{ kind: "text", value: "a {} b" }]);
+    expect(parseInline("[[a]] **b**", "sentence")).toMatchObject([{ kind: "text", value: "[[a]] **b**" }]);
   });
 });
