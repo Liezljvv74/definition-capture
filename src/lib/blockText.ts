@@ -178,6 +178,23 @@ export function parseTextBlock(text: string): TextLine[] {
   return lines;
 }
 
+/**
+ * The text cut at its highlights' markers, every character kept, for Edit
+ * mode, which shows the markers faintly and tints what they hold. The whole
+ * text at once: a highlight never crosses a line, so lines need no splitting.
+ */
+export function highlightRuns(text: string): { text: string; marker?: true; colour?: HighlightColour }[] {
+  return text.split(HIGHLIGHT).flatMap((piece, i) => {
+    if (!piece) return [];
+    if (i % 2 === 0) return [{ text: piece }];
+    return [
+      { text: piece.slice(0, 4), marker: true as const },
+      { text: piece.slice(4, -2), colour: COLOUR_BY_CODE[piece[2]] },
+      { text: "==", marker: true as const },
+    ];
+  });
+}
+
 function shown(tokens: InlineToken[]): string {
   return tokens.map((t) => (t.kind === "highlight" ? shown(t.tokens) : shownText(t))).join("");
 }

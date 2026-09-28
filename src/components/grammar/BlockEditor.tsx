@@ -3,6 +3,7 @@
 import { useId } from "react";
 
 import { wideTableClass } from "@/components/grammar/BlockView";
+import { MarkedField } from "@/components/grammar/MarkedField";
 
 import {
   MAX_TABLE_COLUMNS,
@@ -87,11 +88,15 @@ function TextFields({ block, onChange, inputId }: { block: TextBlock; onChange: 
       <label htmlFor={inputId} className="sr-only">
         Text
       </label>
-      <textarea
+      {/* field-sizing: content grows the box with its text instead of scrolling it,
+          since a scrollbar here that the highlight copy behind it lacks would shift
+          where lines wrap between the two, throwing the tinting out of place. */}
+      <MarkedField
         id={inputId}
-        className="field min-h-28 font-mono text-sm"
+        multiline
+        className="field min-h-28 font-mono text-sm [field-sizing:content]"
         value={block.text}
-        onChange={(event) => onChange({ ...block, text: event.target.value })}
+        onChange={(text) => onChange({ ...block, text })}
         placeholder="Explain the rule. **bold**, *italic*, lines starting with - for bullets, [[Name]] to link."
       />
     </>
@@ -114,13 +119,13 @@ function TableFields({ block, onChange, inputId }: { block: TableBlock; onChange
                       <label htmlFor={`${inputId}-${r}-${c}`} className="sr-only">
                         {`Row ${r + 1}, column ${c + 1}`}
                       </label>
-                      <input
+                      <MarkedField
                         id={`${inputId}-${r}-${c}`}
                         // Sized to what is typed, so a long cell widens its column
                         // rather than hiding its end inside a fixed-width box.
                         className={`field min-w-24 max-w-xl py-1 [field-sizing:content] ${isHeader ? "font-semibold" : ""}`}
                         value={cell}
-                        onChange={(event) => onChange(withCell(block, r, c, event.target.value))}
+                        onChange={(value) => onChange(withCell(block, r, c, value))}
                       />
                     </td>
                   );
@@ -155,13 +160,13 @@ function ExampleFields({ block, onChange, inputId }: { block: ExampleBlock; onCh
         <label htmlFor={`${inputId}-sentence`} className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
           Sentence. Put braces round the words the rule is about: Ich gebe {"{dem}"} Mann das Buch
         </label>
-        <input id={`${inputId}-sentence`} className="field" value={block.sentence} onChange={(event) => onChange({ ...block, sentence: event.target.value })} />
+        <MarkedField id={`${inputId}-sentence`} className="field" value={block.sentence} onChange={(sentence) => onChange({ ...block, sentence })} />
       </div>
       <div>
         <label htmlFor={`${inputId}-translation`} className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
           Translation
         </label>
-        <input id={`${inputId}-translation`} className="field" value={block.translation} onChange={(event) => onChange({ ...block, translation: event.target.value })} />
+        <MarkedField id={`${inputId}-translation`} className="field" value={block.translation} onChange={(translation) => onChange({ ...block, translation })} />
       </div>
     </div>
   );

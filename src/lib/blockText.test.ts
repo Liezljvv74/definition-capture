@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseInline, parseTextBlock, plainText, shownText, type InlineToken, type LeafToken } from "@/lib/blockText";
+import { highlightRuns, parseInline, parseTextBlock, plainText, shownText, type InlineToken, type LeafToken } from "@/lib/blockText";
 
 /**
  * The markup is deliberately tiny: bold, italic, bullets and `[[links]]`.
@@ -147,6 +147,21 @@ describe("highlights", () => {
       { kind: "highlight", tokens: [{ kind: "text", value: "**man**" }] },
       { kind: "text", value: " [[x]]" },
     ]);
+  });
+});
+
+describe("highlightRuns", () => {
+  it("cuts the text at its markers, keeping every character", () => {
+    expect(highlightRuns("a ==g:b== c")).toEqual([
+      { text: "a " },
+      { text: "==g:", marker: true },
+      { text: "b", colour: "green" },
+      { text: "==", marker: true },
+      { text: " c" },
+    ]);
+    for (const text of ["", "x == y", "==y:a==\n- ==b:c==", "==y:open"]) {
+      expect(highlightRuns(text).map((run) => run.text).join("")).toBe(text);
+    }
   });
 });
 
