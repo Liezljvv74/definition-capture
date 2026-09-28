@@ -129,6 +129,23 @@ export function getRules(): Rule[] {
 /** Case-insensitive, and blind to how an accent is encoded, the way every name in the app is matched. */
 export const findByTitle = store.findByName;
 
+/**
+ * The characters a link's markup itself uses. Exported so anything else that
+ * offers a name to link to, such as `LinkToDialog`, can leave the same names
+ * out that `titleProblem` below would refuse, rather than a second copy of
+ * the pattern drifting from this one.
+ */
+export const LINK_CHARS = /[|[\]]/;
+
+/**
+ * A message when `title` cannot be linked to, else null. A link is written
+ * `[[Name]]` or `[[Name|words]]`, so a name holding `|`, `[` or `]` would
+ * either break the markup or be read as a different name than the one saved.
+ */
+export function titleProblem(title: string): string | null {
+  return LINK_CHARS.test(title) ? "A title cannot contain |, [ or ], because links are written with them." : null;
+}
+
 /* --------------------------------------------------------------- mutations */
 
 /** A new, empty rule; the reader fills it in on its own page. */

@@ -1,22 +1,59 @@
 /**
- * The markup a text block accepts, and nothing more:
+ * The markup a rule's text accepts, and nothing more:
  *
- *   **bold**   *italic*   [[Name]] links   lines starting with "- " as bullets
+ *   **bold**   *italic*   [[Name]] or [[Name|shown words]] links
+ *   ==y:highlighted words==  (y yellow, g green, b blue, p purple)
+ *   lines starting with "- " as bullets   {gap} in an example sentence
  *
  * Rendered by the app's own code rather than a markdown library, because this
  * set does not justify one. The one rule that matters is that anything the
  * parser does not recognise, including markup that is never closed, comes out
  * as the characters typed: a star left open must not swallow a paragraph.
+ *
+ * Every token records where it sits in the text it came from: `from` and `to`
+ * span its markup, and a token that shows words records in `at` where those
+ * words start. That is what lets a selection made on the rendered page be
+ * mapped back onto the text to highlight or link it (`selectionEdits.ts`),
+ * without the stored text carrying offsets that editing would make drift.
  */
 
+import { linkParts } from "@/lib/links";
+
+export type HighlightColour = "yellow" | "green" | "blue" | "purple";
+
+/** The letter a colour is written as, `==y:…==`. One letter, since Edit mode shows it. */
+export const HIGHLIGHT_CODE: Record<HighlightColour, string> = { yellow: "y", green: "g", blue: "b", purple: "p" };
+// The inverse of HIGHLIGHT_CODE, derived rather than hand-written a second
+// time, so a colour added there cannot leave this one out of step with it.
+const COLOUR_BY_CODE: Record<string, HighlightColour> = Object.fromEntries(
+  Object.entries(HIGHLIGHT_CODE).map(([colour, code]) => [code, colour]),
+) as Record<string, HighlightColour>;
+/** Every colour, in the order the toolbar offers them. */
+export const HIGHLIGHT_COLOURS = Object.keys(HIGHLIGHT_CODE) as HighlightColour[];
+
+type Span = { from: number; to: number };
+
 export type InlineToken =
-  | { kind: "text"; value: string }
-  | { kind: "bold"; value: string }
-  | { kind: "italic"; value: string }
+  | ({ kind: "text"; value: string; at: number } & Span)
+  | ({ kind: "bold"; value: string; at: number } & Span)
+  | ({ kind: "italic"; value: string; at: number } & Span)
   /** A name, resolved against the link index when shown; see `RefText`. */
-  | { kind: "link"; name: string };
+  | ({ kind: "link"; name: string; label?: string; at: number } & Span)
+  /** A word practice will blank out, `{dem}`; only in an example sentence. */
+  | ({ kind: "gap"; value: string; at: number } & Span)
+  | ({ kind: "highlight"; colour: HighlightColour; tokens: InlineToken[] } & Span);
+
+/** A token that shows words of its own, as opposed to a highlight around others. */
+export type LeafToken = Exclude<InlineToken, { kind: "highlight" }>;
 
 export type TextLine = { kind: "paragraph" | "bullet"; tokens: InlineToken[] };
+
+/**
+ * What a field accepts. `rich` is a text block or a table cell; `sentence` is
+ * an example's sentence, which has gaps and, as before, no links or
+ * emphasis; `plain` is its translation. All three take highlights.
+ */
+export type InlineMode = "rich" | "sentence" | "plain";
 
 /**
  * The same shape as `NAME_LINK` in `parseRef.ts`: a link never spans a line
@@ -31,83 +68,149 @@ const LINK = /(\[\[[^[\]\n]+\]\])/;
  * arithmetic rather than markup.
  */
 const EMPHASIS = /(\*\*[^*\n]+\*\*|\*[^*\s\n](?:[^*\n]*[^*\s\n])?\*)/;
+const GAP = /(\{[^{}\n]+\})/;
+/**
+ * `==y:words==`: never across a line, never empty, never nested, and closed
+ * by the first `==` after it opens. Read before anything else, so a highlight
+ * can hold bold, a link or a gap, which are read inside it. `[ygbp]` must
+ * list the same letters as `HIGHLIGHT_CODE`'s values, or a colour added there
+ * would never match here.
+ */
+const HIGHLIGHT = /(==[ygbp]:(?:(?!==)[^\n])+==)/;
 
-function pushText(tokens: InlineToken[], value: string): void {
-  if (!value) return;
-  const last = tokens[tokens.length - 1];
-  if (last && last.kind === "text") last.value += value;
-  else tokens.push({ kind: "text", value });
+/** The words a leaf shows: a link's label if it has one, else its name. */
+export function shownText(token: LeafToken): string {
+  return token.kind === "link" ? token.label || token.name : token.value;
 }
 
-export function parseInline(text: string): InlineToken[] {
-  const tokens: InlineToken[] = [];
-  text.split(LINK).forEach((segment, i) => {
-    if (!segment) return;
-    // `String.split` with a capturing pattern alternates plain text and the
-    // matched groups themselves, so the item at an odd index is exactly what
-    // LINK or EMPHASIS matched already; testing it again, as this used to,
-    // could only ever repeat the same answer the split had already given.
-    if (i % 2 === 1) {
-      const name = segment.slice(2, -2).trim();
-      if (name) tokens.push({ kind: "link", name });
-      else pushText(tokens, segment);
-      return;
-    }
-    segment.split(EMPHASIS).forEach((part, j) => {
-      if (!part) return;
-      if (j % 2 !== 1) {
-        pushText(tokens, part);
-      } else if (part.startsWith("**")) {
-        tokens.push({ kind: "bold", value: part.slice(2, -2) });
-      } else {
-        tokens.push({ kind: "italic", value: part.slice(1, -1) });
-      }
-    });
+/**
+ * `String.split` with a one-group pattern, each piece with where it starts.
+ * The split alternates plain text and matches, so a piece at an odd index is
+ * exactly what the pattern matched, and needs no second test.
+ */
+function pieces(text: string, pattern: RegExp, base: number): { value: string; at: number; match: boolean }[] {
+  let at = base;
+  return text.split(pattern).map((value, i) => {
+    const piece = { value, at, match: i % 2 === 1 };
+    at += value.length;
+    return piece;
   });
+}
+
+function pushText(tokens: InlineToken[], value: string, at: number): void {
+  if (!value) return;
+  const last = tokens[tokens.length - 1];
+  if (last && last.kind === "text" && last.to === at) {
+    last.value += value;
+    last.to += value.length;
+  } else {
+    tokens.push({ kind: "text", value, at, from: at, to: at + value.length });
+  }
+}
+
+/** One line of a field, with `base` the offset of its first character in the whole field. */
+export function parseInline(text: string, mode: InlineMode = "rich", base = 0): InlineToken[] {
+  const tokens: InlineToken[] = [];
+  for (const piece of pieces(text, HIGHLIGHT, base)) {
+    if (!piece.value) continue;
+    if (piece.match) {
+      tokens.push({
+        kind: "highlight",
+        colour: COLOUR_BY_CODE[piece.value[2]],
+        tokens: parseMarkup(piece.value.slice(4, -2), mode, piece.at + 4, []),
+        from: piece.at,
+        to: piece.at + piece.value.length,
+      });
+    } else {
+      parseMarkup(piece.value, mode, piece.at, tokens);
+    }
+  }
+  return tokens;
+}
+
+/** Everything but highlights, appended to `tokens`. */
+function parseMarkup(text: string, mode: InlineMode, base: number, tokens: InlineToken[]): InlineToken[] {
+  if (mode === "plain") {
+    pushText(tokens, text, base);
+    return tokens;
+  }
+  for (const piece of pieces(text, mode === "sentence" ? GAP : LINK, base)) {
+    if (!piece.value) continue;
+    const to = piece.at + piece.value.length;
+    if (piece.match && mode === "sentence") {
+      tokens.push({ kind: "gap", value: piece.value.slice(1, -1), at: piece.at + 1, from: piece.at, to });
+    } else if (piece.match) {
+      const inner = piece.value.slice(2, -2);
+      const { name, label } = linkParts(inner);
+      // The shown words start where the trimmed label or name does, which
+      // `indexOf` finds: only spaces stand before them in their part.
+      if (!name) pushText(tokens, piece.value, piece.at);
+      else if (label) tokens.push({ kind: "link", name, label, at: piece.at + 2 + inner.indexOf(label, inner.indexOf("|") + 1), from: piece.at, to });
+      else tokens.push({ kind: "link", name, at: piece.at + 2 + inner.indexOf(name), from: piece.at, to });
+    } else if (mode === "sentence") {
+      pushText(tokens, piece.value, piece.at);
+    } else {
+      for (const part of pieces(piece.value, EMPHASIS, piece.at)) {
+        if (!part.value) continue;
+        const end = part.at + part.value.length;
+        if (!part.match) pushText(tokens, part.value, part.at);
+        else if (part.value.startsWith("**")) tokens.push({ kind: "bold", value: part.value.slice(2, -2), at: part.at + 2, from: part.at, to: end });
+        else tokens.push({ kind: "italic", value: part.value.slice(1, -1), at: part.at + 1, from: part.at, to: end });
+      }
+    }
+  }
   return tokens;
 }
 
 /**
  * Lines become paragraphs, a line starting with "- " becomes a bullet, and
  * blank lines are dropped: each line is already its own block on screen, so
- * an empty one would only be a gap.
+ * an empty one would only be a gap. Offsets count from the start of the
+ * whole text, so a selection on any line maps onto the block's one string.
  */
 export function parseTextBlock(text: string): TextLine[] {
-  return text
-    .split("\n")
-    .filter((line) => line.trim() !== "")
-    .map((line) =>
-      line.startsWith("- ")
-        ? { kind: "bullet", tokens: parseInline(line.slice(2)) }
-        : { kind: "paragraph", tokens: parseInline(line) },
-    );
+  const lines: TextLine[] = [];
+  let start = 0;
+  for (const line of text.split("\n")) {
+    if (line.trim() !== "") {
+      lines.push(
+        line.startsWith("- ")
+          ? { kind: "bullet", tokens: parseInline(line.slice(2), "rich", start + 2) }
+          : { kind: "paragraph", tokens: parseInline(line, "rich", start) },
+      );
+    }
+    start += line.length + 1;
+  }
+  return lines;
 }
 
-/** The gaps in an example, `{dem}`, split out from the words around them. */
-export function splitGaps(sentence: string): { value: string; gap: boolean }[] {
-  const parts: { value: string; gap: boolean }[] = [];
-  for (const segment of sentence.split(/(\{[^{}\n]+\})/)) {
-    if (!segment) continue;
-    if (segment.startsWith("{") && segment.endsWith("}") && segment.length > 2) {
-      parts.push({ value: segment.slice(1, -1), gap: true });
-    } else {
-      const last = parts[parts.length - 1];
-      if (last && !last.gap) last.value += segment;
-      else parts.push({ value: segment, gap: false });
-    }
-  }
-  return parts;
+/**
+ * The text cut at its highlights' markers, every character kept, for Edit
+ * mode, which shows the markers faintly and tints what they hold. The whole
+ * text at once: a highlight never crosses a line, so lines need no splitting.
+ */
+export function highlightRuns(text: string): { text: string; marker?: true; colour?: HighlightColour }[] {
+  return text.split(HIGHLIGHT).flatMap((piece, i) => {
+    if (!piece) return [];
+    if (i % 2 === 0) return [{ text: piece }];
+    return [
+      { text: piece.slice(0, 4), marker: true as const },
+      { text: piece.slice(4, -2), colour: COLOUR_BY_CODE[piece[2]] },
+      { text: "==", marker: true as const },
+    ];
+  });
+}
+
+/** The words a set of tokens shows, recursed into a highlight's own tokens rather than read off the highlight itself, which shows nothing on its own. */
+export function shownWords(tokens: InlineToken[]): string {
+  return tokens.map((t) => (t.kind === "highlight" ? shownWords(t.tokens) : shownText(t))).join("");
 }
 
 /** The words without their markup, for a spreadsheet cell or a search. */
 export function plainText(text: string): string {
   return text
     .split("\n")
-    .map((line) =>
-      parseInline(line)
-        .map((token) => (token.kind === "link" ? token.name : token.value))
-        .join(""),
-    )
+    .map((line) => shownWords(parseInline(line)))
     .join("\n")
     .replace(/\{([^{}\n]+)\}/g, "$1");
 }

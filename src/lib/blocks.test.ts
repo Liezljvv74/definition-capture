@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  flattenBlocks,
   MAX_BLOCKS,
   MAX_TABLE_COLUMNS,
   moveBlock,
@@ -133,5 +134,17 @@ describe("flattenBlocks", () => {
       { kind: "example", id: "e", sentence: "Ich gebe {dem} Mann", translation: "" },
     ]);
     expect(text).toBe("Ich gebe dem Mann");
+  });
+});
+
+describe("flattenBlocks, markup", () => {
+  it("leaves highlight markers and link labels out of the spreadsheet", () => {
+    const flat = flattenBlocks([
+      { kind: "example", id: "e", sentence: "==y:{dem}== Mann", translation: "the ==g:man==" },
+      { kind: "text", id: "t", text: "siehe [[Dativ|den Fall]]" },
+    ]);
+    expect(flat).toContain("dem Mann (the man)");
+    expect(flat).toContain("siehe den Fall");
+    expect(flat).not.toContain("==");
   });
 });

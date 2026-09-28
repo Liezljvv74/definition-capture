@@ -170,3 +170,13 @@ describe("parseRef — punctuation and spacing", () => {
     ]);
   });
 });
+
+describe("parseRef, labelled links", () => {
+  it("reads a labelled link as its target, shown by its label", () => {
+    expect(parseRef("see [[Dativ|dem]]")).toEqual([
+      { kind: "text", value: "see " },
+      { kind: "word", name: "Dativ", label: "dem" },
+    ]);
+    expect(parseRef("[[|dem]]")).toEqual([{ kind: "text", value: "[[|dem]]" }]);
+  });
+});

@@ -3,6 +3,7 @@
  * links. Nothing is required — plain notes stay plain.
  *
  *   [[Closure]]                 → the word called "Closure"
+ *   [[Dativ|dem]]               → the same, shown as "dem"
  *   /word?id=abc123, /          → a page inside this app
  *   https://example.com/docs    → any web page, opened in a new tab
  *   #definition                 → a spot on the page you are already on
@@ -10,10 +11,12 @@
  * These can be mixed freely with ordinary words in one field.
  */
 
+import { linkParts } from "@/lib/links";
+
 export type RefToken =
   | { kind: "text"; value: string }
   /** A word by name; resolved to an id at render time. */
-  | { kind: "word"; name: string }
+  | { kind: "word"; name: string; /** The words shown instead of the name, from `[[Name|words]]`. */ label?: string }
   | { kind: "url"; href: string; label: string }
   | { kind: "internal"; href: string; label: string }
   | { kind: "anchor"; href: string; label: string };
@@ -76,8 +79,8 @@ export function parseRef(text: string): RefToken[] {
     if (!segment) continue;
 
     if (NAME_LINK_ONLY.test(segment)) {
-      const name = segment.slice(2, -2).trim();
-      if (name) tokens.push({ kind: "word", name });
+      const { name, label } = linkParts(segment.slice(2, -2));
+      if (name) tokens.push(label ? { kind: "word", name, label } : { kind: "word", name });
       else appendText(tokens, segment);
       continue;
     }

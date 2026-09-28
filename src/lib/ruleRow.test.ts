@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createRule, findByTitle, fromRuleRow, parseRule, toRulePayload, toWireRule } from "@/lib/rules";
+import { createRule, findByTitle, fromRuleRow, parseRule, titleProblem, toRulePayload, toWireRule } from "@/lib/rules";
 import type { Rule } from "@/lib/types";
 
 vi.mock("@/lib/supabaseClient", () => ({ getSupabase: () => null }));
@@ -85,6 +85,19 @@ describe("the backup shape", () => {
     // one bad row from taking the rest of the file down with it.
     expect(parseRule({ id: "x", title: "Dative", topic: " " })).toBeNull();
     expect(parseRule({ id: "x", title: "Dative" })).toBeNull();
+  });
+});
+
+describe("titleProblem", () => {
+  it("is null for a title with none of the link characters", () => {
+    expect(titleProblem("Dativ")).toBeNull();
+  });
+
+  it("names the character for a title holding |, [ or ]", () => {
+    const message = "A title cannot contain |, [ or ], because links are written with them.";
+    expect(titleProblem("a|b")).toBe(message);
+    expect(titleProblem("a[b")).toBe(message);
+    expect(titleProblem("a]b")).toBe(message);
   });
 });
 

@@ -5,21 +5,41 @@ import { useId, useState } from "react";
 
 import { Modal } from "@/components/Modal";
 import { TopicSelect } from "@/components/grammar/TopicSelect";
-import { createRule, findByTitle } from "@/lib/rules";
+import { createRule, findByTitle, titleProblem } from "@/lib/rules";
+import type { Rule } from "@/lib/types";
 
 /**
  * Only the title and the topic: a rule is written on its own page, where
- * there is room, so this makes the empty rule and goes there in Edit mode.
+ * there is room. From the Grammar page it makes the empty rule and opens it
+ * in Edit mode; from a selection in the reading view it hands the new rule
+ * back instead, and the reader stays on the page they were reading.
  */
-export function AddRuleDialog({ topics, onClose }: { topics: readonly string[]; onClose: () => void }) {
+export function AddRuleDialog({
+  topics,
+  initialTitle = "",
+  initialTopic = "",
+  onClose,
+  onCreated,
+}: {
+  topics: readonly string[];
+  initialTitle?: string;
+  initialTopic?: string;
+  onClose: () => void;
+  /** Given the new rule instead of opening it, for a rule made from a selection, whose reader stays where they are. */
+  onCreated?: (rule: Rule) => void;
+}) {
   const router = useRouter();
   const inputId = useId();
-  const [title, setTitle] = useState("");
-  const [topic, setTopic] = useState("");
+  const [title, setTitle] = useState(initialTitle);
+  const [topic, setTopic] = useState(initialTopic);
 
   const clash = findByTitle(title);
+  const badTitle = titleProblem(title);
   const problem =
-    clash ? `There is already a rule called “${clash.title}”.` : topic.trim() === "" ? "A rule needs a topic." : null;
+    clash ? `There is already a rule called “${clash.title}”.`
+    : badTitle ? badTitle
+    : topic.trim() === "" ? "A rule needs a topic."
+    : null;
   const ready = title.trim() !== "" && problem === null;
 
   return (
@@ -30,8 +50,9 @@ export function AddRuleDialog({ topics, onClose }: { topics: readonly string[]; 
           event.preventDefault();
           if (!ready) return;
           const rule = createRule({ title, topic });
+          if (onCreated) onCreated(rule);
+          else router.push(`/rule?id=${rule.id}&edit=1`);
           onClose();
-          router.push(`/rule?id=${rule.id}&edit=1`);
         }}
       >
         <div>
@@ -47,7 +68,7 @@ export function AddRuleDialog({ topics, onClose }: { topics: readonly string[]; 
         )}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary" disabled={!ready}>Create and write it</button>
+          <button type="submit" className="btn btn-primary" disabled={!ready}>{onCreated ? "Create" : "Create and write it"}</button>
         </div>
       </form>
     </Modal>
