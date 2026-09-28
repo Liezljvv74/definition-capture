@@ -41,14 +41,27 @@ export function MarkedField({
     behind.current.scrollLeft = event.currentTarget.scrollLeft;
   };
   const shared = `${className} ${multiline ? "whitespace-pre-wrap break-words" : "whitespace-pre"}`;
-  const own = `${shared} relative ${marked ? "bg-transparent! text-transparent! caret-slate-900 dark:caret-slate-100" : ""}`;
+  // `block`: a textarea or input is inline-block by default and sits on the
+  // wrapper's baseline, which leaves the wrapper (and so the absolutely
+  // positioned copy behind it) a few pixels taller than the box; `block`
+  // makes the wrapper exactly the box's own height. `resize-y` on the
+  // textarea keeps a drag narrowing it from giving it a width the copy
+  // does not share, which would wrap the two at different points and pull
+  // a tint off its words. `transition-none` while marked stops the box's
+  // letters fading out over the copy's own instant appearance, which
+  // otherwise shows the text doubled for a moment.
+  const own = `${shared} relative block ${multiline ? "resize-y" : ""} ${marked ? "bg-transparent! text-transparent! caret-slate-900 dark:caret-slate-100 transition-none" : ""}`;
 
   return (
     <div className="relative">
       <div
         ref={behind}
         aria-hidden="true"
-        className={`${shared} pointer-events-none absolute inset-0 overflow-hidden border-transparent! ${marked ? "" : "invisible"}`}
+        // `shadow-none!` because `.field`'s own shadow would otherwise be
+        // drawn twice, once for the copy and once for the box on top of it.
+        // `transition-none` so the copy never fades in behind a box that is
+        // still fading its own letters out.
+        className={`${shared} pointer-events-none absolute inset-0 overflow-hidden border-transparent! shadow-none! transition-none ${marked ? "" : "invisible"}`}
       >
         {runs.map((run, index) =>
           run.marker ? (
