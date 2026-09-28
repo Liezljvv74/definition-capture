@@ -23,7 +23,11 @@ export type HighlightColour = "yellow" | "green" | "blue" | "purple";
 
 /** The letter a colour is written as, `==y:…==`. One letter, since Edit mode shows it. */
 export const HIGHLIGHT_CODE: Record<HighlightColour, string> = { yellow: "y", green: "g", blue: "b", purple: "p" };
-const COLOUR_BY_CODE: Record<string, HighlightColour> = { y: "yellow", g: "green", b: "blue", p: "purple" };
+// The inverse of HIGHLIGHT_CODE, derived rather than hand-written a second
+// time, so a colour added there cannot leave this one out of step with it.
+const COLOUR_BY_CODE: Record<string, HighlightColour> = Object.fromEntries(
+  Object.entries(HIGHLIGHT_CODE).map(([colour, code]) => [code, colour]),
+) as Record<string, HighlightColour>;
 /** Every colour, in the order the toolbar offers them. */
 export const HIGHLIGHT_COLOURS = Object.keys(HIGHLIGHT_CODE) as HighlightColour[];
 
@@ -68,7 +72,9 @@ const GAP = /(\{[^{}\n]+\})/;
 /**
  * `==y:words==`: never across a line, never empty, never nested, and closed
  * by the first `==` after it opens. Read before anything else, so a highlight
- * can hold bold, a link or a gap, which are read inside it.
+ * can hold bold, a link or a gap, which are read inside it. `[ygbp]` must
+ * list the same letters as `HIGHLIGHT_CODE`'s values, or a colour added there
+ * would never match here.
  */
 const HIGHLIGHT = /(==[ygbp]:(?:(?!==)[^\n])+==)/;
 
@@ -195,15 +201,16 @@ export function highlightRuns(text: string): { text: string; marker?: true; colo
   });
 }
 
-function shown(tokens: InlineToken[]): string {
-  return tokens.map((t) => (t.kind === "highlight" ? shown(t.tokens) : shownText(t))).join("");
+/** The words a set of tokens shows, recursed into a highlight's own tokens rather than read off the highlight itself, which shows nothing on its own. */
+export function shownWords(tokens: InlineToken[]): string {
+  return tokens.map((t) => (t.kind === "highlight" ? shownWords(t.tokens) : shownText(t))).join("");
 }
 
 /** The words without their markup, for a spreadsheet cell or a search. */
 export function plainText(text: string): string {
   return text
     .split("\n")
-    .map((line) => shown(parseInline(line)))
+    .map((line) => shownWords(parseInline(line)))
     .join("\n")
     .replace(/\{([^{}\n]+)\}/g, "$1");
 }

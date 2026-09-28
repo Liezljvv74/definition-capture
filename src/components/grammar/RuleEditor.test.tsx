@@ -41,6 +41,12 @@ describe("RuleEditor", () => {
     expect(markup).not.toContain("A rule needs a topic.");
     expect(markup).not.toMatch(/<button type="submit"[^>]*disabled=""/);
   });
+
+  it("disables Save and shows the reason when the title holds a link character", () => {
+    const markup = html({ ...rule, title: "Dative|Akkusativ" });
+    expect(markup).toContain("A title cannot contain |, [ or ], because links are written with them.");
+    expect(markup).toMatch(/<button type="submit"[^>]*disabled=""/);
+  });
 });
 
 describe("RuleEditor topic", () => {

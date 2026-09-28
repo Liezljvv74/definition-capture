@@ -15,7 +15,7 @@ import {
   HIGHLIGHT_CODE,
   parseInline,
   parseTextBlock,
-  shownText,
+  shownWords,
   type HighlightColour,
   type InlineMode,
   type InlineToken,
@@ -116,20 +116,6 @@ function highlightsIn(tokens: InlineToken[], start: number, end: number): Highli
 }
 
 /**
- * The words a field's tokens show: a leaf's `shownText`, recursed into a
- * highlight's own tokens rather than read off the highlight itself, which
- * shows nothing on its own. Every highlight edit reparses its result and
- * compares this against the words shown before the edit, which is the one
- * check that catches a marker closed in the wrong place or a line that
- * stopped being a bullet: either changes what the field reads as, and no
- * string heuristic about `==` or `=` at the edges covers every way that can
- * happen.
- */
-function shown(tokens: InlineToken[]): string {
-  return tokens.map((t) => (t.kind === "highlight" ? shown(t.tokens) : shownText(t))).join("");
-}
-
-/**
  * The text with the selection highlighted in `colour`, or null when that
  * cannot be done cleanly. A selection that touches one highlight recolours
  * all of it. One that touches bold, a link or a gap takes the whole of it.
@@ -150,7 +136,7 @@ export function addHighlight(text: string, field: Field, selected: Selected, col
   if (touched.length === 1) {
     const code = touched[0].from + 2;
     const result = text.slice(0, code) + HIGHLIGHT_CODE[colour] + text.slice(code + 1);
-    return shown(tokensOf(result, field)) === shown(tokens) ? result : null;
+    return shownWords(tokensOf(result, field)) === shownWords(tokens) ? result : null;
   }
 
   for (const token of tokens) {
@@ -164,7 +150,7 @@ export function addHighlight(text: string, field: Field, selected: Selected, col
   const result = `${text.slice(0, start)}==${HIGHLIGHT_CODE[colour]}:${words}==${text.slice(end)}`;
   const resultTokens = tokensOf(result, field);
   const madeTheHighlight = resultTokens.some((t) => t.kind === "highlight" && t.from === start && t.to === end + 6);
-  return madeTheHighlight && shown(resultTokens) === shown(tokens) ? result : null;
+  return madeTheHighlight && shownWords(resultTokens) === shownWords(tokens) ? result : null;
 }
 
 /**
@@ -184,7 +170,7 @@ export function removeHighlight(text: string, field: Field, selected: Selected):
   for (const { from, to } of [...touched].reverse()) {
     result = result.slice(0, from) + result.slice(from + 4, to - 2) + result.slice(to);
   }
-  return shown(tokensOf(result, field)) === shown(tokens) ? result : null;
+  return shownWords(tokensOf(result, field)) === shownWords(tokens) ? result : null;
 }
 
 /**

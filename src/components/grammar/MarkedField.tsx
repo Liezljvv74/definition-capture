@@ -40,7 +40,15 @@ export function MarkedField({
     behind.current.scrollTop = event.currentTarget.scrollTop;
     behind.current.scrollLeft = event.currentTarget.scrollLeft;
   };
-  const shared = `${className} ${multiline ? "whitespace-pre-wrap break-words" : "whitespace-pre"}`;
+  // `[scrollbar-gutter:stable]` on the multiline box and its copy: the caller
+  // sizes a text block's textarea with `[field-sizing:content]`, which
+  // Firefox does not support, so there it keeps the height it was given and
+  // gains a scrollbar once its text overflows it, while the copy's
+  // `overflow-hidden` never grows one. A scrollbar narrows the content box it
+  // sits in, so without a gutter reserved on both, the textarea would wrap
+  // its words one column narrower than the copy behind it and the tint would
+  // drift off them.
+  const shared = `${className} ${multiline ? "whitespace-pre-wrap break-words [scrollbar-gutter:stable]" : "whitespace-pre"}`;
   // `block`: a textarea or input is inline-block by default and sits on the
   // wrapper's baseline, which leaves the wrapper (and so the absolutely
   // positioned copy behind it) a few pixels taller than the box; `block`

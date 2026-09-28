@@ -1,6 +1,6 @@
 # Design: grammar rules
 
-The design of record for the grammar feature. Stages 2 to 5 of the build order
+The design of record for the grammar feature. Stages 4 and 5 of the build order
 below are not built yet. It was worked out question by question before any code
 was written, because the first grammar page (added on 20 September, removed the
 next day in `fbaa483`) was taken out for want of a clear approach, not for want

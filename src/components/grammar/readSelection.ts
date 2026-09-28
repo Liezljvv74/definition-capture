@@ -30,7 +30,7 @@ export function readSelection(root: HTMLElement): { selected: Selected | CellSel
  * was a block's last child. All of those read as "no words", so a selection
  * that plainly ended mid-sentence would otherwise map to nothing. When the
  * end is an element at offset 0 that still has words in it, an empty cell
- * must not be pulled into the element before it, so it is left alone, the fix
+ * must not be pulled into the element before it, so it is left alone. The fix
  * is to walk back to the end of the text node just before that offset.
  */
 function endPoint(range: Range, root: HTMLElement): [Node, number] {

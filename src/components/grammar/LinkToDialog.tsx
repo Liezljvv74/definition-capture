@@ -5,13 +5,16 @@ import { useId, useState } from "react";
 import { Modal } from "@/components/Modal";
 import { KIND_LABEL, type LinkTarget } from "@/lib/links";
 import { suggestRefs } from "@/lib/refSuggestions";
+import { LINK_CHARS } from "@/lib/rules";
 
 /**
  * Searches every rule, verb table, word and phrase for what the selected
  * words should link to, starting from the words themselves, since they are
  * most often the name. The suggestion search the Ref field uses, so the two
- * offer the same names in the same order. A name holding a bar is left out:
- * `[[a|b]]` reads as the name "a" shown as "b".
+ * offer the same names in the same order. A name holding `|`, `[` or `]` is
+ * left out, the same characters `titleProblem` refuses in a title, because a
+ * link to one would either read back as a different name (`[[a|b]]` reads as
+ * the name "a" shown as "b") or end its own markup early.
  */
 export function LinkToDialog({
   targets,
@@ -29,7 +32,7 @@ export function LinkToDialog({
 }) {
   const inputId = useId();
   const [query, setQuery] = useState(words);
-  const found = suggestRefs(targets, query, [selfTitle], undefined, "rule").filter((s) => !s.name.includes("|"));
+  const found = suggestRefs(targets, query, [selfTitle], undefined, "rule").filter((s) => !LINK_CHARS.test(s.name));
 
   return (
     <Modal title="Link to" onClose={onClose}>
