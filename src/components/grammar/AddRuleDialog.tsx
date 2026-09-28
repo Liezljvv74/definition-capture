@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 
 import { Modal } from "@/components/Modal";
 import { TopicSelect } from "@/components/grammar/TopicSelect";
-import { createRule, findByTitle } from "@/lib/rules";
+import { createRule, findByTitle, titleProblem } from "@/lib/rules";
 import type { Rule } from "@/lib/types";
 
 /**
@@ -34,8 +34,12 @@ export function AddRuleDialog({
   const [topic, setTopic] = useState(initialTopic);
 
   const clash = findByTitle(title);
+  const badTitle = titleProblem(title);
   const problem =
-    clash ? `There is already a rule called “${clash.title}”.` : topic.trim() === "" ? "A rule needs a topic." : null;
+    clash ? `There is already a rule called “${clash.title}”.`
+    : badTitle ? badTitle
+    : topic.trim() === "" ? "A rule needs a topic."
+    : null;
   const ready = title.trim() !== "" && problem === null;
 
   return (

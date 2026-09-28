@@ -90,12 +90,18 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
    * Applies a link chosen from either dialog. Looked up by id rather than
    * closed over, because the block a dialog was opened against may have
    * changed (or gone) by the time the reader picks a name or finishes
-   * writing a new rule.
+   * writing a new rule. The range's offsets were measured against the text
+   * as it stood when the dialog opened; writing a new rule can take a while,
+   * so the field is checked to still hold those exact words at those exact
+   * offsets before splicing the link in, rather than risk cutting into text
+   * that has since shifted underneath them.
    */
   function link(chosen: { selected: Selected; range: LinkRange }, name: string) {
     const target = rule.blocks.find((candidate) => candidate.id === chosen.selected.blockId);
     const current = target ? fieldText(target, chosen.selected.field) : null;
-    if (target && current !== null) saveBlock(withFieldText(target, chosen.selected.field, applyLink(current, chosen.range, name)));
+    if (target && current !== null && current.slice(chosen.range.start, chosen.range.end) === chosen.range.words) {
+      saveBlock(withFieldText(target, chosen.selected.field, applyLink(current, chosen.range, name)));
+    }
   }
 
   const selected = shown?.selected;
