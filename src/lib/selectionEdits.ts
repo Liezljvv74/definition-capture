@@ -15,6 +15,7 @@ import {
   HIGHLIGHT_CODE,
   parseInline,
   parseTextBlock,
+  shownText,
   type HighlightColour,
   type InlineMode,
   type InlineToken,
@@ -115,12 +116,29 @@ function highlightsIn(tokens: InlineToken[], start: number, end: number): Highli
 }
 
 /**
+ * The words a field's tokens show: a leaf's `shownText`, recursed into a
+ * highlight's own tokens rather than read off the highlight itself, which
+ * shows nothing on its own. Every highlight edit reparses its result and
+ * compares this against the words shown before the edit, which is the one
+ * check that catches a marker closed in the wrong place or a line that
+ * stopped being a bullet: either changes what the field reads as, and no
+ * string heuristic about `==` or `=` at the edges covers every way that can
+ * happen.
+ */
+function shown(tokens: InlineToken[]): string {
+  return tokens.map((t) => (t.kind === "highlight" ? shown(t.tokens) : shownText(t))).join("");
+}
+
+/**
  * The text with the selection highlighted in `colour`, or null when that
- * cannot be done cleanly. A selection in one highlight recolours all of it.
- * One that touches bold, a link or a gap takes the whole of it. Refused: a
- * selection over more than one line or more than one highlight, and words
- * holding `==` or starting or ending with `=`, which would close the marker
- * in the wrong place.
+ * cannot be done cleanly. A selection that touches one highlight recolours
+ * all of it. One that touches bold, a link or a gap takes the whole of it.
+ * Refused: a selection over more than one highlight, words starting or
+ * ending with `=` (which reads as though the marker began or closed one
+ * character short even where it still parses), and, caught only by the
+ * reparse below, anything that would leave the field showing different words
+ * than before, such as words holding `==` that closes the marker early or a
+ * bullet's `- ` pulled inside it.
  */
 export function addHighlight(text: string, field: Field, selected: Selected, colour: HighlightColour): string | null {
   const tokens = tokensOf(text, field);
@@ -131,7 +149,8 @@ export function addHighlight(text: string, field: Field, selected: Selected, col
   if (touched.length > 1) return null;
   if (touched.length === 1) {
     const code = touched[0].from + 2;
-    return text.slice(0, code) + HIGHLIGHT_CODE[colour] + text.slice(code + 1);
+    const result = text.slice(0, code) + HIGHLIGHT_CODE[colour] + text.slice(code + 1);
+    return shown(tokensOf(result, field)) === shown(tokens) ? result : null;
   }
 
   for (const token of tokens) {
@@ -141,20 +160,31 @@ export function addHighlight(text: string, field: Field, selected: Selected, col
     }
   }
   const words = text.slice(start, end);
-  if (words.includes("\n") || words.includes("==") || words.startsWith("=") || words.endsWith("=")) return null;
-  return `${text.slice(0, start)}==${HIGHLIGHT_CODE[colour]}:${words}==${text.slice(end)}`;
+  if (words.startsWith("=") || words.endsWith("=")) return null;
+  const result = `${text.slice(0, start)}==${HIGHLIGHT_CODE[colour]}:${words}==${text.slice(end)}`;
+  const resultTokens = tokensOf(result, field);
+  const madeTheHighlight = resultTokens.some((t) => t.kind === "highlight" && t.from === start && t.to === end + 6);
+  return madeTheHighlight && shown(resultTokens) === shown(tokens) ? result : null;
 }
 
-/** The text with every highlight the selection touches taken off, or null when it touches none. */
+/**
+ * The text with every highlight the selection touches taken off, or null
+ * when it touches none, or when taking the markers off would change what the
+ * field reads as: removing the marker from `==g:*a==*` leaves `*a*`, which
+ * reparses as italic rather than the literal star `*a` was shown as inside
+ * the highlight, so it is refused the same way an edit that leaves markup
+ * broken is refused.
+ */
 export function removeHighlight(text: string, field: Field, selected: Selected): string | null {
-  const touched = highlightsIn(tokensOf(text, field), selected.start, selected.end);
+  const tokens = tokensOf(text, field);
+  const touched = highlightsIn(tokens, selected.start, selected.end);
   if (touched.length === 0) return null;
   // Last first, so taking one off does not move the ones before it.
   let result = text;
   for (const { from, to } of [...touched].reverse()) {
     result = result.slice(0, from) + result.slice(from + 4, to - 2) + result.slice(to);
   }
-  return result;
+  return shown(tokensOf(result, field)) === shown(tokens) ? result : null;
 }
 
 /**
@@ -172,7 +202,7 @@ export function linkRange(text: string, field: Field, selected: Selected): LinkR
   const home = leaves.find((t) => t.from <= start && end <= t.to);
   if (!home || home.kind !== "text") return null;
   const words = text.slice(start, end);
-  return /[[\]]/.test(words) ? null : { start, end, words };
+  return /[[\]\n]/.test(words) ? null : { start, end, words };
 }
 
 /**

@@ -140,6 +140,15 @@ describe("addHighlight", () => {
     expect(addHighlight(sums, "text", pick(sums, "= y"), "yellow")).toBeNull();
     expect(addHighlight("a   b", "text", pick("a   b", "   "), "yellow")).toBeNull();
   });
+
+  it("refuses a highlight an unclosed opener earlier on the line would swallow", () => {
+    const text = "==g:abc def";
+    expect(addHighlight(text, "text", pick(text, "def"), "yellow")).toBeNull();
+  });
+
+  it("refuses a highlight that would pull a bullet's marker inside it", () => {
+    expect(addHighlight("- zwei", "text", span(0, 4), "yellow")).toBeNull();
+  });
 });
 
 describe("removeHighlight", () => {
@@ -151,6 +160,10 @@ describe("removeHighlight", () => {
   it("takes off every highlight the selection touches, and is null when there is none", () => {
     expect(removeHighlight("==y:a== und ==b:c==", "text", span(4, 17))).toBe("a und c");
     expect(removeHighlight("plain", "text", pick("plain", "lai"))).toBeNull();
+  });
+
+  it("refuses to take off a marker that leaves a literal star read as italic", () => {
+    expect(removeHighlight("==y:*a==*", "text", span(4, 6))).toBeNull();
   });
 });
 
@@ -177,5 +190,6 @@ describe("links from a selection", () => {
     expect(linkRange(text, "text", pick(text, "[b]"))).toBeNull();
     expect(linkRange(text, "text", pick(text, "c\nd"))).toBeNull();
     expect(linkRange("gebe dem", "sentence", pick("gebe dem", "dem", "sentence"))).toBeNull();
+    expect(linkRange("a\nb", "cell:0:0", span(0, 3, "cell:0:0"))).toBeNull();
   });
 });
