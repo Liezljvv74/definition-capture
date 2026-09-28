@@ -48,6 +48,7 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
         return;
       }
       const frame = box.getBoundingClientRect();
+      // ponytail: the outline is measured only on selectionchange, so scrolling a wide table sideways or resizing the window leaves it stranded until the selection next changes; add scroll and resize listeners if that turns out to matter.
       const outline = isCells(found.selected) ? cellsBox(box, found.selected, frame) : null;
       const below = outline ? outline.top + outline.height : found.rect.bottom - frame.top;
       const from = outline ? outline.left : found.rect.left - frame.left;
@@ -96,7 +97,10 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
         if (addHighlight(text, selected.field, selected, "yellow") !== null) {
           onHighlight = (colour) => {
             const next = addHighlight(text, selected.field, selected, colour);
-            if (next !== null) saveBlock(withFieldText(block, selected.field, next));
+            // Pressing the colour a highlight already has returns the same
+            // text: saving it anyway would move the rule's Edited date for a
+            // change that never happened.
+            if (next !== null && next !== text) saveBlock(withFieldText(block, selected.field, next));
           };
         }
         const removed = removeHighlight(text, selected.field, selected);
