@@ -7,6 +7,7 @@ import { Suspense, useState } from "react";
 import { TopicBadge } from "@/components/Badges";
 import { LinkedFrom } from "@/components/LinkedFrom";
 import { BlockView } from "@/components/grammar/BlockView";
+import { ReadingTools } from "@/components/grammar/ReadingTools";
 import { RuleEditor } from "@/components/grammar/RuleEditor";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { LinkIndex } from "@/lib/links";
@@ -103,11 +104,13 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
       {rule.blocks.length === 0 ? (
         <p className="mt-4 text-slate-500 italic dark:text-slate-400">Nothing written yet. Use Edit to start.</p>
       ) : (
-        <div className="mt-5 space-y-5">
-          {rule.blocks.map((block) => (
-            <BlockView key={block.id} block={block} linkIndex={linkIndex} />
-          ))}
-        </div>
+        <ReadingTools rule={rule}>
+          <div className="mt-5 space-y-5">
+            {rule.blocks.map((block) => (
+              <BlockView key={block.id} block={block} linkIndex={linkIndex} />
+            ))}
+          </div>
+        </ReadingTools>
       )}
 
       <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2 dark:border-slate-800">

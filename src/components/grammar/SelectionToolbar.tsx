@@ -1,0 +1,68 @@
+"use client";
+
+import type { MouseEvent } from "react";
+
+import { HIGHLIGHT_CLASS } from "@/components/grammar/RichText";
+import { HIGHLIGHT_COLOURS, type HighlightColour } from "@/lib/blockText";
+
+/**
+ * The buttons below a selection in the reading view. Each is offered only
+ * when it can act on this selection: the caller works that out and passes
+ * null for the rest. A press must not take the selection away before the
+ * click lands, so every button keeps the mouse down from moving focus.
+ */
+export function SelectionToolbar({
+  top,
+  left,
+  onHighlight,
+  onRemove,
+  onLink,
+  onNewRule,
+}: {
+  top: number;
+  left: number;
+  onHighlight: ((colour: HighlightColour) => void) | null;
+  onRemove: (() => void) | null;
+  onLink: (() => void) | null;
+  onNewRule: (() => void) | null;
+}) {
+  const keep = (event: MouseEvent) => event.preventDefault();
+  const button =
+    "cursor-pointer rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700";
+  return (
+    <div
+      role="toolbar"
+      aria-label="Selection"
+      style={{ top, left }}
+      className="absolute z-20 flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-md dark:border-slate-700 dark:bg-slate-800"
+    >
+      {onHighlight &&
+        HIGHLIGHT_COLOURS.map((colour) => (
+          <button
+            key={colour}
+            type="button"
+            onMouseDown={keep}
+            onClick={() => onHighlight(colour)}
+            aria-label={`Highlight ${colour}`}
+            title={`Highlight ${colour}`}
+            className={`size-6 cursor-pointer rounded-full border border-slate-300 dark:border-slate-600 ${HIGHLIGHT_CLASS[colour]}`}
+          />
+        ))}
+      {onRemove && (
+        <button type="button" onMouseDown={keep} onClick={onRemove} className={button}>
+          Remove highlight
+        </button>
+      )}
+      {onLink && (
+        <button type="button" onMouseDown={keep} onClick={onLink} className={button}>
+          Link to…
+        </button>
+      )}
+      {onNewRule && (
+        <button type="button" onMouseDown={keep} onClick={onNewRule} className={button}>
+          New rule from this
+        </button>
+      )}
+    </div>
+  );
+}
