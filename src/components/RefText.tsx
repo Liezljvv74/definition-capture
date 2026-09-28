@@ -33,13 +33,13 @@ export function RefText({ value, linkIndex }: { value: string; linkIndex: LinkIn
                   title="Nothing with this name is saved yet"
                   className="text-slate-500 underline decoration-dotted underline-offset-2 dark:text-slate-400"
                 >
-                  {token.name}
+                  {token.label || token.name}
                 </span>
               );
             }
             return (
               <Link key={index} href={href} className={linkClass}>
-                {token.name}
+                {token.label || token.name}
               </Link>
             );
           }

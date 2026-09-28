@@ -4,6 +4,7 @@ import {
   buildLinkIndex,
   linkedFrom,
   linkNames,
+  linkParts,
   linkTargets,
   linkWarning,
   planLinkRewrites,
@@ -121,5 +122,33 @@ describe("linkedFrom and linkWarning", () => {
       "2 words link to these rules. Their links will stop working.",
     );
     expect(linkWarning(targets, index, [byId("w1")])).toBeNull();
+  });
+});
+
+describe("labelled links", () => {
+  it("reads the name and the words shown for it", () => {
+    expect(linkParts(" Dativ | dem ")).toEqual({ name: "Dativ", label: "dem" });
+    expect(linkParts("Dativ")).toEqual({ name: "Dativ", label: "" });
+    expect(linkParts("Dativ|")).toEqual({ name: "Dativ", label: "" });
+    expect(linkParts("a|b|c")).toEqual({ name: "a", label: "b|c" });
+  });
+
+  it("finds the name, not the shown words, and nothing for a blank name", () => {
+    expect(linkNames("Ich gebe [[Dativ|dem]] Mann, [[|leer]]")).toEqual(["Dativ"]);
+  });
+
+  it("keeps the shown words when the target is renamed", () => {
+    expect(renameLinksIn("[[Dativ|dem]] and [[dativ]]", "Dativ", "Dativ (Fall)")).toBe(
+      "[[Dativ (Fall)|dem]] and [[Dativ (Fall)]]",
+    );
+  });
+
+  it("counts a labelled link in Linked from and the delete warning", () => {
+    const targets = linkTargets([word("w1", "geben", "uses [[Dativ|dem]]")], [], [], [rule("r1", "Dativ")]);
+    const index = buildLinkIndex(targets);
+    expect(linkedFrom(targets, index, "/rule?id=r1").map((t) => t.id)).toEqual(["w1"]);
+    expect(linkWarning(targets, index, targets.filter((t) => t.id === "r1"))).toBe(
+      "1 word links to Dativ. Their links will stop working.",
+    );
   });
 });

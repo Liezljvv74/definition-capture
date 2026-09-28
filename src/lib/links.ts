@@ -91,13 +91,32 @@ export function buildLinkIndex(targets: readonly LinkTarget[]): LinkIndex {
   return index;
 }
 
-export function linkNames(text: string): string[] {
-  return [...text.matchAll(LINK)].map((match) => match[1].trim()).filter(Boolean);
+/**
+ * The inside of a `[[…]]`: a name, or a name and the words shown for it,
+ * `Dativ|dem`. Split at the first bar, so the shown words may hold one of
+ * their own; blank shown words mean none, and the name is shown instead.
+ * Every parser reads a link through this one function (`parseRef`,
+ * `blockText`, and this module), so a label cannot mean one thing in a rule
+ * and another in a Ref.
+ */
+export function linkParts(inner: string): { name: string; label: string } {
+  const bar = inner.indexOf("|");
+  if (bar === -1) return { name: inner.trim(), label: "" };
+  return { name: inner.slice(0, bar).trim(), label: inner.slice(bar + 1).trim() };
 }
 
+export function linkNames(text: string): string[] {
+  return [...text.matchAll(LINK)].map((match) => linkParts(match[1]).name).filter(Boolean);
+}
+
+/** Keeps a link's shown words: `[[Old|dem]]` becomes `[[New|dem]]`. */
 export function renameLinksIn(text: string, from: string, to: string): string {
   const old = foldName(from);
-  return text.replace(LINK, (whole, name: string) => (foldName(name.trim()) === old ? `[[${to}]]` : whole));
+  return text.replace(LINK, (whole, inner: string) => {
+    const { name, label } = linkParts(inner);
+    if (foldName(name) !== old) return whole;
+    return label ? `[[${to}|${label}]]` : `[[${to}]]`;
+  });
 }
 
 function renameInBlocks(blocks: Block[], from: string, to: string): Block[] {

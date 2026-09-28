@@ -35,6 +35,15 @@ describe("parseInline", () => {
   it("returns nothing for an empty string", () => {
     expect(parseInline("")).toEqual([]);
   });
+
+  it("reads a labelled link", () => {
+    expect(parseInline("gebe [[Dativ|dem]] Mann")).toEqual([
+      { kind: "text", value: "gebe " },
+      { kind: "link", name: "Dativ", label: "dem" },
+      { kind: "text", value: " Mann" },
+    ]);
+    expect(plainText("gebe [[Dativ|dem]] Mann")).toBe("gebe dem Mann");
+  });
 });
 
 describe("parseTextBlock", () => {

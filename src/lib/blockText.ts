@@ -1,7 +1,7 @@
 /**
  * The markup a text block accepts, and nothing more:
  *
- *   **bold**   *italic*   [[Name]] links   lines starting with "- " as bullets
+ *   **bold**   *italic*   [[Name]] links   [[Name|shown words]] links   lines starting with "- " as bullets
  *
  * Rendered by the app's own code rather than a markdown library, because this
  * set does not justify one. The one rule that matters is that anything the
@@ -9,12 +9,14 @@
  * as the characters typed: a star left open must not swallow a paragraph.
  */
 
+import { linkParts } from "@/lib/links";
+
 export type InlineToken =
   | { kind: "text"; value: string }
   | { kind: "bold"; value: string }
   | { kind: "italic"; value: string }
   /** A name, resolved against the link index when shown; see `RefText`. */
-  | { kind: "link"; name: string };
+  | { kind: "link"; name: string; label?: string };
 
 export type TextLine = { kind: "paragraph" | "bullet"; tokens: InlineToken[] };
 
@@ -48,9 +50,9 @@ export function parseInline(text: string): InlineToken[] {
     // LINK or EMPHASIS matched already; testing it again, as this used to,
     // could only ever repeat the same answer the split had already given.
     if (i % 2 === 1) {
-      const name = segment.slice(2, -2).trim();
-      if (name) tokens.push({ kind: "link", name });
-      else pushText(tokens, segment);
+      const { name, label } = linkParts(segment.slice(2, -2));
+      if (!name) pushText(tokens, segment);
+      else tokens.push(label ? { kind: "link", name, label } : { kind: "link", name });
       return;
     }
     segment.split(EMPHASIS).forEach((part, j) => {
@@ -105,7 +107,7 @@ export function plainText(text: string): string {
     .split("\n")
     .map((line) =>
       parseInline(line)
-        .map((token) => (token.kind === "link" ? token.name : token.value))
+        .map((token) => (token.kind === "link" ? token.label || token.name : token.value))
         .join(""),
     )
     .join("\n")
