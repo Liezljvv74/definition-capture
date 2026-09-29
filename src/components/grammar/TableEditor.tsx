@@ -160,7 +160,16 @@ export function TableEditor({
       <div className={tableScrollClass}>
         {/* No text selection while a drag selects cells: the browser would
             otherwise paint one across every box the pointer passes over. */}
-        <table className={`border-collapse ${drag ? "select-none" : ""}`}>
+        {/* Fixed layout at the card's width: the columns share it evenly and
+            a long cell wraps onto more rows instead of widening the table, the
+            way the reading view wraps it. The first column is only the bars. */}
+        <table className={`w-full table-fixed border-collapse ${drag ? "select-none" : ""}`}>
+          <colgroup>
+            <col className="w-6" />
+            {block.cells[0].map((_, c) => (
+              <col key={c} />
+            ))}
+          </colgroup>
           <tbody>
             <tr>
               <td className="p-0.5 text-center">
@@ -266,9 +275,8 @@ export function TableEditor({
                       </label>
                       <MarkedField
                         id={cellId(r, c)}
-                        // Sized to what is typed, so a long cell widens its column
-                        // rather than hiding its end inside a fixed-width box.
-                        className={`field min-w-24 max-w-xl py-1 [field-sizing:content] ${isHeader ? "font-semibold" : ""} ${inside(r, c) ? "ring-2 ring-indigo-500 dark:ring-indigo-400" : ""}`}
+                        wrap
+                        className={`field w-full py-1 ${isHeader ? "font-semibold" : ""} ${inside(r, c) ? "ring-2 ring-indigo-500 dark:ring-indigo-400" : ""}`}
                         value={cell}
                         onChange={(value) => {
                           setRange(null);

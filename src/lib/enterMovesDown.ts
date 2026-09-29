@@ -31,12 +31,18 @@ export function boxBelow(from: Box, boxes: readonly Box[]): number {
   return best;
 }
 
-/** Where Enter moves from. A textarea keeps Enter for a new line, and a checkbox or button keeps what it does. */
-const SOURCE =
+/**
+ * Where Enter moves from. A textarea keeps Enter for a new line, and a
+ * checkbox or button keeps what it does. The exception is a textarea marked
+ * `data-single-line`: a table cell that holds one line and is a textarea
+ * only so that it can wrap.
+ */
+const INPUT_SOURCE =
   'input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"])';
+const SOURCE = `${INPUT_SOURCE}, textarea[data-single-line]`;
 
 /** Where Enter can land: any field a reader types into or picks from. */
-const TARGET = `${SOURCE}:not([type="hidden"]):not(:disabled):not([readonly]), textarea:not(:disabled):not([readonly]), select:not(:disabled)`;
+const TARGET = `${INPUT_SOURCE}:not([type="hidden"]):not(:disabled):not([readonly]), textarea:not(:disabled):not([readonly]), select:not(:disabled)`;
 
 /**
  * The keydown listener. It runs after every field's own handler and steps
@@ -51,7 +57,7 @@ export function handleEnter(event: KeyboardEvent): void {
   if (event.key !== "Enter" || event.defaultPrevented || event.isComposing) return;
   if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
   const field = event.target;
-  if (!(field instanceof HTMLInputElement) || !field.matches(SOURCE)) return;
+  if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) || !field.matches(SOURCE)) return;
 
   const scope = field.closest("form, [role='dialog'], main") ?? document.body;
   const candidates = Array.from(scope.querySelectorAll<HTMLElement>(TARGET)).filter(
@@ -62,8 +68,9 @@ export function handleEnter(event: KeyboardEvent): void {
 
   event.preventDefault();
   if (next !== -1) {
-    candidates[next].focus();
-    if (candidates[next] instanceof HTMLInputElement) (candidates[next] as HTMLInputElement).select();
+    const landed = candidates[next];
+    landed.focus();
+    if (landed instanceof HTMLInputElement || (landed instanceof HTMLTextAreaElement && landed.matches(SOURCE))) landed.select();
   } else {
     field.form?.requestSubmit();
   }
