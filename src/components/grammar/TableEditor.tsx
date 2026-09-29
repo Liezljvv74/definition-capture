@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 
-import { wideTableClass } from "@/components/grammar/BlockView";
+import { tableScrollClass } from "@/components/grammar/BlockView";
 import { MarkedField } from "@/components/grammar/MarkedField";
 import {
   cellRange,
@@ -157,7 +157,7 @@ export function TableEditor({
         paste(text, selected ? [selected.top, selected.left] : anchor.current);
       }}
     >
-      <div className={wideTableClass}>
+      <div className={tableScrollClass}>
         {/* No text selection while a drag selects cells: the browser would
             otherwise paint one across every box the pointer passes over. */}
         <table className={`border-collapse ${drag ? "select-none" : ""}`}>

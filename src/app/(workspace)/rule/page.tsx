@@ -33,7 +33,7 @@ export default function RulePage() {
 
 function Skeleton() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
       <div className="card h-56 animate-pulse" aria-hidden="true" />
     </main>
   );
@@ -49,13 +49,13 @@ function RuleDetail() {
   return (
     <>
       <header className="bg-card-sage">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link href="/grammar" className="text-sm font-medium text-slate-900 hover:underline">
             ← Back to Grammar
           </Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
         {!loaded ? (
           <div className="card h-56 animate-pulse" aria-hidden="true" />
         ) : rule ? (

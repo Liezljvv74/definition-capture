@@ -23,14 +23,12 @@ function blockContent(block: Block, linkIndex: LinkIndex) {
 }
 
 /**
- * A table grows past the card, equally left and right, as far as the window
- * allows, and scrolls only beyond that. Anything narrower than the card stays
- * the card's width. The rule page keeps its narrow column for reading text;
- * only tables break out of it, because a paradigm with long cells otherwise
- * squeezes into a strip in the middle of a wide screen.
+ * A table stays inside the card and scrolls sideways only when it cannot
+ * fit. It used to break out of a narrow card towards the window's edges; the
+ * owner found that looked broken where the card edge showed through the
+ * rows, and on 29 September chose a wider card that keeps its tables inside.
  */
-export const wideTableClass =
-  "relative left-1/2 w-max min-w-full max-w-[calc(100vw-3rem)] -translate-x-1/2 overflow-x-auto";
+export const tableScrollClass = "overflow-x-auto";
 
 // `overflow-wrap: anywhere` lets a long unbroken word wrap inside its cell
 // instead of forcing the whole table into a scroll.
@@ -41,8 +39,9 @@ const cellClass =
 
 function TableView({ table, linkIndex }: { table: TableBlock; linkIndex: LinkIndex }) {
   return (
-    <div className={wideTableClass}>
-      <table className="border-collapse">
+    <div className={tableScrollClass}>
+      {/* Full width, so long cells wrap inside the card before anything scrolls. */}
+      <table className="w-full border-collapse">
         <tbody>
           {table.cells.map((row, r) => (
             <tr key={r}>
