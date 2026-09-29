@@ -19,4 +19,11 @@ describe("MarkedField", () => {
     expect(markup).not.toContain("text-transparent!");
     expect(markup).toContain("invisible");
   });
+
+  it("makes a table cell a one-line box that wraps, so Enter still moves down", () => {
+    const markup = renderToStaticMarkup(<MarkedField id="c" value="der" onChange={() => {}} className="field" wrap />);
+    expect(markup).toMatch(/<textarea[^>]*data-single-line/);
+    expect(markup).toContain('rows="1"');
+    expect(markup).toContain("resize-none");
+  });
 });

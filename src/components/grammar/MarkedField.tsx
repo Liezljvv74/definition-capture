@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type UIEvent } from "react";
+import { useLayoutEffect, useRef, type UIEvent } from "react";
 
 import { HIGHLIGHT_CLASS } from "@/components/grammar/RichText";
 import { highlightRuns } from "@/lib/blockText";
@@ -23,6 +23,7 @@ export function MarkedField({
   onChange,
   className,
   multiline = false,
+  wrap = false,
   placeholder,
 }: {
   id: string;
@@ -30,8 +31,34 @@ export function MarkedField({
   onChange: (value: string) => void;
   className: string;
   multiline?: boolean;
+  /**
+   * One line of text, shown wrapped across as many rows as it needs, for a
+   * table cell. It is a textarea only so that it can wrap: a line break is
+   * turned into a space, `data-single-line` has Enter move to the field below
+   * as it does from an input (`enterMovesDown.ts`), and the box grows to its
+   * text by measuring it, which works where `field-sizing` does not.
+   */
+  wrap?: boolean;
   placeholder?: string;
 }) {
+  const box = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const element = box.current;
+    if (!wrap || !element) return;
+    const fit = () => {
+      element.style.height = "auto";
+      // The height includes the border (boxes size by their border edge),
+      // and `scrollHeight` does not, so the border is added back.
+      element.style.height = `${element.scrollHeight + element.offsetHeight - element.clientHeight}px`;
+    };
+    fit();
+    // Again whenever the column's width changes, as it does when the window
+    // is resized, since the box hides what overflows and would cut text off.
+    const watch = new ResizeObserver(fit);
+    watch.observe(element);
+    return () => watch.disconnect();
+  }, [wrap, value]);
+  const lines = multiline || wrap;
   const behind = useRef<HTMLDivElement>(null);
   const runs = highlightRuns(value);
   const marked = runs.some((run) => run.marker);
@@ -48,7 +75,8 @@ export function MarkedField({
   // sits in, so without a gutter reserved on both, the textarea would wrap
   // its words one column narrower than the copy behind it and the tint would
   // drift off them.
-  const shared = `${className} ${multiline ? "whitespace-pre-wrap break-words [scrollbar-gutter:stable]" : "whitespace-pre"}`;
+  // A wrapped cell never scrolls, since it grows to its text, so it needs no gutter.
+  const shared = `${className} ${wrap ? "whitespace-pre-wrap break-words" : multiline ? "whitespace-pre-wrap break-words [scrollbar-gutter:stable]" : "whitespace-pre"}`;
   // `block`: a textarea or input is inline-block by default and sits on the
   // wrapper's baseline, which leaves the wrapper (and so the absolutely
   // positioned copy behind it) a few pixels taller than the box; `block`
@@ -58,7 +86,7 @@ export function MarkedField({
   // a tint off its words. `transition-none` while marked stops the box's
   // letters fading out over the copy's own instant appearance, which
   // otherwise shows the text doubled for a moment.
-  const own = `${shared} relative block ${multiline ? "resize-y" : ""} ${marked ? "bg-transparent! text-transparent! caret-slate-900 dark:caret-slate-100 transition-none" : ""}`;
+  const own = `${shared} relative block ${wrap ? "resize-none overflow-hidden" : multiline ? "resize-y" : ""} ${marked ? "bg-transparent! text-transparent! caret-slate-900 dark:caret-slate-100 transition-none" : ""}`;
 
   return (
     <div className="relative">
@@ -81,9 +109,24 @@ export function MarkedField({
           ),
         )}
         {/* A final line break takes no room in the copy unless something follows it. */}
-        {multiline && value.endsWith("\n") ? " " : null}
+        {lines && value.endsWith("\n") ? " " : null}
       </div>
-      {multiline ? (
+      {wrap ? (
+        <textarea
+          ref={box}
+          id={id}
+          rows={1}
+          data-single-line
+          // As the one-line boxes these cells used to be, which a browser
+          // does not mark up: a table of German forms would otherwise be
+          // underlined from end to end.
+          spellCheck={false}
+          className={own}
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value.replace(/\r?\n/g, " "))}
+        />
+      ) : multiline ? (
         <textarea id={id} className={own} value={value} placeholder={placeholder} onScroll={follow} onChange={(event) => onChange(event.target.value)} />
       ) : (
         <input id={id} className={own} value={value} placeholder={placeholder} onScroll={follow} onChange={(event) => onChange(event.target.value)} />
