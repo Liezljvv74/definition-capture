@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cellRange,
+  cellsToText,
+  clearCells,
   flattenBlocks,
   MAX_BLOCKS,
   MAX_TABLE_COLUMNS,
+  MAX_TABLE_ROWS,
   moveBlock,
   newTableBlock,
+  pasteGrid,
   newTextBlock,
   readBlocks,
+  textToGrid,
   withCell,
   withColumn,
   withoutLastColumn,
@@ -146,5 +152,84 @@ describe("flattenBlocks, markup", () => {
     expect(flat).toContain("dem Mann (the man)");
     expect(flat).toContain("siehe den Fall");
     expect(flat).not.toContain("==");
+  });
+});
+
+/**
+ * Copy, cut and paste in the table editor. The clipboard text is the form
+ * spreadsheets use for a block of cells, tabs between cells and a line per
+ * row, so a block goes to and from Excel or Google Sheets as well as
+ * between two rules.
+ */
+describe("table clipboard", () => {
+  const table: TableBlock = {
+    kind: "table",
+    id: "t",
+    headerRow: true,
+    headerColumn: true,
+    cells: [
+      ["", "m", "f"],
+      ["Dat", "dem", "der"],
+      ["Akk", "den", "die"],
+    ],
+  };
+
+  it("makes a rectangle from two corners, whichever way round", () => {
+    expect(cellRange([2, 2], [0, 1])).toEqual({ top: 0, left: 1, bottom: 2, right: 2 });
+  });
+
+  it("copies a block as tab-separated lines, markup and all", () => {
+    const marked = withCell(table, 1, 1, "==y:dem==");
+    expect(cellsToText(marked, { top: 1, left: 0, bottom: 2, right: 1 })).toBe("Dat\t==y:dem==\nAkk\tden");
+    expect(cellsToText(table, { top: 0, left: 2, bottom: 2, right: 2 })).toBe("f\nder\ndie");
+  });
+
+  it("reads clipboard text from a spreadsheet as a grid", () => {
+    // Excel ends a copied block with a line break, and Windows uses \r\n.
+    expect(textToGrid("a\tb\r\nc\td\r\n")).toEqual([["a", "b"], ["c", "d"]]);
+    expect(textToGrid("one word")).toEqual([["one word"]]);
+    expect(textToGrid("a\t\tc")).toEqual([["a", "", "c"]]);
+  });
+
+  it("empties a block of cells and leaves the rest", () => {
+    expect(clearCells(table, { top: 1, left: 1, bottom: 2, right: 1 }).cells).toEqual([
+      ["", "m", "f"],
+      ["Dat", "", "der"],
+      ["Akk", "", "die"],
+    ]);
+  });
+
+  it("pastes over cells from the given corner", () => {
+    const pasted = pasteGrid(table, 1, 1, [["DEM", "DER"]]);
+    expect(pasted.cut).toBe(false);
+    expect(pasted.table.cells[1]).toEqual(["Dat", "DEM", "DER"]);
+    expect(pasted.table.cells[2]).toEqual(["Akk", "den", "die"]);
+  });
+
+  it("grows the table to fit, filling new cells with nothing", () => {
+    const pasted = pasteGrid(table, 2, 2, [["x", "y"], ["z"]]);
+    expect(pasted.table.cells).toEqual([
+      ["", "m", "f", ""],
+      ["Dat", "dem", "der", ""],
+      ["Akk", "den", "x", "y"],
+      ["", "", "z", ""],
+    ]);
+    expect(pasted.cut).toBe(false);
+  });
+
+  it("stops at the table's limits and says something was left out", () => {
+    const wide = [Array.from({ length: MAX_TABLE_COLUMNS + 3 }, (_, i) => String(i))];
+    const pasted = pasteGrid(table, 0, 0, wide);
+    expect(pasted.table.cells[0]).toHaveLength(MAX_TABLE_COLUMNS);
+    expect(pasted.cut).toBe(true);
+    const tall = Array.from({ length: MAX_TABLE_ROWS + 1 }, () => ["x"]);
+    expect(pasteGrid(table, 0, 0, tall).table.cells).toHaveLength(MAX_TABLE_ROWS);
+  });
+
+  it("does not change the table it was given", () => {
+    const before = JSON.stringify(table);
+    clearCells(table, { top: 0, left: 0, bottom: 2, right: 2 });
+    pasteGrid(table, 0, 0, [["x"]]);
+    expect(JSON.stringify(table)).toBe(before);
   });
 });

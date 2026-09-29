@@ -2,19 +2,9 @@
 
 import { useId } from "react";
 
-import { wideTableClass } from "@/components/grammar/BlockView";
 import { MarkedField } from "@/components/grammar/MarkedField";
-
-import {
-  MAX_TABLE_COLUMNS,
-  MAX_TABLE_ROWS,
-  withCell,
-  withColumn,
-  withoutLastColumn,
-  withoutLastRow,
-  withRow,
-} from "@/lib/blocks";
-import type { Block, ExampleBlock, TableBlock, TextBlock } from "@/lib/types";
+import { TableEditor } from "@/components/grammar/TableEditor";
+import type { Block, ExampleBlock, TextBlock } from "@/lib/types";
 
 const KIND_LABEL: Record<Block["kind"], string> = { text: "Text", table: "Table", example: "Example" };
 
@@ -76,7 +66,7 @@ export function BlockEditor({
       </div>
 
       {block.kind === "text" && <TextFields block={block} onChange={onChange} inputId={inputId} />}
-      {block.kind === "table" && <TableFields block={block} onChange={onChange} inputId={inputId} />}
+      {block.kind === "table" && <TableEditor block={block} onChange={onChange} inputId={inputId} />}
       {block.kind === "example" && <ExampleFields block={block} onChange={onChange} inputId={inputId} />}
     </section>
   );
@@ -100,56 +90,6 @@ function TextFields({ block, onChange, inputId }: { block: TextBlock; onChange: 
         placeholder="Explain the rule. **bold**, *italic*, lines starting with - for bullets, [[Name]] to link."
       />
     </>
-  );
-}
-
-function TableFields({ block, onChange, inputId }: { block: TableBlock; onChange: (block: Block) => void; inputId: string }) {
-  const small = "btn btn-secondary px-2.5 py-1 text-xs";
-  return (
-    <div className="space-y-2">
-      <div className={wideTableClass}>
-        <table className="border-collapse">
-          <tbody>
-            {block.cells.map((row, r) => (
-              <tr key={r}>
-                {row.map((cell, c) => {
-                  const isHeader = (block.headerRow && r === 0) || (block.headerColumn && c === 0);
-                  return (
-                    <td key={c} className="border border-slate-200 p-0.5 dark:border-slate-700">
-                      <label htmlFor={`${inputId}-${r}-${c}`} className="sr-only">
-                        {`Row ${r + 1}, column ${c + 1}`}
-                      </label>
-                      <MarkedField
-                        id={`${inputId}-${r}-${c}`}
-                        // Sized to what is typed, so a long cell widens its column
-                        // rather than hiding its end inside a fixed-width box.
-                        className={`field min-w-24 max-w-xl py-1 [field-sizing:content] ${isHeader ? "font-semibold" : ""}`}
-                        value={cell}
-                        onChange={(value) => onChange(withCell(block, r, c, value))}
-                      />
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={small} disabled={block.cells.length >= MAX_TABLE_ROWS} onClick={() => onChange(withRow(block))}>Add row</button>
-        <button type="button" className={small} disabled={block.cells.length <= 1} onClick={() => onChange(withoutLastRow(block))}>Remove last row</button>
-        <button type="button" className={small} disabled={block.cells[0].length >= MAX_TABLE_COLUMNS} onClick={() => onChange(withColumn(block))}>Add column</button>
-        <button type="button" className={small} disabled={block.cells[0].length <= 1} onClick={() => onChange(withoutLastColumn(block))}>Remove last column</button>
-        <label className="ml-2 inline-flex items-center gap-1.5 text-sm">
-          <input type="checkbox" className="accent-indigo-600" checked={block.headerRow} onChange={(event) => onChange({ ...block, headerRow: event.target.checked })} />
-          First row is a header
-        </label>
-        <label className="inline-flex items-center gap-1.5 text-sm">
-          <input type="checkbox" className="accent-indigo-600" checked={block.headerColumn} onChange={(event) => onChange({ ...block, headerColumn: event.target.checked })} />
-          First column is a header
-        </label>
-      </div>
-    </div>
   );
 }
 
