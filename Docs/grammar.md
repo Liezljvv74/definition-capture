@@ -54,9 +54,12 @@ The first version has three block types:
 - **Table.** A free grid: rows and columns added and removed at will, with an
   optional header row and an optional header column. Cells accept links, bold
   and italic, so a case table can link "dem" to the rule that explains it.
-  In Edit mode, handles above the columns and beside the rows select them,
-  Shift-click selects the block between two cells, and the selection can be
-  copied, cut and pasted. The clipboard holds the block the way spreadsheets
+  In Edit mode, cells are selected the way a spreadsheet's are: press in one
+  cell and drag to another for the block between them (a drag inside one
+  cell still selects its text), or Shift-click; grey bars above the columns
+  and beside the rows select whole ones, dragged along for several. The
+  selection can be copied, cut and pasted with the keys, the right-click
+  menu, or the Copy, Cut and Paste buttons shown while cells are selected. The clipboard holds the block the way spreadsheets
   do, a tab between cells and a line per row, so a block goes between two
   rules and to and from Excel or Google Sheets, markup included. Cut empties
   the cells and keeps the rows; a paste grows the table to fit, up to its
