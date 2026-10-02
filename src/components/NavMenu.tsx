@@ -29,9 +29,12 @@ export function NavMenu({
   icon,
   align = "left",
   element = "li",
+  wrapperClass,
   children,
 }: {
   label: string;
+  /** Extra classes on the wrapper, such as hiding a tab at phone width. */
+  wrapperClass?: string;
   /** Lights the tab up when the section it stands for is the current one. */
   active?: boolean;
   /**
@@ -123,7 +126,7 @@ export function NavMenu({
       </ul>
     </>
   );
-  const className = "relative shrink-0";
+  const className = wrapperClass ? `relative shrink-0 ${wrapperClass}` : "relative shrink-0";
   // A callback ref rather than the object: the two roots are different element
   // types, and one `HTMLElement` ref accepts both where a typed one accepts
   // neither.

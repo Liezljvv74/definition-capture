@@ -53,6 +53,12 @@ describe("MainNav", () => {
     expect(html("/verbs")).toContain('aria-current="page"');
   });
 
+  it("has a menu button for phones that controls a panel of every destination", () => {
+    const out = html("/vocabulary");
+    expect(out).toMatch(/<button[^>]*aria-controls="mobile-menu"[^>]*aria-expanded="false"|aria-expanded="false"[^>]*aria-controls="mobile-menu"/);
+    expect(out).toContain('aria-label="Menu"');
+  });
+
   it("leaves every tab unmarked on a page that belongs to none of them", () => {
     expect(html("/settings")).not.toContain('aria-current="page"');
   });

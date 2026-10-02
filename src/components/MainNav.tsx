@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AccountMenu } from "@/components/AccountMenu";
 import { BackupMenu } from "@/components/BackupMenu";
@@ -56,6 +56,61 @@ const LINKS = [
     isActive: (path: string) => path.startsWith("/grammar") || path.startsWith("/rule"),
   },
 ] as const;
+
+/**
+ * The destinations as a panel, for phone widths where four tabs and the
+ * Backup and Settings controls do not fit in one row. Backup and Settings
+ * stay in the bar, where they already fit; this holds the places you go.
+ * Closed by choosing a link or by Escape.
+ */
+function MobileMenu({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const destinations = [
+    ...GLOSSARY_VIEWS.map((view) => ({ href: view.href, label: view.label, active: inView(view, pathname) })),
+    ...LINKS.map((link) => ({ href: link.href, label: link.label, active: link.isActive(pathname) })),
+  ];
+
+  return (
+    <li className="sm:hidden">
+      <button
+        type="button"
+        aria-label="Menu"
+        aria-expanded={open}
+        aria-controls="mobile-menu"
+        onClick={() => setOpen((value) => !value)}
+        className={`${TAB_BASE} ${TAB_OFF} text-xl leading-none`}
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+      <ul
+        id="mobile-menu"
+        hidden={!open}
+        className="absolute inset-x-0 top-full border-b border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+      >
+        {destinations.map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              aria-current={item.active ? "page" : undefined}
+              onClick={() => setOpen(false)}
+              className={`block rounded-md px-3 py-2.5 ${item.active ? MENU_ITEM_CURRENT : MENU_ITEM}`}
+            >
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </li>
+  );
+}
 
 /**
  * Thin app-wide bar so every page is one click from the others.
@@ -114,7 +169,7 @@ export function MainNav() {
        * cards as well as over the page, and without it the bar and a card
        * beneath would run together.
        */
-      className="sticky top-0 z-30 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+      className="relative sticky top-0 z-30 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
     >
       {/* No `overflow-x-auto` here on purpose: it would clip the dropdowns,
           because an overflow on one axis makes the other one scroll too. */}
@@ -139,12 +194,14 @@ export function MainNav() {
           </Link>
         </li>
 
+        <MobileMenu pathname={pathname} />
+
         {/*
          * The Glossary tab opens rather than navigates: it stands for two
          * pages, so going somewhere on click would mean quietly preferring
          * one of them.
          */}
-        <NavMenu label="Glossary" active={inGlossary(pathname)}>
+        <NavMenu label="Glossary" active={inGlossary(pathname)} wrapperClass="hidden sm:block">
           {(close) =>
             GLOSSARY_VIEWS.map((view) => {
               const current = inView(view, pathname);
@@ -172,7 +229,7 @@ export function MainNav() {
           const active = link.isActive(pathname);
 
           return (
-            <li key={link.href} className="shrink-0">
+            <li key={link.href} className="hidden shrink-0 sm:block">
               <Link
                 href={link.href}
                 aria-current={active ? "page" : undefined}
