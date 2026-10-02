@@ -14,6 +14,7 @@ owner.
 | UI | React 19.2.8, TypeScript 5, Tailwind CSS 4 |
 | Data and auth | Supabase: Postgres with row level security, and Supabase Auth |
 | Captcha | Cloudflare Turnstile, verified by Supabase Auth |
+| Tutor | OpenRouter, called with `fetch` from `POST /api/tutor`; `OPENROUTER_MODEL` picks the model, default `openai/gpt-5-mini` |
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 3, in the node environment; `npx vitest run` |
@@ -142,6 +143,15 @@ a file) as well as placed outside the group.
 publishable key belong there. The project currently holds no service-role key at
 all: legacy JWT-based API keys are disabled, and the one Edge Function that used
 to need the service role has been deleted.
+
+**`OPENROUTER_API_KEY` is server-only.** It is read in `src/app/api/tutor/route.ts`
+and `src/lib/tutorServer.ts` and nowhere else, and it never gets a `NEXT_PUBLIC_`
+name, which would put a paid key in every visitor's browser. In Vercel it is a
+Sensitive variable. `OPENROUTER_MODEL` is the one setting that switches the
+tutor's model, in `.env.local` and in Vercel; unset, it is the default in
+`tutorServer.ts`. An account is marked paid by adding an `account_plans` row with
+`plan = 'paid'` in the Supabase dashboard: no policy lets an account write its
+own plan.
 
 **The session lives in cookies, not `localStorage`.** `createBrowserClient` from
 `@supabase/ssr` puts it there, which is what lets the server see the same session
