@@ -6,7 +6,7 @@ test.describe("Home", () => {
   test("landing-is-public", async ({ page, request }) => {
     // 1. Open / without signing in
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1, name: "Your personal glossary for learning a language" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Your personal repository for learning any language" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Create an account" }).first()).toBeVisible();
 
     // 2. Request /robots.txt, /sitemap.xml and /llms.txt

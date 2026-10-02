@@ -1,6 +1,6 @@
 # Definition Capture
 
-> A personal glossary for language learners. Save the words, phrases, verb conjugation tables and grammar rules you meet, and review them with flashcards that come back when they are due.
+> A personal repository for learning any language. Save words, phrases, verb conjugations and grammar rules, and review them with flashcards that come back when they are due.
 
 Definition Capture is a web app. Each account's lists are private to it. It works for any language, because learners write their own words, meanings and conjugations.
 

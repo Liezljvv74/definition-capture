@@ -182,12 +182,12 @@ A server component with no session access, prerendered at build time. Copy
 describes the app plainly and truthfully: no testimonials, no user counts, no
 price. Sections:
 
-1. A single `h1` naming what the app is (working line: "Your personal glossary
-   for learning a language"), one supporting sentence, and two actions:
+1. A single `h1` naming what the app is ("Your personal repository for
+   learning any language"), one supporting sentence, and two actions:
    **Create an account** (`/sign-up`) and **Sign in**.
 2. How you remember it: flashcards built from what you saved, brought back
    when due. Private to you: each account's lists are its own.
-3. What you can keep: words, phrases, verb conjugation tables, grammar rules,
+3. Structured Notes: words, phrases, verb conjugation tables, grammar rules,
    one sentence each, using the existing card colours.
 4. Questions, each a native `<details>`/`<summary>` row closed by default, so
    the answers stay in the HTML for crawlers and need no JavaScript. The same
@@ -195,7 +195,7 @@ price. Sections:
 
 The layout is compact so the whole page fits one 1366x768 window (about 650px
 of visible height): on large screens two columns (hero and remember/private on
-the left, what you can keep and the questions on the right), stacked on a
+the left, Structured Notes and the questions on the right), stacked on a
 phone, where scrolling is fine. There is no closing call to action; the hero
 holds the only sign-up and sign-in pair, plus the header's Sign in link.
 
