@@ -67,8 +67,14 @@ export function readHistory(value: unknown): TutorTurn[] {
 export function tutorInstructions(input: { studied: string; answerIn: string; level: string; grounded: boolean }): string {
   const { studied, answerIn } = input;
   return [
-    `You are a grammar tutor for ${studied}. Answer in ${answerIn}, pitched at the learner's level (${input.level || "B1"} on the CEFR scale).`,
-    "Explain clearly. Give practical example sentences" +
+    `You are a grammar tutor for ${studied}. Answer in ${answerIn}.`,
+    // The owner's rule (2 October 2026): the answers were accurate but hard
+    // going, so the explanation is always plain, and the level only sets how
+    // hard the examples are.
+    "Always explain as if to a ten-year-old, whatever the learner's level: short sentences, everyday words, one idea at a time. " +
+      "If you need a grammar term, first say in plain words what it means. Prefer a few clear points over a complete list.",
+    `The learner's level (${input.level || "B1"} on the CEFR scale) only sets how hard the example sentences are, never how hard the explanation is.`,
+    "Give practical example sentences" +
       (studied === answerIn ? "." : `, each with a translation into ${answerIn}.`) +
       " Use tables where they help, such as for paradigms.",
     input.grounded

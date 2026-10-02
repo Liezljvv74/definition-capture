@@ -454,7 +454,9 @@ to and survives a reload, and anything unrecognised falls back to Profile.
 `/tutor` is a grammar tutor for the language set under Settings → Glossary
 settings. Ask about a concept you find confusing and the answer comes back whole,
 after a short "Thinking…", as the same text, table and example blocks a grammar
-rule is made of, pitched at the Level set there (about B1 when it is not set).
+rule is made of. The explanation is always plain, as if for a ten-year-old,
+whatever your level; the Level under Settings (about B1 when it is not set) only
+sets how hard the example sentences are.
 A switch chooses whether it answers in your native language or the language you
 are learning; follow-up questions are fine, and the last ten messages are sent
 for context. The conversation lives only in the page: leaving or reloading clears

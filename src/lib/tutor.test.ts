@@ -61,6 +61,17 @@ describe("REFERENCE_DOMAINS", () => {
   });
 });
 
+describe("tutorInstructions plain explanations", () => {
+  it("always explains as if to a ten-year-old, whatever the level", () => {
+    // The owner's rule (2 October 2026): answers were accurate but hard going.
+    for (const level of ["A1", "C2", ""]) {
+      const text = tutorInstructions({ studied: "German", answerIn: "English", level, grounded: true });
+      expect(text).toMatch(/ten-year-old/);
+      expect(text).toMatch(/whatever the learner's level|no matter/i);
+    }
+  });
+});
+
 describe("tutorInstructions braces", () => {
   it("allows braces only in example sentences", () => {
     expect(tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true })).toContain("use braces nowhere else");

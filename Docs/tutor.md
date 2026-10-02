@@ -167,8 +167,11 @@ question, and the question box stays usable.
 ## The tutor's instructions
 
 The system instructions tell the model: it is a grammar tutor for the studied
-language; answer at the learner's level, in the chosen answer language; explain
-clearly, give practical example sentences (with translations into the answer
+language; answer in the chosen answer language; always explain as if to a
+ten-year-old, whatever the learner's level (short sentences, everyday words, a
+plain meaning before any grammar term: the owner's rule, 2 October 2026), with
+the level setting only how hard the example sentences are; give practical
+example sentences (with translations into the answer
 language when it differs from the studied language) and use tables where they
 help; base the explanation on the search results from the allowed reference
 sites; and answer only grammar and language-learning questions about the
