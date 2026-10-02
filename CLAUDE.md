@@ -2,7 +2,7 @@
 
 # Definition Capture
 
-A personal glossary: words, phrases, and verb conjugation tables, private to
+A personal glossary: words, phrases, verb conjugation tables and grammar rules, private to
 each signed-in account. Every list is stored in Supabase and scoped to its
 owner.
 
@@ -127,11 +127,15 @@ a cookie is a claim made by whoever sent the request, and cookies can be forged.
 public JWKS, since this project signs with an asymmetric ECC key. `serverUserId()`
 in `src/lib/supabaseServer.ts` is the wrapper to use.
 
-**Workspace routes require a signed-in user.** Everything except `/sign-in`,
-`/sign-up` and `/auth/*` lives under `src/app/(workspace)/`. A new page belongs
-inside that group. Putting one outside it, at the top level, leaves it
-unprotected, and a new public route must be added to `PUBLIC_PATHS` in
-`src/proxy.ts` as well as placed outside the group.
+**Workspace routes require a signed-in user.** Everything except the public
+landing page `/`, `/sign-in`, `/sign-up`, `/auth/*` and the crawler files
+(`robots.txt`, `sitemap.xml`, `llms.txt`, `opengraph-image`) lives under
+`src/app/(workspace)/`. `/` is matched exactly in `isPublic` in `src/proxy.ts`,
+since as a prefix it would make every path public, and the crawler files are
+excluded in the proxy's matcher. A new page belongs inside the group. Putting
+one outside it, at the top level, leaves it unprotected, and a new public route
+must be added to the proxy's public handling (`PUBLIC_PATHS`, or the matcher for
+a file) as well as placed outside the group.
 
 **No service-role key in client-accessible env vars.** Anything named
 `NEXT_PUBLIC_*` is compiled into the browser bundle. Only the project URL and the
@@ -148,7 +152,7 @@ above silently stops working.
 ## Data rules
 
 **No note data in `localStorage` or `sessionStorage`, under any circumstances.**
-Words, phrases, verb tables, and settings live in Supabase, and nothing in `src/`
+Words, phrases, verb tables, grammar rules, and settings live in Supabase, and nothing in `src/`
 writes a note anywhere else. The one module that ever read from browser storage,
 `legacyLocal.ts`, is gone along with the prompt that offered its contents to an
 account: it existed to carry data across from before this app had accounts, and
@@ -205,7 +209,7 @@ refuses it and Settings switches the bin off.
 
 **`Docs/schema.md` is the design of record, and it is read before a table is
 added.** Nine tables, no views, and eight functions, none of them `security
-definer`: `items` holds every word, phrase and verb table, with a check per type
+definer`: `items` holds every word, phrase, verb table and grammar rule, with a check per type
 on its detail columns; `tags`, `item_tags` and `sources` label them; `decks`,
 `deck_cards`, `progress` and an append-only `reviews` carry the flashcards; and
 `user_settings` is one row of preferences. Every owned row carries `user_id`, and
