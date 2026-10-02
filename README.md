@@ -384,8 +384,9 @@ Move up and Move down:
 - **Example**, a sentence with its translation, gap words marked in `{braces}`.
 
 Selecting text in the reading view offers **Highlight** in yellow, green, blue or
-purple (and Remove highlight), **Link to…**, which searches every item and turns
-the selection into a link, and **New rule from this**, which creates an empty rule
+purple (and Remove highlight), **Link to…**, which searches every item by name,
+and lists under those the rules whose text mentions any of the words (showing
+where), and turns the selection into a link, and **New rule from this**, which creates an empty rule
 from the selected words and links to it. Rules make no flashcards.
 
 ### Flashcards
