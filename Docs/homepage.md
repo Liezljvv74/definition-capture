@@ -89,7 +89,7 @@ In the three states with nothing to review (caught up, no cards, empty) a
 quote sits under the heading. It rotates by the second, so each visit can show
 a different one, and `home/page.tsx` chooses it on the server with
 `quoteFor(now)` so the client never picks and hydration cannot disagree. It
-lives in a fixed-height box (`h-32`, `sm:h-24`) so the card is the same size
+lives in a fixed-height box (`h-32`, `sm:h-[4.25rem]`: two lines and the credit) so the card is the same size
 whichever quote appears. It is not shown in the due and new states.
 
 ### Your progress

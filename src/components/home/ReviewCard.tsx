@@ -104,9 +104,11 @@ export function ReviewCard({
       {showQuote && (
         // A fixed height, so the card is the same size whichever quote the
         // server picked. h-32 holds the longest quote whole at 360px (5 lines
-        // of 20px plus the credit); line-clamp is only a last resort.
-        <figure className="mt-3 h-32 overflow-hidden sm:h-24">
-          <blockquote className="line-clamp-5 text-sm leading-5 font-bold italic">
+        // of 20px plus the credit); from sm up it is 2 lines (40px) plus the
+        // credit (20px) with 8px of slack, so h-[4.25rem]. The clamp matches
+        // each height so the credit can never be pushed out.
+        <figure className="mt-2 h-32 overflow-hidden sm:h-[4.25rem]">
+          <blockquote className="line-clamp-5 text-sm sm:line-clamp-2 leading-5 font-bold italic">
             {`“${quote.text}”`}
           </blockquote>
           <figcaption className="mt-1 text-xs leading-4 font-normal text-slate-600 not-italic">{quote.by}</figcaption>
