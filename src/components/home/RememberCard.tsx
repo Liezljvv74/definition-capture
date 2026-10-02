@@ -20,21 +20,19 @@ export function RememberCard({ item, className = "" }: { item: RememberItem; cla
         Do you still remember this one?
       </p>
       <p className="mt-3 text-2xl font-semibold tracking-tight">{item.title}</p>
-      {shown ? (
-        <p id={meaningId} className="mt-3 text-sm leading-6 whitespace-pre-line text-slate-700 dark:text-slate-300">
-          {cardBack(item)}
-        </p>
-      ) : (
-        <button
-          type="button"
-          aria-expanded={false}
-          aria-controls={meaningId}
-          className="btn btn-secondary mt-4 rounded-full"
-          onClick={() => setShown(true)}
-        >
-          Show meaning
-        </button>
-      )}
+      {/* Always rendered, hidden while collapsed, so aria-controls resolves. */}
+      <p id={meaningId} hidden={!shown} className="mt-3 text-sm leading-6 whitespace-pre-line text-slate-700 dark:text-slate-300">
+        {cardBack(item)}
+      </p>
+      <button
+        type="button"
+        aria-expanded={shown}
+        aria-controls={meaningId}
+        className="btn btn-secondary mt-4 rounded-full"
+        onClick={() => setShown(!shown)}
+      >
+        {shown ? "Hide meaning" : "Show meaning"}
+      </button>
     </section>
   );
 }
