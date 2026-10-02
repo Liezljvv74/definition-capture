@@ -90,9 +90,8 @@ shows the app's existing error banner pattern and leaves the button usable.
 A bar in three parts with counts: New (`flashcard`, the pale blue), Learning
 (`indigo-400`, from the primary button's family), Learned (`flashcard-frame`,
 the logo navy). All three are colours the app already uses. The heading
-row shows the total. Under the bar, kept from the mockup at the owner's
-request: "An item counts as learned once you have typed its meaning correctly
-on your last reviews."
+row shows the total. Under the bar there is nothing more:
+the card has no explanatory line, which the owner called demo speak.
 
 - Counted: items with `has_answer` only. Grammar rules and words without a
   definition never make cards and would sit in New forever.
@@ -113,7 +112,7 @@ shows. Hidden when no such item exists.
 
 ### Recently captured
 
-The 6 newest items of any type by `created_at`, in two columns on desktop. Each
+The 4 newest items of any type by `created_at`, in two columns on desktop. Each
 shows its title as a link to the item, then the type label (Vocabulary,
 Phrases, Verb table, Grammar), the first collection if any, and a relative date
 ("today", "yesterday", "3 days ago") from `Intl.RelativeTimeFormat`. Hidden

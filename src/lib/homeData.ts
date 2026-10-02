@@ -15,7 +15,7 @@ import { createSupabaseServerClient } from "@/lib/supabaseServer";
  *
  * Server-side rather than through the list stores: those download every word,
  * phrase and verb table to the browser, which is right for a list page and
- * wasteful for a page that shows counts and six titles. The summary, the
+ * wasteful for a page that shows counts and four titles. The summary, the
  * recent items and the display name go out together; the random item needs
  * the summary's pick, so it follows.
  */
@@ -36,7 +36,7 @@ export async function loadHome(): Promise<{
       .select("id, item_type, title, created_at, item_tags(position, context, tags(name))")
       .order("created_at", { ascending: false })
       .order("id")
-      .limit(6),
+      .limit(4),
     supabase.from("user_settings").select("display_name").maybeSingle(),
   ]);
 

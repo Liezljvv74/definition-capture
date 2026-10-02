@@ -47,7 +47,7 @@ export function ReviewCard({ state, className = "" }: { state: ReviewState; clas
     case "due":
       heading = `${plural(state.count, "item needs", "items need")} reviewing`;
       action = (
-        <button type="button" className="btn btn-primary px-6 py-2.5" disabled={busy} onClick={() => play(true)}>
+        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => play(true)}>
           {busy ? "Building your deck…" : "Review now"}
         </button>
       );
@@ -55,7 +55,7 @@ export function ReviewCard({ state, className = "" }: { state: ReviewState; clas
     case "new":
       heading = `Nothing due. ${plural(state.count, "new item", "new items")} to learn`;
       action = (
-        <button type="button" className="btn btn-primary px-6 py-2.5" disabled={busy} onClick={() => play(false)}>
+        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => play(false)}>
           {busy ? "Building your deck…" : "Learn new items"}
         </button>
       );
@@ -66,7 +66,7 @@ export function ReviewCard({ state, className = "" }: { state: ReviewState; clas
     case "noCards":
       heading = "Nothing to review yet";
       action = (
-        <Link href="/vocabulary" className="btn btn-primary px-6 py-2.5">
+        <Link href="/vocabulary" className="btn btn-primary">
           Add a definition
         </Link>
       );
@@ -74,7 +74,7 @@ export function ReviewCard({ state, className = "" }: { state: ReviewState; clas
     case "empty":
       heading = "Capture your first word";
       action = (
-        <Link href="/vocabulary" className="btn btn-primary px-6 py-2.5">
+        <Link href="/vocabulary" className="btn btn-primary">
           Go to Vocabulary
         </Link>
       );
@@ -86,14 +86,14 @@ export function ReviewCard({ state, className = "" }: { state: ReviewState; clas
   return (
     <section
       aria-labelledby="review-heading"
-      className={`rounded-2xl border border-indigo-100 bg-challenge p-6 text-slate-900 sm:p-7 ${className}`}
+      className={`rounded-2xl border border-indigo-100 bg-challenge p-5 text-slate-900 ${className}`}
     >
       <p className="text-xs font-semibold tracking-wider text-slate-600 uppercase">Ready for review</p>
-      <h2 id="review-heading" className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+      <h2 id="review-heading" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl">
         {heading}
       </h2>
       {(action || canCustomise) && (
-        <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
           {action}
           {canCustomise && <CreateDeckButton />}
         </div>
