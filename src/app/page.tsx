@@ -67,10 +67,10 @@ export default function LandingPage() {
         <div className="space-y-5">
           <section>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Your personal glossary for learning a language
+              Your personal repository for learning any language
             </h1>
             <p className="mt-3 leading-7 text-slate-700 dark:text-slate-300">
-              Save the words, phrases, verb tables and grammar rules you meet, then review them with
+              Save words, phrases, verb conjugations and grammar rules, and review them with
               flashcards until they stick.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -99,7 +99,7 @@ export default function LandingPage() {
 
         <div className="space-y-5">
           <section aria-labelledby="keep-heading">
-            <h2 id="keep-heading" className="text-lg font-semibold tracking-tight">What you can keep</h2>
+            <h2 id="keep-heading" className="text-lg font-semibold tracking-tight">Structured Notes</h2>
             <ul className="mt-2 grid gap-3 sm:grid-cols-2">
               {KEEP.map((item) => (
                 <li key={item.title} className={`rounded-xl p-3 text-slate-900 ${item.colour}`}>

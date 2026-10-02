@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // The landing page's title is the default; every other page names itself
   // and gets the site name after it.
-  title: { default: `${SITE_NAME}: a personal glossary for language learners`, template: `%s · ${SITE_NAME}` },
+  title: { default: `${SITE_NAME}: a personal repository for learning any language`, template: `%s · ${SITE_NAME}` },
   description: DESCRIPTION,
   applicationName: SITE_NAME,
   openGraph: { type: "website", siteName: SITE_NAME, url: "/", title: SITE_NAME, description: DESCRIPTION },

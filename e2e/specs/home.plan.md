@@ -27,6 +27,6 @@ The landing page at / is the app's only public page; the dashboard at /home is w
 
 **Steps:**
   1. Open / without signing in
-    - expect: the h1 "Your personal glossary for learning a language" and a "Create an account" link
+    - expect: the h1 "Your personal repository for learning any language" and a "Create an account" link
   2. Request /robots.txt, /sitemap.xml and /llms.txt
     - expect: each returns 200 without a redirect to sign-in

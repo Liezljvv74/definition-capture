@@ -6,7 +6,7 @@ export const SITE_URL = "https://definition-capture.vercel.app";
 export const SITE_NAME = "Definition Capture";
 
 export const DESCRIPTION =
-  "A personal glossary for language learners: save the words, phrases, verb conjugation tables and grammar rules you meet, and review them with flashcards that come back when they are due.";
+  "A personal repository for learning any language: save words, phrases, verb conjugations and grammar rules, and review them with flashcards that come back when they are due.";
 
 /**
  * The landing page's questions, also sent to search engines as FAQ structured
