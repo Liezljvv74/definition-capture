@@ -102,8 +102,11 @@ export function TutorChat(props: {
       <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Tutor</h1>
 
       {studiedName && (
+        // The legend is visible: a lone radio button reading "German" said
+        // nothing about what it chose. Without a native language there is
+        // only one answer language, so the link says where to add the other.
         <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <legend className="sr-only">Answer language</legend>
+          <legend className="float-left mr-3 text-sm font-medium">Answer in</legend>
           {languages.map((language) => (
             <label key={language.value} className="flex items-center gap-1.5 text-sm [overflow-wrap:anywhere]">
               <input
@@ -115,6 +118,11 @@ export function TutorChat(props: {
               {language.name}
             </label>
           ))}
+          {!props.nativeName && (
+            <Link href="/settings" className="text-sm text-indigo-700 underline underline-offset-2 dark:text-indigo-300">
+              Add your native language
+            </Link>
+          )}
         </fieldset>
       )}
 

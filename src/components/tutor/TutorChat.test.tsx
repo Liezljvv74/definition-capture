@@ -43,6 +43,14 @@ describe("TutorChat", () => {
     expect(out.match(/type="radio"/g)).toHaveLength(1);
   });
 
+  it("says where to add a native language when none is set, and not otherwise", () => {
+    // A lone "German" radio told the owner nothing; the legend and the link do.
+    expect(html({ nativeName: null })).toContain("Add your native language");
+    expect(html({ nativeName: null })).toMatch(/href="\/settings\/?"/);
+    expect(html()).not.toContain("Add your native language");
+    expect(html()).toContain("Answer in");
+  });
+
   it("never says free, shows a currency sign, or uses an em dash", () => {
     for (const out of [html(), html({ studiedName: null }), html({ reason: "trialUsed", plan: "free", remaining: 0 }), html({ reason: "dailyLimit" })]) {
       expect(out).not.toMatch(/free|[$€£]|\u2014/i);

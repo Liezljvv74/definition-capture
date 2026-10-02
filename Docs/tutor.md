@@ -113,7 +113,9 @@ account paid, and that `OPENROUTER_API_KEY` is server-only.
 
 ## Settings
 
-Two new settings under the studied language in Settings:
+Two new settings in their own Settings section, "Native language and level",
+under Profile, with a summary such as "English · B1" (first built inside the
+Language section, where its folded summary hid them):
 
 - **Native language**: the same picker as the studied language (presets plus a
   typed name), stored exactly as the studied language is: `native_language`
@@ -132,8 +134,9 @@ not set, as the project's backup rules require; `BACKUP_VERSION` goes up by one.
 in the phone menu. Top to bottom:
 
 1. A switch for the answer language, labelled with the real language names
-   (native and studied). When no native language is set, only the studied
-   language is offered.
+   (native and studied), after a visible "Answer in" label. When no native
+   language is set, only the studied language is offered, with an "Add your
+   native language" link to Settings.
 2. The conversation: each question, and each answer rendered as rule blocks.
    Under each answer, its sources (or "Not checked against a reference") and
    **Save as rule**, which opens a small dialog with the suggested title and

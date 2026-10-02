@@ -168,6 +168,8 @@ function Settings() {
               loaded={loaded}
             />
 
+            <NativeLanguageSection />
+
             <PasswordSection />
 
             <ExportFolderSection />
@@ -499,7 +501,6 @@ function LanguageSection() {
         </div>
       )}
 
-      <NativeLanguageFields menu={menu} />
     </SettingSection>
   );
 }
@@ -528,11 +529,14 @@ function LanguageOptions({ menu }: { menu: LanguageMenu | null }) {
 }
 
 /**
- * The reader's own language and their level. Unlike the language being
- * learned, choosing here never offers to replace a list, so each change is
- * saved as it is made.
+ * The reader's own language and their level, which the tutor reads. Its own
+ * section with its own summary, in Profile: folded inside Language it was
+ * invisible, because that section's summary names only the language being
+ * learned. Unlike that language, choosing here never offers to replace a
+ * list, so each change is saved as it is made.
  */
-function NativeLanguageFields({ menu }: { menu: LanguageMenu | null }) {
+function NativeLanguageSection() {
+  const menu = useLanguageMenu();
   const { settings, loaded } = useSettings();
   const { nativeLanguage, nativeLanguageOther, level } = settings;
   const nativeId = useId();
@@ -547,9 +551,12 @@ function NativeLanguageFields({ menu }: { menu: LanguageMenu | null }) {
     nativeLanguage !== "" &&
     ![...menu.presets, ...menu.others].some((entry) => entry.code === nativeLanguage);
 
+  const nativeName = nativeLanguage ? languageName(nativeLanguage) : nativeLanguageOther;
+  const summary = [nativeName, level].filter(Boolean).join(" · ") || "Not set";
+
   return (
-    <>
-      <label htmlFor={nativeId} className="mb-1 mt-4 block text-sm font-medium">
+    <SettingSection title="Native language and level" summary={summary}>
+      <label htmlFor={nativeId} className="mb-1 block text-sm font-medium">
         Native language
       </label>
       <select
@@ -597,7 +604,7 @@ function NativeLanguageFields({ menu }: { menu: LanguageMenu | null }) {
           </option>
         ))}
       </select>
-    </>
+    </SettingSection>
   );
 }
 

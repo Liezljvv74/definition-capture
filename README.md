@@ -422,10 +422,10 @@ Reached from the gear at the right of the nav, which opens a menu of four groups
 rather than going straight to one page:
 
 - **Profile**: the address you signed in with, an optional display name shown in
-  the nav in its place, Sign out, **Password** (see above), and **Export folder**.
+  the nav in its place, **Native language and level** (what the tutor answers
+  with), Sign out, **Password** (see above), and **Export folder**.
 - **Glossary settings**: the **Language** you are learning, which sets the
-  alphabetical order of every list, the **Native language** and **Level** the
-  tutor answers with, and the **Words to skip when sorting** that
+  alphabetical order of every list, and the **Words to skip when sorting** that
   Vocabulary looks past. Eleven common languages are ready-made: seven fill the
   list with their articles, and Chinese, Japanese, Korean and Russian, which have
   none, set only the order. Eight also fill Verb persons in textbook order; the
