@@ -20,7 +20,7 @@ those migrations and in the git log; none of it is live.
 
 ## The shape
 
-Nine tables, no views, seven functions, none of them `security definer`.
+Nine tables, no views, eight functions, none of them `security definer`.
 
 | Table | Holds | Written by |
 | --- | --- | --- |
@@ -167,7 +167,8 @@ All `security invoker`, all with `search_path = ''`, execute granted to
 | --- | --- |
 | `save_items(payload jsonb)` | saves any number of items with their source and collections, in one transaction. Names are resolved, and created when missing, inside the call. A key left out of the payload leaves that part of an existing item alone. `user_id` comes from the session, never the payload. |
 | `record_review(item, answer, took_ms)` | writes a review and upserts the item's progress |
-| `build_deck(item_types, tag_ids, only_needs_review, only_recent, size)` | fills a deck, due first then at random, or newest first; keeps the newest ten decks |
+| `build_deck(item_types, tag_ids, only_needs_review, only_recent, size, only_due)` | fills a deck, due first then at random, or newest first; keeps the newest ten decks. `only_due` (default false) draws only items whose `progress.due_at` has passed, most overdue first |
+| `home_summary()` | one row for the dashboard: `words`, `words_without_definition`, `phrases`, `verb_tables`, `grammar_rules`, `due`, `new_items`, `learning`, `learned`, `next_due_at`, `last_saved_at`, `remember_id`. Security invoker, so row level security applies |
 | `rename_tag(context, from, to)` | renames a tag, or merges it into one that already has the new name |
 | `rename_item_source(from, to)` | the same for a source |
 | `items_guard()`, `set_updated_at()` | triggers on `items` (and `user_settings` for the second) |
