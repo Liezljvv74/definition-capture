@@ -6,6 +6,8 @@ from them come back when they are due. Every list is stored in Supabase and
 belongs to the account that saved it, so the same lists are there on any browser
 or device. It is live at <https://definition-capture.vercel.app>.
 
+![The public landing page: the heading "Your personal glossary for learning a language", Create an account and Sign in buttons, cards for words, phrases, verb tables and grammar rules, and the questions as dropdowns](assets/landing-page.png)
+
 ## Features
 
 - **Dashboard**: what is due for review, progress so far, a word to test yourself
