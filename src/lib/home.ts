@@ -66,6 +66,30 @@ export function reviewState(s: HomeSummary, now: Date): ReviewState {
   return items > 0 ? { kind: "noCards" } : { kind: "empty" };
 }
 
+/** Shown on the review card when there is nothing to review. */
+export const QUOTES: { text: string; by: string }[] = [
+  { text: "To learn a new language is to have one more window from which to look at the world", by: "Chinese proverb" },
+  { text: "A different language is a different vision of life", by: "Federico Fellini" },
+  {
+    text: "Start with high frequency vocabulary - begin by learning the most common words. They're the foundation of most everyday language",
+    by: "Gabriel Wyner, Fluent Forever",
+  },
+  {
+    text: "Learn through context, not translation - Understand words and phrases in context rather than translating them word-for-word.",
+    by: "Luca Lampariello, Polyglot",
+  },
+  { text: "Grammar is the logic of speech, even if it sometimes feels as learning to dance by mail", by: "Anonymous" },
+];
+
+/**
+ * Rotates by the second so a different quote can appear on each visit. It takes
+ * the time as an argument, and the page calls it on the server, so the client
+ * never picks one and cannot disagree with the markup it hydrates.
+ */
+export function quoteFor(now: Date): (typeof QUOTES)[number] {
+  return QUOTES[Math.floor(now.getTime() / 1000) % QUOTES.length];
+}
+
 const DAY_MS = 86_400_000;
 const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 

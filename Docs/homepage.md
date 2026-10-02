@@ -85,6 +85,13 @@ The buttons call `buildDeck` and navigate to `/flashcards/?deck=…`, as the
 dialog does. While building, the button is disabled and says so; a failure
 shows the app's existing error banner pattern and leaves the button usable.
 
+In the three states with nothing to review (caught up, no cards, empty) a
+quote sits under the heading. It rotates by the second, so each visit can show
+a different one, and `home/page.tsx` chooses it on the server with
+`quoteFor(now)` so the client never picks and hydration cannot disagree. It
+lives in a fixed-height box (`h-32`, `sm:h-24`) so the card is the same size
+whichever quote appears. It is not shown in the due and new states.
+
 ### Your progress
 
 A bar in three parts with counts: New (`flashcard`, the pale blue), Learning

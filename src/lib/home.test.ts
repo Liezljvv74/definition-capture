@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   itemHref,
   plural,
+  QUOTES,
+  quoteFor,
   progressParts,
   readRecent,
   readRemember,
@@ -143,5 +145,18 @@ describe("readRemember", () => {
 describe("plural", () => {
   it("uses the singular only for exactly one", () => {
     expect([0, 1, 2].map((n) => plural(n, "word", "words"))).toEqual(["0 words", "1 word", "2 words"]);
+  });
+});
+
+describe("quoteFor", () => {
+  it("steps through every quote on consecutive seconds and wraps around", () => {
+    const base = Math.ceil(NOW.getTime() / 1000 / QUOTES.length) * QUOTES.length;
+    for (let i = 0; i <= QUOTES.length; i++) {
+      expect(quoteFor(new Date((base + i) * 1000))).toBe(QUOTES[i % QUOTES.length]);
+    }
+  });
+
+  it("has no em dash in any quote or attribution", () => {
+    for (const q of QUOTES) expect(`${q.text}${q.by}`).not.toContain("—");
   });
 });

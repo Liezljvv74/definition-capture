@@ -61,16 +61,30 @@ const LINKS = [
  * The destinations as a panel, for phone widths where four tabs and the
  * Backup and Settings controls do not fit in one row. Backup and Settings
  * stay in the bar, where they already fit; this holds the places you go.
- * Closed by choosing a link or by Escape.
+ * Closed by choosing a link, by Escape, by a press outside it, or by back and forward.
  */
 function MobileMenu({ pathname }: { pathname: string }) {
   const [open, setOpen] = useState(false);
+  const item = useRef<HTMLLIElement>(null);
 
+  // Listeners exist only while the panel is open. Back and forward close it
+  // here, in a handler, because a pathname effect would call setState in the
+  // effect body, which React 19's lint rule rejects.
   useEffect(() => {
     if (!open) return;
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
+    const close = () => setOpen(false);
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && close();
+    const onPress = (event: PointerEvent) => {
+      if (!item.current?.contains(event.target as Node)) close();
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPress);
+    window.addEventListener("popstate", close);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPress);
+      window.removeEventListener("popstate", close);
+    };
   }, [open]);
 
   const destinations = [
@@ -79,7 +93,7 @@ function MobileMenu({ pathname }: { pathname: string }) {
   ];
 
   return (
-    <li className="sm:hidden">
+    <li ref={item} className="sm:hidden">
       <button
         type="button"
         aria-label="Menu"

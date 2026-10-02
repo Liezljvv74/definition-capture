@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { RememberCard } from "@/components/home/RememberCard";
 import { ReviewCard } from "@/components/home/ReviewCard";
-import { itemHref, plural, progressParts, relativeDay, reviewState, typeLabel } from "@/lib/home";
+import { itemHref, plural, progressParts, quoteFor, relativeDay, reviewState, typeLabel } from "@/lib/home";
 import { loadHome } from "@/lib/homeData";
 
 export const metadata: Metadata = { title: "Home" };
@@ -81,7 +81,7 @@ export default async function HomePage() {
           </section>
         )}
 
-        <ReviewCard state={reviewState(summary, now)} className="lg:col-span-2" />
+        <ReviewCard state={reviewState(summary, now)} quote={quoteFor(now)} className="lg:col-span-2" />
 
         {remember && <RememberCard item={remember} />}
 

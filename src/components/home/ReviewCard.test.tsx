@@ -42,4 +42,16 @@ describe("ReviewCard", () => {
     // Struck by the owner as demo speak.
     expect(html({ kind: "due", count: 3 })).not.toMatch(/picks up to/i);
   });
+
+  it("shows a quote only when there is nothing to review", () => {
+    const quote = { text: "A different language", by: "Federico Fellini" };
+    const out = (state: Parameters<typeof ReviewCard>[0]["state"]) =>
+      renderToStaticMarkup(<ReviewCard state={state} quote={quote} />);
+    for (const state of [{ kind: "caughtUp", next: null }, { kind: "noCards" }, { kind: "empty" }] as const) {
+      expect(out(state)).toContain("“A different language”");
+      expect(out(state)).toContain("Federico Fellini");
+    }
+    expect(out({ kind: "due", count: 2 })).not.toContain("Fellini");
+    expect(out({ kind: "new", count: 2 })).not.toContain("Fellini");
+  });
 });

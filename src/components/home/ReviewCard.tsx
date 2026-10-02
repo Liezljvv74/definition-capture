@@ -15,7 +15,15 @@ import { plural, type ReviewState } from "@/lib/home";
  * A client component only for the two buttons, which build a deck and go to
  * it exactly as `CreateDeckDialog` does, including how a failure is reported.
  */
-export function ReviewCard({ state, className = "" }: { state: ReviewState; className?: string }) {
+export function ReviewCard({
+  state,
+  quote,
+  className = "",
+}: {
+  state: ReviewState;
+  quote?: { text: string; by: string };
+  className?: string;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +89,7 @@ export function ReviewCard({ state, className = "" }: { state: ReviewState; clas
       break;
   }
 
+  const showQuote = quote && (state.kind === "caughtUp" || state.kind === "noCards" || state.kind === "empty");
   const canCustomise = state.kind === "due" || state.kind === "new" || state.kind === "caughtUp";
 
   return (
@@ -92,6 +101,17 @@ export function ReviewCard({ state, className = "" }: { state: ReviewState; clas
       <h2 id="review-heading" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl">
         {heading}
       </h2>
+      {showQuote && (
+        // A fixed height, so the card is the same size whichever quote the
+        // server picked. h-32 holds the longest quote whole at 360px (5 lines
+        // of 20px plus the credit); line-clamp is only a last resort.
+        <figure className="mt-3 h-32 overflow-hidden sm:h-24">
+          <blockquote className="line-clamp-5 text-sm leading-5 font-bold italic">
+            {`“${quote.text}”`}
+          </blockquote>
+          <figcaption className="mt-1 text-xs leading-4 font-normal text-slate-600 not-italic">{quote.by}</figcaption>
+        </figure>
+      )}
       {(action || canCustomise) && (
         <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
           {action}
