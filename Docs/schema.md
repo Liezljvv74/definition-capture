@@ -58,7 +58,7 @@ Nine tables, no views, eight functions, none of them `security definer`.
 
 ### `items`
 
-`item_type` is `word`, `phrase` or `verb_table`, checked. The common columns
+`item_type` is `word`, `phrase`, `verb_table` or `grammar`, checked. The common columns
 are `title`, `ref`, `source_id`, `needs_review` and the two timestamps. `ref`
 is a notes field that renders links, shown and edited by the browser; words and
 phrases have always carried it, and verb tables use it for notes on the table.

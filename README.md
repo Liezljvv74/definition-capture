@@ -1,58 +1,26 @@
 # Definition Capture
 
-Definition Capture is a personal language-learning workspace for saving words,
-phrases, verb conjugations and grammar rules, then returning to them with
-flashcards that come back when they are due.
+Definition Capture is a private language-learning workspace. You save the
+words, phrases, verb conjugations and grammar rules you meet, and flashcards built
+from them come back when they are due. Every list is stored in Supabase and
+belongs to the account that saved it, so the same lists are there on any browser
+or device. It is live at <https://definition-capture.vercel.app>.
 
-It was designed to bring scattered study notes into one place so learning feels
-clearer, more organised and easier to revisit over time. It is built for language
-learners who want a lightweight system for collecting vocabulary, reviewing
-phrases and keeping conjugation patterns and grammar in view without losing track
-of what they already know.
-
-It is live at <https://definition-capture.vercel.app>.
-
-## Why this app exists
-
-Learners collect useful words and phrases in many places, and those notes are
-hardest to use when they are scattered. Definition Capture brings them into a
-single private workspace with structured review, clear filtering and quick
-recall.
-
-It is meant for:
-
-- self-directed language learners
-- students working through online courses
-- anyone who wants a simple, private vocabulary and phrase log
-- anyone who wants to turn what they have saved into flashcards
-
-## Product overview
-
-The app gives one signed-in person a place to:
-
-- save words, phrases, conjugation tables and grammar rules
-- organise words and phrases by collection and source, and rules by topic
-- link any item to any other, and revisit each one from a stable link
-- see on one dashboard what is due for review and how far along they are
-- build flashcard decks from chosen lists and filters
-- keep all of it private to their own account
-
-Everything is stored in Supabase and scoped to the account that saved it. Sign in
-on another browser or device and the same lists are there.
-
-## Core features
+## Features
 
 - **Dashboard**: what is due for review, progress so far, a word to test yourself
   on, and what was captured most recently.
-- **Vocabulary**: words, definitions, references, collections and sources, with
-  search, a collection filter, sorting, and a flag for words whose definition is
-  still to be written.
+- **Vocabulary**: words, definitions, references, up to five collections and a
+  source, with search, a collection filter, sorting, and a flag for words whose
+  definition is still to be written.
 - **Phrases**: expressions with a literal meaning and a usage example, kept as
-  their own list so a phrase does not have to pretend to be a word.
+  their own list.
 - **Verb tables**: a conjugation table per verb, with a column per tense, a row
   per person, a note against any row, and notes on the table.
 - **Grammar rules**: a rule per page, written as text, table and example blocks,
   filed under one topic, with highlights and links in the reading view.
+- **Links**: `[[Name]]` links any item to any other, and every item has a stable
+  page of its own.
 - **Flashcards**: a deck built from chosen lists and filters, or of only what is
   due, one card at a time, with the typed answer marked and the schedule updated
   from what happened.
@@ -191,21 +159,6 @@ is why the sign-in screen offers it first.
 > (`supabase config diff` lists them), so a push would also switch off email
 > confirmations and MFA. Change auth settings in the dashboard.
 
-`npx supabase migration new <name>` starts a new migration and `npx supabase db
-push` applies it. `npx supabase db query -f query.sql --linked` runs a one-off
-query against the hosted database, which is the quickest way to see what is really
-in there. All three go over the network and need nothing installed locally.
-`db pull`, `db dump`, `db diff` and the local copy (`npx supabase start`) are the
-exceptions: each runs in a container, so without Docker or Podman they stop with
-`docker: command not found`. Day-to-day work does not need them: write the
-migration by hand and push it. Only the signed-in end-to-end tests need the local
-copy.
-
-`npx supabase login` opens a browser and waits for a keypress, so it only works in
-a real terminal; inside an editor or agent shell it exits with `Cannot use
-automatic login flow inside non-TTY environments`. Log in once in a terminal and
-every other tool picks up the stored credentials.
-
 ## Authentication and session model
 
 Being signed in is decided on the server, before a page exists.
@@ -262,8 +215,8 @@ none of them `security definer`. The design, and why it is shaped that way, is i
 | `user_settings` | one row of preferences per account |
 
 The functions are `save_items`, `record_review`, `build_deck`, `home_summary`,
-`rename_tag`, `rename_item_source`, and the two triggers on `items`,
-`items_guard` and `set_updated_at`. Every write of a list goes through
+`rename_tag`, `rename_item_source`, and two trigger functions, `items_guard`
+(on `items`) and `set_updated_at` (on `items` and `user_settings`). Every write of a list goes through
 `save_items`, one transaction per call.
 
 List queries run in the browser under the publishable key, which anyone can read
@@ -303,15 +256,15 @@ be worse than a banner.
 
 ### The landing page
 
-`/` is public and is the page search engines are meant to read. It says what the app
-is, what it keeps, how the flashcards work and that the lists are private, then
-answers a few questions and offers **Create an account** and **Sign in**. It reads
-no session and is prerendered. It carries `WebApplication` and `FAQPage`
-structured data built from the same questions it shows. `robots.ts` lets crawlers
-read the public pages and keeps them out of the workspace, `sitemap.ts` lists the
-three public pages, `opengraph-image.tsx` draws the preview image, and
-`public/llms.txt` describes the app in plain text. Every workspace page is marked
-`noindex`.
+`/` is public and is the page search engines are meant to read. It fits one
+laptop screen: what the app is, what it keeps, how the flashcards work and that
+the lists are private, **Create an account** and **Sign in**, and a few questions
+as collapsible `<details>` dropdowns whose answers are still in the HTML. It reads
+no session and is prerendered, and carries `WebApplication` and `FAQPage`
+structured data built from the same questions. `robots.ts` lets crawlers read the
+public pages and keeps them out of the workspace, `sitemap.ts` lists the three
+public pages, `opengraph-image.tsx` draws the preview image, and `public/llms.txt`
+describes the app in plain text. Every workspace page is marked `noindex`.
 
 ### Navigation
 
@@ -558,7 +511,7 @@ accident. Replace saves the file over the list first and then deletes only the
 rows the file lacks, and each file item takes the id of the row it replaces, so a
 restored item keeps its review history and schedule.
 
-Older backups still work, and that is tested rather than hoped for: a version 1
+Older backups still work: a version 1
 file imports fine, as does a bare array of entries, and so does anything written
 before the glossary was renamed, since those files call the list `entries` and the
 field `term` and the reader accepts either spelling. Files before version 10 call
@@ -613,8 +566,8 @@ The unit tests run in node and render components to a string where they need
 markup at all, so there is no jsdom to configure and no browser to drive. What
 they cover is chosen rather than uniform: the paths that can lose data quietly,
 such as importing a backup, writing through the store, and deciding whether a
-typed answer is right. Several were checked by breaking the code on purpose and
-confirming they noticed. `supabase/tests/home_summary.sql` rehearses
+typed answer is right; a test for anything that can lose data is broken on
+purpose once to confirm it notices. `supabase/tests/home_summary.sql` rehearses
 `home_summary` and the due-only deck against the local Supabase copy, inside a
 transaction that is rolled back.
 
@@ -627,6 +580,23 @@ against the local Supabase copy (`npx supabase start`), with a temporary
 `.env.development.local` pointing the app at it and the Turnstile site key empty,
 `npm run dev` restarted, and `E2E_BASE_URL=http://localhost:3000`. CLAUDE.md has
 the full procedure. Plans for each spec live in `e2e/specs/`.
+
+### The Supabase CLI
+
+`npx supabase migration new <name>` starts a new migration and `npx supabase db
+push` applies it. `npx supabase db query -f query.sql --linked` runs a one-off
+query against the hosted database, which is the quickest way to see what is really
+in there. All three go over the network and need nothing installed locally.
+`db pull`, `db dump`, `db diff` and the local copy (`npx supabase start`) are the
+exceptions: each runs in a container, so without Docker or Podman they stop with
+`docker: command not found`. Day-to-day work does not need them: write the
+migration by hand and push it. Only the signed-in end-to-end tests need the local
+copy.
+
+`npx supabase login` opens a browser and waits for a keypress, so it only works in
+a real terminal; inside an editor or agent shell it exits with `Cannot use
+automatic login flow inside non-TTY environments`. Log in once in a terminal and
+every other tool picks up the stored credentials.
 
 ## Deploying
 
@@ -656,147 +626,24 @@ the same Supabase project.
 src/
   proxy.ts                verifies the session before any page is rendered
   app/
-    layout.tsx            shell, metadata, Enter-moves-down, and the shaded logo backdrop
-    globals.css           Tailwind theme and shared control styles
-    page.tsx              the public landing page, with its structured data
-    robots.ts             robots.txt: public pages in, workspace out
-    sitemap.ts            sitemap.xml: the three public pages
-    opengraph-image.tsx   the link preview image, drawn with next/og
-    sign-in/page.tsx      a password, an emailed link, or a reset link
-    sign-up/page.tsx      making an account
-    auth/callback/route.ts  trades a sign-in link's ?code= for a session
-    auth/reset/route.ts     the same for a reset link, then on to the form
+    layout.tsx            shell and metadata
+    page.tsx              the public landing page
+    robots.ts, sitemap.ts, opengraph-image.tsx   the crawler files
+    sign-in/, sign-up/    the two ways in
+    auth/callback/        trades a sign-in link's ?code= for a session
+    auth/reset/           the same for a reset link, then on to /choose-password
     (workspace)/          everything behind a sign-in. The brackets keep the
-      layout.tsx            group out of the URL, so /vocabulary is still /vocabulary;
-                            the layout re-checks the session on the server and sets noindex
-      home/page.tsx         the dashboard, rendered on the server
-      home/error.tsx        what the dashboard shows when its data could not be read
-      vocabulary/page.tsx   Vocabulary page: add, edit, delete, search, sort
-      phrases/page.tsx      phrase list, the same shape as Vocabulary
-      word/page.tsx         one word by ?id=, read-only plus Edit
-      phrase/page.tsx       one phrase by ?id=, read-only plus Edit
-      verbs/page.tsx        the conjugation tables, one rolled-up card each
-      grammar/page.tsx      the rule list
-      rule/page.tsx         one rule by ?id=, the reading view and the editor
-      flashcards/page.tsx   one card at a time from a deck, and what you answered
-      settings/page.tsx     one of the four settings groups, by ?section=
-      choose-password/page.tsx  where a reset link lands
-  components/
-    home/
-      ReviewCard.tsx      Ready for review: its five states and their buttons
-      RememberCard.tsx    the word that reveals its meaning when pressed
-    flashcards/
-      CreateDeckButton.tsx  Customise deck, which opens the dialog
-      CreateDeckDialog.tsx  lists, filters and how many, then build the deck
-    grammar/
-      AddRuleDialog.tsx   a new rule's title and topic
-      RuleEditor.tsx      Edit mode: the block stack and saving it
-      BlockEditor.tsx     one block's controls: drag handle, Move up, Move down
-      TableEditor.tsx     the table grid, with cell selection, copy, cut and paste
-      MarkedField.tsx     a text field that shows highlight markers faintly
-      BlockView.tsx       a block as read
-      RichText.tsx        renders a rule's text markup
-      ReadingTools.tsx    the reading view's selection tools
-      SelectionToolbar.tsx  Highlight, Link to… and New rule from this
-      LinkToDialog.tsx    searching every item to link a selection to
-      TopicSelect.tsx     picking a rule's topic from the Settings list
-      readSelection.ts    maps the browser's selection onto the stored text
-    MainNav.tsx           the nav bar, and the phone menu
-    NavMenu.tsx           the dropdown the Glossary, Backup and gear tabs open
-    AccountMenu.tsx       display name or address, and the gear's Settings menu
-    BackupMenu.tsx        Export and Import, loading their dialogs on demand
-    backup/
-      ExportDialog.tsx    what to export and in which format
-      ImportDialog.tsx    what a file holds, what restoring it would do, and doing it
-      parts.tsx           the pieces both dialogs share
-    Turnstile.tsx         the Cloudflare Turnstile check on every auth form
-    EnterMovesDown.tsx    Enter moves to the field below, app-wide
-    AddWordDialog.tsx     add-word flow, including the duplicate prompt
-    AddPhraseDialog.tsx   add-phrase flow, including the duplicate prompt
-    EditWordDialog.tsx    edit-word flow, including the rename clash
-    EditPhraseDialog.tsx  edit-phrase flow
-    EntryForm.tsx         shared add/edit form for words
-    PhraseForm.tsx        shared add/edit form for phrases
-    RefField.tsx          the Ref input, with its name suggestions
-    RefText.tsx           renders a parsed Ref value
-    LinkedFrom.tsx        the items that link to this one
-    DeleteControls.tsx    checkboxes, selection bar, and the delete confirmation
-    RowEditButton.tsx     the pencil at the end of a row, beside the bin
-    StickyFilters.tsx     the classes that pin a page's filter row under the nav
-    EmptyCell.tsx         the dash a blank cell shows instead of nothing
-    StoreErrorBanner.tsx  says so when a read or a save did not reach the database
-    NameListEditor.tsx    add / rename / remove a list of names in Settings
-    VerbTableControl.tsx  links to a verb's table, or to making one, from Edit word
-    VerbTableCard.tsx     one conjugation table, rolled up until opened
-    TenseChoice.tsx       picking a tense, or naming a new one
-    Modal.tsx             overlay panel
-    Badges.tsx            source, collection, topic and needs-definition pills
-  lib/
-    home.ts               what the dashboard shows, as pure functions
-    homeData.ts           the dashboard's server-side reads
-    site.ts               the site's URL, name, description and landing questions
-    flashcards.ts         decks, cards, answers: the flashcard feature's data access
-    judgeAnswer.ts        whether what was typed counts as the answer
-    remoteStore.ts        the Supabase factory all four list stores are built on
-    supabaseClient.ts     the browser client, session kept in cookies
-    supabaseServer.ts     the server client, and the verified "who is asking?"
-    session.ts            who is signed in, and signing in, up, out and changing a password
-    authLinkError.ts      why a sign-in link did not sign you in
-    constants.ts          limits, and what a new account's lists start out as
-    types.ts              Entry, Phrase and VerbTable shapes plus validators
-    storage.ts            the word store, and how a word is written to a file
-    phraseStorage.ts      the phrase store, and the same for a phrase
-    verbTables.ts         the conjugation tables, and the same for a table
-    rules.ts              the grammar rule store, and the same for a rule
-    blocks.ts             a rule's blocks: shapes, limits and validation
-    blockText.ts          the markup a rule's text accepts
-    selectionEdits.ts     what highlighting and linking a selection do to the text
-    backup.ts             one backup file covering all four lists
-    backupFile.ts         download plumbing: builds the .xlsx and .json files
-    planImport.ts         what merging a backup into a list means, as a pure function
-    settings.ts           the account's display name, language and editable lists
-    languages.ts          the language menu and the ready-made skip lists
-    settingsSections.ts   the four groups Settings is divided into
-    exportFolder.ts       the chosen export folder, held in IndexedDB
-    links.ts              where a [[Name]] points, in the fixed order
-    linkRenames.ts        rewriting links when their target is renamed
-    useLinkTargets.ts     React binding for every link target
-    useWords.ts           React binding for the word store
-    usePhrases.ts         React binding for the phrase store
-    useVerbTables.ts      React binding for the conjugation tables
-    useRules.ts           React binding for the rule store
-    useSettings.ts        React binding for the settings row
-    useSorting.ts         the account's sorting rules, for a list page
-    useSession.ts         React binding for the session store
-    useExportFolder.ts    React binding for the export folder
-    useListPage.ts        the bookkeeping every list page does around its rows
-    useListSelection.ts   row selection shared by both list pages
-    useWideScreen.ts      table or cards, decided once rather than per row
-    collectionOptions.ts  the collections a list's filter offers
-    inUse.ts              how many items use each name, for the Settings bins
-    refSuggestions.ts     the names a Ref field offers to complete
-    foldName.ts           the one way a name is folded before it is compared
-    sortName.ts           sorting in the chosen language, past a leading skip word
-    renames.ts            renaming a name on a Settings list, and on what carries it
-    enterMovesDown.ts     which field is below, by position on screen
-    parseWord.ts          the paste-to-split rule
-    parseRef.ts           turns a Ref value into text and link tokens
-    format.ts             date formatting
-  types/
-    file-system-access.d.ts  the folder picker, which lib.dom does not describe
+                          group out of the URL; its layout.tsx re-checks the
+                          session on the server and sets noindex
+      home/  vocabulary/  phrases/  word/  phrase/  verbs/  grammar/  rule/
+      flashcards/  settings/  choose-password/
+  components/             the UI, with folders for home/, flashcards/, grammar/ and backup/
+  lib/                    data access and pure logic, tests beside each module
 e2e/
   fixtures.ts             signs in as the test account, on localhost only
-  landing/                the landing page is public
-  home/                   the dashboard
-  vocabulary/             adding, finding and deleting a word
+  seed.spec.ts            a signed-in starting point for exploring with playwright-cli
+  landing/  home/  vocabulary/   the specs
   specs/                  a plan per spec
-playwright.config.ts      Playwright: base URL, one worker
-assets/
-  captured-logo.png       the full-size logo artwork, not served
-public/
-  captured-logo.png       the 256px copy the nav bar loads
-  captured-logo-bg.png    the 1000px copy the backdrop loads
-  llms.txt                a plain-text description for LLMs
 supabase/
   config.toml             CLI project config
   migrations/             the tables, indexes, functions and row level security policies
@@ -808,10 +655,20 @@ Docs/
   grammar.md              the grammar rules design
   plans/                  implementation plans, kept for the record
   layouts_and_pages.md    notes on Next.js routing, kept for reference
+public/                   the logo images and llms.txt
+assets/                   source art that is not served
 ```
 
+The modules worth knowing first, all in `src/lib/`:
+
+- `session.ts`: signing in, up and out, passwords, and the captcha token.
+- `supabaseServer.ts` and `supabaseClient.ts`: the server client with the
+  verified `serverUserId()`, and the cookie-backed browser client.
+- `remoteStore.ts`: the factory the four list stores (`storage.ts`,
+  `phraseStorage.ts`, `verbTables.ts`, `rules.ts`) are built on.
+- `home.ts` and `homeData.ts`: what the dashboard shows, and its server-side reads.
+- `flashcards.ts` and `judgeAnswer.ts`: decks, answers, and whether a typed answer is right.
+- `backup.ts`, `backupFile.ts` and `planImport.ts`: the backup format, the files,
+  and what an import does.
+
 Unit tests sit beside the code they test, as `*.test.ts` and `*.test.tsx`.
-`assets/` holds source art that is not served; `public/` holds what the browser
-downloads, so the logo is kept there at the size it is actually shown rather than
-at full resolution. The nav loads it through `next/image`, with width and height
-given so the bar does not jump while the file arrives.

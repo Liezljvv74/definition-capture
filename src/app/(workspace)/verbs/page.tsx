@@ -21,10 +21,10 @@ import { createVerbTable } from "@/lib/verbTables";
  * The conjugation tables. Each is rolled up to its verb until opened, so the
  * page reads as a list of verbs rather than a wall of conjugations.
  *
- * Tables are made from a word's Edit screen, which sends the reader here with
- * `?new=<verb>`. Everything then happens on this page — the tense, and the
- * persons if they have never been given — because a question about verbs in
- * general does not belong in a dialog about one word.
+ * A table is made with Add verb on this page, or from a word's Edit screen,
+ * which sends the reader here with `?new=<verb>`. Either way the tense, and the
+ * persons if they have never been given, are asked here, because a question
+ * about verbs in general does not belong in a dialog about one word.
  */
 export default function VerbsPage() {
   // `useSearchParams` needs a boundary to suspend against during prerender.
