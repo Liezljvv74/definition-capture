@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Kalam, Patrick_Hand } from "next/font/google";
 
 import { EnterMovesDown } from "@/components/EnterMovesDown";
 
@@ -17,9 +18,19 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: SITE_NAME, description: DESCRIPTION },
 };
 
+/*
+ * The notebook's two hands: Kalam for headings, Patrick Hand for body text.
+ * next/font serves them from this app at build time, so a visitor's browser
+ * asks no outside font server and the Content Security Policy needs no
+ * change. Each sets a CSS variable that `notebook.css` puts first in a stack
+ * with fallbacks; nothing uses them until a page opts into the notebook.
+ */
+const kalam = Kalam({ weight: ["400", "700"], subsets: ["latin"], display: "swap", variable: "--font-kalam" });
+const patrickHand = Patrick_Hand({ weight: "400", subsets: ["latin"], display: "swap", variable: "--font-patrick" });
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className={`h-full ${kalam.variable} ${patrickHand.variable}`}>
       <body className="flex min-h-full flex-col">
         <PageBackground />
         <EnterMovesDown />

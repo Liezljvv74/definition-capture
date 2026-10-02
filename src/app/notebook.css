@@ -1,0 +1,377 @@
+/*
+ * The notebook look: notes in a lined paper notebook, after
+ * design/captured-notebook-mockup.html. Tokens and small pieces live here so
+ * every page draws from one set; a page picks the pieces, this file never
+ * knows which page it is on.
+ *
+ * One paper look in both colour schemes for now. The app follows the
+ * device's light or dark setting elsewhere; a "dark notebook" was proposed to
+ * the owner on 3 October 2026 and waits on their answer, so a notebook page
+ * pins `color-scheme: light` rather than half-follow dark mode.
+ */
+
+@theme inline {
+  --color-paper: #fdfcf4;
+  --color-rule: #cfdcee;
+  --color-margin: #e8868b;
+  --color-ink: #1d2742;
+  --color-ink-soft: #4a5573;
+  --color-marker: #ffe34d;
+  --color-tile-blue: #b3c5e6;
+  --color-tile-green: #a9d6bb;
+  --color-tile-purple: #c8b9e4;
+  --color-tile-sage: #cfd5c1;
+  --color-tile-sky: #d9e8f7;
+  --color-accent: #4b35e8;
+
+  /* next/font sets --font-kalam and --font-patrick on <html>; the rest of
+     each stack is what shows if they fail to load. */
+  --font-display: var(--font-kalam), "Segoe Print", "Comic Sans MS", cursive;
+  --font-hand: var(--font-patrick), "Segoe Print", "Comic Sans MS", cursive;
+}
+
+/* ------------------------------------------------------------------ paper */
+
+/*
+ * Ruled lines every 32px, a red double margin line and punch holes, drawn by
+ * `NotebookPaper`. The margin and holes shrink on a phone so content keeps
+ * 16px of side room and nothing scrolls sideways.
+ */
+@utility notebook {
+  color-scheme: light;
+  position: relative;
+  background-color: var(--color-paper);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    var(--color-rule) 31px,
+    var(--color-rule) 32px
+  );
+  background-position: 0 20px;
+  color: var(--color-ink);
+  font-family: var(--font-hand);
+  font-size: 1.125rem;
+  line-height: 1.75;
+  overflow-x: clip;
+}
+
+@utility notebook-margin {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 26px;
+  width: 6px;
+  border-left: 2px solid var(--color-margin);
+  border-right: 1px solid var(--color-margin);
+  opacity: 0.85;
+  pointer-events: none;
+  @media (width >= 48rem) {
+    left: 64px;
+    width: 7px;
+  }
+}
+
+@utility notebook-hole {
+  position: absolute;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e9e6da;
+  box-shadow: inset 2px 3px 5px rgb(0 0 0 / 0.25);
+  pointer-events: none;
+  @media (width >= 48rem) {
+    left: 18px;
+    width: 26px;
+    height: 26px;
+  }
+}
+
+/* Content clears the margin line: 16px past it on a phone, more on a desk. */
+@utility notebook-page {
+  padding-left: 48px;
+  padding-right: 16px;
+  @media (width >= 48rem) {
+    padding-left: 104px;
+    padding-right: 32px;
+  }
+}
+
+/* -------------------------------------------------------------- headings */
+
+@utility hand-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* A yellow marker band behind a word or a heading. */
+@utility marker {
+  background: linear-gradient(
+    transparent 12%,
+    var(--color-marker) 12%,
+    var(--color-marker) 90%,
+    transparent 90%
+  );
+  padding: 0 0.3em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* The thinner band used inside running text, as the mock-up's <mark>. */
+@utility marker-low {
+  background: linear-gradient(
+    transparent 55%,
+    var(--color-marker) 55%,
+    var(--color-marker) 92%,
+    transparent 92%
+  );
+  padding: 0 2px;
+  color: inherit;
+}
+
+/* An SVG scribble under a word that draws itself; see `Scribble`. */
+@utility scribble {
+  position: relative;
+  display: inline-block;
+  & > svg {
+    position: absolute;
+    left: -4%;
+    bottom: -12px;
+    width: 108%;
+    height: 16px;
+    overflow: visible;
+    pointer-events: none;
+  }
+  & path {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: notebook-draw 1s 0.5s ease-out forwards;
+  }
+}
+
+/* ---------------------------------------------------------- paste blocks */
+
+/*
+ * A piece of paper pasted onto the page: a slight tilt set per block through
+ * `--r`, which straightens and lifts on hover. Borders, corners and shadow
+ * are the block's own, so neighbours never look identical.
+ */
+@utility paste {
+  position: relative;
+  transform: rotate(var(--r, 0deg));
+  transition: transform 0.25s ease;
+  &:hover {
+    transform: rotate(0deg) translateY(-3px);
+  }
+}
+
+/* A strip of tape over the top edge; `tape-two` adds a second on the right. */
+@utility tape {
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: -13px;
+    left: 18px;
+    width: 74px;
+    height: 26px;
+    background: rgb(255 227 77 / 0.72);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+    transform: rotate(-5deg);
+    z-index: 2;
+    pointer-events: none;
+  }
+  &::after {
+    display: none;
+  }
+}
+
+@utility tape-two {
+  &::after {
+    display: block;
+    left: auto;
+    right: 18px;
+    transform: rotate(6deg);
+  }
+}
+
+@utility tape-right {
+  &::before {
+    left: auto;
+    right: 20px;
+  }
+}
+
+@utility tape-centre {
+  &::before {
+    left: 50%;
+    margin-left: -37px;
+    transform: rotate(3deg);
+  }
+}
+
+@utility tape-pink {
+  &::before,
+  &::after {
+    background: rgb(236 150 165 / 0.65);
+  }
+}
+
+/* ---------------------------------------------------------------- buttons */
+
+/*
+ * A hand-cut button: uneven corners and an offset shadow. It tilts a little,
+ * straightens and lifts on hover, and presses down when clicked. The tilt is
+ * `--r`, so a page can keep it at zero where a button is pressed often.
+ */
+@utility btn-hand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-hand);
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 14px 22px;
+  cursor: pointer;
+  color: var(--color-ink);
+  background: #fff;
+  border: 2px solid var(--color-ink);
+  border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px;
+  box-shadow: 3px 4px 0 var(--color-ink);
+  text-decoration: none;
+  transform: rotate(var(--r, 0deg));
+  transition: transform 0.15s, box-shadow 0.15s;
+  &:hover {
+    transform: rotate(0deg) translateY(-2px);
+    box-shadow: 4px 7px 0 var(--color-ink);
+  }
+  &:active {
+    transform: translate(2px, 3px);
+    box-shadow: 1px 1px 0 var(--color-ink);
+  }
+}
+
+@utility btn-hand-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+@utility btn-hand-ghost {
+  border-width: 1.5px;
+  box-shadow: 2px 3px 0 var(--color-ink-soft);
+}
+
+/* ----------------------------------------------------------------- inputs */
+
+/* A single underline, no box; a yellow wash while it has focus. */
+@utility ink-input {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  padding: 8px 6px;
+  border: 0;
+  border-bottom: 2px solid var(--color-ink);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-ink);
+  &::placeholder {
+    color: var(--color-ink-soft);
+  }
+  &:focus-visible {
+    outline: none;
+    border-bottom-color: var(--color-accent);
+    background: rgb(255 227 77 / 0.3);
+  }
+}
+
+/* ------------------------------------------------------------- FAQ strips */
+
+/* A pasted strip that opens; each one sets its own `--r` and border width. */
+@utility paper-strip {
+  background: #fff;
+  border: 2px solid var(--color-ink);
+  border-radius: 5px 12px 6px 10px;
+  box-shadow: 2px 3px 0 rgb(29 39 66 / 0.85);
+  transform: rotate(var(--r, 0deg));
+  transition: transform 0.2s;
+  &:hover,
+  &[open] {
+    transform: rotate(0deg);
+  }
+  &[open] {
+    background: #fffbe0;
+  }
+}
+
+/* ---------------------------------------------------------------- doodles */
+
+/* Decorative only: never takes a click, never read aloud (see doodles.ts). */
+.doodle-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 45;
+  overflow: hidden;
+}
+
+.doodle {
+  position: absolute;
+  overflow: visible;
+  transition: opacity 0.8s;
+}
+
+.doodle path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: notebook-draw 0.8s ease-out forwards;
+}
+
+.doodle.fade {
+  opacity: 0;
+}
+
+@keyframes notebook-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A visible keyboard focus everywhere in the notebook: a dashed outline. */
+.notebook :focus-visible {
+  outline: 3px dashed var(--color-accent);
+  outline-offset: 4px;
+}
+
+/*
+ * Reduced motion: nothing tilts, lifts, wobbles or draws itself. Scribbles and
+ * doodles appear fully drawn; idle doodles are switched off in doodles.ts.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .notebook *,
+  .doodle {
+    animation: none !important;
+    transition: none !important;
+  }
+  .notebook .paste,
+  .notebook .paste:hover,
+  .notebook .btn-hand,
+  .notebook .btn-hand:hover,
+  .notebook .btn-hand:active,
+  .notebook .paper-strip,
+  .notebook .paper-strip:hover {
+    transform: none;
+  }
+  .doodle path,
+  .scribble path {
+    stroke-dashoffset: 0;
+  }
+}
