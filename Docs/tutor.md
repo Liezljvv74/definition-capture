@@ -97,8 +97,9 @@ One migration (created with `npx supabase migration new tutor`) adds:
   and insert policies (insert `with check` on the owner), and no update or
   delete: the count can only grow. A refused request records nothing. The question is recorded, and counted again,
   before OpenRouter is called, and failed answers count (owner's decision, 2 October
-  2026). Two requests racing can both be refused, but never both answered past
-  the limit beyond the milliseconds between the insert and the count.
+  2026). Two requests racing can both be refused; the limit is never exceeded. One
+  edge at midnight UTC: a question reserved just before midnight and re-counted
+  just after can give a paid account one extra question that day.
 - Three columns on `user_settings` for the new settings below.
 
 Limits, each one constant in code:
@@ -106,10 +107,6 @@ Limits, each one constant in code:
 - Free: 5 tutor messages in total, for the life of the account. That is one
   trial conversation of a question and its follow-ups.
 - Paid: 30 a day, counted from midnight UTC.
-
-Known ceiling, recorded in the code: two questions sent at the same instant can
-both pass the check before either is recorded, so a limit can be exceeded by
-one. Acceptable at this scale; a database function with a lock is the upgrade.
 
 `Docs/schema.md` and `CLAUDE.md` are updated: eleven tables, how to mark an
 account paid, and that `OPENROUTER_API_KEY` is server-only.

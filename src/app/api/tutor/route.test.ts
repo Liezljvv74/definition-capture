@@ -70,6 +70,7 @@ describe("POST /api/tutor", () => {
     const res = await post({ question: "hi" });
     expect(await res.json()).toEqual({ error: "dailyLimit" });
     expect(res.status).toBe(403);
+    expect(recordQuestion).not.toHaveBeenCalled();
   });
 
   it("answers a free account's fifth question and its sixth is refused", async () => {
@@ -116,6 +117,7 @@ describe("POST /api/tutor", () => {
     const res = await post({ question: "hi" });
     expect(res.status).toBe(502);
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(recordQuestion).not.toHaveBeenCalled();
   });
 
   it("403 noLanguage with no studied language", async () => {

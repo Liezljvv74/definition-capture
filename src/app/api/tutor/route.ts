@@ -124,8 +124,9 @@ export async function POST(request: Request) {
     return fail(502, "tutor_failed");
   }
 
-  // ponytail: two requests racing can both be refused (fail closed), but
-  // never both answered past the limit beyond the milliseconds between insert
-  // and re-count. Failed answers count, by the owner's decision (2 October 2026).
+  // ponytail: two requests racing can both be refused; the limit is never
+  // exceeded. Failed answers count, by the owner's decision (2 October 2026).
+  // Midnight UTC edge: a question reserved just before midnight and re-counted
+  // just after can give a paid account one extra question that day.
   return NextResponse.json({ reply, remaining: remaining - 1 });
 }
