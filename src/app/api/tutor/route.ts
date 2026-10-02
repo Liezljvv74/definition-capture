@@ -1,9 +1,10 @@
 /**
  * POST /api/tutor: asks the grammar tutor one question.
  *
- * This is the only place OPENROUTER_API_KEY is read besides `tutorServer.ts`,
- * and it is never logged or sent back. Nothing in the request is trusted for
- * the plan, the user or the limits: the session says who is asking, and the
+ * This is the only place OPENROUTER_API_KEY is read (`tutorServer.ts` reads
+ * only OPENROUTER_MODEL), and it is never logged or sent back. Nothing in the
+ * request is trusted for the plan, the user or the limits: the session says who
+ * is asking, and the
  * database says what they have used. Logs carry status codes and short
  * reasons only, never the learner's text or the reply.
  */

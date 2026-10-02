@@ -6,6 +6,8 @@ The grammar tutor at /tutor, behind sign-in. It asks for a studied language, the
 
 ## Test Scenarios
 
+Precondition: a fresh local test account, with no `tutor_usage` rows and no paid plan, so the allowance reads "5 trial messages left".
+
 ### 1. Tutor
 
 **Seed:** `e2e/seed.spec.ts`

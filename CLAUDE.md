@@ -145,7 +145,7 @@ all: legacy JWT-based API keys are disabled, and the one Edge Function that used
 to need the service role has been deleted.
 
 **`OPENROUTER_API_KEY` is server-only.** It is read in `src/app/api/tutor/route.ts`
-and `src/lib/tutorServer.ts` and nowhere else, and it never gets a `NEXT_PUBLIC_`
+and nowhere else, and it never gets a `NEXT_PUBLIC_`
 name, which would put a paid key in every visitor's browser. In Vercel it is a
 Sensitive variable. `OPENROUTER_MODEL` is the one setting that switches the
 tutor's model, in `.env.local` and in Vercel; unset, it is the default in

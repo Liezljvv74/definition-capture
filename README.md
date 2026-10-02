@@ -44,7 +44,6 @@ or device. It is live at <https://definition-capture.vercel.app>.
 | UI | React 19.2.8, TypeScript 5, Tailwind CSS 4 |
 | Data and auth | Supabase: Postgres with row level security, and Supabase Auth |
 | Captcha | Cloudflare Turnstile, verified by Supabase Auth |
-| Tutor | OpenRouter, called from a route handler on the server |
 | Supabase clients | `@supabase/ssr` (browser and server), `@supabase/supabase-js` |
 | Exports | `write-excel-file`, imported on demand |
 | Tests | Vitest 3, in the node environment; Playwright for end-to-end tests |
@@ -264,10 +263,9 @@ Two more tables belong to the tutor. `account_plans` holds an account's plan,
 means free. `tutor_usage` has one row per question asked, which an account can
 add and read but not change or delete, so the count only grows.
 
-To mark an account paid, open the Supabase dashboard, go to the Table Editor,
-and add a row to `account_plans` with that account's `user_id` and `plan` set to
-`paid` (or change the row if one exists). The dashboard runs as an
-administrator, which is the only way a plan changes.
+To mark an account paid, add a row to `account_plans` in the Supabase
+dashboard's Table Editor with that account's `user_id` and `plan` set to `paid`.
+The dashboard runs as an administrator, which is the only way a plan changes.
 
 ### Design principles behind the schema
 

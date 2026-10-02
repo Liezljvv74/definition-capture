@@ -15,24 +15,33 @@ async function openLanguage(page: Page) {
   await expect(language(page)).toBeEnabled();
 }
 
+// Picks a language and waits until Settings shows it saved: the write is
+// optimistic, so navigating at once could leave the page that follows reading
+// the old value. The section summary renders the saved name, or "Not chosen".
+async function choose(page: Page, name: string) {
+  await language(page).selectOption({ label: name });
+  const summary = page.getByRole("heading", { name: "Language", exact: true }).locator("xpath=following-sibling::p");
+  await expect(summary).toHaveText(name);
+}
+
 test.afterEach(async ({ page }) => {
   await openLanguage(page);
   const select = language(page);
-  if ((await select.inputValue()) !== "") await select.selectOption({ label: "Not chosen" });
+  if ((await select.inputValue()) !== "") await choose(page, "Not chosen");
 });
 
 test.describe("Tutor", () => {
   test("tutor-states", async ({ page }) => {
     // 1. With no studied language, the page points at Settings and has no question box
     await openLanguage(page);
-    await language(page).selectOption({ label: "Not chosen" });
+    await choose(page, "Not chosen");
     await page.goto("/tutor");
     await expect(page.getByRole("link", { name: "Choose the language you are studying" })).toBeVisible();
     await expect(page.getByLabel("Your question")).toHaveCount(0);
 
     // 2. Choose German in Settings
     await openLanguage(page);
-    await language(page).selectOption({ label: "German" });
+    await choose(page, "German");
 
     // 3. The tutor now offers the question box and the full trial allowance
     await page.goto("/tutor");
