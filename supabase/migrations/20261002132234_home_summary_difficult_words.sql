@@ -57,14 +57,16 @@ begin
     -- right less than 80% of the time; tier 1 is a word not yet learned;
     -- a learned word has no tier and is never drawn. The tier decides first
     -- and random() only breaks ties inside it, so a hard word always beats a
-    -- new one. Reads every candidate, fine at one person's glossary size.
+    -- new one. Accuracy is compared as correct < 0.8 * seen, not by dividing:
+    -- Postgres does not guarantee that `seen > 0 and correct / seen` skips the
+    -- division, and times_seen = 0 rows exist. Reads every candidate, fine at one person's glossary size.
     (select r.id from mine r
      where r.item_type = 'word' and r.has_answer
        and char_length(regexp_replace(r.title, '[[:space:][:punct:]]', '', 'g')) > 4
        and (not r.answered or r.streak < 2 or r.lapses > 0
-            or (r.times_seen > 0 and r.times_correct::numeric / r.times_seen < 0.8))
+            or (r.times_seen > 0 and r.times_correct < 0.8 * r.times_seen))
      order by case when r.answered and r.times_seen > 0
-                        and (r.lapses > 0 or r.times_correct::numeric / r.times_seen < 0.8)
+                        and (r.lapses > 0 or r.times_correct < 0.8 * r.times_seen)
                    then 0 else 1 end,
               random()
      limit 1)

@@ -6,7 +6,8 @@ begin;
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'a@example.test'),
   ('00000000-0000-0000-0000-00000000000b', 'b@example.test'),
-  ('00000000-0000-0000-0000-00000000000c', 'c@example.test');
+  ('00000000-0000-0000-0000-00000000000c', 'c@example.test'),
+  ('00000000-0000-0000-0000-00000000000d', 'd@example.test');
 
 set local role authenticated;
 
@@ -107,6 +108,26 @@ begin
   for i in 1..20 loop
     if (select remember_id from public.home_summary()) is distinct from '20000000-0000-0000-0000-000000000005' then
       raise exception 'draw %: the hard word was not picked', i;
+    end if;
+  end loop;
+end $$;
+
+-- The accuracy-only arm: an account whose only hard word has streak 2, no
+-- lapses and 3 of 5 right must beat a new word on every draw. A word with
+-- times_seen = 0 sits beside them to exercise the division-free comparison.
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}';
+insert into public.items (id, user_id, item_type, title, definition) values
+  ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000d', 'word', 'accuracy-word', 'a'),
+  ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000d', 'word', 'unseen-word', 'b'),
+  ('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-00000000000d', 'word', 'brand-new-word', 'c');
+insert into public.progress (item_id, user_id, times_seen, times_correct, streak, lapses) values
+  ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000d', 5, 3, 2, 0),
+  ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000d', 0, 0, 0, 0);
+do $$
+begin
+  for i in 1..20 loop
+    if (select remember_id from public.home_summary()) is distinct from '30000000-0000-0000-0000-000000000001' then
+      raise exception 'draw %: the low-accuracy word was not picked', i;
     end if;
   end loop;
 end $$;
