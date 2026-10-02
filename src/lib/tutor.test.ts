@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import type { ExampleBlock, TableBlock, TextBlock } from "@/lib/types";
+
 import {
   allowance, buildRequest, DEFAULT_TUTOR_MODEL, FREE_TRIAL_MESSAGES, HISTORY_LIMIT,
   PAID_DAILY_MESSAGES, readHistory, readReply, REFERENCE_DOMAINS, startOfUtcDay, tutorInstructions,
@@ -69,6 +71,38 @@ describe("tutorInstructions plain explanations", () => {
       expect(text).toMatch(/ten-year-old/);
       expect(text).toMatch(/whatever the learner's level|no matter/i);
     }
+  });
+});
+
+describe("tutorInstructions answer language", () => {
+  it("insists on the answer language last, even when the question or sources are in another", () => {
+    const text = tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true });
+    const last = text.split(/\n\n/).at(-1) ?? "";
+    expect(last).toMatch(/English/);
+    expect(last).toMatch(/even when/i);
+    expect(text).toMatch(/no links|not .*links/i);
+  });
+});
+
+describe("readReply clean-up", () => {
+  const wrap = (blocks: unknown[]) => ({
+    choices: [{ message: { content: JSON.stringify({ title: "t", topic: "c", blocks }) } }],
+  });
+  it("strips braces and written-out links from text and table cells, but keeps braces in examples", () => {
+    const read = readReply(wrap([
+      { kind: "text", text: "Use {der Hund}. Quelle: [duden.de](https://www.duden.de/x) and https://dwds.de/y" },
+      { kind: "table", headerRow: true, headerColumn: false, cells: [["Case"], ["{dem} [link](https://a.b/c)"]] },
+      { kind: "example", sentence: "Ich gebe {dem} Mann das Buch.", translation: "I give the man the book." },
+    ]));
+    const [text, table, example] = read!.blocks as [TextBlock, TableBlock, ExampleBlock];
+    expect(text.text).toBe("Use der Hund. Quelle: duden.de and");
+    expect(table.cells[1][0]).toBe("dem link");
+    expect(example.sentence).toBe("Ich gebe {dem} Mann das Buch.");
+  });
+
+  it("turns an em dash into a comma", () => {
+    const read = readReply(wrap([{ kind: "text", text: "Good — we keep it simple." }]));
+    expect((read!.blocks[0] as TextBlock).text).toBe("Good, we keep it simple.");
   });
 });
 
