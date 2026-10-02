@@ -121,7 +121,7 @@ export function MainNav() {
       <ul className="mx-auto flex max-w-6xl items-center gap-1 px-4 sm:px-6">
         <li className="mr-2 shrink-0 sm:mr-3">
           <Link
-            href="/"
+            href="/home"
             aria-label="Definition Capture, home"
             className="-ml-1 block rounded-md p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
           >

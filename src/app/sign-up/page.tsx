@@ -58,7 +58,7 @@ export default function SignUpPage() {
 
     // A session came back, so the account is usable now. Same as signing in:
     // `refresh` is what makes the server look again and notice the cookies.
-    router.replace("/");
+    router.replace("/home");
     router.refresh();
   }
 

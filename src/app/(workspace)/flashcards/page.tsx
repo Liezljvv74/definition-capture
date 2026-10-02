@@ -72,7 +72,7 @@ function Deck() {
     <>
       <header className="bg-challenge">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <Link href="/" className="text-sm font-medium text-indigo-900 hover:underline">
+          <Link href="/home" className="text-sm font-medium text-indigo-900 hover:underline">
             ← Leave the challenge
           </Link>
           <p className="text-sm font-medium text-slate-700">
@@ -375,7 +375,7 @@ function Finished({
           {correct} of {total} known, {wrong} to come back to. What you did not know is due
           again sooner than what you did.
         </p>
-        <Link href="/" className="btn btn-primary mt-5 inline-flex">
+        <Link href="/home" className="btn btn-primary mt-5 inline-flex">
           Back to the home page
         </Link>
       </div>
@@ -399,7 +399,7 @@ function Message({ title, body }: { title: string; body: string }) {
         <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
           {body}
         </p>
-        <Link href="/" className="btn btn-primary mt-5 inline-flex">
+        <Link href="/home" className="btn btn-primary mt-5 inline-flex">
           Back to the home page
         </Link>
       </div>

@@ -16,8 +16,8 @@
  *  1. Refreshes the session cookies. Access tokens expire every hour, and a
  *     Server Component cannot write cookies, so if this did not run the
  *     session would quietly die an hour into the day.
- *  2. Sends anyone without a session to `/sign-in`, and anyone with one away
- *     from it.
+ *  2. Sends anyone without a session to `/sign-in`, and anyone with one from
+ *     `/`, `/sign-in` or `/sign-up` to `/home`.
  */
 
 import { createServerClient } from "@supabase/ssr";
@@ -53,6 +53,9 @@ function normalise(pathname: string): string {
 
 function isPublic(pathname: string): boolean {
   const path = normalise(pathname);
+  // The landing page, matched exactly. It cannot go in PUBLIC_PATHS: those
+  // are prefixes, and every path starts with `/`.
+  if (path === "/") return true;
   return PUBLIC_PATHS.some((base) => path === base || path.startsWith(`${base}/`));
 }
 
@@ -135,9 +138,12 @@ export async function proxy(request: NextRequest) {
     return redirectKeeping(response, target);
   }
 
-  if (signedIn && SIGNED_OUT_ONLY.includes(normalise(pathname))) {
+  // The landing page is for visitors; somebody signed in wants their
+  // dashboard. Sign-in and sign-up make no sense to them either.
+  const path = normalise(pathname);
+  if (signedIn && (path === "/" || SIGNED_OUT_ONLY.includes(path))) {
     const target = request.nextUrl.clone();
-    target.pathname = "/";
+    target.pathname = "/home";
     target.search = "";
     return redirectKeeping(response, target);
   }

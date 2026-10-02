@@ -97,6 +97,7 @@ describe("the route table this file tests", () => {
     expect(protectedPaths.length).toBeGreaterThanOrEqual(7);
     expect(protectedPaths).toContain("/vocabulary/");
     expect(protectedPaths).toContain("/settings/");
+    expect(protectedPaths).toContain("/home/");
   });
 
   it("only runs at all when Supabase is configured", async () => {
@@ -149,7 +150,7 @@ describe("a refreshed session survives the response it is refreshed on", () => {
     signedIn = true;
     rotatesSession = true;
     const response = await ask("/sign-in/");
-    expect(redirectPath(response)).toBe("/");
+    expect(redirectPath(response)).toBe("/home");
     expect(rotated(response)).toBe(true);
   });
 });
@@ -187,6 +188,11 @@ describe("the paths these pages used to live at", () => {
 });
 
 describe("signed out", () => {
+  it("lets / through, because it is the public landing page", async () => {
+    const response = await ask("/");
+    expect(response.status).toBe(200);
+  });
+
   for (const path of protectedPaths) {
     it(`redirects ${path} to /sign-in`, async () => {
       const response = await ask(path);
@@ -218,6 +224,14 @@ describe("signed out", () => {
 });
 
 describe("signed out — a public prefix is not a public page", () => {
+  it("keeps every other path protected now that / is public", async () => {
+    for (const path of ["/vocabulary/", "/home/", "/x"]) {
+      const response = await ask(path);
+      expect(response.status, path).toBe(307);
+      expect(redirectPath(response), path).toBe("/sign-in");
+    }
+  });
+
   /**
    * `isPublic` compares whole segments. A plain `startsWith` would let every
    * one of these through, and each is a route somebody could plausibly add.
@@ -274,9 +288,15 @@ describe("signed in", () => {
     it(`sends ${path} to the workspace`, async () => {
       const response = await ask(path);
       expect(response.status).toBe(307);
-      expect(redirectPath(response)).toBe("/");
+      expect(redirectPath(response)).toBe("/home");
     });
   }
+
+  it("sends / to the dashboard, so the landing page is for visitors", async () => {
+    const response = await ask("/");
+    expect(response.status).toBe(307);
+    expect(redirectPath(response)).toBe("/home");
+  });
 
   it("does NOT redirect /auth/callback, which would break every sign-in link", async () => {
     // It is public but not signed-out-only. Bouncing it would trap a reader

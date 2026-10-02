@@ -50,5 +50,5 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) return backToSignIn(origin, "exchange_failed");
 
-  return NextResponse.redirect(`${origin}/`);
+  return NextResponse.redirect(`${origin}/home`);
 }

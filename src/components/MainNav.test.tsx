@@ -36,7 +36,7 @@ describe("MainNav", () => {
     // The nav is the one place that knows every destination, so a tab left
     // behind after a page is removed still looks like a working link. Checking
     // the set rather than one old name keeps this useful whatever goes next.
-    const served = ["/", "/vocabulary", "/phrases", "/verbs", "/grammar", "/rule", "/flashcards", "/settings"];
+    const served = ["/home", "/vocabulary", "/phrases", "/verbs", "/grammar", "/rule", "/flashcards", "/settings"];
     const hrefs = [...html("/vocabulary").matchAll(/href="([^"]*)"/g)].map((match) => match[1]);
 
     expect(hrefs.length).toBeGreaterThan(0);
