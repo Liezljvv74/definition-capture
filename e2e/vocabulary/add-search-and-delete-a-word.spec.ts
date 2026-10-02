@@ -28,7 +28,7 @@ test.describe("Vocabulary", () => {
     await expect(page.getByRole("heading", { name: "Vocabulary", level: 1 })).toBeVisible();
 
     // 2. Click "Add word", type a unique word and a definition, click "Save word"
-    await page.getByRole("button", { name: "Add word" }).click();
+    await page.getByRole("button", { name: /^Add (word|your first word)$/ }).click();
     await page.getByRole("textbox", { name: "Word *" }).fill(word);
     await page.getByRole("textbox", { name: "Definition" }).fill(definition);
     await page.getByRole("button", { name: "Save word" }).click();
@@ -47,16 +47,18 @@ test.describe("Vocabulary", () => {
     await page.getByRole("button", { name: `Delete ${word}` }).click();
     await page.getByRole("button", { name: "Delete word" }).click();
     await expect(wordLink).toBeHidden();
-    await expect(page.getByRole("heading", { name: "No words match those filters" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^No words (match those filters|yet)$/ })).toBeVisible();
 
     // 5. Reload the page
     // Waiting for the empty state rather than for the row to be hidden: just
     // after a reload the row is hidden because nothing has loaded yet, so a
     // hidden check alone would pass even if the delete never reached the
     // database.
+    // An account with no other words has no search box, only "No words yet".
     await page.reload();
-    await search.fill(word);
-    await expect(page.getByRole("heading", { name: "No words match those filters" })).toBeVisible();
+    await expect(search.or(page.getByRole("heading", { name: "No words yet" }))).toBeVisible();
+    if (await search.isVisible()) await search.fill(word);
+    await expect(page.getByRole("heading", { name: /^No words (match those filters|yet)$/ })).toBeVisible();
     await expect(wordLink).toBeHidden();
   });
 });
