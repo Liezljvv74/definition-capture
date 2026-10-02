@@ -11,12 +11,12 @@ export const QUESTION_MAX = 1000;
 export const DEFAULT_TUTOR_MODEL = "openai/gpt-5-mini";
 
 /**
- * Where the tutor may search, by language code. Each domain answered a
- * request when checked; learnenglish.britishcouncil.org (403 to every
- * request) and bunka.go.jp (no answer) were dropped, not replaced by a guess.
+ * Where the tutor may search, by language code. A domain is listed when it
+ * answers at all, including a bot-wall 403, which is the server answering;
+ * it is dropped only when it does not answer, and never replaced by a guess.
  */
 export const REFERENCE_DOMAINS: Record<string, string[]> = {
-  en: ["dictionary.cambridge.org", "merriam-webster.com"],
+  en: ["dictionary.cambridge.org", "learnenglish.britishcouncil.org", "merriam-webster.com"],
   de: ["duden.de", "dwds.de"],
   fr: ["academie-francaise.fr", "larousse.fr"],
   es: ["rae.es", "fundeu.es"],
@@ -24,6 +24,7 @@ export const REFERENCE_DOMAINS: Record<string, string[]> = {
   pt: ["ciberduvidas.iscte-iul.pt", "priberam.org"],
   nl: ["taaladvies.net", "onzetaal.nl"],
   ru: ["gramota.ru"],
+  ja: ["www.bunka.go.jp"],
   ko: ["korean.go.kr"],
   zh: ["resources.allsetlearning.com"],
 };
@@ -74,7 +75,7 @@ export function tutorInstructions(input: { studied: string; answerIn: string; le
       ? "Base the explanation on the search results from the reference sites you are given."
       : "No reference search is available for this language, so say plainly where you are unsure.",
     `Answer only grammar and language-learning questions about ${studied}. Decline anything else in one polite sentence, still as a valid reply.`,
-    "Reply as JSON with a short title, a topic, and blocks. A text block may use **bold** for emphasis; in a table cell or example sentence, wrap the part being taught in {curly braces}.",
+    "Reply as JSON with a short title, a topic, and blocks. A text block may use **bold** for emphasis; in an example sentence, wrap the word or words being taught in {curly braces}; use braces nowhere else.",
   ].join("\n\n");
 }
 
@@ -92,12 +93,12 @@ export const REPLY_SCHEMA = {
         anyOf: [
           {
             type: "object", additionalProperties: false, required: ["kind", "text"],
-            properties: { kind: { type: "string", const: "text" }, text: str },
+            properties: { kind: { type: "string", enum: ["text"] }, text: str },
           },
           {
             type: "object", additionalProperties: false, required: ["kind", "headerRow", "headerColumn", "cells"],
             properties: {
-              kind: { type: "string", const: "table" },
+              kind: { type: "string", enum: ["table"] },
               headerRow: { type: "boolean" },
               headerColumn: { type: "boolean" },
               cells: { type: "array", items: { type: "array", items: str } },
@@ -105,7 +106,7 @@ export const REPLY_SCHEMA = {
           },
           {
             type: "object", additionalProperties: false, required: ["kind", "sentence", "translation"],
-            properties: { kind: { type: "string", const: "example" }, sentence: str, translation: str },
+            properties: { kind: { type: "string", enum: ["example"] }, sentence: str, translation: str },
           },
         ],
       },
@@ -128,7 +129,11 @@ export function buildRequest(input: {
       { role: "user", content: input.question },
     ],
     response_format: { type: "json_schema", json_schema: { name: "grammar_answer", strict: true, schema: REPLY_SCHEMA } },
-    max_tokens: 2000,
+    // gpt-5-mini spends hidden reasoning tokens from this same budget, and
+    // search results fill the context too; 2000 truncated answers into invalid
+    // JSON. Low effort keeps the reasoning share small. Confirmed by a real call.
+    max_tokens: 6000,
+    reasoning: { effort: "low" },
     ...(input.domains.length > 0 && {
       tools: [{ type: "openrouter:web_search", parameters: { engine: "exa", allowed_domains: input.domains, max_results: 5 } }],
     }),
@@ -149,7 +154,9 @@ export function readReply(json: unknown): TutorReply | null {
   }
   if (typeof parsed?.title !== "string" || typeof parsed.topic !== "string") return null;
   const blocks = readBlocks(parsed.blocks);
-  if (blocks.length === 0) return null;
+  const filled = (b: Block) =>
+    b.kind === "text" ? b.text.trim() !== "" : b.kind === "example" ? b.sentence.trim() !== "" : b.cells.some((r) => r.some((c) => c.trim() !== ""));
+  if (!blocks.some(filled)) return null;
 
   const sources = new Map<string, string>();
   for (const note of Array.isArray(message.annotations) ? message.annotations : []) {

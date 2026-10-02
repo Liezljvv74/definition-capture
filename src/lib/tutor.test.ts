@@ -54,6 +54,19 @@ describe("tutorInstructions", () => {
   });
 });
 
+describe("REFERENCE_DOMAINS", () => {
+  it("lists the British Council for English and the Bunka site for Japanese", () => {
+    expect(REFERENCE_DOMAINS.en).toContain("learnenglish.britishcouncil.org");
+    expect(REFERENCE_DOMAINS.ja).toEqual(["www.bunka.go.jp"]);
+  });
+});
+
+describe("tutorInstructions braces", () => {
+  it("allows braces only in example sentences", () => {
+    expect(tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true })).toContain("use braces nowhere else");
+  });
+});
+
 describe("buildRequest", () => {
   const base = { model: DEFAULT_TUTOR_MODEL, instructions: "I", history: [], question: "Q", domains: REFERENCE_DOMAINS.de };
   it("restricts web search to the language's reference domains on Exa", () => {
@@ -61,6 +74,11 @@ describe("buildRequest", () => {
     expect(body.tools[0].type).toBe("openrouter:web_search");
     expect(body.tools[0].parameters.engine).toBe("exa");
     expect(body.tools[0].parameters.allowed_domains).toEqual(REFERENCE_DOMAINS.de);
+  });
+  it("leaves room for reasoning tokens", () => {
+    const body = buildRequest(base) as { max_tokens: number; reasoning: unknown };
+    expect(body.max_tokens).toBe(6000);
+    expect(body.reasoning).toEqual({ effort: "low" });
   });
   it("searches nothing when the language has no reference list", () => {
     expect((buildRequest({ ...base, domains: [] }) as { tools?: unknown }).tools).toBeUndefined();
@@ -103,5 +121,15 @@ describe("readReply", () => {
   });
   it("drops sources that are not http(s) links", () => {
     expect(readReply(reply(good, [{ type: "url_citation", url: "javascript:alert(1)", title: "x" }]))?.sources).toEqual([]);
+  });
+  it("de-duplicates sources and skips unknown block kinds", () => {
+    const note = { type: "url_citation", url: "https://dwds.de/y", title: "DWDS" };
+    const read = readReply(reply({ ...good, blocks: [{ kind: "drawing" }, ...good.blocks] }, [note, note]));
+    expect(read?.blocks).toHaveLength(3);
+    expect(read?.sources).toHaveLength(1);
+  });
+  it("refuses a reply whose blocks are all empty", () => {
+    const empty = [{ kind: "text", text: " " }, { kind: "example", sentence: "", translation: "x" }, { kind: "table", headerRow: true, headerColumn: false, cells: [["", ""]] }];
+    expect(readReply(reply({ title: "x", topic: "y", blocks: empty }))).toBeNull();
   });
 });
