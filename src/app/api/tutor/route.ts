@@ -13,7 +13,7 @@ import { languageName } from "@/lib/languages";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
 import { allowance, buildRequest, QUESTION_MAX, readHistory, readReply, REFERENCE_DOMAINS, tutorInstructions } from "@/lib/tutor";
-import { loadTutorState, recordQuestion, tutorModel } from "@/lib/tutorServer";
+import { countUsage, loadTutorState, recordQuestion, tutorModel } from "@/lib/tutorServer";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -43,17 +43,6 @@ export async function POST(request: Request) {
     return fail(502, "tutor_failed");
   }
 
-  // Reserve first, count second. The row is this request's place in line: N
-  // parallel requests each insert before any of them counts, so each sees the
-  // others and the limit holds. Checking first and recording after the call,
-  // as this once did, let every parallel request see the old count.
-  try {
-    await recordQuestion(supabase, userId);
-  } catch {
-    console.error("tutor: could not reserve the question");
-    return fail(502, "tutor_failed");
-  }
-
   let state;
   try {
     state = await loadTutorState(supabase);
@@ -61,19 +50,40 @@ export async function POST(request: Request) {
     console.error("tutor: could not read the account's state");
     return fail(502, "tutor_failed");
   }
-  // The counts include the row just inserted, and `allowance` wants what was
-  // used before this request. Everything past the limit is refused, and the
-  // refused request's row stays: a spent reservation is not given back.
+  const { settings } = state;
+  const studied = settings.language ? languageName(settings.language) : settings.languageOther.trim();
+  // Both refusals come before the reservation, so a refusal never spends a message.
+  if (!studied) return fail(403, "noLanguage");
+  const before = allowance(state);
+  if (before.reason !== "ok") return fail(403, before.reason);
+
+  // Reserve, then count again. The row is this request's place in line: N
+  // parallel requests each insert before any of them re-counts, so each sees
+  // the others and the limit holds. Checking once and recording after the
+  // call, as this once did, let every parallel request see the old count.
+  try {
+    await recordQuestion(supabase, userId);
+  } catch {
+    console.error("tutor: could not reserve the question");
+    return fail(502, "tutor_failed");
+  }
+  let usage;
+  try {
+    usage = await countUsage(supabase);
+  } catch {
+    console.error("tutor: could not re-count the account's usage");
+    return fail(502, "tutor_failed");
+  }
+  // These counts include the row just inserted and `allowance` wants what was
+  // used before this request. A request that lost the race is refused and its
+  // row stays: a spent reservation is not given back.
   const { remaining, reason } = allowance({
     plan: state.plan,
-    usedTotal: state.usedTotal - 1,
-    usedToday: state.usedToday - 1,
+    usedTotal: usage.usedTotal - 1,
+    usedToday: usage.usedToday - 1,
   });
   if (reason !== "ok") return fail(403, reason);
 
-  const { settings } = state;
-  const studied = settings.language ? languageName(settings.language) : settings.languageOther.trim();
-  if (!studied) return fail(403, "noLanguage");
   const native = settings.nativeLanguage ? languageName(settings.nativeLanguage) : settings.nativeLanguageOther.trim();
   const answerName = answerIn === "native" && native ? native : studied;
   // A typed language has no code, so no reference sites and no search.
@@ -116,6 +126,6 @@ export async function POST(request: Request) {
 
   // ponytail: two requests racing can both be refused (fail closed), but
   // never both answered past the limit beyond the milliseconds between insert
-  // and count. Failed answers count, by the owner's decision (2 October 2026).
+  // and re-count. Failed answers count, by the owner's decision (2 October 2026).
   return NextResponse.json({ reply, remaining: remaining - 1 });
 }

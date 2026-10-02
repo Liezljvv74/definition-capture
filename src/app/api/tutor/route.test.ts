@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const userId = vi.fn();
 const loadTutorState = vi.fn();
+const countUsage = vi.fn();
 const recordQuestion = vi.fn();
 vi.mock("@/lib/supabaseServer", () => ({
   createSupabaseServerClient: async () => ({}),
@@ -9,6 +10,7 @@ vi.mock("@/lib/supabaseServer", () => ({
 }));
 vi.mock("@/lib/tutorServer", async (orig) => ({
   ...(await orig<typeof import("@/lib/tutorServer")>()),
+  countUsage: (...a: unknown[]) => countUsage(...a),
   loadTutorState: (...a: unknown[]) => loadTutorState(...a),
   recordQuestion: (...a: unknown[]) => recordQuestion(...a),
 }));
@@ -31,7 +33,8 @@ beforeEach(() => {
   vi.stubEnv("OPENROUTER_API_KEY", "sk-test");
   vi.stubEnv("OPENROUTER_MODEL", "");
   userId.mockResolvedValue("u1");
-  loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 1, usedToday: 1, settings });
+  loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 0, usedToday: 0, settings });
+  countUsage.mockResolvedValue({ usedTotal: 1, usedToday: 1 });
   fetchMock.mockResolvedValue(ok(JSON.stringify(goodReply)));
 });
 
@@ -54,25 +57,43 @@ describe("POST /api/tutor", () => {
   );
 
   it("ignores a plan sent in the body", async () => {
-    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 6, usedToday: 1, settings });
+    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 5, usedToday: 0, settings });
     const res = await post({ question: "hi", plan: "paid" });
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ error: "trialUsed" });
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(recordQuestion).not.toHaveBeenCalled();
   });
 
   it("403 dailyLimit for paid at 30 today", async () => {
-    loadTutorState.mockResolvedValue({ plan: "paid", usedTotal: 99, usedToday: 31, settings });
+    loadTutorState.mockResolvedValue({ plan: "paid", usedTotal: 99, usedToday: 30, settings });
     const res = await post({ question: "hi" });
     expect(await res.json()).toEqual({ error: "dailyLimit" });
     expect(res.status).toBe(403);
   });
 
   it("answers a free account's fifth question and its sixth is refused", async () => {
-    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 5, usedToday: 5, settings });
+    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 4, usedToday: 4, settings });
+    countUsage.mockResolvedValue({ usedTotal: 5, usedToday: 5 });
     const res = await post({ question: "hi" });
     expect(res.status).toBe(200);
     expect((await res.json()).remaining).toBe(0);
+  });
+
+  it("refuses a lost race after reserving, without calling out", async () => {
+    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 4, usedToday: 4, settings });
+    countUsage.mockResolvedValue({ usedTotal: 6, usedToday: 6 });
+    const res = await post({ question: "hi" });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "trialUsed" });
+    expect(recordQuestion).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("502 with no call out when the re-count fails", async () => {
+    countUsage.mockRejectedValue(new Error("x"));
+    expect((await post({ question: "hi" })).status).toBe(502);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("reserves before it calls OpenRouter", async () => {
@@ -90,7 +111,7 @@ describe("POST /api/tutor", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("502 with no call out when the counts cannot be read", async () => {
+  it("502 with no reservation when the state cannot be read", async () => {
     loadTutorState.mockRejectedValue(new Error("x"));
     const res = await post({ question: "hi" });
     expect(res.status).toBe(502);
@@ -98,10 +119,11 @@ describe("POST /api/tutor", () => {
   });
 
   it("403 noLanguage with no studied language", async () => {
-    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 1, usedToday: 1, settings: { ...settings, language: "" } });
+    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 0, usedToday: 0, settings: { ...settings, language: "" } });
     const res = await post({ question: "hi" });
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ error: "noLanguage" });
+    expect(recordQuestion).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -144,7 +166,7 @@ describe("POST /api/tutor", () => {
 
   it("a typed studied language gets no search tool", async () => {
     loadTutorState.mockResolvedValue({
-      plan: "free", usedTotal: 1, usedToday: 1, settings: { ...settings, language: "", languageOther: "Klingon" },
+      plan: "free", usedTotal: 0, usedToday: 0, settings: { ...settings, language: "", languageOther: "Klingon" },
     });
     const res = await post({ question: "hi" });
     expect(res.status).toBe(200);
@@ -154,7 +176,7 @@ describe("POST /api/tutor", () => {
 
   it("answerIn native with none set falls back to the studied language", async () => {
     loadTutorState.mockResolvedValue({
-      plan: "free", usedTotal: 1, usedToday: 1, settings: { ...settings, nativeLanguage: "", nativeLanguageOther: "" },
+      plan: "free", usedTotal: 0, usedToday: 0, settings: { ...settings, nativeLanguage: "", nativeLanguageOther: "" },
     });
     await post({ question: "hi", answerIn: "native" });
     expect(sent().messages[0].content).toContain("Answer in French");

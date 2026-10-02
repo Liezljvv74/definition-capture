@@ -19,29 +19,36 @@ export type TutorSettings = {
   level: string;
 };
 
+/** Just the two usage counts, for the re-count after a question is reserved. */
+export async function countUsage(supabase: SupabaseClient): Promise<{ usedTotal: number; usedToday: number }> {
+  const day = startOfUtcDay(new Date()).toISOString();
+  const [total, today] = await Promise.all([
+    supabase.from("tutor_usage").select("id", { count: "exact", head: true }),
+    supabase.from("tutor_usage").select("id", { count: "exact", head: true }).gte("created_at", day),
+  ]);
+  // A failed count must not read as zero used, which would hand out free questions.
+  if (total.error || today.error) throw new Error("tutor usage unavailable");
+  return { usedTotal: total.count ?? 0, usedToday: today.count ?? 0 };
+}
+
 export async function loadTutorState(
   supabase: SupabaseClient,
 ): Promise<{ plan: Plan; usedTotal: number; usedToday: number; settings: TutorSettings }> {
-  const day = startOfUtcDay(new Date()).toISOString();
-  const [plan, total, today, settings] = await Promise.all([
+  const [plan, usage, settings] = await Promise.all([
     supabase.from("account_plans").select("plan").maybeSingle(),
-    supabase.from("tutor_usage").select("id", { count: "exact", head: true }),
-    supabase.from("tutor_usage").select("id", { count: "exact", head: true }).gte("created_at", day),
+    countUsage(supabase),
     supabase
       .from("user_settings")
       .select("language, language_other, native_language, native_language_other, level")
       .maybeSingle(),
   ]);
-  // A failed read must not fall through to "free with nothing used", which
-  // would hand out unlimited questions while the database is unreachable.
-  for (const r of [plan, total, today, settings]) if (r.error) throw new Error("tutor state unavailable");
+  if (plan.error || settings.error) throw new Error("tutor state unavailable");
 
   const s = settings.data;
   return {
     // No row means the account was never upgraded.
     plan: plan.data?.plan === "paid" ? "paid" : "free",
-    usedTotal: total.count ?? 0,
-    usedToday: today.count ?? 0,
+    ...usage,
     settings: {
       language: s?.language ?? "",
       languageOther: s?.language_other ?? "",
