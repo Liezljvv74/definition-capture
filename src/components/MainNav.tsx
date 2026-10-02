@@ -55,6 +55,7 @@ const LINKS = [
     label: "Grammar",
     isActive: (path: string) => path.startsWith("/grammar") || path.startsWith("/rule"),
   },
+  { href: "/tutor", label: "Tutor", isActive: (path: string) => path.startsWith("/tutor") },
 ] as const;
 
 /**

@@ -14,6 +14,7 @@ owner.
 | UI | React 19.2.8, TypeScript 5, Tailwind CSS 4 |
 | Data and auth | Supabase: Postgres with row level security, and Supabase Auth |
 | Captcha | Cloudflare Turnstile, verified by Supabase Auth |
+| Tutor | OpenRouter, called with `fetch` from `POST /api/tutor`; `OPENROUTER_MODEL` picks the model, default `openai/gpt-5-mini` |
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 3, in the node environment; `npx vitest run` |
@@ -143,6 +144,15 @@ publishable key belong there. The project currently holds no service-role key at
 all: legacy JWT-based API keys are disabled, and the one Edge Function that used
 to need the service role has been deleted.
 
+**`OPENROUTER_API_KEY` is server-only.** It is read in `src/app/api/tutor/route.ts`
+and nowhere else, and it never gets a `NEXT_PUBLIC_`
+name, which would put a paid key in every visitor's browser. In Vercel it is a
+Sensitive variable. `OPENROUTER_MODEL` is the one setting that switches the
+tutor's model, in `.env.local` and in Vercel; unset, it is the default in
+`tutorServer.ts`. An account is marked paid by adding an `account_plans` row with
+`plan = 'paid'` in the Supabase dashboard: no policy lets an account write its
+own plan.
+
 **The session lives in cookies, not `localStorage`.** `createBrowserClient` from
 `@supabase/ssr` puts it there, which is what lets the server see the same session
 the browser holds. Do not swap in `createClient` from `@supabase/supabase-js`;
@@ -208,13 +218,17 @@ points at. A collection or source still in use cannot be deleted; the database
 refuses it and Settings switches the bin off.
 
 **`Docs/schema.md` is the design of record, and it is read before a table is
-added.** Nine tables, no views, and eight functions, none of them `security
+added.** Eleven tables, no views, and eight functions, none of them `security
 definer`: `items` holds every word, phrase, verb table and grammar rule, with a check per type
 on its detail columns; `tags`, `item_tags` and `sources` label them; `decks`,
 `deck_cards`, `progress` and an append-only `reviews` carry the flashcards; and
-`user_settings` is one row of preferences. Every owned row carries `user_id`, and
+`user_settings` is one row of preferences; `account_plans` and `tutor_usage` carry the grammar tutor's plan and use. Every owned row carries `user_id`, and
 composite foreign keys `(x_id, user_id)` make a link between two accounts' rows
 impossible. `Docs/db-refactor-plan.md` records how the schema got here and why.
+
+**Marking an account paid:** in the Supabase dashboard, insert or update a row
+in `account_plans` with the account's user id and `plan = 'paid'`; the app can
+read it but never write it.
 
 A new kind of item is a value in the `item_type` check, its detail columns with a
 check, a branch in `items.has_answer` and the same branch in `cardBack`, and its

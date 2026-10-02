@@ -26,6 +26,9 @@ or device. It is live at <https://definition-capture.vercel.app>.
 - **Flashcards**: a deck built from chosen lists and filters, or of only what is
   due, one card at a time, with the typed answer marked and the schedule updated
   from what happened.
+- **Tutor**: ask a grammar question and get an explanation at your level, built
+  from reference sites for the language you are studying, which you can save as a
+  grammar rule.
 - **Backup**: export everything, or one list, as JSON or as an Excel workbook,
   and import a backup again without disturbing the lists the file says nothing
   about.
@@ -69,15 +72,23 @@ Turnstile site key is in the Cloudflare dashboard:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key_here
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=
 ```
 
-All three are compiled into the browser bundle and are meant to be public; row
+The first three are compiled into the browser bundle and are meant to be public; row
 level security is what protects the data behind them. Without the Supabase pair
 the app still builds and runs, but says so instead of showing a sign-in form.
 Local development uses the live Supabase project, which has captcha switched on,
 so the site key is needed locally too (localhost is a listed hostname on the
 widget); with it empty every sign-in is refused. It is left empty only against a
 local Supabase copy, where captcha is off.
+
+The last two are for the tutor and are read only on the server. The key comes
+from your OpenRouter account and is a secret: it never has a `NEXT_PUBLIC_`
+name and must not be committed. Without it the app runs and the tutor says it
+cannot answer. `OPENROUTER_MODEL` is optional and names the model; unset, it is
+`openai/gpt-5-mini`.
 
 The port is fixed at 3000 on purpose: a sign-in link only returns to a URL
 Supabase has been told to accept, and `http://localhost:3000/auth/callback` is
@@ -194,13 +205,15 @@ spare. What it says is its own sentence, chosen by error code from a closed list
 repeating back whatever the URL carried would have let any link make this app say
 anything in its own voice.
 
-The only keys anywhere are public ones. `NEXT_PUBLIC_*` holds the project URL,
-the publishable key and the Turnstile site key. The project holds no service-role
-key at all, and the Turnstile secret lives only in the Supabase dashboard.
+The only keys in the browser bundle are public ones. `NEXT_PUBLIC_*` holds the
+project URL, the publishable key and the Turnstile site key. The project holds no
+service-role key at all, and the Turnstile secret lives only in the Supabase
+dashboard. The one other secret is `OPENROUTER_API_KEY`, which is read only in
+server code.
 
 ## Where the data lives
 
-Every list is in Supabase, in nine tables with no views and eight functions,
+Every list is in Supabase, in eleven tables with no views and eight functions,
 none of them `security definer`. The design, and why it is shaped that way, is in
 [`Docs/schema.md`](Docs/schema.md); how it got there is in
 [`Docs/db-refactor-plan.md`](Docs/db-refactor-plan.md).
@@ -244,6 +257,15 @@ Writes are optimistic: the screen updates first and the database follows. When a
 write fails the store reloads the list so the screen shows what is really stored,
 and `StoreErrorBanner` says what went wrong, because losing a write quietly would
 be worse than a banner.
+
+Two more tables belong to the tutor. `account_plans` holds an account's plan,
+`free` or `paid`, and an account can read its own row but never write it; no row
+means free. `tutor_usage` has one row per question asked, which an account can
+add and read but not change or delete, so the count only grows.
+
+To mark an account paid, add a row to `account_plans` in the Supabase
+dashboard's Table Editor with that account's `user_id` and `plan` set to `paid`.
+The dashboard runs as an administrator, which is the only way a plan changes.
 
 ### Design principles behind the schema
 
@@ -400,7 +422,8 @@ Reached from the gear at the right of the nav, which opens a menu of four groups
 rather than going straight to one page:
 
 - **Profile**: the address you signed in with, an optional display name shown in
-  the nav in its place, Sign out, **Password** (see above), and **Export folder**.
+  the nav in its place, **Native language and level** (what the tutor answers
+  with), Sign out, **Password** (see above), and **Export folder**.
 - **Glossary settings**: the **Language** you are learning, which sets the
   alphabetical order of every list, and the **Words to skip when sorting** that
   Vocabulary looks past. Eleven common languages are ready-made: seven fill the
@@ -425,6 +448,32 @@ rather than going straight to one page:
 
 Which group is showing is a `?section=` query parameter, so a group can be linked
 to and survives a reload, and anything unrecognised falls back to Profile.
+
+### Tutor
+
+`/tutor` is a grammar tutor for the language set under Settings → Glossary
+settings. Ask about a concept you find confusing and the answer comes back whole,
+after a short "Thinking…", as the same text, table and example blocks a grammar
+rule is made of. The explanation is always plain, as if for a ten-year-old,
+whatever your level; the Level under Settings (about B1 when it is not set) only
+sets how hard the example sentences are.
+A switch chooses whether it answers in your native language or the language you
+are learning; follow-up questions are fine, and the last ten messages are sent
+for context. The conversation lives only in the page: leaving or reloading clears
+it.
+
+Answers are grounded in a fixed list of reference sites for the studied language
+and link to the pages they used. When the language has no list, or the search
+found nothing, the answer says "Not checked against a reference". **Save as
+rule** under an answer opens a dialog with its suggested title and topic, both
+editable, and saves exactly what is shown as a grammar rule.
+
+A free account gets 5 tutor messages in total. A paid account gets 30 a day,
+counted from midnight UTC. Failed answers count, and a refused question is not
+recorded. With no studied language chosen, the page links to Settings instead of
+offering the question box. The OpenRouter key is read only by the server route
+`POST /api/tutor`, which checks the session and the allowance before calling out.
+The design is in [`Docs/tutor.md`](Docs/tutor.md).
 
 ### Choosing a password
 
@@ -553,8 +602,8 @@ unreadable is counted and reported rather than silently dropped.
 
 ```bash
 npx tsc --noEmit     # types
-npx eslint src/      # lint
-npx vitest run       # 52 test files, node environment, no jsdom and no browser
+npx eslint src/ e2e/   # lint
+npx vitest run       # 56 test files, node environment, no jsdom and no browser
 npm run build        # when routing or rendering changed
 npm run e2e          # Playwright end-to-end tests
 ```
@@ -611,7 +660,11 @@ deploys every push to `main` on its own, so pushing to `main` is releasing.
   reaches `main`, or production breaks with it.
 - **The build reads its environment from Vercel**, not from `.env.local`:
   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and
-  `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, all public. No secret goes there.
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, all public.
+- **`OPENROUTER_API_KEY` is the one secret in Vercel.** Add it to Production as a
+  Sensitive variable, and `OPENROUTER_MODEL` too if the default model is not the
+  one wanted. The tutor's migration has to be pushed before the code reaches
+  `main`.
 - **Emailed links need the production origin registered**, as described under
   Setting up Supabase.
 - **Per-deployment URLs are private.** Each deploy also gets its own address,
@@ -634,17 +687,18 @@ src/
     sign-in/, sign-up/    the two ways in
     auth/callback/        trades a sign-in link's ?code= for a session
     auth/reset/           the same for a reset link, then on to /choose-password
+    api/tutor/            the one route that calls OpenRouter, with the key
     (workspace)/          everything behind a sign-in. The brackets keep the
                           group out of the URL; its layout.tsx re-checks the
                           session on the server and sets noindex
       home/  vocabulary/  phrases/  word/  phrase/  verbs/  grammar/  rule/
-      flashcards/  settings/  choose-password/
+      flashcards/  settings/  choose-password/  tutor/
   components/             the UI, with folders for home/, flashcards/, grammar/ and backup/
   lib/                    data access and pure logic, tests beside each module
 e2e/
   fixtures.ts             signs in as the test account, on localhost only
   seed.spec.ts            a signed-in starting point for exploring with playwright-cli
-  landing/  home/  vocabulary/   the specs
+  landing/  home/  vocabulary/  tutor/   the specs
   specs/                  a plan per spec
 supabase/
   config.toml             CLI project config

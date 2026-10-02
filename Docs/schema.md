@@ -20,7 +20,7 @@ those migrations and in the git log; none of it is live.
 
 ## The shape
 
-Nine tables, no views, eight functions, none of them `security definer`.
+Eleven tables, no views, eight functions, none of them `security definer`.
 
 | Table | Holds | Written by |
 | --- | --- | --- |
@@ -33,6 +33,8 @@ Nine tables, no views, eight functions, none of them `security definer`.
 | `progress` | each item's place in the review schedule | `record_review` |
 | `reviews` | every answer ever given, append-only | `record_review` |
 | `user_settings` | one row of preferences per account | Settings |
+| `account_plans` | `free` or `paid`, for the grammar tutor; no row means free | an administrator only |
+| `tutor_usage` | one row per tutor question, append-only | the tutor route |
 
 ### Principles
 
@@ -153,8 +155,17 @@ tamper-proof record.
 ### `user_settings`
 
 Display name, language, verb persons and tenses, answer separators, and the
-words to skip when sorting. Collections and sources used to be arrays here,
+words to skip when sorting, the reader's native language (`native_language` code or `native_language_other` name, never both, same checks as the studied language) and CEFR `level` (`''` or A1 to C2), both read by the tutor. Collections and sources used to be arrays here,
 copied into `tags` by a background call; they are rows of their own now.
+
+### `account_plans` and `tutor_usage`
+
+See Docs/tutor.md. `account_plans` is selectable by its account and writable by
+no one in the app: no insert, update or delete grant or policy for
+`authenticated`, so nobody can upgrade themselves. `tutor_usage` grants select
+and insert only, with the insert policy checking `user_id`, so a count can grow
+but never be wound back. The migration ends with a check that raises if either
+grant set drifts. `supabase/tests/tutor.sql` rehearses all of it.
 
 ---
 

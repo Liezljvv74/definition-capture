@@ -148,13 +148,13 @@ export function titleProblem(title: string): string | null {
 
 /* --------------------------------------------------------------- mutations */
 
-/** A new, empty rule; the reader fills it in on its own page. */
-export function createRule(input: { title: string; topic: string }): Rule {
+/** A new rule, empty unless `blocks` is given; one insert either way, so a caller never needs a second save that could race it. */
+export function createRule(input: { title: string; topic: string; blocks?: Block[] }): Rule {
   const rule: Rule = {
     id: createId(),
     title: input.title.trim(),
     topic: input.topic.trim(),
-    blocks: [],
+    blocks: input.blocks ?? [],
     dateAdded: new Date().toISOString(),
     dateUpdated: null,
   };

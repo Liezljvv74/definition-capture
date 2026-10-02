@@ -77,6 +77,19 @@ function redirectKeeping(response: NextResponse, target: URL): NextResponse {
   return redirect;
 }
 
+/**
+ * What a signed-out request to `/api/` gets instead of a redirect. A fetch
+ * that follows a redirect lands on the sign-in page's HTML and fails to parse
+ * it, so the caller cannot tell "signed out" from "broken"; a 401 with a body
+ * it can read is the answer a script needs. Keeps the refreshed cookies for
+ * the same reason `redirectKeeping` does.
+ */
+function unauthorisedKeeping(response: NextResponse): NextResponse {
+  const denied = NextResponse.json({ error: "signed_out" }, { status: 401 });
+  for (const cookie of response.cookies.getAll()) denied.cookies.set(cookie);
+  return denied;
+}
+
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey =
@@ -132,6 +145,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!signedIn && !isPublic(pathname)) {
+    if (normalise(pathname).startsWith("/api/")) return unauthorisedKeeping(response);
     const target = request.nextUrl.clone();
     target.pathname = "/sign-in";
     target.search = "";
