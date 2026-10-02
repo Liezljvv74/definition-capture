@@ -6,9 +6,7 @@ import { useState } from "react";
 
 import { CreateDeckButton } from "@/components/flashcards/CreateDeckButton";
 import { buildDeck, FlashcardError } from "@/lib/flashcards";
-import type { ReviewState } from "@/lib/home";
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+import { plural, type ReviewState } from "@/lib/home";
 
 /**
  * The dashboard's main card: what to do now. It is never hidden; on an empty

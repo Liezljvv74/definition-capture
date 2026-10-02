@@ -49,12 +49,12 @@ renaming the app or changing its logo.
 A server component. It calls `home_summary()` once and runs one query for
 recent items, both with the server Supabase client under the caller's session
 and row level security, in parallel, then renders. Client components are only
-the two interactive pieces: the review buttons and Show meaning.
+the two interactive pieces: the review buttons and the remembered word.
 
-Desktop follows the mockup: greeting and progress in the first row, review
-(two thirds) and remember (one third) in the second, recently captured, then
-the list cards. On a phone it is one column: greeting, review, progress,
-remember, recent, lists.
+The order is the same everywhere: greeting, progress (each full width), then
+review (two thirds on desktop) beside remember (one third), recently captured,
+then the list cards. On a phone it is one column in that order, so the page
+needs no `order-*` classes.
 
 ### Greeting
 
@@ -104,9 +104,11 @@ rely on colour alone.
 
 ### Do you still remember this one?
 
-One random word or phrase with `has_answer`, its title shown and its meaning
-behind **Show meaning**, which reveals it in place (a disclosure button with
-`aria-expanded`). The meaning is `cardBack(item)`, the same text a flashcard
+One random word or phrase with `has_answer`. The word itself is the control:
+a button with `aria-expanded` and `aria-controls` that reveals the meaning in
+place, with no separate Show meaning button and no visible helper text. A
+visually hidden "Show meaning" or "Hide meaning" after the word tells a screen
+reader what it does. The meaning is `cardBack(item)`, the same text a flashcard
 shows. Hidden when no such item exists.
 
 ### Recently captured

@@ -188,3 +188,6 @@ export function itemHref(item: { id: string; itemType: string; title: string }):
       return `/verbs/?verb=${encodeURIComponent(item.title)}`;
   }
 }
+
+/** "1 word", "2 words": the count and its noun, so no caller repeats the ternary. */
+export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;

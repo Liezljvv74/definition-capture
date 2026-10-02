@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   itemHref,
+  plural,
   progressParts,
   readRecent,
   readRemember,
@@ -136,5 +137,11 @@ describe("readRemember", () => {
     const item = readRemember({ id: "1", item_type: "word", title: "w", definition: "d",
       literal_meaning: null, usage_example: null, tenses: null, verb_rows: null });
     expect(item).toMatchObject({ id: "1", item_type: "word", title: "w", definition: "d" });
+  });
+});
+
+describe("plural", () => {
+  it("uses the singular only for exactly one", () => {
+    expect([0, 1, 2].map((n) => plural(n, "word", "words"))).toEqual(["0 words", "1 word", "2 words"]);
   });
 });

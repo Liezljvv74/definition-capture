@@ -15,12 +15,14 @@ const item = {
 };
 
 describe("RememberCard", () => {
-  it("is a collapsed disclosure whose controlled element exists and is hidden", () => {
+  it("is a collapsed disclosure on the word, whose controlled element exists and is hidden", () => {
     const out = renderToStaticMarkup(<RememberCard item={item} />);
-    expect(out).toContain('aria-expanded="false"');
+    expect(out).toMatch(/<button type="button" aria-expanded="false"[^>]*>ephemeral<span class="sr-only"> Show meaning<\/span><\/button>/);
     const id = out.match(/aria-controls="([^"]+)"/)?.[1];
     expect(id).toBeTruthy();
     expect(out).toMatch(new RegExp(`<p id="${id}" hidden=""`));
-    expect(out).toContain("Show meaning");
+    // The only "Show meaning" left is the visually hidden suffix inside the word's button.
+    expect(out.match(/Show meaning/g)).toHaveLength(1);
+    expect(out).toContain("<h2");
   });
 });

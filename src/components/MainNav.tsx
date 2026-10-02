@@ -169,7 +169,7 @@ export function MainNav() {
        * cards as well as over the page, and without it the bar and a card
        * beneath would run together.
        */
-      className="relative sticky top-0 z-30 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+      className="sticky top-0 z-30 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
     >
       {/* No `overflow-x-auto` here on purpose: it would clip the dropdowns,
           because an overflow on one axis makes the other one scroll too. */}
