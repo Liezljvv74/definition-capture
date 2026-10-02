@@ -37,8 +37,8 @@ trade buys identical rendering, no new rendering library, and lossless saving.
 
 - One route handler, `POST /api/tutor` (`src/app/api/tutor/route.ts`, Node
   runtime). It verifies the session with `serverUserId()` (`getClaims`), reads
-  the account's plan and usage from the database, checks the allowance, calls
-  OpenRouter, validates the reply, records the question, and returns the reply.
+  the account's plan and usage from the database, records the question, counts, checks the allowance, calls
+  OpenRouter, validates the reply, and returns it.
   The proxy already protects `/api/*` for signed-out requests; the handler
   checks again regardless, and answers 401 without a session.
 - OpenRouter is called with Node's built-in `fetch` to
@@ -95,8 +95,10 @@ One migration (created with `npx supabase migration new tutor`) adds:
   the Supabase dashboard (Table Editor or SQL), which runs as an administrator.
 - `tutor_usage`: `id`, `user_id`, `created_at`. Row level security with select
   and insert policies (insert `with check` on the owner), and no update or
-  delete: the count can only grow. The insert happens after a successful answer,
-  so a failed call is not counted.
+  delete: the count can only grow. The question is recorded before
+  OpenRouter is called, and failed answers count (owner's decision, 2 October
+  2026). Two requests racing can both be refused, but never both answered past
+  the limit beyond the milliseconds between the insert and the count.
 - Three columns on `user_settings` for the new settings below.
 
 Limits, each one constant in code:

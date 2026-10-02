@@ -31,7 +31,7 @@ beforeEach(() => {
   vi.stubEnv("OPENROUTER_API_KEY", "sk-test");
   vi.stubEnv("OPENROUTER_MODEL", "");
   userId.mockResolvedValue("u1");
-  loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 0, usedToday: 0, settings });
+  loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 1, usedToday: 1, settings });
   fetchMock.mockResolvedValue(ok(JSON.stringify(goodReply)));
 });
 
@@ -54,7 +54,7 @@ describe("POST /api/tutor", () => {
   );
 
   it("ignores a plan sent in the body", async () => {
-    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 5, usedToday: 0, settings });
+    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 6, usedToday: 1, settings });
     const res = await post({ question: "hi", plan: "paid" });
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ error: "trialUsed" });
@@ -62,14 +62,43 @@ describe("POST /api/tutor", () => {
   });
 
   it("403 dailyLimit for paid at 30 today", async () => {
-    loadTutorState.mockResolvedValue({ plan: "paid", usedTotal: 99, usedToday: 30, settings });
+    loadTutorState.mockResolvedValue({ plan: "paid", usedTotal: 99, usedToday: 31, settings });
     const res = await post({ question: "hi" });
     expect(await res.json()).toEqual({ error: "dailyLimit" });
     expect(res.status).toBe(403);
   });
 
+  it("answers a free account's fifth question and its sixth is refused", async () => {
+    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 5, usedToday: 5, settings });
+    const res = await post({ question: "hi" });
+    expect(res.status).toBe(200);
+    expect((await res.json()).remaining).toBe(0);
+  });
+
+  it("reserves before it calls OpenRouter", async () => {
+    const order: string[] = [];
+    recordQuestion.mockImplementation(async () => void order.push("record"));
+    fetchMock.mockImplementation(async () => (order.push("fetch"), ok(JSON.stringify(goodReply))));
+    await post({ question: "hi" });
+    expect(order).toEqual(["record", "fetch"]);
+  });
+
+  it("502 with no call out when the reservation cannot be inserted", async () => {
+    recordQuestion.mockRejectedValue(new Error("x"));
+    const res = await post({ question: "hi" });
+    expect(res.status).toBe(502);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("502 with no call out when the counts cannot be read", async () => {
+    loadTutorState.mockRejectedValue(new Error("x"));
+    const res = await post({ question: "hi" });
+    expect(res.status).toBe(502);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("403 noLanguage with no studied language", async () => {
-    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 0, usedToday: 0, settings: { ...settings, language: "" } });
+    loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 1, usedToday: 1, settings: { ...settings, language: "" } });
     const res = await post({ question: "hi" });
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ error: "noLanguage" });
@@ -98,12 +127,12 @@ describe("POST /api/tutor", () => {
     ["a 402", () => fetchMock.mockResolvedValue(new Response("no", { status: 402 }))],
     ["a thrown fetch", () => fetchMock.mockRejectedValue(new Error("boom"))],
     ["prose", () => fetchMock.mockResolvedValue(ok("Sure! Here you go."))],
-  ])("502 and no record on %s", async (_n, arrange) => {
+  ])("502 and the reservation stands on %s", async (_n, arrange) => {
     arrange();
     const res = await post({ question: "hi" });
     expect(res.status).toBe(502);
     expect(await res.json()).toEqual({ error: "tutor_failed" });
-    expect(recordQuestion).not.toHaveBeenCalled();
+    expect(recordQuestion).toHaveBeenCalledTimes(1);
   });
 
   it("502 without a key, without calling out", async () => {
@@ -115,7 +144,7 @@ describe("POST /api/tutor", () => {
 
   it("a typed studied language gets no search tool", async () => {
     loadTutorState.mockResolvedValue({
-      plan: "free", usedTotal: 0, usedToday: 0, settings: { ...settings, language: "", languageOther: "Klingon" },
+      plan: "free", usedTotal: 1, usedToday: 1, settings: { ...settings, language: "", languageOther: "Klingon" },
     });
     const res = await post({ question: "hi" });
     expect(res.status).toBe(200);
@@ -125,7 +154,7 @@ describe("POST /api/tutor", () => {
 
   it("answerIn native with none set falls back to the studied language", async () => {
     loadTutorState.mockResolvedValue({
-      plan: "free", usedTotal: 0, usedToday: 0, settings: { ...settings, nativeLanguage: "", nativeLanguageOther: "" },
+      plan: "free", usedTotal: 1, usedToday: 1, settings: { ...settings, nativeLanguage: "", nativeLanguageOther: "" },
     });
     await post({ question: "hi", answerIn: "native" });
     expect(sent().messages[0].content).toContain("Answer in French");

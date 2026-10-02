@@ -36,6 +36,24 @@ export async function POST(request: Request) {
   const history = readHistory(body.history);
   const answerIn = body.answerIn === "native" ? "native" : "studied";
 
+  // Checked before the reservation so a missing key does not spend a question.
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) {
+    console.error("tutor: OPENROUTER_API_KEY is not configured");
+    return fail(502, "tutor_failed");
+  }
+
+  // Reserve first, count second. The row is this request's place in line: N
+  // parallel requests each insert before any of them counts, so each sees the
+  // others and the limit holds. Checking first and recording after the call,
+  // as this once did, let every parallel request see the old count.
+  try {
+    await recordQuestion(supabase, userId);
+  } catch {
+    console.error("tutor: could not reserve the question");
+    return fail(502, "tutor_failed");
+  }
+
   let state;
   try {
     state = await loadTutorState(supabase);
@@ -43,7 +61,14 @@ export async function POST(request: Request) {
     console.error("tutor: could not read the account's state");
     return fail(502, "tutor_failed");
   }
-  const { remaining, reason } = allowance(state);
+  // The counts include the row just inserted, and `allowance` wants what was
+  // used before this request. Everything past the limit is refused, and the
+  // refused request's row stays: a spent reservation is not given back.
+  const { remaining, reason } = allowance({
+    plan: state.plan,
+    usedTotal: state.usedTotal - 1,
+    usedToday: state.usedToday - 1,
+  });
   if (reason !== "ok") return fail(403, reason);
 
   const { settings } = state;
@@ -53,12 +78,6 @@ export async function POST(request: Request) {
   const answerName = answerIn === "native" && native ? native : studied;
   // A typed language has no code, so no reference sites and no search.
   const domains = REFERENCE_DOMAINS[settings.language] ?? [];
-
-  const key = process.env.OPENROUTER_API_KEY;
-  if (!key) {
-    console.error("tutor: OPENROUTER_API_KEY is not configured");
-    return fail(502, "tutor_failed");
-  }
 
   let reply;
   try {
@@ -95,15 +114,8 @@ export async function POST(request: Request) {
     return fail(502, "tutor_failed");
   }
 
-  // Charged only for an answer the learner receives. The failures above cost
-  // them nothing.
-  // ponytail: two simultaneous questions can both pass the check before either
-  // is recorded, so a burst can overshoot the limit by a few; a per-account
-  // reservation row or an advisory lock closes it if that ever costs real money.
-  try {
-    await recordQuestion(supabase, userId);
-  } catch {
-    console.error("tutor: could not record the question");
-  }
+  // ponytail: two requests racing can both be refused (fail closed), but
+  // never both answered past the limit beyond the milliseconds between insert
+  // and count. Failed answers count, by the owner's decision (2 October 2026).
   return NextResponse.json({ reply, remaining: remaining - 1 });
 }

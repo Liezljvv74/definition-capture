@@ -252,6 +252,20 @@ describe("signed out — a public prefix is not a public page", () => {
     });
   }
 
+  it("answers a signed-out call to the API with 401 JSON, not a redirect", async () => {
+    rotatesSession = true;
+    const response = await proxy(new NextRequest(new URL("/api/tutor/", ORIGIN), { method: "POST" }));
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "signed_out" });
+    expect(response.cookies.get("sb-access-token")?.value).toBe("rotated");
+  });
+
+  it("still redirects a signed-out page to /sign-in", async () => {
+    const response = await ask("/vocabulary/");
+    expect(response.status).toBe(307);
+    expect(redirectPath(response)).toBe("/sign-in");
+  });
+
   it("is case-sensitive, so /SIGN-IN/ is treated as protected", async () => {
     // Next's routing is not case-sensitive and this comparison is, so the
     // mismatch errs towards refusing. Pinned so it stays a decision.
