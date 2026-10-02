@@ -82,7 +82,7 @@ export default function ChoosePasswordPage() {
                   // `refresh` as well as `replace`, so the server sees the
                   // session on the next request rather than the router serving
                   // a page it already has.
-                  router.replace("/");
+                  router.replace("/home");
                   router.refresh();
                 }}
               >

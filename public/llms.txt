@@ -1,0 +1,20 @@
+# Definition Capture
+
+> A personal glossary for language learners. Save the words, phrases, verb conjugation tables and grammar rules you meet, and review them with flashcards that come back when they are due.
+
+Definition Capture is a web app. Each account's lists are private to it. It works for any language, because learners write their own words, meanings and conjugations.
+
+## What it does
+
+- Words: a word, its definition, a reference, and up to five collections.
+- Phrases: an expression with its literal meaning and a usage example.
+- Verb tables: conjugations by person and tense.
+- Grammar rules: rules written in the learner's own words, with tables and examples.
+- Flashcards: built from saved items; the learner types the meaning, and each card is scheduled for review at growing intervals.
+- Backup: everything can be saved to a file and restored.
+
+## Pages
+
+- [Home](https://definition-capture.vercel.app/): what the app is
+- [Create an account](https://definition-capture.vercel.app/sign-up/)
+- [Sign in](https://definition-capture.vercel.app/sign-in/)

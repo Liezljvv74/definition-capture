@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AccountMenu } from "@/components/AccountMenu";
 import { BackupMenu } from "@/components/BackupMenu";
@@ -56,6 +56,75 @@ const LINKS = [
     isActive: (path: string) => path.startsWith("/grammar") || path.startsWith("/rule"),
   },
 ] as const;
+
+/**
+ * The destinations as a panel, for phone widths where four tabs and the
+ * Backup and Settings controls do not fit in one row. Backup and Settings
+ * stay in the bar, where they already fit; this holds the places you go.
+ * Closed by choosing a link, by Escape, by a press outside it, or by back and forward.
+ */
+function MobileMenu({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const item = useRef<HTMLLIElement>(null);
+
+  // Listeners exist only while the panel is open. Back and forward close it
+  // here, in a handler, because a pathname effect would call setState in the
+  // effect body, which React 19's lint rule rejects.
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && close();
+    const onPress = (event: PointerEvent) => {
+      if (!item.current?.contains(event.target as Node)) close();
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPress);
+    window.addEventListener("popstate", close);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPress);
+      window.removeEventListener("popstate", close);
+    };
+  }, [open]);
+
+  const destinations = [
+    ...GLOSSARY_VIEWS.map((view) => ({ href: view.href, label: view.label, active: inView(view, pathname) })),
+    ...LINKS.map((link) => ({ href: link.href, label: link.label, active: link.isActive(pathname) })),
+  ];
+
+  return (
+    <li ref={item} className="sm:hidden">
+      <button
+        type="button"
+        aria-label="Menu"
+        aria-expanded={open}
+        aria-controls="mobile-menu"
+        onClick={() => setOpen((value) => !value)}
+        className={`${TAB_BASE} ${TAB_OFF} text-xl leading-none`}
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+      <ul
+        id="mobile-menu"
+        hidden={!open}
+        className="absolute inset-x-0 top-full border-b border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+      >
+        {destinations.map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              aria-current={item.active ? "page" : undefined}
+              onClick={() => setOpen(false)}
+              className={`block rounded-md px-3 py-2.5 ${item.active ? MENU_ITEM_CURRENT : MENU_ITEM}`}
+            >
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </li>
+  );
+}
 
 /**
  * Thin app-wide bar so every page is one click from the others.
@@ -121,7 +190,7 @@ export function MainNav() {
       <ul className="mx-auto flex max-w-6xl items-center gap-1 px-4 sm:px-6">
         <li className="mr-2 shrink-0 sm:mr-3">
           <Link
-            href="/"
+            href="/home"
             aria-label="Definition Capture, home"
             className="-ml-1 block rounded-md p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
           >
@@ -139,12 +208,14 @@ export function MainNav() {
           </Link>
         </li>
 
+        <MobileMenu pathname={pathname} />
+
         {/*
          * The Glossary tab opens rather than navigates: it stands for two
          * pages, so going somewhere on click would mean quietly preferring
          * one of them.
          */}
-        <NavMenu label="Glossary" active={inGlossary(pathname)}>
+        <NavMenu label="Glossary" active={inGlossary(pathname)} wrapperClass="hidden sm:block">
           {(close) =>
             GLOSSARY_VIEWS.map((view) => {
               const current = inView(view, pathname);
@@ -172,7 +243,7 @@ export function MainNav() {
           const active = link.isActive(pathname);
 
           return (
-            <li key={link.href} className="shrink-0">
+            <li key={link.href} className="hidden shrink-0 sm:block">
               <Link
                 href={link.href}
                 aria-current={active ? "page" : undefined}

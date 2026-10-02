@@ -36,7 +36,7 @@ describe("MainNav", () => {
     // The nav is the one place that knows every destination, so a tab left
     // behind after a page is removed still looks like a working link. Checking
     // the set rather than one old name keeps this useful whatever goes next.
-    const served = ["/", "/vocabulary", "/phrases", "/verbs", "/grammar", "/rule", "/flashcards", "/settings"];
+    const served = ["/home", "/vocabulary", "/phrases", "/verbs", "/grammar", "/rule", "/flashcards", "/settings"];
     const hrefs = [...html("/vocabulary").matchAll(/href="([^"]*)"/g)].map((match) => match[1]);
 
     expect(hrefs.length).toBeGreaterThan(0);
@@ -51,6 +51,12 @@ describe("MainNav", () => {
     expect(html("/word")).toContain('aria-current="page"');
     expect(html("/phrase")).toContain('aria-current="page"');
     expect(html("/verbs")).toContain('aria-current="page"');
+  });
+
+  it("has a menu button for phones that controls a panel of every destination", () => {
+    const out = html("/vocabulary");
+    expect(out).toMatch(/<button[^>]*aria-controls="mobile-menu"[^>]*aria-expanded="false"|aria-expanded="false"[^>]*aria-controls="mobile-menu"/);
+    expect(out).toContain('aria-label="Menu"');
   });
 
   it("leaves every tab unmarked on a page that belongs to none of them", () => {

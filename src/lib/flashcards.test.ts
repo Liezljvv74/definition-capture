@@ -84,6 +84,13 @@ describe("toDeckRequest", () => {
     expect(sent.tag_ids).toEqual(["a", "b"]);
     expect(sent.only_needs_review).toBe(true);
   });
+
+  it("asks for a due-only deck only when told to", () => {
+    // The dashboard's Review now plays exactly the cards its count names;
+    // every other caller keeps the deck it always built.
+    expect(toDeckRequest(ask()).only_due).toBe(false);
+    expect(toDeckRequest(ask({ dueOnly: true })).only_due).toBe(true);
+  });
 });
 
 describe("sizeOf", () => {

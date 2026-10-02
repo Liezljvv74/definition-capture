@@ -45,6 +45,8 @@ export type DeckRequest = {
   needsReviewOnly: boolean;
   /** Blank means "no preference", which is what makes the default apply. */
   size: number | null;
+  /** Only cards whose review date has come. The dashboard's Review now sets it. */
+  dueOnly?: boolean;
 };
 
 /** What the reader gets when they ask for a deck without saying how big. */
@@ -108,6 +110,7 @@ export function toDeckRequest(request: DeckRequest): {
   only_needs_review: boolean;
   only_recent: boolean;
   size: number;
+  only_due: boolean;
 } {
   const chosen = new Set(request.sources);
   const types = ["word", "phrase", "verb_table"].filter((type) =>
@@ -122,6 +125,7 @@ export function toDeckRequest(request: DeckRequest): {
     only_needs_review: request.needsReviewOnly,
     only_recent: chosen.has("recent"),
     size: sizeOf(request.size),
+    only_due: request.dueOnly ?? false,
   };
 }
 

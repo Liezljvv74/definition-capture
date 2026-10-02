@@ -122,7 +122,7 @@ function PasswordForm({
     // request. `refresh` is what makes that request: without it the client
     // router could serve the sign-in page it already has, and the proxy would
     // never get the chance to notice that the visitor is signed in.
-    router.replace("/");
+    router.replace("/home");
     router.refresh();
   }
 
