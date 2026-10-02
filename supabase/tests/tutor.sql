@@ -52,6 +52,11 @@ begin
   exception when insufficient_privilege then null;
   end;
   begin
+    insert into public.tutor_usage (user_id, created_at) values ('00000000-0000-0000-0000-00000000000a', now() - interval '2 days');
+    raise exception 'A backdated a usage row';
+  exception when insufficient_privilege then null;
+  end;
+  begin
     update public.tutor_usage set created_at = now() - interval '2 days';
     raise exception 'A updated usage';
   exception when insufficient_privilege then null;

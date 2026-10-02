@@ -28,7 +28,9 @@ create policy tutor_usage_select on public.tutor_usage
 create policy tutor_usage_insert on public.tutor_usage
   for insert to authenticated with check ((select auth.uid()) = user_id);
 revoke all on public.tutor_usage from public, anon, authenticated;
-grant select, insert on public.tutor_usage to authenticated;
+-- Insert is limited to the owner column, so a row cannot be given a backdated
+-- created_at or a chosen id to dodge the daily count.
+grant select, insert (user_id) on public.tutor_usage to authenticated;
 
 -- The native language has the same shape as the studied one, and the same
 -- checks as 20260924101234_language_and_sort_skip_words.sql. The level is a
@@ -56,6 +58,14 @@ begin
   if has_table_privilege('authenticated', 'public.account_plans', 'insert')
      or has_table_privilege('authenticated', 'public.account_plans', 'update')
      or has_table_privilege('authenticated', 'public.account_plans', 'delete')
+     or has_table_privilege('authenticated', 'public.account_plans', 'truncate')
+     or has_table_privilege('authenticated', 'public.account_plans', 'references')
+     or has_table_privilege('authenticated', 'public.account_plans', 'trigger')
+     or has_table_privilege('authenticated', 'public.tutor_usage', 'truncate')
+     or has_table_privilege('authenticated', 'public.tutor_usage', 'references')
+     or has_table_privilege('authenticated', 'public.tutor_usage', 'trigger')
+     or has_column_privilege('authenticated', 'public.tutor_usage', 'created_at', 'insert')
+     or has_column_privilege('authenticated', 'public.tutor_usage', 'id', 'insert')
      or has_table_privilege('authenticated', 'public.tutor_usage', 'update')
      or has_table_privilege('authenticated', 'public.tutor_usage', 'delete')
      or has_table_privilege('anon', 'public.account_plans', 'select')

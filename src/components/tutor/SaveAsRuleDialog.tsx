@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useId, useState } from "react";
 
 import { Modal } from "@/components/Modal";
-import { createRule, findByTitle, titleProblem, updateRule } from "@/lib/rules";
+import { createRule, findByTitle, titleProblem } from "@/lib/rules";
 import type { TutorReply } from "@/lib/tutor";
 import { useRules } from "@/lib/useRules";
 
@@ -39,8 +39,7 @@ export function SaveAsRuleDialog({ reply, onClose }: { reply: TutorReply; onClos
           onSubmit={(event) => {
             event.preventDefault();
             if (!ready) return;
-            const rule = createRule({ title, topic });
-            updateRule(rule.id, { title, topic, blocks: reply.blocks });
+            const rule = createRule({ title, topic, blocks: reply.blocks });
             setSavedId(rule.id);
           }}
         >

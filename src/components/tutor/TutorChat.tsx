@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { BlockView } from "@/components/grammar/BlockView";
 import { SaveAsRuleDialog } from "@/components/tutor/SaveAsRuleDialog";
@@ -51,11 +51,6 @@ export function TutorChat(props: {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState<TutorReply | null>(null);
-  const box = useRef<HTMLTextAreaElement>(null);
-  // Focus follows the answer, so it waits for the box to be enabled again.
-  useEffect(() => {
-    if (!busy) box.current?.focus();
-  }, [busy]);
 
   async function ask() {
     const question = text.trim();
@@ -86,8 +81,8 @@ export function TutorChat(props: {
       } else if (response.status === 403 && (body.error === "trialUsed" || body.error === "dailyLimit")) {
         setReason(body.error);
       } else {
-        // A failed answer still counts against the allowance.
-        if (response.status === 502) setRemaining((n) => Math.max(0, n - 1));
+        // A failure after the reservation says what is left; any other leaves the count as it was.
+        if (typeof body.remaining === "number") setRemaining(body.remaining);
         setFailed(true);
       }
     } catch {
@@ -181,12 +176,12 @@ export function TutorChat(props: {
         >
           <label htmlFor="tutor-question" className="sr-only">Your question</label>
           <textarea
-            ref={box}
             id="tutor-question"
             className="field min-h-24"
             rows={3}
             maxLength={QUESTION_MAX}
             value={text}
+            readOnly={busy}
             onChange={(event) => setText(event.target.value)}
             // Enter keeps its new line in a textarea, so Ctrl or Cmd with it sends.
             onKeyDown={(event) => {
@@ -201,6 +196,7 @@ export function TutorChat(props: {
             <button
               type="button"
               className="btn btn-secondary"
+              disabled={busy}
               onClick={() => {
                 setExchanges([]);
                 setFailed(false);
@@ -209,7 +205,7 @@ export function TutorChat(props: {
               New conversation
             </button>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              {props.plan === "paid" ? `${remaining} left today` : `${remaining} trial messages left`}
+              {props.plan === "paid" ? `${remaining} left today` : `${remaining} trial message${remaining === 1 ? "" : "s"} left`}
             </p>
             {failed && (
               <p role="alert" className="text-sm text-red-600 dark:text-red-400">

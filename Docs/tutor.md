@@ -73,7 +73,7 @@ during implementation; a domain that is not is dropped, not replaced by guess):
 | Portuguese (`pt`) | ciberduvidas.iscte-iul.pt, priberam.org |
 | Dutch (`nl`) | taaladvies.net, onzetaal.nl |
 | Russian (`ru`) | gramota.ru |
-| Japanese (`ja`) | bunka.go.jp |
+| Japanese (`ja`) | www.bunka.go.jp |
 | Korean (`ko`) | korean.go.kr |
 | Chinese (`zh`) | resources.allsetlearning.com |
 
@@ -137,8 +137,8 @@ in the phone menu. Top to bottom:
 2. The conversation: each question, and each answer rendered as rule blocks.
    Under each answer, its sources (or "Not checked against a reference") and
    **Save as rule**, which opens a small dialog with the suggested title and
-   topic, editable, and saves through `createRule` and `updateRule` in
-   `src/lib/rules.ts`. A title the rules refuse (duplicate, forbidden
+   topic, editable, and saves through one `createRule` call (given the
+   reply's blocks) in `src/lib/rules.ts`, so there is a single save. A title the rules refuse (duplicate, forbidden
    characters) is reported in the dialog, as Grammar does.
 3. The question box (up to 1,000 characters) with **Ask**, **New conversation**,
    and a small allowance line ("26 left today", "3 trial messages left"). No

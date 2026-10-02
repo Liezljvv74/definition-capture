@@ -101,6 +101,15 @@ describe("titleProblem", () => {
   });
 });
 
+describe("createRule", () => {
+  it("carries the given blocks in the one insert, so no second save can race it", () => {
+    const created = createRule({ title: "Saved", topic: "Cases", blocks: rule.blocks });
+    expect(created.blocks).toEqual(rule.blocks);
+    expect(findByTitle("Saved")?.blocks).toEqual(rule.blocks);
+    expect(createRule({ title: "Empty", topic: "Cases" }).blocks).toEqual([]);
+  });
+});
+
 describe("findByTitle", () => {
   it("matches case-insensitively, excludes the rule named by its own id, and is undefined for no match", () => {
     // Review Focus 5: a duplicate title differing only in case must be

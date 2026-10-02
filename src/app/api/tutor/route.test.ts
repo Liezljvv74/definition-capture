@@ -86,14 +86,16 @@ describe("POST /api/tutor", () => {
     countUsage.mockResolvedValue({ usedTotal: 6, usedToday: 6 });
     const res = await post({ question: "hi" });
     expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: "trialUsed" });
+    expect(await res.json()).toEqual({ error: "trialUsed", remaining: 0 });
     expect(recordQuestion).toHaveBeenCalledTimes(1);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("502 with no call out when the re-count fails", async () => {
+  it("502 with no call out when the re-count fails, and no count to trust", async () => {
     countUsage.mockRejectedValue(new Error("x"));
-    expect((await post({ question: "hi" })).status).toBe(502);
+    const res = await post({ question: "hi" });
+    expect(res.status).toBe(502);
+    expect((await res.json()).remaining).toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -155,7 +157,8 @@ describe("POST /api/tutor", () => {
     arrange();
     const res = await post({ question: "hi" });
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: "tutor_failed" });
+    // The reservation is spent, so the client is told what is left after it.
+    expect(await res.json()).toEqual({ error: "tutor_failed", remaining: 4 });
     expect(recordQuestion).toHaveBeenCalledTimes(1);
   });
 

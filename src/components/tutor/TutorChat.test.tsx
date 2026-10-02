@@ -32,6 +32,7 @@ describe("TutorChat", () => {
   it("shows the allowance for each plan", () => {
     expect(html()).toContain("26 left today");
     expect(html({ plan: "free", remaining: 3 })).toContain("3 trial messages left");
+    expect(html({ plan: "free", remaining: 1 })).toContain("1 trial message left");
   });
 
   it("offers only the studied language when no native language is set", () => {

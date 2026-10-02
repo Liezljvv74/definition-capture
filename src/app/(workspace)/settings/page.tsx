@@ -454,8 +454,6 @@ function LanguageSection() {
         />
       )}
 
-      <NativeLanguageFields menu={menu} />
-
       {cannotSort && (
         <p role="status" className="mt-3 text-sm text-amber-700 dark:text-amber-300">
           This browser cannot sort in {chosenName}, so lists here use a neutral
@@ -500,6 +498,8 @@ function LanguageSection() {
           })}
         </div>
       )}
+
+      <NativeLanguageFields menu={menu} />
     </SettingSection>
   );
 }

@@ -19,7 +19,9 @@ import { countUsage, loadTutorState, recordQuestion, tutorModel } from "@/lib/tu
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const fail = (status: number, error: string) => NextResponse.json({ error }, { status });
+/** `remaining` is sent only by failures after the reservation, which spent a message the client should see gone. */
+const fail = (status: number, error: string, remaining?: number) =>
+  NextResponse.json(remaining === undefined ? { error } : { error, remaining }, { status });
 
 export async function POST(request: Request) {
   const userId = await serverUserId();
@@ -83,7 +85,9 @@ export async function POST(request: Request) {
     usedTotal: usage.usedTotal - 1,
     usedToday: usage.usedToday - 1,
   });
-  if (reason !== "ok") return fail(403, reason);
+  // What is left once this request's own reservation is spent.
+  const left = Math.max(0, remaining - 1);
+  if (reason !== "ok") return fail(403, reason, left);
 
   const native = settings.nativeLanguage ? languageName(settings.nativeLanguage) : settings.nativeLanguageOther.trim();
   const answerName = answerIn === "native" && native ? native : studied;
@@ -113,21 +117,21 @@ export async function POST(request: Request) {
     });
     if (!res.ok) {
       console.error(`tutor: OpenRouter answered ${res.status}`);
-      return fail(502, "tutor_failed");
+      return fail(502, "tutor_failed", left);
     }
     reply = readReply(await res.json());
   } catch {
     console.error("tutor: the OpenRouter call threw");
-    return fail(502, "tutor_failed");
+    return fail(502, "tutor_failed", left);
   }
   if (!reply) {
     console.error("tutor: the reply was unreadable");
-    return fail(502, "tutor_failed");
+    return fail(502, "tutor_failed", left);
   }
 
   // ponytail: two requests racing can both be refused; the limit is never
   // exceeded. Failed answers count, by the owner's decision (2 October 2026).
   // Midnight UTC edge: a question reserved just before midnight and re-counted
   // just after can give a paid account one extra question that day.
-  return NextResponse.json({ reply, remaining: remaining - 1 });
+  return NextResponse.json({ reply, remaining: left });
 }
