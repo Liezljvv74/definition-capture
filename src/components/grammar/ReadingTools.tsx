@@ -24,6 +24,7 @@ import {
 } from "@/lib/selectionEdits";
 import type { Block, Rule } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
+import { useRules } from "@/lib/useRules";
 import { useSettings } from "@/lib/useSettings";
 
 /** A box in this component's own coordinates. */
@@ -46,6 +47,7 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
   const root = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState<Shown | null>(null);
   const { targets } = useLinkTargets();
+  const { rules } = useRules();
   const { settings } = useSettings();
   /**
    * Held apart from `shown` because opening a dialog moves focus, which
@@ -179,6 +181,7 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
       {dialog?.kind === "link" && (
         <LinkToDialog
           targets={targets}
+          rules={rules}
           words={dialog.range.words}
           selfTitle={rule.title}
           onPick={(name) => {
