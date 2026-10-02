@@ -166,7 +166,11 @@ export const config = {
   // have skipped the session check and the cookie refresh with it. An exact
   // list cannot widen by accident — a new file in `public/` either gets added
   // here or simply goes through the proxy, and going through it is harmless.
+  //
+  // The crawler files (robots.txt, sitemap.xml, llms.txt and the generated
+  // opengraph image) are listed too, so a search engine or LLM can read them
+  // without a session instead of being bounced to /sign-in.
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|captured-logo\\.png|captured-logo-bg\\.png).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|captured-logo\\.png|captured-logo-bg\\.png|robots\\.txt|sitemap\\.xml|llms\\.txt|opengraph-image).*)",
   ],
 };

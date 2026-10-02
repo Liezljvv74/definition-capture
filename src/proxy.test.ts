@@ -317,6 +317,14 @@ describe("the matcher", () => {
     }
   });
 
+  it("skips the public files crawlers ask for", () => {
+    // Without these the proxy bounces every crawler to /sign-in, which is
+    // why the app was invisible before.
+    for (const path of ["/robots.txt", "/sitemap.xml", "/llms.txt", "/opengraph-image", "/opengraph-image-abc123"]) {
+      expect(matches(path)).toBe(false);
+    }
+  });
+
   it("skips Next's own output and the named public files", () => {
     for (const path of [
       "/_next/static/chunk.js",

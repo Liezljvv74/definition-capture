@@ -2,11 +2,19 @@ import type { Metadata } from "next";
 
 import { EnterMovesDown } from "@/components/EnterMovesDown";
 
+import { DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Definition Capture",
-  description: "A personal language study system.",
+  metadataBase: new URL(SITE_URL),
+  // The landing page's title is the default; every other page names itself
+  // and gets the site name after it.
+  title: { default: `${SITE_NAME}: a personal glossary for language learners`, template: `%s · ${SITE_NAME}` },
+  description: DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: { type: "website", siteName: SITE_NAME, url: "/", title: SITE_NAME, description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: SITE_NAME, description: DESCRIPTION },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
