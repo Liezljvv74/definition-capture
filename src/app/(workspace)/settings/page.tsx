@@ -23,6 +23,7 @@ import {
   ExportFolderError,
   supportsExportFolder,
 } from "@/lib/exportFolder";
+import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { MIN_PASSWORD, changePassword, sendPasswordReset, signOut } from "@/lib/session";
 import { renameCollection, renameInList, renameSource, renameTopic } from "@/lib/renames";
 import { saveSettings } from "@/lib/settings";
@@ -807,6 +808,11 @@ function PasswordSection() {
   const [done, setDone] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One widget serves both the change and the emailed reset; a token is single
+  // use, so it is reset after each attempt.
+  const [token, setToken] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const blocked = turnstileEnabled && !token;
 
   function typing(set: (value: string) => void) {
     return (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -834,7 +840,13 @@ function PasswordSection() {
 
     setBusy(true);
     setError(null);
-    const { error: failure } = await changePassword(user.email, current, password);
+    const { error: failure } = await changePassword(
+      user.email,
+      current,
+      password,
+      token ?? undefined,
+    );
+    setResetKey((key) => key + 1);
     setBusy(false);
     if (failure) {
       setError(failure);
@@ -851,7 +863,8 @@ function PasswordSection() {
     if (!user) return;
     setBusy(true);
     setError(null);
-    const { error: failure } = await sendPasswordReset(user.email);
+    const { error: failure } = await sendPasswordReset(user.email, token ?? undefined);
+    setResetKey((key) => key + 1);
     setBusy(false);
     if (failure) {
       setError(failure);
@@ -932,10 +945,12 @@ function PasswordSection() {
           </p>
         )}
 
+        <Turnstile onToken={setToken} resetKey={resetKey} />
+
         <button
           type="button"
           className="btn btn-secondary"
-          disabled={busy || !current || !password || !confirm}
+          disabled={busy || blocked || !current || !password || !confirm}
           onClick={() => void save()}
         >
           {busy ? "Saving…" : "Change password"}
@@ -951,7 +966,7 @@ function PasswordSection() {
           <button
             type="button"
             className="link-button"
-            disabled={busy}
+            disabled={busy || blocked}
             onClick={() => void emailAReset()}
           >
             Email yourself a reset link

@@ -13,10 +13,11 @@ owner.
 | Framework | Next.js 16.3.4, App Router, Turbopack |
 | UI | React 19.2.8, TypeScript 5, Tailwind CSS 4 |
 | Data and auth | Supabase: Postgres with row level security, and Supabase Auth |
+| Captcha | Cloudflare Turnstile, verified by Supabase Auth |
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 3, in the node environment; `npx vitest run` |
-| End-to-end tests | Playwright Test 1.63, in `e2e/`; `npm run e2e`, against production by default |
+| End-to-end tests | Playwright Test 1.63, in `e2e/`; `npm run e2e`, on localhost for signed-in tests |
 | Tooling | Supabase CLI 2.118, ESLint 9 |
 | Hosting | Vercel, deployed from GitHub on every push to `main` |
 
@@ -55,6 +56,9 @@ A few things follow from that:
   `https://definition-capture.vercel.app/auth/reset` have to be listed beside
   the localhost ones, and the Site URL should be the production origin.
   Password sign-in does not depend on this.
+- **Turnstile needs its site key in Vercel too.** `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+  is public, like the two Supabase values; the secret key belongs in the Supabase
+  dashboard only.
 - **Per-deployment URLs are private.** Each deploy also gets its own
   `definition-capture-<hash>-liezl.vercel.app` address, which Vercel puts
   behind its own login. Only the production domain is public.
@@ -98,6 +102,24 @@ do this, and both must keep doing it:
 
 The second is not redundant. Narrow the proxy's matcher by accident and every
 page behind it swings open; the layout check sits with the pages it protects.
+
+**Captcha is Cloudflare Turnstile, verified by Supabase.** The five Auth calls a
+bot could abuse (`signUp`, `signInWithPassword` in sign-in and in the
+current-password check of `changePassword`, `resetPasswordForEmail`,
+`signInWithOtp`) each take an optional `captchaToken` in `src/lib/session.ts`,
+and `src/components/Turnstile.tsx` produces it. With no
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` the widget renders nothing and no token is
+sent. Supabase ignores a token while captcha is off in the dashboard
+(Authentication, Attack Protection, Turnstile, secret key), so the order of
+release matters: **deploy the code first, then enable captcha in Supabase**, or
+every sign-in is refused. The site key must list `definition-capture.vercel.app`
+and `localhost` as hostnames. The secret key never enters code, `.env.local` or
+Vercel.
+
+Once captcha is on, `.env.local` points at the live project, so local
+development against it needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY` in `.env.local`
+(localhost is a listed hostname on the widget); with no key every sign-in is
+refused.
 
 **Use `getClaims()`, never `getSession()`, in server code.** A session read out of
 a cookie is a claim made by whoever sent the request, and cookies can be forged.
@@ -213,10 +235,18 @@ protected page is still dynamic.
 
 The end-to-end tests in `e2e/` sign in to a dedicated test account, whose
 `E2E_EMAIL` and `E2E_PASSWORD` sit in `.env.local`, and add and delete rows in
-it. They run against https://definition-capture.vercel.app unless
-`E2E_BASE_URL` points elsewhere (`http://localhost:3000` with `npm run dev`
-running). **Ask the owner before every run against production**, since it
-writes to the live database; offer localhost instead. Each test starts from the
+it. Signed-in tests cannot solve the captcha that protects the live project, so
+they run against the local Supabase copy only, and the fixture skips them unless
+the base URL is localhost. To run them: `npx supabase start`; a temporary
+`.env.development.local` pointing `NEXT_PUBLIC_SUPABASE_URL` and the publishable
+key at the local stack (from `npx supabase status`) with
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY=` empty; an E2E account created in that local
+database through `/sign-up` on localhost (local email confirmation is off);
+`E2E_EMAIL` and `E2E_PASSWORD` set in the shell for that run; then `npm run dev`
+restarted, because the CSP's `connect-src` is built at server start, and
+`E2E_BASE_URL=http://localhost:3000`. Delete `.env.development.local` and run
+`npx supabase stop` afterwards. Only `e2e/landing/landing-is-public.spec.ts`
+runs against production. Each test starts from the
 sign-in in `e2e/fixtures.ts`, and its plan lives in `e2e/specs/`.
 
 A test for anything that can lose data is worth breaking on purpose before you

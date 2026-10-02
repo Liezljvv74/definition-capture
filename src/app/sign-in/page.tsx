@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { signInLinkError } from "@/lib/authLinkError";
+import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { sendMagicLink, sendPasswordReset, signInWithPassword } from "@/lib/session";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
@@ -29,12 +30,34 @@ import { isSupabaseConfigured } from "@/lib/supabaseClient";
  */
 type Route = "password" | "email" | "forgot";
 
+/**
+ * The page's one Turnstile token, shared by whichever form is showing. It is
+ * single use, so each form calls `reset` after an attempt, and `blocked` holds
+ * its button until a token exists (never, where no site key is configured).
+ */
+type Captcha = {
+  token?: string;
+  blocked: boolean;
+  reset: () => void;
+  setToken: (token: string | null) => void;
+  resetKey: number;
+};
+
 export default function SignInPage() {
   const [route, setRoute] = useState<Route>("password");
   // Seeded from the URL: arriving here from a link that failed should say so,
   // rather than looking like an ordinary first visit. It belongs to the visit
   // rather than to either form, so it sits above both.
   const [linkError, setLinkError] = useState<string | null>(() => signInLinkError());
+  const [token, setToken] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const captcha: Captcha = {
+    token: token ?? undefined,
+    blocked: turnstileEnabled && !token,
+    reset: () => setResetKey((key) => key + 1),
+    setToken,
+    resetKey,
+  };
 
   function go(next: Route): void {
     setLinkError(null);
@@ -63,10 +86,18 @@ export default function SignInPage() {
             )}
 
             {route === "password" && (
-              <PasswordForm onUseEmail={() => go("email")} onForgot={() => go("forgot")} />
+              <PasswordForm
+                captcha={captcha}
+                onUseEmail={() => go("email")}
+                onForgot={() => go("forgot")}
+              />
             )}
-            {route === "email" && <EmailLinkForm onUsePassword={() => go("password")} />}
-            {route === "forgot" && <ForgotPasswordForm onUsePassword={() => go("password")} />}
+            {route === "email" && (
+              <EmailLinkForm captcha={captcha} onUsePassword={() => go("password")} />
+            )}
+            {route === "forgot" && (
+              <ForgotPasswordForm captcha={captcha} onUsePassword={() => go("password")} />
+            )}
           </>
         )}
       </div>
@@ -93,9 +124,11 @@ function explainSignInFailure(message: string): string {
 }
 
 function PasswordForm({
+  captcha,
   onUseEmail,
   onForgot,
 }: {
+  captcha: Captcha;
   onUseEmail: () => void;
   onForgot: () => void;
 }) {
@@ -107,12 +140,13 @@ function PasswordForm({
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!email.trim() || !password || busy) return;
+    if (!email.trim() || !password || busy || captcha.blocked) return;
 
     setBusy(true);
     setError(null);
-    const { error: failure } = await signInWithPassword(email, password);
+    const { error: failure } = await signInWithPassword(email, password, captcha.token);
     if (failure) {
+      captcha.reset();
       setError(explainSignInFailure(failure));
       setBusy(false);
       return;
@@ -169,7 +203,13 @@ function PasswordForm({
         </p>
       )}
 
-      <button type="submit" className="btn btn-primary w-full" disabled={busy}>
+      <Turnstile onToken={captcha.setToken} resetKey={captcha.resetKey} />
+
+      <button
+        type="submit"
+        className="btn btn-primary w-full"
+        disabled={busy || captcha.blocked}
+      >
         {busy ? "Signing in…" : "Sign in"}
       </button>
 
@@ -215,7 +255,13 @@ function explainFailure(message: string): string {
   );
 }
 
-function EmailLinkForm({ onUsePassword }: { onUsePassword: () => void }) {
+function EmailLinkForm({
+  captcha,
+  onUsePassword,
+}: {
+  captcha: Captcha;
+  onUsePassword: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   /** Seconds until another link may be asked for. */
@@ -230,11 +276,12 @@ function EmailLinkForm({ onUsePassword }: { onUsePassword: () => void }) {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!email.trim() || cooldown > 0) return;
+    if (!email.trim() || cooldown > 0 || captcha.blocked) return;
 
     setState("sending");
     setError(null);
-    const { error: failure } = await sendMagicLink(email);
+    const { error: failure } = await sendMagicLink(email, captcha.token);
+    captcha.reset();
     if (failure) {
       setError(explainFailure(failure));
       setState("idle");
@@ -296,10 +343,12 @@ function EmailLinkForm({ onUsePassword }: { onUsePassword: () => void }) {
         </p>
       )}
 
+      <Turnstile onToken={captcha.setToken} resetKey={captcha.resetKey} />
+
       <button
         type="submit"
         className="btn btn-primary w-full"
-        disabled={state === "sending" || cooldown > 0}
+        disabled={state === "sending" || cooldown > 0 || captcha.blocked}
       >
         {state === "sending"
           ? "Sending…"
@@ -333,7 +382,13 @@ function EmailLinkForm({ onUsePassword }: { onUsePassword: () => void }) {
  * sender, so it holds the button for the same minute rather than letting
  * somebody spend a request on a refusal.
  */
-function ForgotPasswordForm({ onUsePassword }: { onUsePassword: () => void }) {
+function ForgotPasswordForm({
+  captcha,
+  onUsePassword,
+}: {
+  captcha: Captcha;
+  onUsePassword: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [cooldown, setCooldown] = useState(0);
@@ -347,11 +402,12 @@ function ForgotPasswordForm({ onUsePassword }: { onUsePassword: () => void }) {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!email.trim() || cooldown > 0) return;
+    if (!email.trim() || cooldown > 0 || captcha.blocked) return;
 
     setState("sending");
     setError(null);
-    const { error: failure } = await sendPasswordReset(email);
+    const { error: failure } = await sendPasswordReset(email, captcha.token);
+    captcha.reset();
     if (failure) {
       setError(explainFailure(failure));
       setState("idle");
@@ -413,10 +469,12 @@ function ForgotPasswordForm({ onUsePassword }: { onUsePassword: () => void }) {
         </p>
       )}
 
+      <Turnstile onToken={captcha.setToken} resetKey={captcha.resetKey} />
+
       <button
         type="submit"
         className="btn btn-primary w-full"
-        disabled={state === "sending" || cooldown > 0}
+        disabled={state === "sending" || cooldown > 0 || captcha.blocked}
       >
         {state === "sending"
           ? "Sending…"

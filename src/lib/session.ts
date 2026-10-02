@@ -107,6 +107,23 @@ export function currentUserId(): string | null {
 export const MIN_PASSWORD = 6;
 
 /**
+ * Supabase verifies a Turnstile token only once captcha is switched on in the
+ * dashboard, and ignores one it did not ask for, so the same code works before
+ * and after the switch. The key is left out entirely when there is no token
+ * rather than sent empty, which is how the app behaves where no site key is
+ * configured.
+ */
+const captcha = (token?: string) => (token ? { captchaToken: token } : {});
+
+/**
+ * Supabase's refusal of a missing or spent token reads as a server fault to
+ * someone who has only typed an email, so it is rewritten into the one thing
+ * they can do about it.
+ */
+const CAPTCHA_MESSAGE = "Please complete the check and try again.";
+const refusal = (message: string) => (/captcha/i.test(message) ? CAPTCHA_MESSAGE : message);
+
+/**
  * Creates an account from an email and a password.
  *
  * Whether the new account can be used straight away is the project's decision,
@@ -126,6 +143,7 @@ export const MIN_PASSWORD = 6;
 export async function signUpWithPassword(
   email: string,
   password: string,
+  captchaToken?: string,
 ): Promise<{ needsConfirmation: boolean; error: string | null }> {
   const supabase = getSupabase();
   if (!supabase) {
@@ -135,9 +153,9 @@ export async function signUpWithPassword(
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
-    options: { emailRedirectTo: authRedirectUrl() },
+    options: { emailRedirectTo: authRedirectUrl(), ...captcha(captchaToken) },
   });
-  if (error) return { needsConfirmation: false, error: error.message };
+  if (error) return { needsConfirmation: false, error: refusal(error.message) };
 
   return { needsConfirmation: data.session === null, error: null };
 }
@@ -156,6 +174,7 @@ export async function signUpWithPassword(
 export async function signInWithPassword(
   email: string,
   password: string,
+  captchaToken?: string,
 ): Promise<{ error: string | null }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "This build has no Supabase credentials." };
@@ -163,8 +182,9 @@ export async function signInWithPassword(
   const { error } = await supabase.auth.signInWithPassword({
     email: email.trim(),
     password,
+    options: captcha(captchaToken),
   });
-  return { error: error?.message ?? null };
+  return { error: error ? refusal(error.message) : null };
 }
 
 /**
@@ -187,6 +207,7 @@ export async function changePassword(
   email: string,
   currentPassword: string,
   newPassword: string,
+  captchaToken?: string,
 ): Promise<{ error: string | null }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "This build has no Supabase credentials." };
@@ -194,8 +215,14 @@ export async function changePassword(
   const { error: wrong } = await supabase.auth.signInWithPassword({
     email,
     password: currentPassword,
+    options: captcha(captchaToken),
   });
-  if (wrong) return { error: "That is not your current password." };
+  if (wrong) {
+    // A refused captcha says nothing about the password, so it must not be
+    // reported as a wrong one.
+    const shown = refusal(wrong.message);
+    return { error: shown === wrong.message ? "That is not your current password." : shown };
+  }
 
   return setPassword(newPassword);
 }
@@ -209,14 +236,18 @@ export async function changePassword(
  * address is unknown turns the form into a way of discovering who has an
  * account here, which is the same reason sign-up never confirms one either.
  */
-export async function sendPasswordReset(email: string): Promise<{ error: string | null }> {
+export async function sendPasswordReset(
+  email: string,
+  captchaToken?: string,
+): Promise<{ error: string | null }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "This build has no Supabase credentials." };
 
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: passwordResetUrl(),
+    ...captcha(captchaToken),
   });
-  return { error: error?.message ?? null };
+  return { error: error ? refusal(error.message) : null };
 }
 
 /**
@@ -254,15 +285,18 @@ export async function setPassword(password: string): Promise<{ error: string | n
  * link, so this is both sign-up and sign-in — there is no separate register
  * step and no password to store.
  */
-export async function sendMagicLink(email: string): Promise<{ error: string | null }> {
+export async function sendMagicLink(
+  email: string,
+  captchaToken?: string,
+): Promise<{ error: string | null }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "This build has no Supabase credentials." };
 
   const { error } = await supabase.auth.signInWithOtp({
     email: email.trim(),
-    options: { emailRedirectTo: authRedirectUrl() },
+    options: { emailRedirectTo: authRedirectUrl(), ...captcha(captchaToken) },
   });
-  return { error: error?.message ?? null };
+  return { error: error ? refusal(error.message) : null };
 }
 
 export async function signOut(): Promise<void> {

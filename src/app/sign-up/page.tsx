@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { MIN_PASSWORD, signUpWithPassword } from "@/lib/session";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
@@ -26,10 +27,14 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   /** Set when the account was made but cannot be used until email is confirmed. */
   const [checkEmail, setCheckEmail] = useState(false);
+  // Single use, so the widget is reset after every attempt.
+  const [token, setToken] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const blocked = turnstileEnabled && !token;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || blocked) return;
 
     if (password.length < MIN_PASSWORD) {
       setError(`A password needs at least ${MIN_PASSWORD} characters.`);
@@ -42,7 +47,12 @@ export default function SignUpPage() {
 
     setBusy(true);
     setError(null);
-    const { needsConfirmation, error: failure } = await signUpWithPassword(email, password);
+    const { needsConfirmation, error: failure } = await signUpWithPassword(
+      email,
+      password,
+      token ?? undefined,
+    );
+    setResetKey((key) => key + 1);
 
     if (failure) {
       setError(failure);
@@ -160,7 +170,9 @@ export default function SignUpPage() {
               </p>
             )}
 
-            <button type="submit" className="btn btn-primary w-full" disabled={busy}>
+            <Turnstile onToken={setToken} resetKey={resetKey} />
+
+            <button type="submit" className="btn btn-primary w-full" disabled={busy || blocked}>
               {busy ? "Creating…" : "Create account"}
             </button>
 

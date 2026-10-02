@@ -10,7 +10,14 @@ export { expect } from "@playwright/test";
  * Supabase project, and the tests add and delete rows in it.
  */
 export const test = baseTest.extend({
-  page: async ({ page }, use) => {
+  page: async ({ page, baseURL }, use, testInfo) => {
+    // The live project's sign-in is behind a captcha that a script cannot
+    // solve. These tests need the local Supabase copy, where it is off, with
+    // `.env.development.local` pointing the app at it (see CLAUDE.md).
+    testInfo.skip(
+      !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(baseURL ?? ""),
+      "Signed-in end-to-end tests run on localhost only: production sign-in is protected by captcha.",
+    );
     const email = process.env.E2E_EMAIL;
     const password = process.env.E2E_PASSWORD;
     if (!email || !password) {
