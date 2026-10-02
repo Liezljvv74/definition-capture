@@ -16,6 +16,7 @@ owner.
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 3, in the node environment; `npx vitest run` |
+| End-to-end tests | Playwright Test 1.63, in `e2e/`; `npm run e2e`, against production by default |
 | Tooling | Supabase CLI 2.118, ESLint 9 |
 | Hosting | Vercel, deployed from GitHub on every push to `main` |
 
@@ -209,6 +210,14 @@ Check work with `npx tsc --noEmit`, `npx eslint src/` and `npx vitest run`, and
 `npm run build` when routing or rendering changed: the build's route table shows
 which routes are static and which are server-rendered, which is how you confirm a
 protected page is still dynamic.
+
+The end-to-end tests in `e2e/` sign in to a dedicated test account, whose
+`E2E_EMAIL` and `E2E_PASSWORD` sit in `.env.local`, and add and delete rows in
+it. They run against https://definition-capture.vercel.app unless
+`E2E_BASE_URL` points elsewhere (`http://localhost:3000` with `npm run dev`
+running). **Ask the owner before every run against production**, since it
+writes to the live database; offer localhost instead. Each test starts from the
+sign-in in `e2e/fixtures.ts`, and its plan lives in `e2e/specs/`.
 
 A test for anything that can lose data is worth breaking on purpose before you
 trust it. The suites around importing and around `remoteStore`'s write path exist

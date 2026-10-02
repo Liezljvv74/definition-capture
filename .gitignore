@@ -57,3 +57,8 @@ next-env.d.ts
 
 # Scratch for plan execution; the git history is the record.
 .superpowers/
+
+# Playwright end-to-end output
+/test-results/
+/playwright-report/
+/playwright/.cache/
