@@ -81,7 +81,11 @@ export function tutorInstructions(input: { studied: string; answerIn: string; le
       ? "Base the explanation on the search results from the reference sites you are given."
       : "No reference search is available for this language, so say plainly where you are unsure.",
     `Answer only grammar and language-learning questions about ${studied}. Decline anything else in one polite sentence, still as a valid reply.`,
-    "Reply as JSON with a short title, a topic, and blocks. A text block may use **bold** for emphasis; in an example sentence, wrap the word or words being taught in {curly braces}; use braces nowhere else.",
+    "Reply as JSON with a short title, a topic, and blocks. A text block may use **bold** for emphasis; in an example sentence, wrap the word or words being taught in {curly braces}; use braces nowhere else. Put no links or web addresses in the text: the sources are shown separately.",
+    // Last, so it weighs most: on 3 October 2026 a question written in English
+    // with German terms in it, answered from German reference pages, came back
+    // entirely in German although English was chosen.
+    `Write the title, the topic and every explanation, table heading and translation in ${answerIn}, even when the question or the reference pages are in another language. Only the example sentences and the forms being taught are in ${studied}.`,
   ].join("\n\n");
 }
 
@@ -155,6 +159,31 @@ export function buildRequest(input: {
 export type TutorReply = { title: string; topic: string; blocks: Block[]; sources: { url: string; title: string }[] };
 
 /** The model's reply is untrusted: it must parse, have the shape, and keep at least one block. */
+/**
+ * Text the model was told not to write, removed whatever it did: braces mark
+ * the practice gap only in an example sentence and show literally anywhere
+ * else, and links belong in the sources list under the answer, not in the
+ * explanation. `[words](url)` keeps its words; a bare web address goes. An
+ * em dash becomes a comma, the owner's rule for every text the app shows.
+ */
+function cleanText(text: string): string {
+  return text
+    .replace(/\[([^\]]*)\]\((?:https?:\/\/|www\.)[^)\s]*\)/g, "$1")
+    .replace(/(?:https?:\/\/|www\.)[^\s)]+/g, "")
+    .replace(/[{}]/g, "")
+    // The owner wants no em dashes in anything the app shows.
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+([.,;:!?)])/g, "$1")
+    .trim();
+}
+
+function cleanBlock(block: Block): Block {
+  if (block.kind === "text") return { ...block, text: cleanText(block.text) };
+  if (block.kind === "table") return { ...block, cells: block.cells.map((row) => row.map(cleanText)) };
+  return block;
+}
+
 export function readReply(json: unknown): TutorReply | null {
   const message = (json as { choices?: { message?: { content?: unknown; annotations?: unknown } }[] } | null)?.choices?.[0]?.message;
   if (typeof message?.content !== "string") return null;
@@ -165,7 +194,7 @@ export function readReply(json: unknown): TutorReply | null {
     return null;
   }
   if (typeof parsed?.title !== "string" || typeof parsed.topic !== "string") return null;
-  const blocks = readBlocks(parsed.blocks);
+  const blocks = readBlocks(parsed.blocks).map(cleanBlock);
   const filled = (b: Block) =>
     b.kind === "text" ? b.text.trim() !== "" : b.kind === "example" ? b.sentence.trim() !== "" : b.cells.some((r) => r.some((c) => c.trim() !== ""));
   if (!blocks.some(filled)) return null;

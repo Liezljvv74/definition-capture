@@ -175,8 +175,17 @@ example sentences (with translations into the answer
 language when it differs from the studied language) and use tables where they
 help; base the explanation on the search results from the allowed reference
 sites; and answer only grammar and language-learning questions about the
-studied language, declining anything else in one polite sentence. The
+studied language, declining anything else in one polite sentence. They end,
+so it weighs most, with the answer language for every title, explanation,
+table heading and translation, even when the question or the reference pages
+are in another language (a German-heavy question once came back in German
+with English chosen, 3 October 2026), and they forbid links in the text. The
 instructions are built by one pure function so they can be tested.
+
+Whatever the model writes, `readReply` cleans text blocks and table cells:
+braces (practice markup, valid only in example sentences) and written-out
+links are removed, and an em dash becomes a comma, the owner's rule for all
+text the app shows.
 
 ## Verification
 
