@@ -134,8 +134,14 @@ export function buildRequest(input: {
     // JSON. Low effort keeps the reasoning share small. Confirmed by a real call.
     max_tokens: 6000,
     reasoning: { effort: "low" },
+    // The `web` plugin rather than the newer `openrouter:web_search` server
+    // tool. A real call on 2 October 2026 with the tool came back ignoring the
+    // JSON schema (blocks spelled `type`/`content`) and with no citations at
+    // all; the same request with this plugin kept the schema and cited five
+    // pages, every one on an allowed domain. Exa honours the domain list on
+    // any model.
     ...(input.domains.length > 0 && {
-      tools: [{ type: "openrouter:web_search", parameters: { engine: "exa", allowed_domains: input.domains, max_results: 5 } }],
+      plugins: [{ id: "web", engine: "exa", include_domains: input.domains, max_results: 5 }],
     }),
   };
 }

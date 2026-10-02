@@ -70,10 +70,14 @@ describe("tutorInstructions braces", () => {
 describe("buildRequest", () => {
   const base = { model: DEFAULT_TUTOR_MODEL, instructions: "I", history: [], question: "Q", domains: REFERENCE_DOMAINS.de };
   it("restricts web search to the language's reference domains on Exa", () => {
-    const body = buildRequest(base) as { tools: { type: string; parameters: { engine: string; allowed_domains: string[] } }[] };
-    expect(body.tools[0].type).toBe("openrouter:web_search");
-    expect(body.tools[0].parameters.engine).toBe("exa");
-    expect(body.tools[0].parameters.allowed_domains).toEqual(REFERENCE_DOMAINS.de);
+    // The `web` plugin, not the `openrouter:web_search` server tool: a real
+    // call on 2 October 2026 showed the tool made the model ignore the JSON
+    // schema and search nothing, while the plugin kept both.
+    const body = buildRequest(base) as { tools?: unknown; plugins: { id: string; engine: string; include_domains: string[] }[] };
+    expect(body.tools).toBeUndefined();
+    expect(body.plugins[0].id).toBe("web");
+    expect(body.plugins[0].engine).toBe("exa");
+    expect(body.plugins[0].include_domains).toEqual(REFERENCE_DOMAINS.de);
   });
   it("leaves room for reasoning tokens", () => {
     const body = buildRequest(base) as { max_tokens: number; reasoning: unknown };
@@ -81,7 +85,7 @@ describe("buildRequest", () => {
     expect(body.reasoning).toEqual({ effort: "low" });
   });
   it("searches nothing when the language has no reference list", () => {
-    expect((buildRequest({ ...base, domains: [] }) as { tools?: unknown }).tools).toBeUndefined();
+    expect((buildRequest({ ...base, domains: [] }) as { plugins?: unknown }).plugins).toBeUndefined();
   });
   it("sends the instructions first and the question last", () => {
     const body = buildRequest({ ...base, history: [{ role: "user", content: "earlier" }] }) as { model: string; messages: { role: string; content: string }[] };

@@ -144,7 +144,7 @@ describe("POST /api/tutor", () => {
     expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
     expect(init.headers.Authorization).toBe("Bearer sk-test");
     expect(sent().model).toBe("some/model");
-    expect(sent().tools).toBeDefined();
+    expect(sent().plugins).toBeDefined();
     expect(sent().messages.at(-1).content).toBe("Why?");
   });
 
@@ -175,7 +175,7 @@ describe("POST /api/tutor", () => {
     });
     const res = await post({ question: "hi" });
     expect(res.status).toBe(200);
-    expect(sent().tools).toBeUndefined();
+    expect(sent().plugins).toBeUndefined();
     expect(sent().messages[0].content).toContain("Klingon");
   });
 

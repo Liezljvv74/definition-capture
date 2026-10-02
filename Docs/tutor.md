@@ -57,10 +57,12 @@ trade buys identical rendering, no new rendering library, and lossless saving.
 
 ## Trusted sources
 
-Each request uses OpenRouter's web search server tool, pinned to the Exa engine
-(which honours a domain allow list on every model), restricted with
-`allowed_domains` to a fixed list of reference sites for the studied language,
-kept in one map in code. Starting list (each domain to be confirmed reachable
+Each request uses OpenRouter's `web` plugin, pinned to the Exa engine (which
+honours a domain list on every model), restricted with `include_domains` to a
+fixed list of reference sites for the studied language, kept in one map in
+code. Not the newer `openrouter:web_search` server tool: a real call on
+2 October 2026 showed it made the model ignore the JSON schema and cite nothing,
+while the plugin kept the schema and cited only allowed domains. Starting list (each domain to be confirmed reachable
 during implementation; a domain that is not is dropped, not replaced by guess):
 
 | Language | Allowed reference domains |
