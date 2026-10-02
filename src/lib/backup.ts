@@ -110,10 +110,13 @@ export const BACKUP_FORMAT = "definition-capture-backup";
  * it, blank or missing alike, which is what Replace has always meant, unlike
  * Update's selective merge.
  *
+ * 13 carries `nativeLanguage`, `nativeLanguageOther` and `level` in the settings
+ * block; older files leave them as they were.
+ *
  * A missing list reads as an absent one, not an empty one, which is what
  * keeps Replace from wiping what the file predates.
  */
-export const BACKUP_VERSION = 12;
+export const BACKUP_VERSION = 13;
 
 /**
  * The lists a backup carries, named once.

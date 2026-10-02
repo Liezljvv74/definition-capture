@@ -110,6 +110,9 @@ const settings: Settings = {
   answerSeparators: ",/",
   language: "",
   languageOther: "",
+  nativeLanguage: "",
+  nativeLanguageOther: "",
+  level: "",
   sortSkipWords: [],
 };
 

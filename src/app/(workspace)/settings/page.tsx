@@ -26,7 +26,7 @@ import {
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { MIN_PASSWORD, changePassword, sendPasswordReset, signOut } from "@/lib/session";
 import { renameCollection, renameInList, renameSource, renameTopic } from "@/lib/renames";
-import { saveSettings } from "@/lib/settings";
+import { LEVELS, saveSettings, type Level } from "@/lib/settings";
 import { countUses, inUseReason } from "@/lib/inUse";
 import { useExportFolder } from "@/lib/useExportFolder";
 import { usePhrases } from "@/lib/usePhrases";
@@ -434,24 +434,7 @@ function LanguageSection() {
       >
         <option value="">Not chosen</option>
         {missingFromMenu && <option value={language}>{chosenName}</option>}
-        {menu && (
-          <optgroup label="Most learned">
-            {menu.presets.map((entry) => (
-              <option key={entry.code} value={entry.code}>
-                {entry.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
-        {menu && (
-          <optgroup label="All languages">
-            {menu.others.map((entry) => (
-              <option key={entry.code} value={entry.code}>
-                {entry.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
+        <LanguageOptions menu={menu} />
         <option value={OTHER_LANGUAGE}>Another language</option>
       </select>
       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -470,6 +453,8 @@ function LanguageSection() {
           }}
         />
       )}
+
+      <NativeLanguageFields menu={menu} />
 
       {cannotSort && (
         <p role="status" className="mt-3 text-sm text-amber-700 dark:text-amber-300">
@@ -519,13 +504,113 @@ function LanguageSection() {
   );
 }
 
+/** The two groups of languages both pickers offer. */
+function LanguageOptions({ menu }: { menu: LanguageMenu | null }) {
+  if (!menu) return null;
+  return (
+    <>
+      <optgroup label="Most learned">
+        {menu.presets.map((entry) => (
+          <option key={entry.code} value={entry.code}>
+            {entry.name}
+          </option>
+        ))}
+      </optgroup>
+      <optgroup label="All languages">
+        {menu.others.map((entry) => (
+          <option key={entry.code} value={entry.code}>
+            {entry.name}
+          </option>
+        ))}
+      </optgroup>
+    </>
+  );
+}
+
+/**
+ * The reader's own language and their level. Unlike the language being
+ * learned, choosing here never offers to replace a list, so each change is
+ * saved as it is made.
+ */
+function NativeLanguageFields({ menu }: { menu: LanguageMenu | null }) {
+  const { settings, loaded } = useSettings();
+  const { nativeLanguage, nativeLanguageOther, level } = settings;
+  const nativeId = useId();
+  const levelId = useId();
+  const [typingOther, setTypingOther] = useState(false);
+
+  const value =
+    typingOther || (!nativeLanguage && nativeLanguageOther) ? OTHER_LANGUAGE : nativeLanguage;
+  // A code chosen on another browser that this menu lacks must still show.
+  const missingFromMenu =
+    menu !== null &&
+    nativeLanguage !== "" &&
+    ![...menu.presets, ...menu.others].some((entry) => entry.code === nativeLanguage);
+
+  return (
+    <>
+      <label htmlFor={nativeId} className="mb-1 mt-4 block text-sm font-medium">
+        Native language
+      </label>
+      <select
+        id={nativeId}
+        className="field"
+        value={value}
+        disabled={!loaded || menu === null}
+        onChange={(event) => {
+          const next = event.target.value;
+          setTypingOther(next === OTHER_LANGUAGE);
+          if (next !== OTHER_LANGUAGE) saveSettings({ nativeLanguage: next });
+        }}
+      >
+        <option value="">Not set</option>
+        {missingFromMenu && <option value={nativeLanguage}>{languageName(nativeLanguage)}</option>}
+        <LanguageOptions menu={menu} />
+        <option value={OTHER_LANGUAGE}>Another language</option>
+      </select>
+      {value === OTHER_LANGUAGE && (
+        <OtherLanguageField
+          key={nativeLanguageOther}
+          saved={nativeLanguageOther}
+          hint={false}
+          onSave={(name) => {
+            setTypingOther(false);
+            saveSettings({ nativeLanguage: "", nativeLanguageOther: name });
+          }}
+        />
+      )}
+
+      <label htmlFor={levelId} className="mb-1 mt-4 block text-sm font-medium">
+        Level
+      </label>
+      <select
+        id={levelId}
+        className="field"
+        value={level}
+        disabled={!loaded}
+        onChange={(event) => saveSettings({ level: event.target.value as Level })}
+      >
+        <option value="">Not set</option>
+        {LEVELS.map((entry) => (
+          <option key={entry} value={entry}>
+            {entry}
+          </option>
+        ))}
+      </select>
+    </>
+  );
+}
+
 /** The name of a language the menu does not have. */
 function OtherLanguageField({
   saved,
   onSave,
+  hint = true,
 }: {
   saved: string;
   onSave: (name: string) => void;
+  /** Whether to explain sorting, which only the language being learned affects. */
+  hint?: boolean;
 }) {
   const inputId = useId();
   const [draft, setDraft] = useState(saved);
@@ -563,10 +648,12 @@ function OtherLanguageField({
           Save
         </button>
       </div>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-        Lists use a neutral alphabetical order. Add its articles to Words to skip when
-        sorting.
-      </p>
+      {hint && (
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Lists use a neutral alphabetical order. Add its articles to Words to skip when
+          sorting.
+        </p>
+      )}
     </div>
   );
 }

@@ -41,6 +41,9 @@ import { currentUserId, subscribe as subscribeToSession } from "@/lib/session";
 import { getSupabase } from "@/lib/supabaseClient";
 import { readNameList, readString } from "@/lib/types";
 
+export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
+export type Level = "" | (typeof LEVELS)[number];
+
 export type Settings = {
   displayName: string;
   /** The groups the word and phrase forms offer. One entry may be in `MAX_COLLECTIONS`. */
@@ -74,6 +77,16 @@ export type Settings = {
    * are one answer, and a row holding both would not say which one it meant.
    */
   languageOther: string;
+  /**
+   * The reader's own language, as an ISO 639-1 code, or "" when none is
+   * chosen. The grammar tutor explains in it. Kept apart from `language`,
+   * which sets sort order and is the language being learned.
+   */
+  nativeLanguage: string;
+  /** A native language the menu does not have; the same one-answer rule as `languageOther`. */
+  nativeLanguageOther: string;
+  /** How well the reader knows the language being learned; "" is not set. */
+  level: Level;
   /** Leading words Vocabulary sorts past, such as articles. */
   sortSkipWords: string[];
 };
@@ -95,6 +108,9 @@ export const DEFAULT_SETTINGS: Settings = {
   // reader is learning is theirs to say.
   language: "",
   languageOther: "",
+  nativeLanguage: "",
+  nativeLanguageOther: "",
+  level: "",
   sortSkipWords: [],
 };
 
@@ -114,6 +130,20 @@ export function readSkipWords(value: unknown): string[] {
 function readLanguage(code: unknown, other: unknown): Pick<Settings, "language" | "languageOther"> {
   const language = readLanguageCode(code);
   return { language, languageOther: language ? "" : readLanguageName(other) };
+}
+
+/** The same one-answer rule for the native language as for the studied one. */
+function readNativeLanguage(
+  code: unknown,
+  other: unknown,
+): Pick<Settings, "nativeLanguage" | "nativeLanguageOther"> {
+  const { language, languageOther } = readLanguage(code, other);
+  return { nativeLanguage: language, nativeLanguageOther: languageOther };
+}
+
+/** Anything that is not one of the six levels reads as not set. */
+function readLevel(value: unknown): Level {
+  return LEVELS.find((level) => level === value) ?? "";
 }
 
 /**
@@ -177,7 +207,7 @@ let storedTopics: string[] = [];
 const NO_LIMIT = Number.MAX_SAFE_INTEGER;
 
 /** A row, or the absence of one, and the account's list names, as settings. */
-function fromRow(
+export function fromRow(
   row: Record<string, unknown> | null,
   collectionNames: string[],
   sourceNames: string[],
@@ -211,6 +241,8 @@ function fromRow(
     // handing them back the commas they just removed.
     answerSeparators: readSeparators(row.answer_separators),
     ...readLanguage(row.language, row.language_other),
+    ...readNativeLanguage(row.native_language, row.native_language_other),
+    level: readLevel(row.level),
     sortSkipWords: readSkipWords(row.sort_skip_words),
   };
 }
@@ -398,9 +430,26 @@ export function currentSettings(): Settings {
  */
 export type RestoredSettings = Omit<
   Settings,
-  "language" | "languageOther" | "sortSkipWords" | "topics"
+  | "language"
+  | "languageOther"
+  | "nativeLanguage"
+  | "nativeLanguageOther"
+  | "level"
+  | "sortSkipWords"
+  | "topics"
 > &
-  Partial<Pick<Settings, "language" | "languageOther" | "sortSkipWords" | "topics">>;
+  Partial<
+    Pick<
+      Settings,
+      | "language"
+      | "languageOther"
+      | "nativeLanguage"
+      | "nativeLanguageOther"
+      | "level"
+      | "sortSkipWords"
+      | "topics"
+    >
+  >;
 
 /**
  * Settings out of a backup file. Reads the camelCase shape an export writes,
@@ -441,6 +490,10 @@ export function parseSettings(raw: unknown): RestoredSettings | null {
     ...(value.language === undefined && value.languageOther === undefined
       ? {}
       : readLanguage(value.language, value.languageOther)),
+    ...(value.nativeLanguage === undefined && value.nativeLanguageOther === undefined
+      ? {}
+      : readNativeLanguage(value.nativeLanguage, value.nativeLanguageOther)),
+    ...(value.level === undefined ? {} : { level: readLevel(value.level) }),
     ...(value.sortSkipWords === undefined
       ? {}
       : { sortSkipWords: readSkipWords(value.sortSkipWords) }),
@@ -497,6 +550,10 @@ export function saveSettings(change: Partial<Settings>): void {
     ...(change.language === undefined && change.languageOther === undefined
       ? readLanguage(snapshot.settings.language, snapshot.settings.languageOther)
       : readLanguage(change.language ?? "", change.languageOther ?? "")),
+    ...(change.nativeLanguage === undefined && change.nativeLanguageOther === undefined
+      ? readNativeLanguage(snapshot.settings.nativeLanguage, snapshot.settings.nativeLanguageOther)
+      : readNativeLanguage(change.nativeLanguage ?? "", change.nativeLanguageOther ?? "")),
+    level: readLevel(change.level ?? snapshot.settings.level),
     sortSkipWords: readSkipWords(change.sortSkipWords ?? snapshot.settings.sortSkipWords),
   };
 
@@ -534,6 +591,9 @@ export function saveSettings(change: Partial<Settings>): void {
         answer_separators: next.answerSeparators,
         language: next.language,
         language_other: next.languageOther,
+        native_language: next.nativeLanguage,
+        native_language_other: next.nativeLanguageOther,
+        level: next.level,
         sort_skip_words: next.sortSkipWords,
       },
       { onConflict: "user_id" },
