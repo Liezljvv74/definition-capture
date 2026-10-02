@@ -7,7 +7,8 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'a@example.test'),
   ('00000000-0000-0000-0000-00000000000b', 'b@example.test'),
   ('00000000-0000-0000-0000-00000000000c', 'c@example.test'),
-  ('00000000-0000-0000-0000-00000000000d', 'd@example.test');
+  ('00000000-0000-0000-0000-00000000000d', 'd@example.test'),
+  ('00000000-0000-0000-0000-00000000000e', 'e@example.test');
 
 set local role authenticated;
 
@@ -57,22 +58,20 @@ begin
   end if;
 end $$;
 
--- Account C: the remember card draws only difficult words of five letters or
+-- Account C: the remember card draws only difficult words or phrases of five letters or
 -- more. Existing assertions above are unchanged: account A's remember_id is
 -- still non-null because 'due-word' is a long, not-yet-learned word.
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
 insert into public.items (id, user_id, item_type, title, definition) values
   ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000c', 'word', 'sie', 'short');
-insert into public.items (id, user_id, item_type, title, literal_meaning, usage_example) values
-  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000c', 'phrase', 'a long new phrase', 'z', '');
 insert into public.progress (item_id, user_id, times_seen, times_correct, streak, lapses) values
   ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000c', 4, 1, 0, 2);
 
--- A three-letter word with lapses and a phrase are never picked.
+-- A three-letter word with lapses is never picked.
 do $$
 begin
   if (select remember_id from public.home_summary()) is not null then
-    raise exception 'a short word or a phrase was picked';
+    raise exception 'a short word was picked';
   end if;
 end $$;
 
@@ -128,6 +127,23 @@ begin
   for i in 1..20 loop
     if (select remember_id from public.home_summary()) is distinct from '30000000-0000-0000-0000-000000000001' then
       raise exception 'draw %: the low-accuracy word was not picked', i;
+    end if;
+  end loop;
+end $$;
+
+-- Account E: a hard phrase always beats a new word, over 20 draws.
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000e","role":"authenticated"}';
+insert into public.items (id, user_id, item_type, title, definition) values
+  ('40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000e', 'word', 'fresh-word', 'n');
+insert into public.items (id, user_id, item_type, title, literal_meaning, usage_example) values
+  ('40000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000e', 'phrase', 'a hard phrase', 'z', '');
+insert into public.progress (item_id, user_id, times_seen, times_correct, streak, lapses) values
+  ('40000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000e', 4, 1, 0, 2);
+do $$
+begin
+  for i in 1..20 loop
+    if (select remember_id from public.home_summary()) is distinct from '40000000-0000-0000-0000-000000000002' then
+      raise exception 'draw %: the hard phrase was not picked', i;
     end if;
   end loop;
 end $$;

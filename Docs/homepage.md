@@ -110,13 +110,13 @@ rely on colour alone.
 
 ### Do you still remember this one?
 
-One random difficult word: `item_type = 'word'`, `has_answer`, and more than 4
-letters in the title (spaces and punctuation not counted). `home_summary()`
-prefers words answered at least once and missed since (`lapses > 0`) or right
-under 80% of the time, then words not yet learned (no progress row, or
-`streak < 2`). A word with a streak of 2 or more, no lapses and at least 80% right is
-never drawn, and phrases and verb tables
-never are. When neither tier has a word the id is null and the card is hidden.
+One random difficult word or phrase: `item_type` `word` or `phrase`,
+`has_answer`, and more than 4 letters in the title (spaces and punctuation not
+counted). `home_summary()` prefers items answered at least once and missed since
+(`lapses > 0`) or right under 80% of the time, then items not yet learned (no
+progress row, or `streak < 2`). An item with a streak of 2 or more, no lapses and
+at least 80% right is never drawn, and verb tables never are. When neither tier
+has an item the id is null and the card is hidden.
 The word itself is the control:
 a button with `aria-expanded` and `aria-controls` that reveals the meaning in
 place, with no separate Show meaning button and no visible helper text. A

@@ -25,4 +25,11 @@ describe("RememberCard", () => {
     expect(out.match(/Show meaning/g)).toHaveLength(1);
     expect(out).toContain("<h2");
   });
+
+  it("shows a phrase's title and its meaning in the hidden element", () => {
+    const phrase = { ...item, item_type: "phrase", title: "break the ice", definition: null, literal_meaning: "start a conversation", usage_example: "He told a joke." };
+    const out = renderToStaticMarkup(<RememberCard item={phrase} />);
+    expect(out).toContain("break the ice");
+    expect(out).toMatch(/hidden=""[^>]*>[^<]*start a conversation/);
+  });
 });

@@ -1,8 +1,8 @@
--- The "Do you still remember this one?" card now tests words that are actually
--- hard. Only `remember_id` changes: it is a word (never a phrase or verb table)
--- with an answer and more than four letters. It prefers words the learner has
--- missed or answered under 80% right, then words not yet learned, else null
--- and the card hides. A learned word is never drawn.
+-- The "Do you still remember this one?" card now tests items that are actually
+-- hard. Only `remember_id` changes: it is a word or phrase (never a verb table)
+-- with an answer and more than four letters. It prefers items the learner has
+-- missed or answered under 80% right, then items not yet learned, else null
+-- and the card hides. A learned item is never drawn.
 
 create or replace function public.home_summary()
 returns table (
@@ -52,16 +52,16 @@ begin
     (count(*) filter (where m.has_answer and m.answered and m.streak >= 2))::integer,
     min(m.due_at) filter (where m.has_answer and m.due_at > now()),
     max(m.updated_at),
-    -- Difficult words only, five letters or more (punctuation and spaces do
-    -- not count). Tier 0 is a word answered before and missed since, or
-    -- right less than 80% of the time; tier 1 is a word not yet learned;
-    -- a learned word has no tier and is never drawn. The tier decides first
-    -- and random() only breaks ties inside it, so a hard word always beats a
+    -- Difficult words and phrases only, five letters or more (punctuation and spaces do
+    -- not count). Tier 0 is an item answered before and missed since, or
+    -- right less than 80% of the time; tier 1 is an item not yet learned;
+    -- a learned item has no tier and is never drawn. The tier decides first
+    -- and random() only breaks ties inside it, so a hard item always beats a
     -- new one. Accuracy is compared as correct < 0.8 * seen, not by dividing:
     -- Postgres does not guarantee that `seen > 0 and correct / seen` skips the
     -- division, and times_seen = 0 rows exist. Reads every candidate, fine at one person's glossary size.
     (select r.id from mine r
-     where r.item_type = 'word' and r.has_answer
+     where r.item_type in ('word', 'phrase') and r.has_answer
        and char_length(regexp_replace(r.title, '[[:space:][:punct:]]', '', 'g')) > 4
        and (not r.answered or r.streak < 2 or r.lapses > 0
             or (r.times_seen > 0 and r.times_correct < 0.8 * r.times_seen))
