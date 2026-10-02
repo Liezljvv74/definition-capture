@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { MainNav } from "@/components/MainNav";
 import { StoreErrorBanner } from "@/components/StoreErrorBanner";
 import { serverUserId } from "@/lib/supabaseServer";
+
+/**
+ * Nothing behind sign-in belongs in a search index. Crawlers are bounced by
+ * the proxy anyway; this covers a private URL that leaks somewhere public,
+ * which a crawler would then try.
+ */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * Everything behind a sign-in lives under this layout, and nothing renders
