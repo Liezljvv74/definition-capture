@@ -25,6 +25,12 @@ describe("the landing page", () => {
     for (const { question } of FAQ) expect(html).toContain(question);
   });
 
+  it("folds each answer into a details element", () => {
+    const blocks = html.match(/<details[\s\S]*?<\/details>/g) ?? [];
+    expect(blocks).toHaveLength(FAQ.length);
+    FAQ.forEach(({ answer }, i) => expect(blocks[i]).toContain(answer.replace("'", "&#x27;")));
+  });
+
   it("never mentions price, which is undecided", () => {
     expect(html).not.toMatch(/\bfree\b|\bprice\b|\$|€/i);
   });

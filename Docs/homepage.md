@@ -185,14 +185,19 @@ price. Sections:
 1. A single `h1` naming what the app is (working line: "Your personal glossary
    for learning a language"), one supporting sentence, and two actions:
    **Create an account** (`/sign-up`) and **Sign in**.
-2. What you can keep: words, phrases, verb conjugation tables, grammar rules,
+2. How you remember it: flashcards built from what you saved, brought back
+   when due. Private to you: each account's lists are its own.
+3. What you can keep: words, phrases, verb conjugation tables, grammar rules,
    one sentence each, using the existing card colours.
-3. How you remember it: flashcards built from what you saved, brought back
-   when due.
-4. Private: each account's lists are its own.
-5. Questions and answers, short and true (for example: which languages, is it
-   private, does it work on a phone, can I export my data).
-6. A closing **Create an account**.
+4. Questions, each a native `<details>`/`<summary>` row closed by default, so
+   the answers stay in the HTML for crawlers and need no JavaScript. The same
+   `FAQ` array feeds the JSON-LD.
+
+The layout is compact so the whole page fits one 1366x768 window (about 650px
+of visible height): on large screens two columns (hero and remember/private on
+the left, what you can keep and the questions on the right), stacked on a
+phone, where scrolling is fine. There is no closing call to action; the hero
+holds the only sign-up and sign-in pair, plus the header's Sign in link.
 
 It works in dark mode like the rest of the app. A screenshot of the real
 dashboard, taken from the test account, can be added once the dashboard exists.

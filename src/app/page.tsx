@@ -52,9 +52,9 @@ export default function LandingPage() {
   return (
     <>
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 sm:px-6">
           <span className="flex items-center gap-2 font-semibold">
-            <Image src="/captured-logo.png" alt="" width={32} height={32} priority />
+            <Image src="/captured-logo.png" alt="" width={28} height={28} priority />
             {SITE_NAME}
           </span>
           <Link href="/sign-in" className="text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-300">
@@ -63,66 +63,68 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6">
-        <section className="py-16 sm:py-24">
-          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            Your personal glossary for learning a language
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-700 dark:text-slate-300">
-            Save the words, phrases, verb tables and grammar rules you meet, then review them with
-            flashcards until they stick.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/sign-up" className="btn btn-primary px-6 py-3 text-base">Create an account</Link>
-            <Link href="/sign-in" className="btn btn-secondary px-6 py-3 text-base">Sign in</Link>
-          </div>
-        </section>
-
-        <section aria-labelledby="keep-heading" className="py-10">
-          <h2 id="keep-heading" className="text-2xl font-semibold tracking-tight">What you can keep</h2>
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {KEEP.map((item) => (
-              <li key={item.title} className={`rounded-2xl p-5 text-slate-900 ${item.colour}`}>
-                <h3 className="font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-800">{item.text}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section aria-labelledby="remember-heading" className="grid gap-4 py-10 lg:grid-cols-2">
-          <div className="rounded-2xl bg-challenge p-6 text-slate-900">
-            <h2 id="remember-heading" className="text-2xl font-semibold tracking-tight">How you remember it</h2>
-            <p className="mt-3 leading-7 text-slate-800">
-              Flashcards are made from what you saved. You type the meaning, and each card comes back
-              for review when it is due, less often as you keep getting it right.
-            </p>
-          </div>
-          <div className="card p-6">
-            <h2 className="text-2xl font-semibold tracking-tight">Private to you</h2>
+      <main className="mx-auto grid w-full max-w-6xl flex-1 gap-x-8 gap-y-5 px-4 py-5 sm:px-6 lg:grid-cols-2 lg:content-start">
+        <div className="space-y-5">
+          <section>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              Your personal glossary for learning a language
+            </h1>
             <p className="mt-3 leading-7 text-slate-700 dark:text-slate-300">
-              Your lists belong to your account and nobody else can read them. Back everything up to a
-              file whenever you like.
+              Save the words, phrases, verb tables and grammar rules you meet, then review them with
+              flashcards until they stick.
             </p>
-          </div>
-        </section>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link href="/sign-up" className="btn btn-primary px-5 py-2">Create an account</Link>
+              <Link href="/sign-in" className="btn btn-secondary px-5 py-2">Sign in</Link>
+            </div>
+          </section>
 
-        <section aria-labelledby="faq-heading" className="py-10">
-          <h2 id="faq-heading" className="text-2xl font-semibold tracking-tight">Questions</h2>
-          <dl className="mt-6 divide-y divide-slate-200 dark:divide-slate-800">
-            {FAQ.map(({ question, answer }) => (
-              <div key={question} className="py-4">
-                <dt className="font-semibold">{question}</dt>
-                <dd className="mt-1 leading-7 text-slate-700 dark:text-slate-300">{answer}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
+          <section aria-labelledby="remember-heading" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="rounded-xl bg-challenge p-4 text-slate-900">
+              <h2 id="remember-heading" className="text-lg font-semibold tracking-tight">How you remember it</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-800">
+                Flashcards are made from what you saved. You type the meaning, and each card comes back
+                for review when it is due, less often as you keep getting it right.
+              </p>
+            </div>
+            <div className="card p-4">
+              <h2 className="text-lg font-semibold tracking-tight">Private to you</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-700 dark:text-slate-300">
+                Your lists belong to your account and nobody else can read them. Back everything up to a
+                file whenever you like.
+              </p>
+            </div>
+          </section>
+        </div>
 
-        <section className="py-16 text-center">
-          <h2 className="text-2xl font-semibold tracking-tight">Start your glossary</h2>
-          <Link href="/sign-up" className="btn btn-primary mt-6 px-6 py-3 text-base">Create an account</Link>
-        </section>
+        <div className="space-y-5">
+          <section aria-labelledby="keep-heading">
+            <h2 id="keep-heading" className="text-lg font-semibold tracking-tight">What you can keep</h2>
+            <ul className="mt-2 grid gap-3 sm:grid-cols-2">
+              {KEEP.map((item) => (
+                <li key={item.title} className={`rounded-xl p-3 text-slate-900 ${item.colour}`}>
+                  <h3 className="text-sm font-semibold">{item.title}</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-800">{item.text}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section aria-labelledby="faq-heading">
+            <h2 id="faq-heading" className="text-lg font-semibold tracking-tight">Questions</h2>
+            <div className="mt-2 space-y-2">
+              {FAQ.map(({ question, answer }) => (
+                <details key={question} className="card group px-3 py-2">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
+                    {question}
+                    <span aria-hidden="true" className="transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+                  <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">{answer}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+        </div>
       </main>
 
       <script
