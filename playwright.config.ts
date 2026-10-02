@@ -12,10 +12,10 @@ try {
  * End-to-end tests, kept in `e2e/` so Vitest (which only reads `src/`) and
  * Playwright never pick up each other's files.
  *
- * They run against production by default, because that is where changes are
- * tried; local development and production share one Supabase project, so
- * localhost would not touch less real data anyway. Point them elsewhere with
- * `E2E_BASE_URL=http://localhost:3000` and a running `npm run dev`.
+ * Signed-in tests run on localhost only, with `E2E_BASE_URL=http://localhost:3000`
+ * and a running `npm run dev`, because production sign-in is protected by
+ * captcha. Without that variable the base URL is production, where the fixture
+ * skips them and only the public landing test runs.
  */
 export default defineConfig({
   testDir: "./e2e",

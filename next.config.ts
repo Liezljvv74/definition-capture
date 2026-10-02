@@ -48,10 +48,15 @@ const nextConfig: NextConfig = {
       // block the sign-in page's own scripts and lock everyone out of the
       // app. Making those two routes dynamic would buy a strict policy; it is
       // a deliberate change, not a side effect of adding headers.
-      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+      `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval'" : ""}`,
       // Style attributes are used for the backdrop image in the root layout,
       // and injected CSS is a far smaller prize than injected script.
       "style-src 'self' 'unsafe-inline'",
+      // Turnstile's script is served from Cloudflare and draws its challenge
+      // in a Cloudflare iframe, so that one origin is let in for both and
+      // nothing else is. `frame-src` is stated because `default-src 'self'`
+      // would otherwise refuse the iframe.
+      "frame-src 'self' https://challenges.cloudflare.com",
       "img-src 'self' data: blob:",
       "font-src 'self'",
       // The point of the whole policy. Even if a script does get injected and
