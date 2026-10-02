@@ -132,6 +132,38 @@ export function readRecent(row: Record<string, unknown>): RecentItem {
   };
 }
 
+/**
+ * The "do you still remember" item, in the columns `cardBack` reads. The
+ * meaning is worked out in the client component that reveals it, because
+ * `cardBack` lives in the client-only flashcards module.
+ */
+export type RememberItem = {
+  id: string;
+  item_type: string;
+  title: string;
+  definition: string | null;
+  literal_meaning: string | null;
+  usage_example: string | null;
+  tenses: string[] | null;
+  verb_rows: unknown;
+};
+
+export function readRemember(row: unknown): RememberItem | null {
+  if (!row || typeof row !== "object") return null;
+  const r = row as Record<string, unknown>;
+  const maybe = (value: unknown) => (typeof value === "string" ? value : null);
+  return {
+    id: String(r.id),
+    item_type: String(r.item_type),
+    title: String(r.title),
+    definition: maybe(r.definition),
+    literal_meaning: maybe(r.literal_meaning),
+    usage_example: maybe(r.usage_example),
+    tenses: Array.isArray(r.tenses) ? (r.tenses as string[]) : null,
+    verb_rows: r.verb_rows ?? null,
+  };
+}
+
 const LABELS: Record<string, string> = {
   word: "Vocabulary",
   phrase: "Phrases",

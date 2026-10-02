@@ -4,6 +4,7 @@ import {
   itemHref,
   progressParts,
   readRecent,
+  readRemember,
   readSummary,
   relativeDay,
   reviewState,
@@ -122,5 +123,18 @@ describe("links and labels", () => {
   it("labels each type", () => {
     expect(["word", "phrase", "verb_table", "grammar"].map(typeLabel))
       .toEqual(["Vocabulary", "Phrases", "Verb table", "Grammar"]);
+  });
+});
+
+describe("readRemember", () => {
+  it("is null when the random item has gone, so the card is simply left out", () => {
+    // Deleted in another tab between the summary and this fetch.
+    expect(readRemember(null)).toBeNull();
+  });
+
+  it("keeps the columns cardBack reads", () => {
+    const item = readRemember({ id: "1", item_type: "word", title: "w", definition: "d",
+      literal_meaning: null, usage_example: null, tenses: null, verb_rows: null });
+    expect(item).toMatchObject({ id: "1", item_type: "word", title: "w", definition: "d" });
   });
 });
