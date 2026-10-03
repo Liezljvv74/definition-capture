@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Kalam, Patrick_Hand } from "next/font/google";
+import localFont from "next/font/local";
 
 import { EnterMovesDown } from "@/components/EnterMovesDown";
 import { NotebookDoodles } from "@/components/notebook/NotebookDoodles";
@@ -31,9 +32,27 @@ export const metadata: Metadata = {
 const kalam = Kalam({ weight: ["400", "700"], subsets: ["latin"], display: "swap", variable: "--font-kalam" });
 const patrickHand = Patrick_Hand({ weight: "400", subsets: ["latin"], display: "swap", variable: "--font-patrick" });
 
+/*
+ * Kalam's 7, for the body hand. Patrick Hand writes 7 with a crossbar, which
+ * the owner read as a stray mark beside a count ("7 rules"). The file is a
+ * digits-only subset of Kalam (Google Fonts, `text=0123456789`, SIL Open Font
+ * Licence), limited here to U+0037 so it goes first in the stack and only the
+ * 7 comes from it: Kalam's 1 reads as a slash at body size, so the other
+ * figures stay Patrick Hand's. No fallback face: one covering every character
+ * would shadow Patrick Hand. Its variable is not `--font-*`: Tailwind drops a
+ * `var(--font-...)` it does not know from inside a theme value.
+ */
+const digits = localFont({
+  src: "../fonts/kalam-digits.woff2",
+  display: "swap",
+  variable: "--hand-digits",
+  adjustFontFallback: false,
+  declarations: [{ prop: "unicode-range", value: "U+0037" }],
+});
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`h-full ${kalam.variable} ${patrickHand.variable}`}>
+    <html lang="en" className={`h-full ${kalam.variable} ${patrickHand.variable} ${digits.variable}`}>
       <body className="flex min-h-full flex-col">
         <PageBackground />
         <EnterMovesDown />

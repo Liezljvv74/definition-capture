@@ -94,7 +94,7 @@
   /* next/font sets --font-kalam and --font-patrick on <html>; the rest of
      each stack is what shows if they fail to load. */
   --font-display: var(--font-kalam), "Segoe Print", "Comic Sans MS", cursive;
-  --font-hand: var(--font-patrick), "Segoe Print", "Comic Sans MS", cursive;
+  --font-hand: var(--hand-digits), var(--font-patrick), "Segoe Print", "Comic Sans MS", cursive;
 }
 
 /* ------------------------------------------------------------------ paper */
