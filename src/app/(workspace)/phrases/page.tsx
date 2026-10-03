@@ -17,6 +17,7 @@ import { RefText } from "@/components/RefText";
 import { EmptyCell } from "@/components/EmptyCell";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
+import { SpeakButton } from "@/components/SpeakButton";
 import { deletePhrases } from "@/lib/phraseStorage";
 import { collectionOptions } from "@/lib/collectionOptions";
 import { foldName } from "@/lib/foldName";
@@ -28,6 +29,7 @@ import { type ListSelection } from "@/lib/useListSelection";
 import { usePhrases } from "@/lib/usePhrases";
 import { useSorting } from "@/lib/useSorting";
 import { useWideScreen } from "@/lib/useWideScreen";
+import { studiedParts } from "@/lib/speech";
 
 /** Module scope so their identity is stable across renders; `useListPage`
  *  memoises against them. */
@@ -366,7 +368,7 @@ function PhraseTable({
                 </th>
               );
             })}
-            <th scope="col" className={`w-24 ${ROW_CONTROL}`}>
+            <th scope="col" className={`w-32 ${ROW_CONTROL}`}>
               <span className="sr-only">Actions</span>
             </th>
           </tr>
@@ -438,6 +440,7 @@ function PhraseTable({
                 </td>
                 <td className={ROW_CONTROL}>
                   <div className="flex items-center justify-end gap-0.5">
+                    <SpeakButton speechKey={`phrase:${phrase.id}`} label={phrase.phrase} parts={() => studiedParts(phrase.phrase)} />
                     <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
                     <RowDeleteButton
                       label={phrase.phrase}
@@ -502,6 +505,7 @@ function PhraseCards({
                   </Link>
                 </h2>
                 <div className="-mr-1 flex shrink-0 items-center gap-0.5">
+                  <SpeakButton speechKey={`phrase:${phrase.id}`} label={phrase.phrase} parts={() => studiedParts(phrase.phrase)} />
                   <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
                   <RowDeleteButton label={phrase.phrase} onClick={() => onDelete(phrase.id)} />
                 </div>

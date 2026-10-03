@@ -17,6 +17,7 @@ import { RefText } from "@/components/RefText";
 import { EmptyCell } from "@/components/EmptyCell";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
+import { SpeakButton } from "@/components/SpeakButton";
 import { deleteEntries } from "@/lib/storage";
 import type { LinkIndex } from "@/lib/links";
 import type { Entry } from "@/lib/types";
@@ -29,6 +30,7 @@ import { useListPage } from "@/lib/useListPage";
 import { type ListSelection } from "@/lib/useListSelection";
 import type { Sorting } from "@/lib/sortName";
 import { useSorting } from "@/lib/useSorting";
+import { studiedParts } from "@/lib/speech";
 
 type SortKey = "word" | "definition" | "dateAdded";
 type SortDirection = "asc" | "desc";
@@ -407,7 +409,7 @@ function EntryTable({
                 </th>
               );
             })}
-            <th scope="col" className={`w-24 ${ROW_CONTROL}`}>
+            <th scope="col" className={`w-32 ${ROW_CONTROL}`}>
               <span className="sr-only">Actions</span>
             </th>
           </tr>
@@ -473,6 +475,7 @@ function EntryTable({
                 </td>
                 <td className={ROW_CONTROL}>
                   <div className="flex items-center justify-end gap-0.5">
+                    <SpeakButton speechKey={`word:${entry.id}`} label={entry.word} parts={() => studiedParts(entry.word)} />
                     <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
                     <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
                   </div>
@@ -544,6 +547,7 @@ function EntryCards({
                 </h2>
                 {entry.needsDefinition && <NeedsDefinitionBadge />}
                 <div className="-mr-1 flex shrink-0 items-center gap-0.5">
+                  <SpeakButton speechKey={`word:${entry.id}`} label={entry.word} parts={() => studiedParts(entry.word)} />
                   <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
                   <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
                 </div>
