@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import { Modal } from "@/components/Modal";
-import { countedTenses, sessionPlan, type PracticeMode, type TenseRecord } from "@/lib/verbPractice";
+import { plural } from "@/lib/home";
+import { countedTenses, sessionPlan, tenseCount, type PracticeMode, type TenseRecord } from "@/lib/verbPractice";
 import type { VerbTable } from "@/lib/types";
 
 /**
@@ -26,7 +27,7 @@ export function PracticeDialog({
   const now = new Date();
   // Counted in tenses, since a due or new session asks tenses, not whole verbs.
   const tensesIn = (mode: PracticeMode) =>
-    sessionPlan(tables, records, { mode, tenses: [], verbIds: [] }, now).reduce((n, verb) => n + verb.tenses.length, 0);
+    tenseCount(sessionPlan(tables, records, { mode, tenses: [], verbIds: [] }, now));
   const dueCount = tensesIn("due");
   const newCount = tensesIn("new");
   const allTenses = [...new Set(tables.flatMap(countedTenses))];
@@ -90,7 +91,7 @@ export function PracticeDialog({
         <p className="text-sm text-ink-soft">
           {plan.length === 0
             ? "Nothing to ask with these choices."
-            : `${plan.length} ${plan.length === 1 ? "verb" : "verbs"}, ${plan.reduce((n, v) => n + v.tenses.length, 0)} tenses.`}
+            : `${plural(plan.length, "verb", "verbs")}, ${plural(tenseCount(plan), "tense", "tenses")}.`}
         </p>
 
         <div className="flex justify-end gap-2">

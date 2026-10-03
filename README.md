@@ -418,6 +418,8 @@ forgiven, since the ending is what is being practised. A tense is right only
 when its whole column is. Each tense has its own review schedule, the same rules
 as flashcards, and a verb is learned only when every tense on its table is: a
 tense added later reopens it. A column with no forms filled in is never asked.
+Verbs start fresh here: progress a verb made on flashcards before verb practice
+existed is not carried across.
 The end of a session lists what to look at again. The design is in
 [`Docs/verb-practice.md`](Docs/verb-practice.md).
 
