@@ -16,8 +16,10 @@
  *  1. Refreshes the session cookies. Access tokens expire every hour, and a
  *     Server Component cannot write cookies, so if this did not run the
  *     session would quietly die an hour into the day.
- *  2. Sends anyone without a session to `/sign-in`, and anyone with one from
- *     `/`, `/sign-in` or `/sign-up` to `/home`.
+ *  2. Sends anyone without a session to the landing page, `/`, whether they
+ *     have an account or not (the owner asked for everybody to start there,
+ *     3 October 2026), and anyone with one from `/`, `/sign-in` or `/sign-up`
+ *     to `/home`.
  */
 
 import { createServerClient } from "@supabase/ssr";
@@ -147,7 +149,7 @@ export async function proxy(request: NextRequest) {
   if (!signedIn && !isPublic(pathname)) {
     if (normalise(pathname).startsWith("/api/")) return unauthorisedKeeping(response);
     const target = request.nextUrl.clone();
-    target.pathname = "/sign-in";
+    target.pathname = "/";
     target.search = "";
     return redirectKeeping(response, target);
   }

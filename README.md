@@ -148,7 +148,9 @@ Sign-in is an email and password, checked by Supabase. No password is stored,
 compared or hashed by this app. An emailed one-time link is offered as a second
 route, and it creates the account if there is none: Supabase makes the account on
 the first link it sends. Signing in, or arriving at `/`, `/sign-in` or `/sign-up`
-already signed in, lands on **`/home`**.
+already signed in, lands on **`/home`**. Anyone not signed in, with an account or
+without, starts on the landing page: a signed-out visit to any workspace page
+goes to `/`, and so does signing out.
 
 **Forgot your password?** on the sign-in screen emails a link that signs you in
 and lands on **`/choose-password`**, a form that asks for the new password and
@@ -187,7 +189,7 @@ Being signed in is decided on the server, before a page exists.
 
 `src/proxy.ts` runs ahead of every request. It refreshes the session cookies
 (tokens expire hourly and a Server Component cannot write cookies), redirects
-anyone without a session to `/sign-in`, and sends anyone with one from `/`,
+anyone without a session to the landing page, `/`, and sends anyone with one from `/`,
 `/sign-in` or `/sign-up` to `/home`. Only `/`, `/sign-in`, `/sign-up` and
 `/auth/*` are reachable signed out, plus the files the matcher skips: Next's
 static output, the logo images, `robots.txt`, `sitemap.xml`, `llms.txt` and the

@@ -78,7 +78,7 @@ export function TutorChat(props: {
         setRemaining(body.remaining);
         setText("");
       } else if (response.status === 401) {
-        router.push("/sign-in");
+        router.push("/");
       } else if (response.status === 403 && body.error === "noLanguage") {
         setStudiedName(null);
       } else if (response.status === 403 && (body.error === "trialUsed" || body.error === "dailyLimit")) {

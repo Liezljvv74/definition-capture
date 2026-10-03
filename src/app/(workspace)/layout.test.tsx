@@ -34,9 +34,9 @@ describe("WorkspaceLayout", () => {
     serverUserId.mockResolvedValue(null);
 
     await expect(WorkspaceLayout({ children: null })).rejects.toThrow(
-      "NEXT_REDIRECT:/sign-in",
+      "NEXT_REDIRECT:/",
     );
-    expect(redirect).toHaveBeenCalledWith("/sign-in");
+    expect(redirect).toHaveBeenCalledWith("/");
   });
 
   it("renders when there is a session", async () => {

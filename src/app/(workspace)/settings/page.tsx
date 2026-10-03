@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
@@ -884,6 +884,7 @@ function SettingSection({
 
 function ProfileSection({ displayName, loaded }: { displayName: string; loaded: boolean }) {
   const { user } = useSession();
+  const router = useRouter();
   const [draft, setDraft] = useState(displayName);
 
   const changed = draft.trim() !== displayName;
@@ -934,7 +935,9 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
       </div>
 
       <div className="mt-5 border-t border-rule pt-4">
-        <button type="button" className="btn btn-secondary" onClick={() => void signOut()}>
+        {/* Everybody signed out starts on the landing page. The lists clear
+            themselves when the session ends, so a client navigation is enough. */}
+        <button type="button" className="btn btn-secondary" onClick={() => void signOut().then(() => router.replace("/"))}>
           Sign out
         </button>
       </div>

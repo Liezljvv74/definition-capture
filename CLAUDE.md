@@ -102,7 +102,8 @@ Configuration, Redirect URLs, beside the callback.
 do this, and both must keep doing it:
 
 - `src/proxy.ts` runs before every request, refreshes the session cookies, and
-  redirects a request with no session to `/sign-in`. It is named `proxy.ts`
+  redirects a request with no session to the landing page, `/` (everybody signed
+  out starts there, existing account or not). It is named `proxy.ts`
   because **Next 16 renamed the `middleware.js` convention to `proxy.js`**.
 - `src/app/(workspace)/layout.tsx` asks again, on the server, before any page in
   the group renders.
