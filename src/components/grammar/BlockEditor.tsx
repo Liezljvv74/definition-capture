@@ -34,7 +34,7 @@ export function BlockEditor({
 }) {
   const inputId = useId();
   const menuButton =
-    "cursor-pointer rounded px-2 py-1 text-xs text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-30 dark:text-slate-300 dark:hover:bg-slate-700";
+    "cursor-pointer rounded px-2 py-1 text-xs text-ink-soft transition hover:bg-tile-sky disabled:cursor-not-allowed disabled:opacity-30";
 
   return (
     <section className="card p-3 sm:p-4" aria-label={`${KIND_LABEL[block.kind]} block`}>
@@ -45,11 +45,11 @@ export function BlockEditor({
           onDragEnd={onDragEnd}
           title="Drag to reorder"
           aria-hidden="true"
-          className="cursor-grab select-none px-1 text-slate-400"
+          className="cursor-grab select-none px-1 text-ink-soft"
         >
           ⋮⋮
         </span>
-        <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+        <span className="text-xs font-semibold tracking-wide text-ink-soft uppercase">
           {KIND_LABEL[block.kind]}
         </span>
         <span className="ml-auto flex gap-1">
@@ -97,13 +97,13 @@ function ExampleFields({ block, onChange, inputId }: { block: ExampleBlock; onCh
   return (
     <div className="space-y-2">
       <div>
-        <label htmlFor={`${inputId}-sentence`} className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+        <label htmlFor={`${inputId}-sentence`} className="mb-1 block text-xs font-medium text-ink-soft">
           Sentence. Put braces round the words the rule is about: Ich gebe {"{dem}"} Mann das Buch
         </label>
         <MarkedField id={`${inputId}-sentence`} className="field" value={block.sentence} onChange={(sentence) => onChange({ ...block, sentence })} />
       </div>
       <div>
-        <label htmlFor={`${inputId}-translation`} className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+        <label htmlFor={`${inputId}-translation`} className="mb-1 block text-xs font-medium text-ink-soft">
           Translation
         </label>
         <MarkedField id={`${inputId}-translation`} className="field" value={block.translation} onChange={(translation) => onChange({ ...block, translation })} />

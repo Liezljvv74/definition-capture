@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Captured Notebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+/* Layout concept: a ruled school notebook page. Cut-out blocks are pasted on at slight angles, doodles draw themselves on good moments. */
+:root{
+  --paper:#fdfcf4;
+  --rule:#cfdcee;
+  --margin:#e8868b;
+  --ink:#1d2742;
+  --ink-soft:#4a5573;
+  --marker:#ffe34d;
+  --blue:#b3c5e6;
+  --green:#a9d6bb;
+  --purple:#c8b9e4;
+  --sage:#cfd5c1;
+  --sky:#d9e8f7;
+  --indigo:#4b35e8;
+  --display:'Kalam','Segoe Print','Comic Sans MS',cursive;
+  --hand:'Patrick Hand','Segoe Print','Comic Sans MS',cursive;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background-color:var(--paper);
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--rule) 31px,var(--rule) 32px);
+  background-position:0 20px;
+  color:var(--ink);
+  font-family:var(--hand);
+  font-size:19px;
+  line-height:32px;
+  position:relative;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+/* margin lines and punch holes */
+.margin{position:absolute;top:0;bottom:0;left:64px;width:7px;border-left:2px solid var(--margin);border-right:1px solid var(--margin);opacity:.85;pointer-events:none}
+.hole{position:absolute;left:18px;width:26px;height:26px;border-radius:50%;background:#e9e6da;box-shadow:inset 2px 3px 5px rgba(0,0,0,.25);pointer-events:none}
+.page{
+  max-width:1180px;
+  padding-block:56px 96px;
+  padding-inline:104px 32px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,.95fr);
+  gap:36px 56px;
+  align-items:start;
+  position:relative;
+}
+.col{display:flex;flex-direction:column;gap:30px;min-width:0}
+
+/* headline */
+h1{font-family:var(--display);font-weight:700;font-size:clamp(2.1rem,4.6vw,3.2rem);line-height:1.12;margin:0 0 6px;text-wrap:balance;transform:rotate(-1.2deg)}
+h1 .scribble{position:relative;display:inline-block}
+h1 .scribble svg{position:absolute;left:-4%;bottom:-14px;width:108%;height:18px;overflow:visible}
+h1 .scribble path{fill:none;stroke:var(--indigo);stroke-width:4;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1s .5s ease-out forwards}
+.lead{margin:6px 0 0;color:var(--ink-soft);max-width:34ch;font-size:1.12rem}
+.lead mark{background:linear-gradient(transparent 55%,var(--marker) 55%,var(--marker) 92%,transparent 92%);color:inherit;padding:0 2px}
+
+/* buttons */
+.cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.btn{font-family:var(--hand);font-size:1.15rem;line-height:1;padding:14px 22px;cursor:pointer;color:var(--ink);background:#fff;border:2px solid var(--ink);border-radius:255px 18px 225px 18px/18px 225px 18px 255px;box-shadow:3px 4px 0 var(--ink);transition:transform .15s,box-shadow .15s;text-decoration:none}
+.btn.primary{background:var(--indigo);color:#fff;transform:rotate(-1.5deg)}
+.btn.ghost{transform:rotate(1.2deg);border-width:1.5px;box-shadow:2px 3px 0 var(--ink-soft)}
+.btn:hover{transform:rotate(0) translateY(-2px);box-shadow:4px 7px 0 var(--ink)}
+.btn:active{transform:translate(2px,3px);box-shadow:1px 1px 0 var(--ink)}
+:focus-visible{outline:3px dashed var(--indigo);outline-offset:4px}
+
+/* pasted-on pieces */
+.paste{position:relative;padding:18px 22px 20px;transform:rotate(var(--r,0deg));transition:transform .25s ease}
+.paste:hover{transform:rotate(0deg) translateY(-3px)}
+.paste h2,.paste h3{font-family:var(--display);margin:0;line-height:34px}
+.paste h2{font-size:1.45rem;font-weight:700}
+.paste h3{font-size:1.3rem}
+.paste p{margin:2px 0 0;line-height:28px}
+.tape::before,.tape::after{content:"";position:absolute;width:74px;height:26px;background:rgba(255,227,77,.72);box-shadow:0 1px 2px rgba(0,0,0,.12);top:-13px;left:18px;transform:rotate(-5deg);z-index:2}
+.tape::after{display:none}
+.tape.two::after{display:block;left:auto;right:18px;transform:rotate(6deg)}
+.tape.pink::before{background:rgba(236,150,165,.65)}
+
+.remember{--r:-.9deg;background:var(--sky);border:3px solid var(--ink);border-radius:6px 14px 8px 12px;box-shadow:5px 6px 0 rgba(29,39,66,.9)}
+.private{--r:1.1deg;background:#fff;border:1.5px dashed var(--ink-soft);border-radius:4px;box-shadow:2px 3px 8px rgba(29,39,66,.18);padding-top:24px}
+.private .cut{position:absolute;top:-17px;right:26px;width:30px;height:30px}
+
+/* flashcard demo */
+.try{margin-top:16px;background:#fff;border:2px solid var(--ink);border-radius:4px;padding:12px 16px 14px;transform:rotate(1.2deg);position:relative;box-shadow:2px 3px 0 var(--ink)}
+.try .tag{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);line-height:20px}
+.try .word{font-family:var(--display);font-weight:700;font-size:1.6rem;line-height:38px;margin:2px 0}
+.try form{display:flex;gap:10px;flex-wrap:wrap}
+.try input{flex:1 1 140px;min-width:0;font:inherit;font-size:1.05rem;line-height:1.2;padding:8px 6px;border:0;border-bottom:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:0}
+.try input:focus-visible{outline:none;border-bottom-color:var(--indigo);background:rgba(255,227,77,.3)}
+.try button{font:inherit;font-size:1rem;line-height:1.2;padding:8px 16px;background:var(--marker);border:2px solid var(--ink);border-radius:12px 4px 12px 4px;cursor:pointer;color:var(--ink)}
+.try button:hover{transform:rotate(-2deg)}
+.msg{min-height:28px;line-height:28px;margin-top:6px;font-size:1.02rem}
+.msg.good{color:#1c6b3d}
+.msg.bad{color:#a23a3a}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:rotate(1.2deg) translateX(-6px)}40%{transform:rotate(1.2deg) translateX(6px)}60%{transform:rotate(1.2deg) translateX(-4px)}80%{transform:rotate(1.2deg) translateX(3px)}}
+
+/* right column */
+.keep-title{font-family:var(--display);font-weight:700;font-size:1.45rem;line-height:36px;margin:0 0 10px;display:inline-block;transform:rotate(-1.5deg)}
+.keep-title span{background:linear-gradient(transparent 12%,var(--marker) 12%,var(--marker) 90%,transparent 90%);padding:0 8px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 18px}
+.tile{cursor:pointer;color:var(--ink);border:2px solid var(--ink);padding:16px 16px 18px;min-height:132px}
+.tile p{font-size:.98rem;line-height:24px;margin-top:4px}
+.tile.words{--r:-1.8deg;background:var(--blue);border-radius:4px 12px 3px 10px;border-width:3px;box-shadow:4px 5px 0 var(--ink)}
+.tile.phrases{--r:1.4deg;background:var(--green);border-radius:10px 3px 12px 4px;border-width:1.5px;box-shadow:2px 3px 0 var(--ink)}
+.tile.verbs{--r:1.2deg;background:var(--purple);border-radius:3px 10px 4px 12px;border-width:2px;box-shadow:3px 4px 0 var(--ink)}
+.tile.grammar{--r:-1.1deg;background:var(--sage);border-radius:12px 4px 10px 3px;border-width:3.5px;box-shadow:5px 5px 0 var(--ink)}
+.tile.words::before{left:auto;right:20px}
+.tile.verbs::before{left:50%;margin-left:-37px;transform:rotate(3deg)}
+
+.q-title{font-family:var(--display);font-weight:700;font-size:1.5rem;line-height:36px;margin:10px 0 4px;display:inline-block;position:relative}
+.q-title svg{position:absolute;left:-6px;right:-6px;bottom:-4px;width:calc(100% + 12px);height:12px;overflow:visible}
+.q-title path{fill:none;stroke:var(--margin);stroke-width:3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1s 1s ease-out forwards}
+details{background:#fff;border:2px solid var(--ink);border-radius:5px 12px 6px 10px;box-shadow:2px 3px 0 rgba(29,39,66,.85);margin-bottom:14px;transform:rotate(var(--r,0deg));transition:transform .2s}
+details:nth-of-type(1){--r:.5deg}
+details:nth-of-type(2){--r:-.7deg;border-width:3px}
+details:nth-of-type(3){--r:.9deg;border-width:1.5px}
+details:nth-of-type(4){--r:-.4deg}
+details:nth-of-type(5){--r:.6deg;border-width:3px}
+details:hover,details[open]{transform:rotate(0)}
+details[open]{background:#fffbe0}
+summary{list-style:none;cursor:pointer;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:1.12rem;line-height:28px}
+summary::-webkit-details-marker{display:none}
+summary .arrow{flex:none;width:16px;height:16px;transition:transform .2s}
+details[open] summary .arrow{transform:rotate(180deg)}
+details .ans{padding:0 16px 14px;line-height:26px;font-size:1rem;color:var(--ink-soft);border-top:1.5px dashed var(--rule)}
+details .ans p{margin:10px 0 0}
+
+/* doodles */
+.doodle-layer{position:absolute;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+.doodle{position:absolute;overflow:visible;transition:opacity .8s}
+.doodle path,.doodle circle{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:4;stroke-dasharray:1;stroke-dashoffset:1;animation:draw .8s ease-out forwards}
+.doodle.fade{opacity:0}
+@keyframes draw{to{stroke-dashoffset:0}}
+.pagenum{position:absolute;right:36px;bottom:24px;font-family:var(--display);color:var(--ink-soft);transform:rotate(-3deg);line-height:24px}
+
+@media (max-width:860px){
+  .page{grid-template-columns:minmax(0,1fr);padding-inline:50px 18px;padding-block:40px 80px}
+  .margin{left:30px}
+  .hole{left:4px;width:18px;height:18px}
+  .tiles{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .doodle path,.doodle circle,h1 .scribble path,.q-title path{stroke-dashoffset:0}
+}
+</style>
+
+</head>
+<body>
+<div class="margin"></div>
+<div class="hole" style="top:11%"></div>
+<div class="hole" style="top:46%"></div>
+<div class="hole" style="top:82%"></div>
+
+<main class="page" id="page">
+  <section class="col">
+    <div>
+      <h1>Your personal <span class="scribble">glossary<svg viewBox="0 0 100 18" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 11 Q 15 2 28 10 T 55 9 T 98 8"/></svg></span> for learning a language</h1>
+      <p class="lead">Save the words, phrases, verb tables and grammar rules you meet, then review them with <mark>flashcards</mark> until they stick.</p>
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="#" id="signup">Create an account</a>
+      <a class="btn ghost" href="#" id="signin">Sign in</a>
+    </div>
+
+    <article class="paste remember tape two" id="remember">
+      <h2>How you remember it</h2>
+      <p>Flashcards are made from what you saved. You type the meaning, and each card comes back for review when it is due, less often as you keep getting it right.</p>
+      <div class="try" id="try">
+        <div class="tag">Try one now</div>
+        <div class="word" id="word">la mariposa</div>
+        <form id="form" autocomplete="off">
+          <label for="answer" style="position:absolute;left:-9999px">Type the meaning</label>
+          <input id="answer" type="text" placeholder="type the meaning..." />
+          <button type="submit">Check</button>
+        </form>
+        <div class="msg" id="msg" aria-live="polite">Hint: it flutters.</div>
+      </div>
+    </article>
+
+    <article class="paste private tape pink" id="private">
+      <svg class="cut" viewBox="0 0 40 40" aria-hidden="true"><g fill="none" stroke="#1d2742" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="30" r="5"/><circle cx="9" cy="10" r="5"/><path d="M13 13 L36 28 M13 27 L36 12"/></g></svg>
+      <h2>Private to you</h2>
+      <p>Your lists belong to your account and nobody else can read them. Back everything up to a file whenever you like.</p>
+    </article>
+  </section>
+
+  <section class="col">
+    <div>
+      <h2 class="keep-title"><span>What you can keep</span></h2>
+      <div class="tiles">
+        <article class="paste tile words tape" data-doodle="star"><h3>Words</h3><p>A word, its definition, a reference, and the collections it belongs to.</p></article>
+        <article class="paste tile phrases" data-doodle="heart"><h3>Phrases</h3><p>Expressions with their literal meaning and an example of how they are really used.</p></article>
+        <article class="paste tile verbs tape" data-doodle="spiral"><h3>Verb tables</h3><p>Conjugations laid out by person and tense, in the tenses you choose.</p></article>
+        <article class="paste tile grammar" data-doodle="sparkle"><h3>Grammar rules</h3><p>Rules written your way, with tables and examples.</p></article>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="q-title">Questions<svg viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M1 7 Q 12 1 25 7 T 50 6 T 75 7 T 99 5"/></svg></h2>
+      <details>
+        <summary>Which languages can I use it for? <svg class="arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5 L8 11 L13 5 Z" fill="#1d2742"/></svg></summary>
+        <div class="ans"><p>Any language you can type in. Your lists, your words, your way.</p></div>
+      </details>
+      <details>
+        <summary>Who can see what I save? <svg class="arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5 L8 11 L13 5 Z" fill="#1d2742"/></svg></summary>
+        <div class="ans"><p>Only you. Everything you save stays inside your account.</p></div>
+      </details>
+      <details>
+        <summary>How do the flashcards work? <svg class="arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5 L8 11 L13 5 Z" fill="#1d2742"/></svg></summary>
+        <div class="ans"><p>You type the meaning. Get it right and the card comes back later. Get it wrong and it returns sooner.</p></div>
+      </details>
+      <details>
+        <summary>Can I keep a copy of my data? <svg class="arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5 L8 11 L13 5 Z" fill="#1d2742"/></svg></summary>
+        <div class="ans"><p>Yes. Back everything up to a file whenever you like.</p></div>
+      </details>
+      <details>
+        <summary>Does it work on a phone? <svg class="arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5 L8 11 L13 5 Z" fill="#1d2742"/></svg></summary>
+        <div class="ans"><p>Yes. Open it in your phone's browser and your notebook is there.</p></div>
+      </details>
+    </div>
+  </section>
+  <div class="pagenum">p. 1</div>
+</main>
+<div class="doodle-layer" id="layer"></div>
+
+<script>
+(function(){
+  var layer=document.getElementById('layer');
+  var D={
+    star:'M50 6 L61 37 L94 39 L68 60 L77 93 L50 75 L23 93 L32 60 L6 39 L39 37 Z',
+    heart:'M50 88 C8 56 14 18 38 18 C46 18 50 26 50 32 C50 26 54 18 62 18 C86 18 92 56 50 88 Z',
+    check:'M8 52 L38 82 L94 16',
+    spiral:'M50 50 C55 40 65 45 62 55 C58 68 40 66 38 52 C36 36 56 28 68 38 C82 52 70 76 50 76',
+    sparkle:'M50 6 L50 94 M6 50 L94 50 M20 20 L80 80 M80 20 L20 80',
+    squiggle:'M4 50 Q 18 14 32 50 T 60 50 T 96 50',
+    arrow:'M4 60 Q 40 20 86 48 M66 28 L90 50 L62 62',
+    loop:'M10 70 C 30 10 80 10 70 50 C 60 80 25 60 45 35 C 60 20 90 40 92 70'
+  };
+  var colors=['#4b35e8','#e8868b','#2f9e63','#e0a800','#1d2742'];
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function spawn(type,x,y,size,color,life){
+    var s=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','0 0 100 100');
+    s.setAttribute('class','doodle');
+    s.setAttribute('aria-hidden','true');
+    s.style.width=s.style.height=size+'px';
+    s.style.left=(x-size/2)+'px';
+    s.style.top=(y-size/2)+'px';
+    s.style.transform='rotate('+(Math.random()*30-15)+'deg)';
+    var p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',D[type]);
+    p.setAttribute('pathLength','1');
+    p.style.stroke=color||colors[Math.floor(Math.random()*colors.length)];
+    s.appendChild(p);
+    layer.appendChild(s);
+    setTimeout(function(){s.classList.add('fade')},life||2200);
+    setTimeout(function(){s.remove()},(life||2200)+900);
+  }
+  function center(el){
+    var r=el.getBoundingClientRect();
+    return {x:r.left+r.width/2+window.scrollX,y:r.top+r.height/2+window.scrollY,r:r};
+  }
+  function burst(el){
+    if(reduce)return;
+    var c=center(el),r=c.r;
+    spawn('check',c.x,c.y,90,'#2f9e63',2600);
+    spawn('star',r.left+window.scrollX+r.width-10,r.top+window.scrollY-6,56,'#e0a800',2600);
+    spawn('sparkle',r.left+window.scrollX+8,r.top+window.scrollY-8,34,'#e8868b',2600);
+    spawn('heart',r.left+window.scrollX+r.width*.3,r.top+window.scrollY+r.height+12,38,'#e8868b',2600);
+    spawn('sparkle',r.left+window.scrollX+r.width+6,r.top+window.scrollY+r.height*.7,28,'#4b35e8',2600);
+  }
+
+  /* flashcard demo */
+  var cards=[['la mariposa',['butterfly'],'Hint: it flutters.'],['tener hambre',['to be hungry','be hungry','hungry'],'Hint: lunchtime.'],['Wie geht’s?',['how are you','how are you?','how is it going','how’s it going'],'Hint: a greeting.']];
+  var i=0,wrong=0;
+  var word=document.getElementById('word'),msg=document.getElementById('msg'),inp=document.getElementById('answer'),tryEl=document.getElementById('try');
+  document.getElementById('form').addEventListener('submit',function(e){
+    e.preventDefault();
+    var v=inp.value.trim().toLowerCase().replace(/[.!]/g,'');
+    if(!v)return;
+    var ok=cards[i][1].some(function(a){return a.replace(/[.!?]/g,'')===v.replace(/\?/g,'')});
+    if(ok){
+      msg.className='msg good';msg.textContent='Correct! Back for review in a few days.';
+      burst(tryEl);wrong=0;
+      setTimeout(function(){
+        i=(i+1)%cards.length;word.textContent=cards[i][0];msg.className='msg';msg.textContent=cards[i][2];inp.value='';
+      },2200);
+    }else{
+      wrong++;msg.className='msg bad';
+      msg.textContent=wrong>1?'Not yet. It starts with "'+cards[i][1][0].charAt(0)+'".':'Not quite. Have another go.';
+      tryEl.classList.remove('shake');void tryEl.offsetWidth;tryEl.classList.add('shake');
+    }
+  });
+
+  /* tiles doodle on hover or tap */
+  document.querySelectorAll('.tile').forEach(function(t){
+    function go(){if(reduce)return;var c=center(t);spawn(t.dataset.doodle,c.r.left+window.scrollX+c.r.width-14,c.r.top+window.scrollY+c.r.height-6,44,null,1800)}
+    t.addEventListener('mouseenter',go);
+    t.addEventListener('click',go);
+  });
+  /* FAQ doodle when opened */
+  document.querySelectorAll('details').forEach(function(d){
+    d.addEventListener('toggle',function(){
+      if(!d.open||reduce)return;
+      var c=center(d.querySelector('summary'));
+      spawn('squiggle',c.r.left+window.scrollX+c.r.width*.35,c.r.top+window.scrollY+c.r.height-2,70,'#e8868b',1800);
+      spawn('arrow',c.r.left+window.scrollX-34,c.r.top+window.scrollY+c.r.height/2,40,'#4b35e8',1800);
+    });
+  });
+  /* buttons are placeholders in this mock-up */
+  ['signup','signin'].forEach(function(id){
+    var b=document.getElementById(id);
+    b.addEventListener('click',function(e){e.preventDefault();if(reduce)return;var c=center(b);spawn('star',c.x,c.y-34,40,'#e0a800',1600)});
+  });
+
+  /* an idle doodle now and then, in the margin or blank paper */
+  var spots=['star','heart','spiral','sparkle','squiggle','loop','arrow'];
+  function idle(){
+    if(reduce||document.hidden)return;
+    var h=Math.max(document.documentElement.scrollHeight,600);
+    var w=window.innerWidth;
+    var x=w<860?18+Math.random()*10:20+Math.random()*30;
+    var y=window.scrollY+80+Math.random()*(window.innerHeight-160);
+    if(Math.random()<.5&&w>=860){x=w*.55+Math.random()*60;y=h-120-Math.random()*80}
+    spawn(spots[Math.floor(Math.random()*spots.length)],x,Math.min(y,h-60),w<860?34:50,null,2600);
+  }
+  setTimeout(idle,3500);
+  setInterval(idle,9000);
+})();
+</script>
+
+</body>
+</html>

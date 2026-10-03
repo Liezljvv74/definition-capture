@@ -141,12 +141,12 @@ export function PhraseForm({
                 key={name}
                 className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium transition select-none ${
                   checked
-                    ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-500/40 dark:bg-indigo-500/15 dark:text-indigo-300"
-                    : "border-slate-300 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                    ? "border-ink bg-marker/30 text-ink"
+                    : "border-rule bg-card text-ink-soft"
                 } ${
                   blocked
                     ? "cursor-not-allowed opacity-40"
-                    : "cursor-pointer hover:border-indigo-400"
+                    : "cursor-pointer hover:border-ink"
                 }`}
               >
                 <input
@@ -161,7 +161,7 @@ export function PhraseForm({
             );
           })}
         </div>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs text-ink-soft">
           The same groups the words use. Up to {MAX_COLLECTIONS}
           {value.collections.length > 0 && `, ${value.collections.length} chosen`}.
         </p>

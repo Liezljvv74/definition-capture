@@ -23,7 +23,7 @@ import type { TableBlock } from "@/lib/types";
 
 /** A plain grey bar, wide above a column and tall beside a row: easier to see and to hit than a glyph. */
 const handle =
-  "block cursor-pointer rounded-sm bg-slate-200 transition hover:bg-indigo-300 dark:bg-slate-700 dark:hover:bg-indigo-500";
+  "block cursor-pointer rounded-sm bg-ink-soft/30 transition hover:bg-accent/50";
 
 /** What a press that is still held down is selecting, as the pointer moves. */
 type Drag = "cells" | "rows" | "columns" | null;
@@ -234,7 +234,7 @@ export function TableEditor({
                   return (
                     <td
                       key={c}
-                      className="border border-slate-200 p-0.5 dark:border-slate-700"
+                      className="border border-ink-soft/40 p-0.5"
                       onMouseDown={(event) => {
                         // A right-click inside the selection keeps it, so the
                         // menu's Copy and Cut act on the cells.
@@ -276,7 +276,7 @@ export function TableEditor({
                       <MarkedField
                         id={cellId(r, c)}
                         wrap
-                        className={`field w-full py-1 ${isHeader ? "font-semibold" : ""} ${inside(r, c) ? "ring-2 ring-indigo-500 dark:ring-indigo-400" : ""}`}
+                        className={`field w-full py-1 ${isHeader ? "font-semibold" : ""} ${inside(r, c) ? "ring-2 ring-link" : ""}`}
                         value={cell}
                         onChange={(value) => {
                           setRange(null);
@@ -296,7 +296,7 @@ export function TableEditor({
           <button type="button" className={small} onMouseDown={keepFocus} onClick={() => viaClipboard("copy")}>Copy</button>
           <button type="button" className={small} onMouseDown={keepFocus} onClick={() => viaClipboard("cut")}>Cut</button>
           <button type="button" className={small} onMouseDown={keepFocus} onClick={() => viaClipboard("paste")}>Paste</button>
-          <span className="text-xs text-slate-500 dark:text-slate-400">or Ctrl+C, Ctrl+X, Ctrl+V (Cmd on a Mac)</span>
+          <span className="text-xs text-ink-soft">or Ctrl+C, Ctrl+X, Ctrl+V (Cmd on a Mac)</span>
         </div>
       )}
       {note && <p className="text-sm text-amber-700 dark:text-amber-400">{note}</p>}
@@ -306,11 +306,11 @@ export function TableEditor({
         <button type="button" className={small} disabled={columns >= MAX_TABLE_COLUMNS} onClick={() => onChange(withColumn(block))}>Add column</button>
         <button type="button" className={small} disabled={columns <= 1} onClick={() => onChange(withoutLastColumn(block))}>Remove last column</button>
         <label className="ml-2 inline-flex items-center gap-1.5 text-sm">
-          <input type="checkbox" className="accent-indigo-600" checked={block.headerRow} onChange={(event) => onChange({ ...block, headerRow: event.target.checked })} />
+          <input type="checkbox" className="accent-accent" checked={block.headerRow} onChange={(event) => onChange({ ...block, headerRow: event.target.checked })} />
           First row is a header
         </label>
         <label className="inline-flex items-center gap-1.5 text-sm">
-          <input type="checkbox" className="accent-indigo-600" checked={block.headerColumn} onChange={(event) => onChange({ ...block, headerColumn: event.target.checked })} />
+          <input type="checkbox" className="accent-accent" checked={block.headerColumn} onChange={(event) => onChange({ ...block, headerColumn: event.target.checked })} />
           First column is a header
         </label>
       </div>

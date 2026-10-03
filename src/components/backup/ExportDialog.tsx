@@ -112,7 +112,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     <Modal title="Export" onClose={() => (busy ? undefined : onClose())}>
       {state.step === "done" ? (
         <>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-ink-soft">
             Saved{" "}
             <span className="font-medium break-all">{state.summary.fileName}</span>{" "}
             {state.summary.folder === null
@@ -120,7 +120,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               : `to ${state.summary.folder}`}
             .
           </p>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-sm text-ink-soft">
             {state.summary.count} {state.summary.count === 1 ? "item" : "items"} written.
           </p>
           <div className="mt-5 flex justify-end">
@@ -131,8 +131,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         </>
       ) : state.step === "folderFailed" ? (
         <>
-          <p className="text-sm text-slate-600 dark:text-slate-300">{state.message}</p>
-          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-ink-soft">{state.message}</p>
+          <p className="mt-3 text-sm text-ink-soft">
             Nothing was saved. Choose another folder and the export will finish there, or
             send this one to your browser&rsquo;s download folder.
           </p>
@@ -158,7 +158,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         </>
       ) : state.step === "failed" ? (
         <>
-          <p className="text-sm text-slate-600 dark:text-slate-300">{state.message}</p>
+          <p className="text-sm text-ink-soft">{state.message}</p>
           <div className="mt-5 flex justify-end">
             <button
               type="button"
@@ -173,7 +173,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         <WaitingForLists />
       ) : counts.all === 0 ? (
         <>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-ink-soft">
             There is nothing saved yet, so there is nothing to export.
           </p>
           <div className="mt-5 flex justify-end">
@@ -225,7 +225,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             </div>
           </fieldset>
 
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-ink-soft">
             {counts[scope]} {counts[scope] === 1 ? "item" : "items"} selected. Which
             format?
           </p>
@@ -252,7 +252,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           />
 
           {busy && (
-            <p className="text-sm text-slate-500 dark:text-slate-400">Preparing…</p>
+            <p className="text-sm text-ink-soft">Preparing…</p>
           )}
 
           <div className="flex justify-end pt-1">

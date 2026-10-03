@@ -10,7 +10,7 @@ describe("MarkedField", () => {
   it("tints a highlight behind the box and greys its markers", () => {
     const markup = html("a ==y:b== c");
     expect(markup).toMatch(/<mark class="[^"]*bg-yellow-200[^"]*">b<\/mark>/);
-    expect(markup).toContain('<span class="text-slate-400 dark:text-slate-500">==y:</span>');
+    expect(markup).toContain('<span class="text-ink-soft">==y:</span>');
     expect(markup).toContain("text-transparent!");
   });
 

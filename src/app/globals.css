@@ -1,69 +1,16 @@
 @import "tailwindcss";
+@import "./notebook.css";
 
 @theme inline {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 
   /*
-   * The home page's palette: a yellow panel and a card each in blue, green and
-   * purple.
-   *
-   * The hues come from the logo. 44 is its yellow, 216 its navy, 254 its
-   * purple; green is the one the artwork does not contain at all, so it is
-   * built at 146, far enough from the blue beside it to be told apart at a
-   * glance.
-   *
-   * What is deliberately *not* taken from the logo is the saturation. An
-   * earlier version used the artwork's own colours at half strength over
-   * white, which gave four high-chroma tints next to a full-strength yellow
-   * panel, and the whole page read as something made for a child. These are
-   * the same hues at roughly a third of that saturation: muted enough to sit
-   * behind an hour of reading, still warm enough not to look like a form.
-   *
-   * The three cards are within 0.049 of each other in relative luminance, so
-   * the row reads as one set rather than one bright card and two quiet ones.
-   * The green is taken down further than its neighbours to get there, because
-   * green reads lighter than blue or purple at the same nominal lightness.
-   * The panel sits lighter than all three, between them and the page, which is
-   * what makes it read as a heading rather than a fourth card.
-   *
-   * None of these carries a dark variant, and that is the point rather than an
-   * omission: they are light colours whatever the browser is set to, so the
-   * text on them is dark in both themes. Every one clears 4.5:1 against slate
-   * 700 and better than 7.6:1 against the slate 800 the cards actually use.
+   * The two flashes an answer gets. Pale on purpose: they are a signal, not a
+   * verdict, and a saturated red for a word somebody is still learning is the
+   * wrong thing to say to them. Both carry dark text at better than 10:1. The
+   * rest of the palette is the notebook's, in notebook.css.
    */
-  --color-card-blue: #aec0db;
-  --color-card-green: #a2cdb5;
-  --color-card-purple: #bfb6dd;
-  /* Grammar: a green-grey, kept greyer than the Phrases green so the two
-     read as different places. It clears 6:1 against slate 700. It used to be
-     a rose, given up so that red means only a warning or an error. */
-  --color-card-sage: #bdc9bf;
-
-  /*
-   * The flashcard feature's own four.
-   *
-   * `challenge` is the pale blue of the card that starts it, lighter and
-   * cooler than the Vocabulary card so the two are not mistaken for each
-   * other: one is a place to go, the other is a thing to do.
-   *
-   * `flashcard` is an off-white with blue undertones rather than plain white,
-   * so a card reads as a card sitting on the page rather than as the page.
-   *
-   * `correct` and `wrong` are the two flashes an answer gets. Pale on purpose:
-   * they are a signal, not a verdict, and a saturated red for a word somebody
-   * is still learning is the wrong thing to say to them. Both carry dark text
-   * at better than 10:1, so the flash never costs legibility.
-   */
-  --color-challenge: #d7e6f4;
-  /*
-   * A card is a deeper blue than the challenge tile that offers it, and it
-   * wears the logo's own navy as a frame. The frame is what makes a square of
-   * colour read as a card: at half the width it no longer fills the column,
-   * so without an edge it looks like a panel that failed to stretch.
-   */
-  --color-flashcard: #bbd3eb;
-  --color-flashcard-frame: #1b4390;
   --color-flash-correct: #cbebd7;
   --color-flash-wrong: #f8d9bf;
 }
@@ -98,51 +45,111 @@ html {
  * filter bar in `StickyFilters.tsx`, which is opaque so rows do not slide
  * through it, and the nav, which is deliberately one step darker.
  */
+/*
+ * Every page is a page of the notebook (notebook.css). The paper itself is
+ * drawn by `NotebookPaper` in the root layout; this is the colour shown for
+ * the moment before it paints, and the ink everything inherits.
+ */
 body {
-  @apply bg-slate-100 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  @apply antialiased;
 }
 
-/* Shared form control styling so every input, select, and textarea matches. */
+/*
+ * The shared controls, restyled for the notebook in place: the class names
+ * stay, so every screen that already uses them changes with them. None of
+ * them tilts: these are the elements people tap and type in most, which the
+ * owner's brief keeps straight.
+ */
+
+/*
+ * A text field is a single ruled line, no box, with a yellow wash while it
+ * has focus. A textarea keeps a light dashed box: a block of several lines
+ * with only a bottom edge reads as one line that wraps.
+ */
 @utility field {
-  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-    text-slate-900 shadow-xs outline-none transition
-    placeholder:text-slate-400
-    focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30
-    dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100
-    dark:placeholder:text-slate-500 dark:focus:border-indigo-400
-    dark:focus:ring-indigo-400/30;
+  @apply w-full border-0 border-b-2 border-ink bg-transparent px-1.5 py-1.5 text-base
+    text-ink outline-none transition placeholder:text-ink-soft
+    focus:border-focus focus:bg-marker/30;
+  border-radius: 0;
+  font-family: var(--font-hand);
+  &:is(textarea) {
+    border: 1.5px dashed var(--color-ink-soft);
+    border-radius: 6px 10px 6px 12px;
+    background: var(--color-card);
+  }
 }
 
+/* A hand-cut button: uneven corners, an offset shadow, a lift on hover. */
 @utility btn {
-  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg
-    px-3.5 py-2 text-sm font-medium transition
-    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500
-    disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2 text-base
+    transition disabled:cursor-not-allowed disabled:opacity-50;
+  font-family: var(--font-hand);
+  border: 2px solid var(--color-ink);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  box-shadow: 2px 3px 0 var(--color-shadow);
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 3px 5px 0 var(--color-shadow);
+  }
+  &:active:not(:disabled) {
+    transform: translate(1px, 2px);
+    box-shadow: 1px 1px 0 var(--color-shadow);
+  }
+  &:focus-visible {
+    outline: 3px dashed var(--color-focus);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
 }
 
 @utility btn-primary {
-  @apply bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700;
+  background: var(--color-accent);
+  color: #fff;
 }
 
 @utility btn-secondary {
-  @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100
-    dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+  background: var(--color-card);
+  color: var(--color-ink);
+  border-width: 1.5px;
 }
 
+/* Red stays for what destroys something, the owner's rule for red. */
 @utility btn-danger {
-  @apply bg-red-600 text-white shadow-sm hover:bg-red-500 active:bg-red-700;
+  @apply bg-red-600 text-white;
 }
 
+/* A piece of paper on the page: offset shadow, corners cut by hand. */
 @utility card {
-  @apply rounded-xl border border-slate-200 bg-white shadow-sm
-    dark:border-slate-800 dark:bg-slate-900;
+  background: var(--color-card);
+  border: 2px solid var(--color-ink);
+  border-radius: 5px 12px 6px 10px;
+  box-shadow: 3px 4px 0 var(--color-shadow);
 }
 
-/* A button that reads as a link — for the "use this other way in" choices on
-   the sign-in screen, which switch a form rather than navigating anywhere and
-   so must stay buttons however much they look like links. */
 @utility link-button {
-  @apply cursor-pointer text-indigo-700 underline underline-offset-2
-    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500
-    dark:text-indigo-300;
+  @apply cursor-pointer text-link underline decoration-2 underline-offset-4;
+  &:focus-visible {
+    outline: 3px dashed var(--color-focus);
+    outline-offset: 3px;
+  }
+}
+
+/*
+ * Dense data stays in a plain face: a table of words and conjugations is read
+ * cell by cell, and handwriting slows that down. Headings and body text keep
+ * the notebook's hands. In the base layer, so a table that is meant to look
+ * written (the word list) can say `font-hand`.
+ */
+@layer base {
+  table {
+    font-family: var(--font-sans);
+  }
 }

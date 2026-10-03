@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useId, useRef, useState } from "react";
+import { Suspense, useEffect, useId, useRef, useState, type CSSProperties } from "react";
+
+import { celebrate, reducedMotion } from "@/components/notebook/doodles";
 
 import {
   answerCard,
@@ -70,18 +72,18 @@ function Deck() {
 
   return (
     <>
-      <header className="bg-challenge">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <Link href="/home" className="text-sm font-medium text-indigo-900 hover:underline">
+      <header>
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 notebook-page py-4">
+          <Link href="/home" className="text-sm font-medium text-link hover:underline">
             ← Leave the challenge
           </Link>
-          <p className="text-sm font-medium text-slate-700">
+          <p className="text-sm font-medium text-ink-soft">
             Card {at + 1} of {cards.length}
           </p>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 notebook-page py-8">
         {error && (
           <p role="alert" className="mb-4 text-sm text-red-700 dark:text-red-400">
             {error}
@@ -138,6 +140,7 @@ function CardFace({
   const [touchedByReader, setTouched] = useState(false);
   const [typed, setTyped] = useState("");
   const ids = useId();
+  const cardEl = useRef<HTMLDivElement>(null);
 
   /**
    * When this card appeared, so the answer can be timed. A ref, and written
@@ -150,6 +153,17 @@ function CardFace({
   useEffect(() => {
     shownAt.current = Date.now();
   }, []);
+
+  // After the commit, not in `submit`: the card's className changes with the
+  // phase and React would overwrite a class added before that render. Restarted
+  // in place as in TryOneNow; reduced motion switches it off in notebook.css.
+  useEffect(() => {
+    const el = cardEl.current;
+    if (phase !== "wrong" || !el) return;
+    el.classList.remove("wobble");
+    void el.offsetWidth;
+    el.classList.add("wobble");
+  }, [phase]);
 
   async function record(outcome: Outcome) {
     try {
@@ -190,6 +204,7 @@ function CardFace({
 
     if (correct) {
       setPhase("correct");
+      if (cardEl.current && !reducedMotion()) celebrate(cardEl.current);
       void record("correct");
       window.setTimeout(() => onFinished("correct"), 650);
       return;
@@ -234,7 +249,12 @@ function CardFace({
       ? "bg-flash-correct"
       : phase === "wrong" || phase === "revealed"
         ? "bg-flash-wrong"
-        : "bg-flashcard";
+        : "bg-card";
+  // The two flashes are light colours in both themes, so they carry dark text
+  // rather than the ink token, which turns light in the dark notebook.
+  const ink = phase === "asking" ? "text-ink" : "text-[#1d2742]";
+  // Straight while the answer box is on the card, so the input never tilts.
+  const tilted = phase !== "asking";
 
   return (
     <>
@@ -245,14 +265,18 @@ function CardFace({
        * be allowed to stretch it back into a rectangle.
        */}
       <div
-        className={`mx-auto flex aspect-square w-full max-w-sm flex-col rounded-2xl border-2 border-flashcard-frame p-6 shadow-sm transition-colors duration-200 ${face}`}
+        ref={cardEl}
+        // The wobble only runs once an answer is marked, when the card has
+        // its tilt, so it shakes around the same angle.
+        style={{ "--r": "-1.2deg", "--wobble-r": "-1.2deg" } as CSSProperties}
+        className={`tape tape-centre relative mx-auto flex aspect-square w-full max-w-sm flex-col rounded-[4px_14px_5px_12px] border-[3px] border-ink p-6 shadow-[4px_5px_0_var(--color-shadow)] transition-colors duration-200 ${tilted ? "paste" : ""} ${face} ${ink}`}
       >
-        <p className="text-xs font-medium tracking-[0.14em] text-slate-700 uppercase">
+        <p className="text-xs font-medium tracking-[0.14em] uppercase">
           {label(card.itemType)}
         </p>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <h1 className="mt-2 text-xl font-semibold text-slate-900 sm:text-2xl">
+          <h1 className="hand-title mt-2 text-2xl !text-inherit sm:text-3xl">
             {card.front}
           </h1>
 
@@ -260,9 +284,9 @@ function CardFace({
               moving focus, and a screen reader would otherwise not be told. */}
           <div aria-live="polite">
             {phase === "revealed" || phase === "correct" ? (
-              <p className="mt-4 whitespace-pre-line text-slate-800">{card.back}</p>
+              <p className="mt-4 whitespace-pre-line">{card.back}</p>
             ) : (
-              <p className="mt-2 text-sm text-slate-700">
+              <p className="mt-2 text-sm">
                 {phase === "wrong"
                   ? "Not quite. Try it again, see the answer, or move on."
                   : "Type what it means."}
@@ -284,7 +308,7 @@ function CardFace({
             </label>
             <input
               id={`${ids}-answer`}
-              className="field bg-white"
+              className="ink-input"
               autoFocus
               autoComplete="off"
               autoCorrect="off"
@@ -332,10 +356,10 @@ function CardFace({
         )}
       </div>
 
-      <label className="mt-6 flex w-fit cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
+      <label className="mt-6 flex w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
         <input
           type="checkbox"
-          className="size-4 accent-indigo-600"
+          className="size-4 accent-accent"
           checked={marked}
           onChange={() => {
             setTouched(true);
@@ -364,14 +388,18 @@ function Finished({
   correct: number;
   wrong: number;
 }) {
+  const piece = useRef<HTMLDivElement>(null);
+  // One celebration on arrival.
+  useEffect(() => {
+    if (piece.current && !reducedMotion()) celebrate(piece.current);
+  }, []);
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
-      <div className="card p-8 text-center">
-        <div aria-hidden="true" className="mb-3 text-4xl">
-          🎴
-        </div>
-        <h1 className="text-lg font-semibold">Deck finished</h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
+    <main className="mx-auto w-full max-w-3xl flex-1 notebook-page py-12">
+      <div ref={piece} className="card p-8 text-center">
+        <h1 className="hand-title text-2xl">
+          <span className="marker">Deck finished</span>
+        </h1>
+        <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
           {correct} of {total} known, {wrong} to come back to. What you did not know is due
           again sooner than what you did.
         </p>
@@ -385,7 +413,7 @@ function Finished({
 
 function Loading() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-3xl flex-1 notebook-page py-8">
       <div className="card h-64 animate-pulse" aria-hidden="true" />
     </main>
   );
@@ -393,10 +421,12 @@ function Loading() {
 
 function Message({ title, body }: { title: string; body: string }) {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
+    <main className="mx-auto w-full max-w-3xl flex-1 notebook-page py-12">
       <div className="card p-8 text-center">
-        <h1 className="text-lg font-semibold">{title}</h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
+        <h1 className="hand-title text-2xl">
+          <span className="marker">{title}</span>
+        </h1>
+        <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
           {body}
         </p>
         <Link href="/home" className="btn btn-primary mt-5 inline-flex">

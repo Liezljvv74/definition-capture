@@ -188,7 +188,7 @@ function describe(cause: unknown, folder: string): string {
     return `The folder "${folder}" could not be found. It may have been moved, renamed, or deleted.`;
   }
   if (name === "NotAllowedError" || name === "SecurityError") {
-    return `Definition Capture is no longer allowed to write to "${folder}".`;
+    return `Captured is no longer allowed to write to "${folder}".`;
   }
   if (name === "NoModificationAllowedError") {
     return `The file could not be written to "${folder}" : something else may have it open.`;
@@ -211,7 +211,7 @@ export async function saveToExportFolder(
 
   if (!(await ensurePermission(target))) {
     throw new ExportFolderError(
-      `Definition Capture is no longer allowed to write to "${target.name}". Choose the folder again to restore access.`,
+      `Captured is no longer allowed to write to "${target.name}". Choose the folder again to restore access.`,
     );
   }
 

@@ -53,23 +53,23 @@ export function LinkToDialog({
       </label>
       <input id={inputId} type="search" className="field" value={query} autoFocus onChange={(event) => setQuery(event.target.value)} />
       {found.length === 0 && mentioned.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">Nothing saved matches that.</p>
+        <p className="mt-3 text-sm text-ink-soft">Nothing saved matches that.</p>
       ) : (
         <ul className="mt-3 space-y-1">
           {found.map((suggestion) => (
             <li key={`${suggestion.kind}:${suggestion.name}`}>
               <button
                 type="button"
-                className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-tile-sky"
                 onClick={() => onPick(suggestion.name)}
               >
                 <span>{suggestion.name}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{KIND_LABEL[suggestion.kind]}</span>
+                <span className="text-xs text-ink-soft">{KIND_LABEL[suggestion.kind]}</span>
               </button>
             </li>
           ))}
           {mentioned.length > 0 && (
-            <li role="presentation" className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            <li role="presentation" className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wider text-ink-soft uppercase">
               Mentioned in
             </li>
           )}
@@ -77,14 +77,14 @@ export function LinkToDialog({
             <li key={`text:${match.title}`}>
               <button
                 type="button"
-                className="w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm hover:bg-tile-sky"
                 onClick={() => onPick(match.title)}
               >
                 <span className="flex items-center justify-between gap-3">
                   <span>{match.title}</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{KIND_LABEL.rule}</span>
+                  <span className="text-xs text-ink-soft">{KIND_LABEL.rule}</span>
                 </span>
-                <span className="mt-0.5 block text-xs text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">{match.snippet}</span>
+                <span className="mt-0.5 block text-xs text-ink-soft [overflow-wrap:anywhere]">{match.snippet}</span>
               </button>
             </li>
           ))}

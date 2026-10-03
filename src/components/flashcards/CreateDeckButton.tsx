@@ -22,7 +22,7 @@ export function CreateDeckButton({ className = "" }: { className?: string }) {
     <>
       <button
         type="button"
-        className={`text-sm font-medium text-indigo-900 underline underline-offset-2 hover:text-indigo-700 ${className}`}
+        className={`text-sm font-medium text-link underline underline-offset-2 hover:opacity-80 ${className}`}
         onClick={() => setCreating(true)}
       >
         Customise deck

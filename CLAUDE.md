@@ -1,6 +1,12 @@
 @AGENTS.md
 
-# Definition Capture
+# Captured
+
+The app was called Definition Capture until 3 October 2026; the repository,
+the Vercel project and the `definition-capture.vercel.app` domain keep that
+name, and so do two identifiers that must not change: the backup file's
+`format` (`definition-capture-backup`, which old files carry) and the
+IndexedDB name holding the export folder permission.
 
 A personal glossary: words, phrases, verb conjugation tables and grammar rules, private to
 each signed-in account. Every list is stored in Supabase and scoped to its

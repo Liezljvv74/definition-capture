@@ -1,4 +1,4 @@
-import { readBlocks } from "@/lib/blocks";
+import { newTextBlock, readBlocks } from "@/lib/blocks";
 import { readString, type Block } from "@/lib/types";
 
 // Pure on purpose: the route and the page both import this, so it touches
@@ -217,4 +217,28 @@ export function readReply(json: unknown): TutorReply | null {
     blocks,
     sources: [...sources].map(([url, title]) => ({ url, title })),
   };
+}
+
+/*
+ * Saving several answers from one conversation. A follow-up often comes back
+ * with the same title as the answer before it, and two rules cannot share a
+ * title, so the save dialog offers the first free numbered one instead of
+ * refusing. Each rule saved after the first links to the ones saved before
+ * it, and those show it under Linked from, so the set is linked both ways
+ * from one line the owner can edit away.
+ */
+
+/** The title as given when it is free, else the first free "Title (n)". */
+export function freeTitle(title: string, isTaken: (title: string) => boolean): string {
+  const base = title.trim();
+  if (!isTaken(base)) return base;
+  let n = 2;
+  while (isTaken(`${base} (${n})`)) n += 1;
+  return `${base} (${n})`;
+}
+
+/** The blocks with a closing "See also" line linking to `titles`; the same blocks when there are none. */
+export function withSeeAlso(blocks: Block[], titles: string[]): Block[] {
+  if (titles.length === 0) return blocks;
+  return [...blocks, { ...newTextBlock(), text: `See also ${titles.map((t) => `[[${t}]]`).join(", ")}.` }];
 }

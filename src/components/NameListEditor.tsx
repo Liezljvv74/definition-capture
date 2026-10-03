@@ -134,20 +134,20 @@ export function NameListEditor({
   }
 
   const iconButton =
-    "cursor-pointer rounded px-1.5 py-0.5 text-xs text-slate-500 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-30 dark:text-slate-400 dark:hover:bg-slate-700";
+    "cursor-pointer rounded px-1.5 py-0.5 text-xs text-ink-soft transition hover:bg-marker/30 disabled:cursor-not-allowed disabled:opacity-30";
 
   return (
     <fieldset>
       {/* The rolled-up section header already shows this name, so the legend
           is for screen readers only — a fieldset still needs one. */}
       <legend className="sr-only">{legend}</legend>
-      <p className="text-sm text-slate-600 dark:text-slate-300">{description}</p>
+      <p className="text-sm text-ink-soft">{description}</p>
 
       <ul className="mt-3 space-y-1.5">
         {names.map((name, index) => (
           <li
             key={name}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 dark:border-slate-800"
+            className="flex items-center gap-2 rounded-lg border border-rule px-2.5 py-1.5"
           >
             {editing === name ? (
               <>

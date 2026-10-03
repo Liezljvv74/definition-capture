@@ -4,7 +4,8 @@ import type { ExampleBlock, TableBlock, TextBlock } from "@/lib/types";
 
 import {
   allowance, buildRequest, DEFAULT_TUTOR_MODEL, FREE_TRIAL_MESSAGES, HISTORY_LIMIT,
-  PAID_DAILY_MESSAGES, readHistory, readReply, REFERENCE_DOMAINS, startOfUtcDay, tutorInstructions,
+  freeTitle, PAID_DAILY_MESSAGES, readHistory, readReply, REFERENCE_DOMAINS, startOfUtcDay, tutorInstructions,
+  withSeeAlso,
 } from "@/lib/tutor";
 
 describe("allowance", () => {
@@ -180,5 +181,24 @@ describe("readReply", () => {
   it("refuses a reply whose blocks are all empty", () => {
     const empty = [{ kind: "text", text: " " }, { kind: "example", sentence: "", translation: "x" }, { kind: "table", headerRow: true, headerColumn: false, cells: [["", ""]] }];
     expect(readReply(reply({ title: "x", topic: "y", blocks: empty }))).toBeNull();
+  });
+});
+
+describe("saving answers from one conversation", () => {
+  it("keeps a free title, and numbers one that is taken", () => {
+    const taken = new Set(["the dative case", "the dative case (2)"]);
+    const isTaken = (title: string) => taken.has(title.toLowerCase());
+    expect(freeTitle("Word order", isTaken)).toBe("Word order");
+    expect(freeTitle("The dative case", isTaken)).toBe("The dative case (3)");
+  });
+
+  it("links a new rule to the rules saved before it, and leaves it alone when there are none", () => {
+    const blocks: TextBlock[] = [{ kind: "text", id: "a", text: "Body" }];
+    expect(withSeeAlso(blocks, [])).toBe(blocks);
+    const linked = withSeeAlso(blocks, ["The dative case", "Word order"]);
+    expect(linked).toHaveLength(2);
+    expect(linked[0]).toBe(blocks[0]);
+    expect(linked[1]).toMatchObject({ kind: "text", text: "See also [[The dative case]], [[Word order]]." });
+    expect(linked[1].id).not.toBe("a");
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState, type CSSProperties } from "react";
 
 import { AddWordDialog } from "@/components/AddWordDialog";
 import { CollectionBadge, NeedsDefinitionBadge } from "@/components/Badges";
@@ -33,6 +33,14 @@ import { useSorting } from "@/lib/useSorting";
 type SortKey = "word" | "definition" | "dateAdded";
 type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
+
+/*
+ * A row is one line of the paper's ruling, 32px. Text sits low in it, on the
+ * line; checkboxes and buttons are centred. Nothing in a row may be taller,
+ * or every row below it slips off its line.
+ */
+const ROW_TEXT = "h-8 px-3 pt-1 pb-0 leading-7 align-top";
+const ROW_CONTROL = "h-8 px-2 py-0 align-middle";
 
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
   { key: "word", label: "Word", className: "w-[22%]" },
@@ -156,13 +164,12 @@ export default function VocabularyPage() {
 
   return (
     <>
-      <header className="bg-card-blue">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-              Vocabulary
-            </h1>
-            <p className="mt-0.5 text-sm text-slate-700">
+      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
+        <div>
+          <h1 className="hand-title text-2xl sm:text-3xl">
+            <span className="marker section-blue">Vocabulary</span>
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">
               {!loaded
                 ? "Loading your vocabulary…"
                 : entries.length === 0
@@ -175,11 +182,10 @@ export default function VocabularyPage() {
                         : ""
                     }`}
             </p>
-          </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
         {!loaded ? (
           <div className="card h-64 animate-pulse" aria-hidden="true" />
         ) : entries.length === 0 ? (
@@ -187,7 +193,7 @@ export default function VocabularyPage() {
         ) : (
           <>
             <div
-              className={`${STICKY_FILTERS} mb-4 flex flex-wrap items-center gap-2`}
+              className={`${STICKY_FILTERS} flex flex-wrap items-center gap-2`}
             >
               {/*
                * A bounded width rather than `flex-1`. Letting the search take
@@ -232,10 +238,10 @@ export default function VocabularyPage() {
                 </div>
               )}
 
-              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
+              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
                 <input
                   type="checkbox"
-                  className="size-4 accent-indigo-600"
+                  className="size-4 accent-accent"
                   checked={onlyNeedsDefinition}
                   onChange={(event) => setOnlyNeedsDefinition(event.target.checked)}
                 />
@@ -301,7 +307,7 @@ export default function VocabularyPage() {
                   />
                 )}
                 {isFiltered && (
-                  <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-3 text-xs text-ink-soft">
                     Showing {visible.length} of {entries.length} words.
                   </p>
                 )}
@@ -355,11 +361,17 @@ function EntryTable({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="card hidden overflow-hidden md:block">
-      <table className="w-full table-fixed border-collapse text-left text-sm">
-        <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
+    // Written on the paper rather than boxed: no card, no borders, and every
+    // row exactly one line of the ruling (32px), so the words sit on the
+    // lines. A border or a second line of text would push every row below it
+    // off its line, which is why the definition and ref are cut to one line;
+    // the word's own page shows them in full. `data-ruled-snap` lets
+    // `RuledLines` move the table's top onto a line.
+    <div data-ruled-snap className="hidden md:block">
+      <table className="w-full table-fixed border-collapse text-left font-hand text-[1.05rem]">
+        <thead className="text-ink">
           <tr>
-            <th scope="col" className="w-10 px-3 py-2.5">
+            <th scope="col" className={`w-10 ${ROW_CONTROL}`}>
               <SelectAllCheckbox
                 checked={selection.allSelected}
                 indeterminate={selection.partiallySelected}
@@ -373,7 +385,7 @@ function EntryTable({
                 <th
                   key={column.label}
                   scope="col"
-                  className={`px-4 py-2.5 font-semibold ${column.className ?? ""}`}
+                  className={`hand-title ${ROW_TEXT} ${column.className ?? ""}`}
                   aria-sort={
                     active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"
                   }
@@ -384,7 +396,7 @@ function EntryTable({
                     <button
                       type="button"
                       onClick={() => onSort(column.key as SortKey)}
-                      className="inline-flex cursor-pointer items-center gap-1 hover:text-slate-900 dark:hover:text-slate-100"
+                      className="inline-flex cursor-pointer items-center gap-1 hover:underline"
                     >
                       {column.label}
                       <span aria-hidden="true" className={active ? "" : "opacity-30"}>
@@ -395,33 +407,34 @@ function EntryTable({
                 </th>
               );
             })}
-            <th scope="col" className="w-24 px-3 py-2.5">
+            <th scope="col" className={`w-24 ${ROW_CONTROL}`}>
               <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+        <tbody>
           {entries.map((entry) => {
             const selected = selection.isSelected(entry.id);
             return (
               <tr
                 key={entry.id}
-                className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                // Washes, not fills, so the ruling still shows through.
+                className={`transition-colors hover:bg-marker/20 ${
                   selected
-                    ? "bg-indigo-50/80 dark:bg-indigo-500/10"
+                    ? "bg-tile-blue/60"
                     : entry.needsDefinition
                       ? "bg-amber-50/70 dark:bg-amber-400/5"
                       : ""
                 }`}
               >
-                <td className="px-3 py-3 align-top">
+                <td className={ROW_CONTROL}>
                   <SelectRowCheckbox
                     checked={selected}
                     onChange={() => selection.toggle(entry.id)}
                     label={entry.word}
                   />
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className={`${ROW_TEXT} truncate`}>
                   {/* The name opens the word, it does not edit it. Reading is
                       what somebody is doing when they scan a list and stop at
                       a row; editing is a decision, and it has the pencil at
@@ -430,21 +443,17 @@ function EntryTable({
                       being handed a form to escape from. */}
                   <Link
                     href={`/word?id=${entry.id}`}
-                    className="font-medium text-indigo-700 hover:underline dark:text-indigo-300"
+                    className="font-medium text-link hover:underline"
                   >
                     {entry.word}
                   </Link>
                 </td>
-                <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
-                  {entry.needsDefinition ? (
-                    <NeedsDefinitionBadge />
-                  ) : (
-                    <span className="line-clamp-3">{entry.definition}</span>
-                  )}
+                <td className={`${ROW_TEXT} truncate text-ink`} title={entry.definition || undefined}>
+                  {entry.needsDefinition ? <NeedsDefinitionBadge /> : entry.definition}
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className={ROW_TEXT}>
                   {entry.collections.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex gap-1 overflow-hidden">
                       {entry.collections.map((name) => (
                         <CollectionBadge key={name} name={name} onSelect={onSelectCollection} />
                       ))}
@@ -453,16 +462,16 @@ function EntryTable({
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
+                <td className={`${ROW_TEXT} truncate text-ink-soft`}>
                   {entry.ref ? (
-                    <span className="line-clamp-3 break-words">
+                    <span>
                       <RefText value={entry.ref} linkIndex={linkIndex} />
                     </span>
                   ) : (
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-3 py-3 align-top">
+                <td className={ROW_CONTROL}>
                   <div className="flex items-center justify-end gap-0.5">
                     <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
                     <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
@@ -495,8 +504,12 @@ function EntryCards({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="md:hidden">
-      <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
+    // The phone list is written on the paper too: every line of an entry is
+    // one line of the ruling (32px), so the entries stay on the lines all the
+    // way down. Each text size repeats `leading-8`, because Tailwind's size
+    // classes bring their own line height.
+    <div data-ruled-snap className="leading-8 md:hidden">
+      <label className="flex h-8 w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
         <SelectAllCheckbox
           checked={selection.allSelected}
           indeterminate={selection.partiallySelected}
@@ -506,57 +519,49 @@ function EntryCards({
         Select all
       </label>
 
-      <ul className="space-y-3">
+      <ul>
         {entries.map((entry) => {
           const selected = selection.isSelected(entry.id);
           return (
-            <li key={entry.id}>
-              {/* A plain card, not a link — the Ref field may contain its own links,
-                  and an anchor cannot be nested inside another anchor. */}
-              <div
-                className={`card p-4 transition hover:border-indigo-300 dark:hover:border-indigo-500/50 ${
-                  selected ? "border-indigo-400 bg-indigo-50/60 dark:bg-indigo-500/10" : ""
-                } ${entry.needsDefinition ? "border-l-4 border-l-amber-400" : ""}`}
-              >
-                <div className="flex items-start gap-2.5">
-                  <span className="pt-1">
-                    <SelectRowCheckbox
-                      checked={selected}
-                      onChange={() => selection.toggle(entry.id)}
-                      label={entry.word}
-                    />
-                  </span>
-                  <h2 className="flex-1 font-semibold">
-                    <Link
-                      href={`/word?id=${entry.id}`}
-                      className="text-indigo-700 hover:underline dark:text-indigo-300"
-                    >
-                      {entry.word}
-                    </Link>
-                  </h2>
-                  {entry.needsDefinition && <NeedsDefinitionBadge />}
-                  <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-0.5">
-                    <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
-                    <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
-                  </div>
+            <li
+              key={entry.id}
+              className={`${selected ? "bg-tile-blue/60" : ""} ${
+                entry.needsDefinition ? "border-l-4 border-l-amber-400 pl-2" : ""
+              }`}
+            >
+              {/* Not a link as a whole: the Ref field may contain its own
+                  links, and an anchor cannot be nested inside another. */}
+              <div className="flex h-8 items-center gap-2.5">
+                <SelectRowCheckbox
+                  checked={selected}
+                  onChange={() => selection.toggle(entry.id)}
+                  label={entry.word}
+                />
+                <h2 className="min-w-0 flex-1 truncate font-semibold">
+                  <Link href={`/word?id=${entry.id}`} className="text-link hover:underline">
+                    {entry.word}
+                  </Link>
+                </h2>
+                {entry.needsDefinition && <NeedsDefinitionBadge />}
+                <div className="-mr-1 flex shrink-0 items-center gap-0.5">
+                  <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
+                  <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
                 </div>
-                {entry.definition && (
-                  <p className="mt-1.5 line-clamp-3 text-sm text-slate-700 dark:text-slate-300">
-                    {entry.definition}
-                  </p>
-                )}
-                {entry.ref && (
-                  <p className="mt-2 text-xs break-words text-slate-600 dark:text-slate-400">
-                    <span className="font-medium text-slate-500 dark:text-slate-500">Ref: </span>
-                    <RefText value={entry.ref} linkIndex={linkIndex} />
-                  </p>
-                )}
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              </div>
+              {entry.definition && <p className="line-clamp-2 text-sm leading-8 text-ink">{entry.definition}</p>}
+              {entry.ref && (
+                <p className="truncate text-xs leading-8 text-ink-soft">
+                  <span className="font-medium">Ref: </span>
+                  <RefText value={entry.ref} linkIndex={linkIndex} />
+                </p>
+              )}
+              {entry.collections.length > 0 && (
+                <div className="flex h-8 items-center gap-1.5 overflow-hidden">
                   {entry.collections.map((name) => (
                     <CollectionBadge key={name} name={name} onSelect={onSelectCollection} />
                   ))}
                 </div>
-              </div>
+              )}
             </li>
           );
         })}
@@ -569,13 +574,17 @@ function EntryCards({
 
 function EmptyVocabulary({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="card mx-auto max-w-xl p-8 text-center">
+    <div
+      data-doodle="star"
+      className="paste tape tape-centre mx-auto max-w-xl rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-8 text-center shadow-[4px_5px_0_var(--color-shadow)]"
+      style={{ "--r": "-0.8deg" } as CSSProperties}
+    >
       <div aria-hidden="true" className="mb-3 text-4xl">
         📖
       </div>
-      <h2 className="text-lg font-semibold">No words yet</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
-        Definition Capture is a place to park the words and concepts you meet while studying, so
+      <h2 className="hand-title text-xl">No words yet</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
+        Captured is a place to park the words and concepts you meet while studying, so
         you can search and review them later. Save a word now and write the definition whenever
         you like. Blank ones get flagged so they are easy to find again.
       </p>
@@ -589,8 +598,8 @@ function EmptyVocabulary({ onAdd }: { onAdd: () => void }) {
 function NoMatches({ onClear }: { onClear: () => void }) {
   return (
     <div className="card p-8 text-center">
-      <h2 className="font-semibold">No words match those filters</h2>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+      <h2 className="hand-title text-lg">No words match those filters</h2>
+      <p className="mt-1 text-sm text-ink-soft">
         Try a different search, or clear the filters below.
       </p>
       <button type="button" className="btn btn-secondary mt-4" onClick={onClear}>

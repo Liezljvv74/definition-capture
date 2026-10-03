@@ -63,20 +63,18 @@ export default function GrammarPage() {
 
   return (
     <>
-      <header className="bg-card-sage">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">Grammar</h1>
-            <p className="mt-0.5 text-sm text-slate-700">{subtitle}</p>
-          </div>
-        </div>
+      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
+        <h1 className="hand-title text-2xl sm:text-3xl">
+          <span className="marker section-sage">Grammar</span>
+        </h1>
+        <p className="mt-1 text-sm text-ink-soft">{subtitle}</p>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
         {loaded && rules.length === 0 ? (
           <div className="card mx-auto max-w-xl p-8 text-center">
-            <h2 className="text-lg font-semibold">No rules yet</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
+            <h2 className="hand-title text-xl">No rules yet</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
               A rule has a title and a topic, and is written as text, tables and examples on its own page.
             </p>
             <button type="button" className="btn btn-primary mt-5" onClick={() => setAdding(true)}>
@@ -107,7 +105,7 @@ export default function GrammarPage() {
             </div>
 
             {visible.length !== rules.length && (
-              <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mb-2 text-xs text-ink-soft">
                 Showing {visible.length} of {rules.length} rules.
               </p>
             )}
@@ -115,11 +113,11 @@ export default function GrammarPage() {
             <ul className="space-y-1.5">
               {visible.map((rule) => (
                 <li key={rule.id} className="card flex flex-wrap items-center gap-3 px-4 py-3">
-                  <Link href={`/rule?id=${rule.id}`} className="font-medium text-indigo-700 hover:underline dark:text-indigo-300">
+                  <Link href={`/rule?id=${rule.id}`} className="font-medium text-link hover:underline">
                     {rule.title}
                   </Link>
                   <TopicBadge name={rule.topic} onSelect={setTopic} />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                  <span className="text-xs text-ink-soft">
                     {rule.blocks.length === 0 ? "Nothing written yet" : `${rule.blocks.length} ${rule.blocks.length === 1 ? "block" : "blocks"}`}
                   </span>
                   <span className="ml-auto flex items-center gap-1">
@@ -131,9 +129,9 @@ export default function GrammarPage() {
             </ul>
 
             {loaded && visible.length === 0 && (
-              <p className="py-6 text-sm text-slate-600 dark:text-slate-300">
+              <p className="py-6 text-sm text-ink-soft">
                 No rule matches.{" "}
-                <button type="button" className="cursor-pointer text-indigo-700 underline underline-offset-2 dark:text-indigo-300" onClick={() => { setQuery(""); setTopic(""); }}>
+                <button type="button" className="link-button" onClick={() => { setQuery(""); setTopic(""); }}>
                   Clear the search
                 </button>
               </p>

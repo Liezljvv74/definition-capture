@@ -18,9 +18,9 @@ export function TopicSelect({
 }) {
   if (topics.length === 0) {
     return (
-      <p id={id} className="text-sm text-slate-600 dark:text-slate-300">
+      <p id={id} className="text-sm text-ink-soft">
         There are no topics yet.{" "}
-        <Link href="/settings?section=grammar" className="text-indigo-700 underline dark:text-indigo-300">
+        <Link href="/settings?section=grammar" className="text-link underline">
           Add one in Settings
         </Link>
         .

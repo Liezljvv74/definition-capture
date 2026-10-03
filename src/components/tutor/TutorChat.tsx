@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 import { BlockView } from "@/components/grammar/BlockView";
 import { SaveAsRuleDialog } from "@/components/tutor/SaveAsRuleDialog";
@@ -51,6 +51,9 @@ export function TutorChat(props: {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState<TutorReply | null>(null);
+  // Titles of the rules saved from this conversation, in order, so the next
+  // one saved can link to them.
+  const [savedTitles, setSavedTitles] = useState<string[]>([]);
 
   async function ask() {
     const question = text.trim();
@@ -98,8 +101,8 @@ export function TutorChat(props: {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-4 sm:px-6 sm:py-5">
-      <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Tutor</h1>
+    <main className="notebook-page mx-auto w-full max-w-3xl flex-1 space-y-5 py-6 sm:py-8">
+      <h1 className="hand-title text-2xl sm:text-3xl"><span className="marker">Tutor</span></h1>
 
       {studiedName && (
         // The legend is visible: a lone radio button reading "German" said
@@ -119,7 +122,7 @@ export function TutorChat(props: {
             </label>
           ))}
           {!props.nativeName && (
-            <Link href="/settings" className="text-sm text-indigo-700 underline underline-offset-2 dark:text-indigo-300">
+            <Link href="/settings" className="text-sm text-link underline underline-offset-2">
               Add your native language
             </Link>
           )}
@@ -129,15 +132,18 @@ export function TutorChat(props: {
       <div aria-live="polite" className="space-y-4">
         {exchanges.map(({ question, reply }, i) => (
           <section key={i} className="space-y-2">
-            <p className="ml-auto max-w-[85%] rounded-lg bg-slate-200 px-3 py-2 text-sm whitespace-pre-wrap [overflow-wrap:anywhere] dark:bg-slate-800">
+            <p
+              className="paste ml-auto max-w-[85%] rounded-[3px_10px_4px_8px] border-[1.5px] border-ink bg-tile-sky px-3 py-2 text-sm whitespace-pre-wrap shadow-[2px_3px_0_var(--color-shadow)] [overflow-wrap:anywhere]"
+              style={{ "--r": `${i % 2 ? -0.8 : 0.8}deg` } as CSSProperties}
+            >
               {question}
             </p>
             <div className="card space-y-3 p-4 [overflow-wrap:anywhere]">
-              <h2 className="font-semibold">{reply.title}</h2>
+              <h2 className="hand-title text-lg">{reply.title}</h2>
               {reply.blocks.map((block) => (
                 <BlockView key={block.id} block={block} linkIndex={new Map()} />
               ))}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-2 text-xs dark:border-slate-800">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t-[1.5px] border-dashed border-rule pt-2 text-xs">
                 {reply.sources.length > 0 ? (
                   <ul className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
                     {reply.sources.map((source) => (
@@ -154,7 +160,7 @@ export function TutorChat(props: {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-slate-600 dark:text-slate-400">Not checked against a reference</p>
+                  <p className="text-ink-soft">Not checked against a reference</p>
                 )}
                 <button type="button" className="btn btn-secondary" onClick={() => setSaving(reply)}>
                   Save as rule
@@ -163,7 +169,7 @@ export function TutorChat(props: {
             </div>
           </section>
         ))}
-        {busy && <p className="text-sm text-slate-600 dark:text-slate-400">Thinking…</p>}
+        {busy && <p className="text-sm text-ink-soft">Thinking…</p>}
       </div>
 
       {!studiedName ? (
@@ -207,12 +213,13 @@ export function TutorChat(props: {
               disabled={busy}
               onClick={() => {
                 setExchanges([]);
+                setSavedTitles([]);
                 setFailed(false);
               }}
             >
               New conversation
             </button>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
+            <p className="text-xs text-ink-soft">
               {props.plan === "paid" ? `${remaining} left today` : `${remaining} trial message${remaining === 1 ? "" : "s"} left`}
             </p>
             {failed && (
@@ -224,7 +231,14 @@ export function TutorChat(props: {
         </form>
       )}
 
-      {saving && <SaveAsRuleDialog reply={saving} onClose={() => setSaving(null)} />}
+      {saving && (
+        <SaveAsRuleDialog
+          reply={saving}
+          linkTo={savedTitles}
+          onSaved={(title) => setSavedTitles((all) => [...all, title])}
+          onClose={() => setSaving(null)}
+        />
+      )}
     </main>
   );
 }

@@ -41,11 +41,11 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
             only said “yes, that one”. Here it is theirs to copy across, or
             ignore. */}
         {draft.definition.trim() && draft.definition.trim() !== editing.definition && (
-          <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
-            <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+          <div className="mb-4 rounded-lg border border-rule bg-marker/25 p-3 text-sm">
+            <p className="mb-1 text-xs font-semibold tracking-wide text-ink-soft uppercase">
               What you just typed
             </p>
-            <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+            <p className="whitespace-pre-wrap text-ink-soft">
               {draft.definition.trim()}
             </p>
           </div>
@@ -80,18 +80,18 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
     return (
       <Modal title="That word is already saved" onClose={onClose}>
         <div className="space-y-4">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-ink-soft">
             You already saved <strong className="font-semibold">{existing.word}</strong>. Open
             it to edit, or go back and change the wording?
           </p>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
-            <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+          <div className="rounded-lg border border-rule bg-marker/25 p-3 text-sm">
+            <p className="mb-2 text-xs font-semibold tracking-wide text-ink-soft uppercase">
               Existing entry · added {formatDate(existing.dateAdded)}
             </p>
             <p className="mb-2 whitespace-pre-wrap">
               {existing.definition || (
-                <span className="text-slate-400 italic dark:text-slate-500">
+                <span className="text-ink-soft italic">
                   No definition yet
                 </span>
               )}

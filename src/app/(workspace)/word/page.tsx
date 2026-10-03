@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useState, type CSSProperties } from "react";
 
 import { CollectionBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { EditWordDialog } from "@/components/EditWordDialog";
@@ -39,7 +39,7 @@ export default function WordPage() {
 
 function DetailSkeleton() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+    <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6">
       <div className="card h-56 animate-pulse" aria-hidden="true" />
     </main>
   );
@@ -54,18 +54,13 @@ function WordDetail() {
 
   return (
     <>
-      <header className="bg-card-blue">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <Link
-            href="/vocabulary"
-            className="text-sm font-medium text-indigo-900 hover:underline"
-          >
-            ← Back to Vocabulary
-          </Link>
-        </div>
+      <header className="notebook-page mx-auto w-full max-w-5xl pt-6">
+        <Link href="/vocabulary" className="text-sm font-medium text-link hover:underline">
+          ← Back to Vocabulary
+        </Link>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+      <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6">
         {!loaded ? (
           <div className="card h-56 animate-pulse" aria-hidden="true" />
         ) : entry ? (
@@ -78,94 +73,85 @@ function WordDetail() {
   );
 }
 
+/** The small capitals above each part of the card. */
+const LABEL = "text-xs font-semibold tracking-wide text-ink-soft uppercase";
+
 function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
 
   return (
     <>
-      <article className="card p-5 sm:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{entry.word}</h1>
+      {/* Laid out to fit one screen: the definition on the left, the four
+          short facts as two pairs on the right, and Edit beside the title
+          rather than in a row of its own. Not tilted, since it holds the
+          page's main action. */}
+      <article className="tape rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-5 shadow-[4px_5px_0_var(--color-shadow)] sm:p-6">
+        <div className="flex flex-wrap items-start gap-3">
+          <h1 className="hand-title text-2xl sm:text-3xl [overflow-wrap:anywhere]">
+            <span className="marker section-blue">{entry.word}</span>
+          </h1>
           {entry.needsDefinition && <NeedsDefinitionBadge />}
-        </div>
-
-        <div className="mt-4">
-          <h2 className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-            Definition
-          </h2>
-          {entry.definition ? (
-            <p className="mt-1.5 whitespace-pre-wrap text-slate-800 dark:text-slate-200">
-              {entry.definition}
-            </p>
-          ) : (
-            <p className="mt-1.5 text-slate-500 italic dark:text-slate-400">
-              No definition yet. Use Edit to fill it in.
-            </p>
-          )}
-        </div>
-
-        <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-800">
-          <div>
-            <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-              Source
-            </dt>
-            {/* Shown, not edited — Source is a field on the edit form like any other. */}
-            <dd className="mt-1.5">
-              <SourceBadge source={entry.source} />
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-              Collection
-            </dt>
-            <dd className="mt-1.5 flex flex-wrap gap-1">
-              {entry.collections.length > 0 ? (
-                entry.collections.map((name) => <CollectionBadge key={name} name={name} />)
-              ) : (
-                <span className="text-sm text-slate-400 italic dark:text-slate-500">None</span>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-              Ref
-            </dt>
-            <dd className="mt-1.5 text-sm break-words text-slate-700 dark:text-slate-300">
-              {entry.ref ? (
-                <RefText value={entry.ref} linkIndex={linkIndex} />
-              ) : (
-                <span className="text-slate-400 italic dark:text-slate-500">None</span>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-              Date added
-            </dt>
-            <dd className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">
-              <span title={formatDateTime(entry.dateAdded)}>{formatDate(entry.dateAdded)}</span>
-              {entry.dateUpdated && (
-                <span
-                  className="block text-xs text-slate-500 dark:text-slate-400"
-                  title={formatDateTime(entry.dateUpdated)}
-                >
-                  Edited {formatDate(entry.dateUpdated)}
-                </span>
-              )}
-            </dd>
-          </div>
-        </dl>
-
-        <LinkedFrom href={`/word?id=${entry.id}`} />
-
-        {/* Editing is offered here so a cross-link that lands on a typo can fix
-            it on the spot. Deleting is not — the word list owns that. */}
-        <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
-          <button type="button" className="btn btn-primary" onClick={() => setIsEditing(true)}>
+          {/* Editing is offered here so a cross-link that lands on a typo can
+              fix it on the spot. Deleting is not: the word list owns that. */}
+          <button type="button" className="btn btn-primary ml-auto" onClick={() => setIsEditing(true)}>
             Edit
           </button>
         </div>
+
+        <div className="mt-4 grid gap-x-8 gap-y-5 md:grid-cols-2">
+          <div>
+            <h2 className={LABEL}>Definition</h2>
+            {entry.definition ? (
+              <p className="mt-1 whitespace-pre-wrap text-ink">{entry.definition}</p>
+            ) : (
+              <p className="mt-1 text-ink-soft italic">No definition yet. Use Edit to fill it in.</p>
+            )}
+          </div>
+
+          <dl className="grid grid-cols-2 content-start gap-x-6 gap-y-4">
+            <div>
+              <dt className={LABEL}>Source</dt>
+              {/* Shown, not edited: Source is a field on the edit form like any other. */}
+              <dd className="mt-1">
+                <SourceBadge source={entry.source} />
+              </dd>
+            </div>
+            <div>
+              <dt className={LABEL}>Collection</dt>
+              <dd className="mt-1 flex flex-wrap gap-1">
+                {entry.collections.length > 0 ? (
+                  entry.collections.map((name) => <CollectionBadge key={name} name={name} />)
+                ) : (
+                  <span className="text-sm text-ink-soft italic">None</span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className={LABEL}>Ref</dt>
+              <dd className="mt-1 text-sm break-words text-ink">
+                {entry.ref ? (
+                  <RefText value={entry.ref} linkIndex={linkIndex} />
+                ) : (
+                  <span className="text-ink-soft italic">None</span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className={LABEL}>Date added</dt>
+              <dd className="mt-1 text-sm text-ink">
+                <span title={formatDateTime(entry.dateAdded)}>{formatDate(entry.dateAdded)}</span>
+                {entry.dateUpdated && (
+                  <span className="block text-xs text-ink-soft" title={formatDateTime(entry.dateUpdated)}>
+                    Edited {formatDate(entry.dateUpdated)}
+                  </span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <LinkedFrom href={`/word?id=${entry.id}`} />
       </article>
 
       {isEditing && (
@@ -181,12 +167,15 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
 
 function WordNotFound() {
   return (
-    <div className="card mx-auto max-w-lg p-8 text-center">
+    <div
+      className="paste tape tape-centre mx-auto max-w-lg rounded-[10px_3px_12px_4px] border-2 border-ink bg-card p-8 text-center shadow-[3px_4px_0_var(--color-shadow)]"
+      style={{ "--r": "0.8deg" } as CSSProperties}
+    >
       <div aria-hidden="true" className="mb-3 text-4xl">
         🔍
       </div>
-      <h1 className="text-lg font-semibold">Word not found</h1>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      <h1 className="hand-title text-xl">Word not found</h1>
+      <p className="mt-2 text-sm text-ink-soft">
         There is no entry with that ID in your word list. It may have been deleted, or the
         link may point to a word in a different account, since your list follows the account you
         are signed in to.

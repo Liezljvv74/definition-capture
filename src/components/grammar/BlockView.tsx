@@ -33,9 +33,9 @@ export const tableScrollClass = "overflow-x-auto";
 // `overflow-wrap: anywhere` lets a long unbroken word wrap inside its cell
 // instead of forcing the whole table into a scroll.
 const headerClass =
-  "border border-slate-200 bg-slate-50 px-2.5 py-1.5 align-top [overflow-wrap:anywhere] text-left text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
+  "border border-ink-soft/40 bg-tile-sky px-2.5 py-1.5 align-top [overflow-wrap:anywhere] text-left text-sm font-semibold text-ink";
 const cellClass =
-  "border border-slate-200 px-2.5 py-1.5 align-top [overflow-wrap:anywhere] text-sm text-slate-800 dark:border-slate-700 dark:text-slate-200";
+  "border border-ink-soft/40 px-2.5 py-1.5 align-top [overflow-wrap:anywhere] text-sm text-ink";
 
 function TableView({ table, linkIndex }: { table: TableBlock; linkIndex: LinkIndex }) {
   return (
@@ -79,11 +79,11 @@ function TableView({ table, linkIndex }: { table: TableBlock; linkIndex: LinkInd
 function ExampleView({ example, linkIndex }: { example: ExampleBlock; linkIndex: LinkIndex }) {
   return (
     <figure className="rounded-r-lg border-l-4 border-emerald-400 bg-emerald-50/60 px-4 py-3 dark:border-emerald-500 dark:bg-emerald-500/10">
-      <p data-field="sentence" className="text-slate-900 dark:text-slate-100">
+      <p data-field="sentence" className="text-ink">
         <InlineText text={example.sentence} linkIndex={linkIndex} mode="sentence" />
       </p>
       {example.translation && (
-        <figcaption data-field="translation" className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        <figcaption data-field="translation" className="mt-1 text-sm text-ink-soft">
           <InlineText text={example.translation} linkIndex={linkIndex} mode="plain" />
         </figcaption>
       )}

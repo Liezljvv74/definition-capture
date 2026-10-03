@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { MIN_PASSWORD, signUpWithPassword } from "@/lib/session";
+import { Brand } from "@/components/notebook/Brand";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
 /**
@@ -73,9 +74,10 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-md flex-1 px-4 py-12 sm:px-6">
-      <div className="card p-6">
-        <h1 className="text-xl font-semibold">Create an account</h1>
+    <main className="notebook-page mx-auto w-full max-w-md flex-1 py-10">
+      <Brand />
+      <div className="card relative tape tape-right p-6">
+        <h1 className="hand-title text-2xl"><span className="marker">Create an account</span></h1>
 
         {!isSupabaseConfigured ? (
           <p className="mt-3 text-sm text-red-700 dark:text-red-400">
@@ -94,7 +96,7 @@ export default function SignUpPage() {
               confirming the address. Open the link in it and you will land in your list,
               signed in.
             </p>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-ink-soft">
               If an account already existed for that address, no new one was made and no
               message was sent. Sign in with it instead.
             </p>
@@ -104,7 +106,7 @@ export default function SignUpPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-ink-soft">
               Your words and phrases will be private to this account. Nobody else signed in
               can see them.
             </p>
@@ -141,7 +143,7 @@ export default function SignUpPage() {
                   setError(null);
                 }}
               />
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs text-ink-soft">
                 At least {MIN_PASSWORD} characters.
               </p>
             </div>

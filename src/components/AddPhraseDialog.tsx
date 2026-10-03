@@ -37,11 +37,11 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
             phrase with what was typed, sight unseen. */}
         {draft.literalMeaning.trim() &&
           draft.literalMeaning.trim() !== editing.literalMeaning && (
-            <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
-              <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+            <div className="mb-4 rounded-lg border border-rule bg-marker/25 p-3 text-sm">
+              <p className="mb-1 text-xs font-semibold tracking-wide text-ink-soft uppercase">
                 What you just typed
               </p>
-              <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+              <p className="whitespace-pre-wrap text-ink-soft">
                 {draft.literalMeaning.trim()}
               </p>
             </div>
@@ -74,18 +74,18 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
     return (
       <Modal title="That phrase is already saved" onClose={onClose}>
         <div className="space-y-4">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-ink-soft">
             You already saved <strong className="font-semibold">{existing.phrase}</strong>.
             Open it to edit, or go back and change the wording?
           </p>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
-            <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+          <div className="rounded-lg border border-rule bg-marker/25 p-3 text-sm">
+            <p className="mb-1 text-xs font-semibold tracking-wide text-ink-soft uppercase">
               Existing phrase
             </p>
             <p className="whitespace-pre-wrap">
               {existing.literalMeaning || (
-                <span className="text-slate-400 italic dark:text-slate-500">
+                <span className="text-ink-soft italic">
                   No literal meaning yet
                 </span>
               )}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useId, useMemo, useState } from "react";
+import { Suspense, useEffect, useId, useMemo, useState, type CSSProperties } from "react";
 
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { VerbTableCard } from "@/components/VerbTableCard";
@@ -50,17 +50,17 @@ function VerbsShell({
 }) {
   return (
     <>
-      <header className="bg-card-purple">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">Verbs</h1>
-            <p className="mt-0.5 text-sm text-slate-700">
+      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
+        <div>
+          <h1 className="hand-title text-2xl sm:text-3xl">
+            <span className="marker section-purple">Verbs</span>
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">
               {subtitle ?? "Loading your verbs…"}
             </p>
-          </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">{children}</main>
+      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">{children}</main>
     </>
   );
 }
@@ -204,16 +204,20 @@ function VerbList() {
   if (tables.length === 0) {
     return (
       <VerbsShell subtitle="Your conjugation tables">
-        <div className="card mx-auto max-w-xl p-8 text-center">
+        <div
+      data-doodle="spiral"
+      className="paste tape tape-centre mx-auto max-w-xl rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-8 text-center shadow-[4px_5px_0_var(--color-shadow)]"
+      style={{ "--r": "-0.6deg" } as CSSProperties}
+    >
           <div aria-hidden="true" className="mb-3 text-4xl">
             🧩
           </div>
-          <h2 className="text-lg font-semibold">No conjugation tables yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
+          <h2 className="hand-title text-xl">No conjugation tables yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
             Tables are made from a word you have already saved. Open a verb on{" "}
             <Link
               href="/vocabulary"
-              className="text-indigo-700 underline underline-offset-2 dark:text-indigo-300"
+              className="text-link underline underline-offset-2"
             >
               Vocabulary
             </Link>
@@ -258,12 +262,12 @@ function VerbList() {
       {/* Only while a search is narrowing things down: the total now lives in
           the header, so repeating it here would say the same thing twice. */}
       {visible.length !== tables.length && (
-        <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mb-2 text-xs text-ink-soft">
           Showing {visible.length} of {tables.length} verbs.
         </p>
       )}
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {visible.map((table) => {
           const isOpen = table.id === chosen;
           return (
@@ -290,11 +294,11 @@ function VerbList() {
       </div>
 
       {visible.length === 0 && (
-        <p className="py-6 text-sm text-slate-600 dark:text-slate-300">
+        <p className="py-6 text-sm text-ink-soft">
           No verb matches “{query.trim()}”.{" "}
           <button
             type="button"
-            className="cursor-pointer text-indigo-700 underline underline-offset-2 dark:text-indigo-300"
+            className="cursor-pointer text-link underline underline-offset-2"
             onClick={() => setQuery("")}
           >
             Clear the search
@@ -365,8 +369,8 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
   }
 
   return (
-    <div className="card mx-auto max-w-md p-5">
-      <h2 className="text-base font-semibold">
+    <div className="card tape relative mx-auto max-w-md p-5">
+      <h2 className="hand-title text-lg">
         {asksForVerb ? "A conjugation table for a new verb" : `A conjugation table for ${verb}`}
       </h2>
 
@@ -383,7 +387,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
             value={typedVerb}
             onChange={(event) => setTypedVerb(event.target.value)}
           />
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-ink-soft">
             {alreadyHasTable
               ? `${name} already has a table.`
               : "Added to Vocabulary as well, if it is not saved there already."}
@@ -406,7 +410,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
           placeholder="e.g. Present"
         />
 
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs text-ink-soft">
           Kept for next time, so you pick it from a list rather than typing it
           again.
         </p>
@@ -425,7 +429,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
             value={typedPersons}
             onChange={(event) => setTypedPersons(event.target.value)}
           />
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-ink-soft">
             One per line, in the order the rows should appear. Asked once and
             used for every table after this; editable later under Settings.
           </p>

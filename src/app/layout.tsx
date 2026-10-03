@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
+import { Kalam, Patrick_Hand } from "next/font/google";
+import localFont from "next/font/local";
 
 import { EnterMovesDown } from "@/components/EnterMovesDown";
+import { NotebookDoodles } from "@/components/notebook/NotebookDoodles";
+import { NotebookPaper } from "@/components/notebook/NotebookPaper";
+import { RuledLines } from "@/components/notebook/RuledLines";
 
 import { DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -17,9 +22,37 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: SITE_NAME, description: DESCRIPTION },
 };
 
+/*
+ * The notebook's two hands: Kalam for headings, Patrick Hand for body text.
+ * next/font serves them from this app at build time, so a visitor's browser
+ * asks no outside font server and the Content Security Policy needs no
+ * change. Each sets a CSS variable that `notebook.css` puts first in a stack
+ * with fallbacks; nothing uses them until a page opts into the notebook.
+ */
+const kalam = Kalam({ weight: ["400", "700"], subsets: ["latin"], display: "swap", variable: "--font-kalam" });
+const patrickHand = Patrick_Hand({ weight: "400", subsets: ["latin"], display: "swap", variable: "--font-patrick" });
+
+/*
+ * Kalam's 7, for the body hand. Patrick Hand writes 7 with a crossbar, which
+ * the owner read as a stray mark beside a count ("7 rules"). The file is a
+ * digits-only subset of Kalam (Google Fonts, `text=0123456789`, SIL Open Font
+ * Licence), limited here to U+0037 so it goes first in the stack and only the
+ * 7 comes from it: Kalam's 1 reads as a slash at body size, so the other
+ * figures stay Patrick Hand's. No fallback face: one covering every character
+ * would shadow Patrick Hand. Its variable is not `--font-*`: Tailwind drops a
+ * `var(--font-...)` it does not know from inside a theme value.
+ */
+const digits = localFont({
+  src: "../fonts/kalam-digits.woff2",
+  display: "swap",
+  variable: "--hand-digits",
+  adjustFontFallback: false,
+  declarations: [{ prop: "unicode-range", value: "U+0037" }],
+});
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className={`h-full ${kalam.variable} ${patrickHand.variable} ${digits.variable}`}>
       <body className="flex min-h-full flex-col">
         <PageBackground />
         <EnterMovesDown />
@@ -29,7 +62,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             pages inside it run. What used to be a client component hiding
             markup the browser had already been given is now a redirect that
             happens before the markup exists. */}
-        {children}
+        {/* Every page is a page of the notebook: ruled paper, margin line and
+            punch holes behind it, and the doodle triggers once for all. */}
+        <NotebookPaper>
+          <NotebookDoodles />
+          <RuledLines />
+          {children}
+        </NotebookPaper>
       </body>
     </html>
   );

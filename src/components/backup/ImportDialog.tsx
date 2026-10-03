@@ -125,7 +125,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
     return (
       <Modal title="Import a backup" onClose={onClose}>
         {ready ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">Reading the file…</p>
+          <p className="text-sm text-ink-soft">Reading the file…</p>
         ) : (
           <WaitingForLists />
         )}
@@ -136,8 +136,8 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
   if (state.step === "error") {
     return (
       <Modal title="That backup could not be imported" onClose={onClose}>
-        <p className="text-sm text-slate-600 dark:text-slate-300">{state.message}</p>
-        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+        <p className="text-sm text-ink-soft">{state.message}</p>
+        <p className="mt-3 text-sm text-ink-soft">
           Choose a file that was created by Export.
         </p>
         <div className="mt-5 flex justify-end">
@@ -152,7 +152,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
   if (state.step === "done") {
     return (
       <Modal title="Import finished" onClose={onClose}>
-        <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
+        <div className="space-y-4 text-sm text-ink-soft">
           <ResultBlock label="Words" counts={state.result.words} mode={state.mode} />
           <ResultBlock label="Phrases" counts={state.result.phrases} mode={state.mode} />
           <ResultBlock
@@ -162,7 +162,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
           />
           <ResultBlock label="Grammar rules" counts={state.result.rules} mode={state.mode} />
           <div>
-            <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+            <p className="text-xs font-semibold tracking-wide text-ink-soft uppercase">
               Settings
             </p>
             <p className="mt-1">
@@ -187,7 +187,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
   if (state.step === "confirmReplace") {
     return (
       <Modal title="Replace what you have saved?" onClose={onClose}>
-        <p className="text-sm text-slate-600 dark:text-slate-300">This cannot be undone.</p>
+        <p className="text-sm text-ink-soft">This cannot be undone.</p>
         <ul className="mt-3 space-y-2 text-sm">
           <ReplaceLine
             label="Words"
@@ -225,7 +225,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
                 except collections and sources your words and phrases still use
               </span>
             ) : (
-              <span className="text-slate-600 dark:text-slate-300">
+              <span className="text-ink-soft">
                 nothing in this file, so yours stay as they are
               </span>
             )}
@@ -265,9 +265,9 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
   return (
     <Modal title="Import a backup" onClose={onClose}>
       <div className="space-y-4">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
+        <div className="rounded-lg border border-rule bg-marker/25 p-3 text-sm">
           <p className="font-medium break-all">{file.name}</p>
-          <ul className="mt-1 space-y-0.5 text-slate-600 dark:text-slate-300">
+          <ul className="mt-1 space-y-0.5 text-ink-soft">
             <li>
               {wordCount} {wordCount === 1 ? "word" : "words"}:{" "}
               {wordCount - preview.matchingWords} new to you,{" "}
@@ -311,21 +311,21 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
               key={option.value}
               className={`flex cursor-pointer gap-3 rounded-lg border p-3 transition ${
                 mode === option.value
-                  ? "border-indigo-500 bg-indigo-50/60 dark:border-indigo-400 dark:bg-indigo-500/10"
-                  : "border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                  ? "border-ink bg-marker/30"
+                  : "border-rule hover:bg-marker/30"
               }`}
             >
               <input
                 type="radio"
                 name="import-mode"
-                className="mt-0.5 size-4 accent-indigo-600"
+                className="mt-0.5 size-4 accent-accent"
                 value={option.value}
                 checked={mode === option.value}
                 onChange={() => setMode(option.value)}
               />
               <span>
                 <span className="block text-sm font-medium">{option.label}</span>
-                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                <span className="block text-xs text-ink-soft">
                   {option.hint}
                 </span>
               </span>

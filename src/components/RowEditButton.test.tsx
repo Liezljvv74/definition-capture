@@ -32,7 +32,7 @@ describe("RowEditButton", () => {
   it("does not borrow the delete button's red, so the pair stay distinct", () => {
     // Two grey icons side by side, one of which destroys the row: the hover
     // colour is what keeps them apart at a glance.
-    expect(html("x")).toContain("hover:text-indigo-600");
+    expect(html("x")).toContain("hover:text-link");
     expect(html("x")).not.toContain("hover:text-red-600");
   });
 });

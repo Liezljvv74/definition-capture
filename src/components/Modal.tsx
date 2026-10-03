@@ -24,7 +24,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-shadow/50 p-4 backdrop-blur-sm sm:items-center"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -36,7 +36,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
         className="card my-auto w-full max-w-lg p-5 sm:p-6"
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <h2 className="hand-title text-xl">{title}</h2>
           <button
             type="button"
             onClick={onClose}

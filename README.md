@@ -1,6 +1,6 @@
-# Definition Capture
+# Captured
 
-Definition Capture is a private language-learning workspace. You save the
+Captured is a private language-learning workspace. You save the
 words, phrases, verb conjugations and grammar rules you meet, and flashcards built
 from them come back when they are due. Every list is stored in Supabase and
 belongs to the account that saved it, so the same lists are there on any browser
@@ -280,15 +280,27 @@ The dashboard runs as an administrator, which is the only way a plan changes.
 
 ### The landing page
 
-`/` is public and is the page search engines are meant to read. It fits one
-laptop screen: what the app is, what it keeps, how the flashcards work and that
-the lists are private, **Create an account** and **Sign in**, and a few questions
+`/` is public and is the page search engines are meant to read: what the app
+is, what it keeps, how the flashcards work (with a sample card to try, **Try one
+now**, which saves nothing) and that the lists are private, **Create an
+account** and **Sign in**, and a few questions
 as collapsible `<details>` dropdowns whose answers are still in the HTML. It reads
 no session and is prerendered, and carries `WebApplication` and `FAQPage`
 structured data built from the same questions. `robots.ts` lets crawlers read the
 public pages and keeps them out of the workspace, `sitemap.ts` lists the three
 public pages, `opengraph-image.tsx` draws the preview image, and `public/llms.txt`
 describes the app in plain text. Every workspace page is marked `noindex`.
+
+### The look
+
+Every page is drawn as lined notebook paper: a red margin line, punch holes,
+pasted-on cards, tape, a highlighter and small doodles that draw themselves
+when a tile is hovered, a question is opened or a flashcard is answered right.
+Headings are in Kalam and text in Patrick Hand, with tables in a plain sans
+font. A device set to dark mode gets a dark notebook. Grammar pages stay plain
+on purpose, so a rule is easy to read, and reduced motion turns every animation
+off. The tokens and pieces are in `src/app/notebook.css` and
+`src/components/notebook/`.
 
 ### Navigation
 
@@ -467,7 +479,11 @@ Answers are grounded in a fixed list of reference sites for the studied language
 and link to the pages they used. When the language has no list, or the search
 found nothing, the answer says "Not checked against a reference". **Save as
 rule** under an answer opens a dialog with its suggested title and topic, both
-editable, and saves exactly what is shown as a grammar rule.
+editable, and saves exactly what is shown as a grammar rule. When a rule
+already has that title, as a follow-up's often does, the dialog suggests the
+first free numbered one, "Title (2)". Every rule saved after the first in one
+conversation ends with a "See also" line linking to the ones saved before it,
+which list it under Linked from; the line can be edited away like any other.
 
 A free account gets 5 tutor messages in total. A paid account gets 30 a day,
 counted from midnight UTC. Failed answers count, and a refused question is not

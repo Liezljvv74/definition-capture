@@ -37,8 +37,8 @@ export function AccountMenu() {
     <li className="ml-auto flex shrink-0 items-center gap-1 py-1.5 pl-2">
       <span
         title={user.email}
-        className="hidden max-w-[16ch] truncate text-sm font-medium text-slate-600 sm:inline
-          dark:text-slate-400"
+        className="hidden max-w-[16ch] truncate text-sm font-medium text-ink-soft sm:inline
+         "
       >
         {label}
       </span>

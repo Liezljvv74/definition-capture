@@ -25,7 +25,7 @@ export function RowEditButton({
       onClick={onClick}
       aria-label={`Edit ${label}`}
       title={`Edit ${label}`}
-      className={`inline-flex cursor-pointer items-center justify-center rounded-md p-1.5 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 ${className}`}
+      className={`inline-flex cursor-pointer items-center justify-center rounded-md p-1.5 text-ink-soft transition hover:bg-tile-sky hover:text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${className}`}
     >
       <PencilIcon />
     </button>

@@ -3,7 +3,7 @@
  * landing page all state. One place, so a custom domain later is one line.
  */
 export const SITE_URL = "https://definition-capture.vercel.app";
-export const SITE_NAME = "Definition Capture";
+export const SITE_NAME = "Captured";
 
 export const DESCRIPTION =
   "A personal repository for learning any language: save words, phrases, verb conjugations and grammar rules, and review them with flashcards that come back when they are due.";
