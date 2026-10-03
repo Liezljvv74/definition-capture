@@ -32,9 +32,9 @@ or device. It is live at <https://definition-capture.vercel.app>.
 - **Read aloud**: a speaker beside every word and phrase, in the lists and on
   their own pages, and beside a phrase's usage example; one in each verb tense
   heading that reads the tense down the table; and a floating one on a rule page
-  that reads the whole rule, or only the selected text, each part in the
-  voice of the language it is written in. It uses the browser's own speech, and the speed (Slow,
-  Normal or Fast) is set in Settings.
+  that reads the whole rule, or only the selected text, each part in the voice
+  of the language it is written in. It uses the browser's own speech, and the
+  speed (Slow, Normal or Fast) is set in Settings.
 - **Backup**: export everything, or one list, as JSON or as an Excel workbook,
   and import a backup again without disturbing the lists the file says nothing
   about.
@@ -319,13 +319,13 @@ The menu closes on a link, on Escape, on a tap outside it, or on back and forwar
 ### Home
 
 `/home` is the dashboard, rendered on the server from one `home_summary()` call
-and one query for recent items. From the top:
+and one query for recent items, and sized to fit one laptop window. From the top:
 
 - **Welcome back**, with the display name or else the email, and when the account
   last saved anything.
-- **Your progress**: a bar of New, Learning and Learned, counting only items that
-  can make a card. Learned means a streak of two or more correct answers. Hidden
-  when there is nothing to count.
+- **Your progress**, beside the welcome and marked with two stars: a bar of New,
+  Learning and Learned, counting only items that can make a card. Learned means a
+  streak of two or more correct answers. Hidden when there is nothing to count.
 - **Ready for review**, which follows the account's state: items due gives
   **Review now** (a deck of up to fifty due cards, most overdue first); nothing
   due but new items gives **Learn new items**; all caught up says when the next
@@ -338,7 +338,7 @@ and one query for recent items. From the top:
 - **Do you still remember this one?**: one difficult word or phrase (missed
   before, right under 80% of the time, or not yet learned, and longer than four
   letters). Pressing the word reveals its meaning in place.
-- **Recently captured**: the four newest items of any kind, each linked.
+- **Recently captured**: the four newest items of any kind, each linked, one line each.
 - A card for each of the four lists with its count, and for Vocabulary how many
   still need a definition.
 
@@ -352,14 +352,22 @@ checkbox narrows to unfinished entries, and the Word and Definition headers
 re-sort. The list is alphabetical in the order of the language chosen in Settings,
 and a leading word from that language's skip list, usually an article such as
 `der` or `la`, is skipped when comparing, so a noun files under its own word. Rows
-that still need a definition are flagged in amber. A table on laptops, cards on
-phones. A word or phrase can be in up to five collections.
+that still need a definition are flagged in amber. A word or phrase can be in up
+to five collections.
+
+Both lists are written straight onto the notebook's lines: no box, one ruled line
+per row on a laptop, and on a phone each part of an entry on a line of its own.
+So that every row stays one line tall, long text is cut off at the end of its
+column; hover over it to see it all, or open the item's page. The search and
+filter bar sticks under the nav while scrolling and carries the ruling with it.
+Phrases is wider than the other pages, so its Phrase column has more room.
 
 Phrases mirrors that shape for multi-word expressions, with Phrase, Literal
 Meaning, Usage Example, Collection and Ref, and only Phrase required.
 
 Clicking a name opens that item's own page rather than the edit form. Editing has
-the pencil at the end of the row and the **Edit** button on the page itself.
+the pencil at the end of the row and the **Edit** button on the page itself; the
+speaker to the left of the pencil reads the word or phrase aloud.
 
 ### One word or one phrase
 
@@ -367,8 +375,12 @@ the pencil at the end of the row and the **Edit** button on the page itself.
 paste into a note. This is where a `[[Name]]` reference lands, and where a name
 opens from either list. Both pages show the full untruncated text, the Source, the
 date it was captured and last edited, a Ref whose references can be followed, and
-**Linked from**, the items whose text links here. Deleting is not offered; the
-lists own that. An unknown id shows a readable "not found" message rather than an
+**Linked from**, the items whose text links here. They are laid out to fit one
+screen: the definition, or the literal meaning and usage example, on the left;
+Source and Collection, then Ref and Date added, as pairs on the right; and
+**Edit** beside the title. A speaker beside the title reads the word or phrase,
+and on a phrase's page another beside the usage example reads that sentence.
+Deleting is not offered; the lists own that. An unknown id shows a readable "not found" message rather than an
 error page. The old addresses `/terms` and `/term?id=…` redirect to `/vocabulary`
 and `/word?id=…`.
 
@@ -380,8 +392,10 @@ screen. A verb added here is also added to Vocabulary if it is not there already
 because a table and its word are matched by name, the way `[[Name]]` links
 resolve. Making a table asks for the tense, and the persons the first time. A
 table holds a column per tense and a row per person, with a note against any row,
-and Notes on the table itself that render links like a Ref. `/verbs?verb=<name>`
-opens the page at that table, which is where a link to a verb table lands.
+and Notes on the table itself that render links like a Ref. A speaker in each
+tense heading reads that tense down the table, person and form ("ich gehe, du
+gehst, er, sie, es geht"). `/verbs?verb=<name>` opens the page at that table,
+which is where a link to a verb table lands.
 
 ### Grammar
 
@@ -406,6 +420,18 @@ purple (and Remove highlight), **Link to…**, which searches every item by name
 and lists under those the rules whose text mentions any of the words (showing
 where), and turns the selection into a link, and **New rule from this**, which creates an empty rule
 from the selected words and links to it. Rules make no flashcards.
+
+A round speaker floats at the bottom right of a rule's page. It reads the whole
+rule from the top, outlining each part as it goes, or only the selected text when
+some of the rule is selected; press it again to stop. A rule may be written in
+either language, so its title, text and table headings are read in the language
+each is written in, told by its alphabet and then its common words, and a part
+with no clue of its own (a heading such as "Masculin", or a short selected
+question) follows the language of the rest of the rule. Table cells and example
+sentences are read in the language being learned, and translations in yours.
+Which words tell the languages apart is known only for the ready-made European
+languages; for any other, a rule is read in your native language. The design is
+in [`Docs/voice.md`](Docs/voice.md).
 
 ### Flashcards
 
@@ -442,7 +468,9 @@ rather than going straight to one page:
 
 - **Profile**: the address you signed in with, an optional display name shown in
   the nav in its place, **Native language and level** (what the tutor answers
-  with), Sign out, **Password** (see above), and **Export folder**.
+  with), **Reading speed** (Slow, Normal or Fast, for every speaker), Sign out,
+  **Password** (see above), and **Export folder**. The reading speed is not
+  written into backup files, being a preference rather than data.
 - **Glossary settings**: the **Language** you are learning, which sets the
   alphabetical order of every list, and the **Words to skip when sorting** that
   Vocabulary looks past. Eleven common languages are ready-made: seven fill the
@@ -626,7 +654,7 @@ unreadable is counted and reported rather than silently dropped.
 ```bash
 npx tsc --noEmit     # types
 npx eslint src/ e2e/   # lint
-npx vitest run       # 56 test files, node environment, no jsdom and no browser
+npx vitest run       # 60 test files, node environment, no jsdom and no browser
 npm run build        # when routing or rendering changed
 npm run e2e          # Playwright end-to-end tests
 ```
@@ -716,7 +744,10 @@ src/
                           session on the server and sets noindex
       home/  vocabulary/  phrases/  word/  phrase/  verbs/  grammar/  rule/
       flashcards/  settings/  choose-password/  tutor/
-  components/             the UI, with folders for home/, flashcards/, grammar/ and backup/
+  components/             the UI, with folders for home/, flashcards/, grammar/,
+                          tutor/, backup/ and notebook/ (the paper, doodles and
+                          the landing page's try card)
+  fonts/                  the digits-only Kalam subset that supplies the body's 7
   lib/                    data access and pure logic, tests beside each module
 e2e/
   fixtures.ts             signs in as the test account, on localhost only
@@ -732,6 +763,8 @@ Docs/
   db-refactor-plan.md     how the schema reached its current shape
   homepage.md             the landing page and dashboard design
   grammar.md              the grammar rules design
+  tutor.md                the grammar tutor design
+  voice.md                the read aloud design
   plans/                  implementation plans, kept for the record
   layouts_and_pages.md    notes on Next.js routing, kept for reference
 public/                   the logo images and llms.txt
@@ -749,5 +782,7 @@ The modules worth knowing first, all in `src/lib/`:
 - `flashcards.ts` and `judgeAnswer.ts`: decks, answers, and whether a typed answer is right.
 - `backup.ts`, `backupFile.ts` and `planImport.ts`: the backup format, the files,
   and what an import does.
+- `speech.ts` and `useSpeech.ts`: what is read aloud, in which language and
+  voice, and the one reading that plays at a time.
 
 Unit tests sit beside the code they test, as `*.test.ts` and `*.test.tsx`.
