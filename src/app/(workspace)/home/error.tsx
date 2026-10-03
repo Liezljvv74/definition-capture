@@ -10,8 +10,8 @@
 export default function HomeError({ retry }: { retry: () => void }) {
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
-      <div className="card p-6">
-        <h1 className="text-xl font-semibold">Your dashboard could not load</h1>
+      <div className="card relative tape p-6">
+        <h1 className="hand-title text-2xl"><span className="marker">Your dashboard could not load</span></h1>
         <button type="button" className="btn btn-primary mt-4" onClick={retry}>
           Try again
         </button>
