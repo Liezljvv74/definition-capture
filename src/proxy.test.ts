@@ -139,10 +139,10 @@ describe("a refreshed session survives the response it is refreshed on", () => {
     expect(rotated(response)).toBe(true);
   });
 
-  it("keeps them on the bounce to sign-in", async () => {
+  it("keeps them on the bounce to the landing page", async () => {
     rotatesSession = true;
     const response = await ask("/vocabulary/");
-    expect(redirectPath(response)).toBe("/sign-in");
+    expect(redirectPath(response)).toBe("/");
     expect(rotated(response)).toBe(true);
   });
 
@@ -194,10 +194,10 @@ describe("signed out", () => {
   });
 
   for (const path of protectedPaths) {
-    it(`redirects ${path} to /sign-in`, async () => {
+    it(`redirects ${path} to the landing page`, async () => {
       const response = await ask(path);
       expect(response.status).toBe(307);
-      expect(redirectPath(response)).toBe("/sign-in");
+      expect(redirectPath(response)).toBe("/");
     });
   }
 
@@ -205,7 +205,7 @@ describe("signed out", () => {
     // `/word/?id=…` names a row. The sign-in page has no use for it and the
     // referer would carry it onwards.
     const response = await ask("/word/?id=secret-word-id");
-    expect(redirectPath(response)).toBe("/sign-in");
+    expect(redirectPath(response)).toBe("/");
     expect(locationOf(response)).not.toContain("secret");
   });
 
@@ -228,7 +228,7 @@ describe("signed out — a public prefix is not a public page", () => {
     for (const path of ["/vocabulary/", "/home/", "/x"]) {
       const response = await ask(path);
       expect(response.status, path).toBe(307);
-      expect(redirectPath(response), path).toBe("/sign-in");
+      expect(redirectPath(response), path).toBe("/");
     }
   });
 
@@ -248,7 +248,7 @@ describe("signed out — a public prefix is not a public page", () => {
       signedIn = false;
       const response = await ask(path);
       expect(response.status).toBe(307);
-      expect(redirectPath(response)).toBe("/sign-in");
+      expect(redirectPath(response)).toBe("/");
     });
   }
 
@@ -260,10 +260,10 @@ describe("signed out — a public prefix is not a public page", () => {
     expect(response.cookies.get("sb-access-token")?.value).toBe("rotated");
   });
 
-  it("still redirects a signed-out page to /sign-in", async () => {
+  it("still redirects a signed-out page to the landing page", async () => {
     const response = await ask("/vocabulary/");
     expect(response.status).toBe(307);
-    expect(redirectPath(response)).toBe("/sign-in");
+    expect(redirectPath(response)).toBe("/");
   });
 
   it("is case-sensitive, so /SIGN-IN/ is treated as protected", async () => {
@@ -276,7 +276,7 @@ describe("signed out — a public prefix is not a public page", () => {
   it("normalises traversal before deciding", async () => {
     const response = await ask("/sign-in/../vocabulary/");
     expect(response.status).toBe(307);
-    expect(redirectPath(response)).toBe("/sign-in");
+    expect(redirectPath(response)).toBe("/");
   });
 
   it("does not accept a percent-encoded slash as a segment break", async () => {
