@@ -47,17 +47,18 @@ const ROW_TEXT = "h-8 px-3 pt-1 pb-0 leading-7 align-top";
 const ROW_CONTROL = "h-8 px-2 py-0 align-middle";
 
 const COLUMNS: { key?: PhraseSortKey; label: string; className?: string }[] = [
-  // Phrase gives up the most, from 24%, because a phrase is a line of text
-  // and the two columns beside it are paragraphs.
-  { key: "phrase", label: "Phrase", className: "w-[16%]" },
+  // Phrase takes the most now that every row is one line: a phrase cut off is
+  // the one thing in the row that cannot be guessed at. It was 16% when the
+  // meaning and example wrapped as paragraphs.
+  { key: "phrase", label: "Phrase", className: "w-[26%]" },
   // Literal Meaning and Usage Example are both left unsized on purpose, so
   // they split whatever is left in equal halves. Pinning one of them would
   // hand the whole remainder to the other, which is what a first attempt at
   // this did: it cut Usage Example to 188px while widening its neighbour.
   { key: "literalMeaning", label: "Literal Meaning" },
   { label: "Usage Example" },
-  { label: "Collection", className: "w-[12%]" },
-  { label: "Ref", className: "w-[16%]" },
+  { label: "Collection", className: "w-[10%]" },
+  { label: "Ref", className: "w-[12%]" },
 ];
 
 export default function PhrasesPage() {
@@ -129,7 +130,7 @@ export default function PhrasesPage() {
 
   return (
     <>
-      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
+      <header className="notebook-page mx-auto w-full max-w-[90rem] pt-6 sm:pt-8">
         <div>
           <h1 className="hand-title text-2xl sm:text-3xl">
             <span className="marker section-green">Idioms, Proverbs and other Phrases</span>
@@ -144,7 +145,9 @@ export default function PhrasesPage() {
         </div>
       </header>
 
-      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
+      {/* Wider than the other pages (90rem, not 6xl), so the one-line columns
+          cut off as little as the window allows. */}
+      <main className="notebook-page mx-auto w-full max-w-[90rem] flex-1 py-6">
         {!loaded ? (
           <div className="card h-64 animate-pulse" aria-hidden="true" />
         ) : phrases.length === 0 ? (
