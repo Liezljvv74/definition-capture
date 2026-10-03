@@ -77,7 +77,7 @@ export function TryOneNow() {
   return (
     <div
       ref={card}
-      className="relative mt-4 rotate-[1.2deg] rounded-[4px] border-2 border-ink bg-card px-4 pt-3 pb-3.5 shadow-[2px_3px_0_var(--color-shadow)]"
+      className="relative mt-4 rotate-[1.2deg] rounded-[4px] [--wobble-r:1.2deg] border-2 border-ink bg-card px-4 pt-3 pb-3.5 shadow-[2px_3px_0_var(--color-shadow)]"
     >
       <div className="text-[0.8rem] leading-5 tracking-[0.12em] text-ink-soft uppercase">Try one now</div>
       <div className="hand-title my-0.5 text-[1.6rem] leading-[38px]">{CARDS[at].word}</div>
