@@ -19,6 +19,29 @@ function setCurrent(next: typeof current) {
   listeners.forEach((listener) => listener());
 }
 
+/** The button whose reading is playing, or null. */
+export function readingKey(): string | null {
+  return current?.key ?? null;
+}
+
+/** A reading starts for `key`; whatever was reading is stopped first. */
+export function beginReading(key: string, stop: () => void): void {
+  current?.stop();
+  setCurrent({ key, stop });
+}
+
+/** `key` stops its own reading; another button's is left alone. */
+export function stopReading(key: string): void {
+  if (current?.key !== key) return;
+  current.stop();
+  setCurrent(null);
+}
+
+/** `key`'s reading came to its end. A newer reading by another button stays. */
+export function finishReading(key: string): void {
+  if (current?.key === key) setCurrent(null);
+}
+
 function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => {
@@ -46,28 +69,11 @@ export function useSpeech(key: string) {
   const { settings } = useSettings();
   const playing = useSyncExternalStore(subscribe, () => current?.key === key, () => false);
 
-  useEffect(
-    () => () => {
-      if (current?.key === key) {
-        current.stop();
-        setCurrent(null);
-      }
-    },
-    [key],
-  );
-
-  function stop() {
-    if (current?.key !== key) return;
-    current.stop();
-    setCurrent(null);
-  }
+  useEffect(() => () => stopReading(key), [key]);
 
   function start(parts: SpeechPart[], onPart?: (part: SpeechPart) => void) {
-    current?.stop();
-    if (!canSpeak() || parts.length === 0) {
-      setCurrent(null);
-      return;
-    }
+    if (current) stopReading(current.key);
+    if (!canSpeak() || parts.length === 0) return;
     const synth = window.speechSynthesis;
     const stopThis = playParts(synth as unknown as Parameters<typeof playParts>[0], parts, {
       studied: settings.language,
@@ -78,12 +84,10 @@ export function useSpeech(key: string) {
       voices: synth.getVoices(),
       make: (text) => new SpeechSynthesisUtterance(text) as unknown as Utterance,
       onPart,
-      onEnd: () => {
-        if (current?.key === key) setCurrent(null);
-      },
+      onEnd: () => finishReading(key),
     });
-    setCurrent({ key, stop: stopThis });
+    beginReading(key, stopThis);
   }
 
-  return { playing, start, stop };
+  return { playing, start, stop: () => stopReading(key) };
 }
