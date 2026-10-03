@@ -479,7 +479,11 @@ Answers are grounded in a fixed list of reference sites for the studied language
 and link to the pages they used. When the language has no list, or the search
 found nothing, the answer says "Not checked against a reference". **Save as
 rule** under an answer opens a dialog with its suggested title and topic, both
-editable, and saves exactly what is shown as a grammar rule.
+editable, and saves exactly what is shown as a grammar rule. When a rule
+already has that title, as a follow-up's often does, the dialog suggests the
+first free numbered one, "Title (2)". Every rule saved after the first in one
+conversation ends with a "See also" line linking to the ones saved before it,
+which list it under Linked from; the line can be edited away like any other.
 
 A free account gets 5 tutor messages in total. A paid account gets 30 a day,
 counted from midnight UTC. Failed answers count, and a refused question is not

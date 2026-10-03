@@ -51,6 +51,9 @@ export function TutorChat(props: {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState<TutorReply | null>(null);
+  // Titles of the rules saved from this conversation, in order, so the next
+  // one saved can link to them.
+  const [savedTitles, setSavedTitles] = useState<string[]>([]);
 
   async function ask() {
     const question = text.trim();
@@ -210,6 +213,7 @@ export function TutorChat(props: {
               disabled={busy}
               onClick={() => {
                 setExchanges([]);
+                setSavedTitles([]);
                 setFailed(false);
               }}
             >
@@ -227,7 +231,14 @@ export function TutorChat(props: {
         </form>
       )}
 
-      {saving && <SaveAsRuleDialog reply={saving} onClose={() => setSaving(null)} />}
+      {saving && (
+        <SaveAsRuleDialog
+          reply={saving}
+          linkTo={savedTitles}
+          onSaved={(title) => setSavedTitles((all) => [...all, title])}
+          onClose={() => setSaving(null)}
+        />
+      )}
     </main>
   );
 }

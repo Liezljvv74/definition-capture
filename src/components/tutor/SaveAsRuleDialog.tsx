@@ -5,15 +5,35 @@ import { useId, useState } from "react";
 
 import { Modal } from "@/components/Modal";
 import { createRule, findByTitle, titleProblem } from "@/lib/rules";
-import type { TutorReply } from "@/lib/tutor";
+import { freeTitle, withSeeAlso, type TutorReply } from "@/lib/tutor";
 import { useRules } from "@/lib/useRules";
 
-/** The answer's title and topic, editable, saved as a grammar rule with the answer's blocks. */
-export function SaveAsRuleDialog({ reply, onClose }: { reply: TutorReply; onClose: () => void }) {
+/**
+ * The answer's title and topic, editable, saved as a grammar rule with the
+ * answer's blocks. `linkTo` names the rules already saved from this
+ * conversation; the new rule ends with a line linking to them.
+ */
+export function SaveAsRuleDialog({
+  reply,
+  linkTo,
+  onSaved,
+  onClose,
+}: {
+  reply: TutorReply;
+  linkTo: string[];
+  onSaved: (title: string) => void;
+  onClose: () => void;
+}) {
   const inputId = useId();
-  const [title, setTitle] = useState(reply.title);
+  // Untouched, the title is the answer's own or, when a rule already has it,
+  // the first free numbered one; worked out on each render because the rules
+  // may still be loading when the dialog opens.
+  const [typed, setTyped] = useState<string | null>(null);
+  const title = typed ?? freeTitle(reply.title, (candidate) => findByTitle(candidate) !== undefined);
   const [topic, setTopic] = useState(reply.topic);
-  const [savedId, setSavedId] = useState<string | null>(null);
+  // The saved rule and what it was linked to, kept from the moment of saving:
+  // `linkTo` grows to include the rule itself once the chat hears about it.
+  const [saved, setSaved] = useState<{ id: string; links: string[] } | null>(null);
   // Read through the hook so the store is loaded before the duplicate check relies on it.
   const { loaded } = useRules();
 
@@ -25,12 +45,14 @@ export function SaveAsRuleDialog({ reply, onClose }: { reply: TutorReply; onClos
 
   return (
     <Modal title="Save as rule" onClose={onClose}>
-      {savedId ? (
+      {saved ? (
         <div className="space-y-3">
-          <p>Saved.</p>
+          <p>
+            {saved.links.length > 0 ? `Saved, linked to ${saved.links.map((t) => `“${t}”`).join(", ")}.` : "Saved."}
+          </p>
           <div className="flex justify-end gap-2">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Close</button>
-            <Link href={`/rule/?id=${savedId}`} className="btn btn-primary">Open rule</Link>
+            <Link href={`/rule/?id=${saved.id}`} className="btn btn-primary">Open rule</Link>
           </div>
         </div>
       ) : (
@@ -39,13 +61,14 @@ export function SaveAsRuleDialog({ reply, onClose }: { reply: TutorReply; onClos
           onSubmit={(event) => {
             event.preventDefault();
             if (!ready) return;
-            const rule = createRule({ title, topic, blocks: reply.blocks });
-            setSavedId(rule.id);
+            const rule = createRule({ title, topic, blocks: withSeeAlso(reply.blocks, linkTo) });
+            setSaved({ id: rule.id, links: linkTo });
+            onSaved(rule.title);
           }}
         >
           <div>
             <label htmlFor={`${inputId}-title`} className="mb-1 block text-sm font-medium">Title</label>
-            <input id={`${inputId}-title`} className="field" value={title} maxLength={200} autoFocus onChange={(event) => setTitle(event.target.value)} />
+            <input id={`${inputId}-title`} className="field" value={title} maxLength={200} autoFocus onChange={(event) => setTyped(event.target.value)} />
           </div>
           <div>
             <label htmlFor={`${inputId}-topic`} className="mb-1 block text-sm font-medium">Topic</label>
