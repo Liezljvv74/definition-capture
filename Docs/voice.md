@@ -31,19 +31,25 @@ the pencil beside it.
 
 A rule is read as a list of parts, each with its own language:
 
-- the title and every text block: the reader's native language;
-- a table, row by row: header cells (the first row when `headerRow`, the
-  first column when `headerColumn`) in the native language, every other cell
-  in the studied language;
+- the title, every text block, and a table's header cells may be written in
+  either language, so each is judged by its words (changed on 3 October 2026,
+  after a French rule was read in an English voice): the alphabet first, for
+  Russian, Chinese, Japanese and Korean, then the short words every sentence
+  leans on (le, la, est, avec; the, is, with). A part with no clue of its own,
+  such as a heading "Masculin", follows the language of the rule's text as a
+  whole. Only the preset languages have word lists; for any other the rule is
+  read in the native language, as before;
+- a table's other cells: the studied language;
 - an example: the sentence in the studied language, then its translation in
   the native language.
 
 Text is read as shown: link markup and the `{taught words}` braces are
 removed with `plainText`, and a link reads as its label.
 
-With text selected inside the rule, the button reads only the selection, in
-the language of the part where the selection starts (each block carries
-its language as a data attribute).
+With text selected inside the rule, the button reads only the selection. A
+selection in the rule's text or a heading is judged by its words, as above;
+one in an example sentence or a table cell is read in the studied language,
+and one in a translation in the native language.
 
 While a rule is read, the part being read has a dashed outline and is kept
 in view with a smooth scroll (an instant one under reduced motion). The

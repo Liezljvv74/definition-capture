@@ -19,8 +19,68 @@ export function readSpeechRate(value: unknown): SpeechRate {
 /** Which of the reader's two languages a part is in. */
 export type SpeechLang = "studied" | "native";
 
-/** One thing to say. `blockId` names the rule block it came from, for the outline. */
-export type SpeechPart = { text: string; lang: SpeechLang; blockId?: string };
+/**
+ * One thing to say. `blockId` names the rule block it came from, for the
+ * outline. "auto" is text that may be in either language, a rule's prose,
+ * which `resolveLangs` settles before anything is said.
+ */
+export type SpeechPart = { text: string; lang: SpeechLang | "auto"; blockId?: string };
+
+/*
+ * Telling which of two languages a sentence is in, without a library: the
+ * short words every sentence leans on, and the alphabets a language alone
+ * uses. A word both languages share ("la" in French and Spanish) counts for
+ * both and so decides nothing. Only the presets' languages are known; for
+ * any other, the words give no clue and the fallback decides.
+ */
+const COMMON_WORDS: Record<string, ReadonlySet<string>> = Object.fromEntries(
+  Object.entries({
+    en: "the a an and of to is are was in it that this with for on as be by not or you your what which",
+    fr: "le la les un une des et est sont de du au aux en que qui ne pas pour avec dans sur ce cette il elle on nous vous je tu se",
+    de: "der die das und ist sind ein eine nicht mit von zu den dem des auf für ich du er sie wir ihr es im wird",
+    es: "el la los las un una y es son de del que en por para con no se lo al yo tú usted está",
+    it: "il lo la gli le un una e è sono di del che in per con non si io tu noi voi della",
+    pt: "o a os as um uma e é são de do da que em para com não se eu tu você",
+    nl: "de het een en is zijn van te dat die niet met op voor ik jij hij zij wij",
+  }).map(([code, words]) => [code, new Set(words.split(" "))]),
+);
+
+const SCRIPTS: Record<string, RegExp> = {
+  ru: /[Ѐ-ӿ]/,
+  zh: /[一-鿿]/,
+  ja: /[぀-ヿ]/,
+  ko: /[가-힯]/,
+};
+
+/**
+ * Which of the two languages `text` is written in, by its alphabet and then
+ * its common words; `fallback` when neither gives a clue.
+ */
+export function guessLang(text: string, studied: string, native: string, fallback: SpeechLang = "native"): SpeechLang {
+  const base = (code: string) => code.toLowerCase().split("-")[0];
+  const [s, n] = [base(studied), base(native)];
+  if (SCRIPTS[s]?.test(text) && !SCRIPTS[n]?.test(text)) return "studied";
+  if (SCRIPTS[n]?.test(text) && !SCRIPTS[s]?.test(text)) return "native";
+  const words = text.toLowerCase().match(/\p{L}+/gu) ?? [];
+  const count = (code: string) => words.filter((word) => COMMON_WORDS[code]?.has(word)).length;
+  const [inStudied, inNative] = [count(s), count(n)];
+  if (inStudied > inNative) return "studied";
+  if (inNative > inStudied) return "native";
+  return fallback;
+}
+
+/**
+ * Settles every "auto" part. The whole of the undecided text is judged first,
+ * so a part with no clue of its own, a table heading such as "Masculin",
+ * follows the language the rest of the rule is written in.
+ */
+export function resolveLangs(parts: readonly SpeechPart[], studied: string, native: string): SpeechPart[] {
+  const undecided = parts.filter((part) => part.lang === "auto").map((part) => part.text);
+  const overall = guessLang(undecided.join(" "), studied, native);
+  return parts.map((part) =>
+    part.lang === "auto" ? { ...part, lang: guessLang(part.text, studied, native, overall) } : part,
+  );
+}
 
 /**
  * The voice for a language code: an exact match, then the language in any
@@ -68,18 +128,19 @@ export function tenseParts(rows: readonly VerbRow[], column: number): SpeechPart
 }
 
 /**
- * A rule as it reads on the page: the title and text in the reader's own
- * language; a table row by row, its header cells in the reader's language
- * and the rest in the one being learned; an example's sentence in the
- * language being learned and its translation in the reader's. Text is read
- * as shown (`plainText`), so a link reads as its label.
+ * A rule as it reads on the page. The title, the text and a table's header
+ * cells may be written in either language, so they are "auto" and
+ * `resolveLangs` decides; the other cells are in the language being learned;
+ * an example's sentence is in the language being learned and its translation
+ * in the reader's. Text is read as shown (`plainText`), so a link reads as
+ * its label.
  */
 export function ruleParts(rule: Pick<Rule, "title" | "blocks">): SpeechPart[] {
-  const parts: SpeechPart[] = sentences(rule.title).map((text) => ({ text, lang: "native" }));
+  const parts: SpeechPart[] = sentences(rule.title).map((text) => ({ text, lang: "auto" }));
   for (const block of rule.blocks) {
-    const say = (text: string, lang: SpeechLang) =>
+    const say = (text: string, lang: SpeechPart["lang"]) =>
       sentences(plainText(text)).forEach((sentence) => parts.push({ text: sentence, lang, blockId: block.id }));
-    if (block.kind === "text") say(block.text, "native");
+    if (block.kind === "text") say(block.text, "auto");
     else if (block.kind === "example") {
       say(block.sentence, "studied");
       say(block.translation, "native");
@@ -87,7 +148,7 @@ export function ruleParts(rule: Pick<Rule, "title" | "blocks">): SpeechPart[] {
       block.cells.forEach((row, r) =>
         row.forEach((cell, c) => {
           const header = (block.headerRow && r === 0) || (block.headerColumn && c === 0);
-          say(cell, header ? "native" : "studied");
+          say(cell, header ? "auto" : "studied");
         }),
       );
     }

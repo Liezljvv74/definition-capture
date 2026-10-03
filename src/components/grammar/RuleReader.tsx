@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { reducedMotion } from "@/components/notebook/doodles";
 import { SpeakerIcon, StopIcon } from "@/components/SpeakButton";
-import { ruleParts, sentences, type SpeechLang } from "@/lib/speech";
+import { ruleParts, sentences, type SpeechPart } from "@/lib/speech";
 import type { Rule } from "@/lib/types";
 import { useSpeech, useSpeechSupported } from "@/lib/useSpeech";
 
@@ -38,7 +38,11 @@ export function RuleReader({ rule }: { rule: Rule }) {
     const from = node instanceof Element ? node : node?.parentElement;
     const marked = from?.closest("[data-speak-lang]");
     if (text && marked) {
-      const lang = (marked.getAttribute("data-speak-lang") === "native" ? "native" : "studied") as SpeechLang;
+      // A selection in the rule's own text is judged by its words, like the
+      // rule itself; one in an example sentence or a table cell is in the
+      // language being learned, and one in a translation in the reader's.
+      const where = marked.getAttribute("data-speak-lang");
+      const lang: SpeechPart["lang"] = where === "auto" ? "auto" : where === "native" ? "native" : "studied";
       setActive(null);
       start(sentences(text).map((sentence) => ({ text: sentence, lang })));
       return;

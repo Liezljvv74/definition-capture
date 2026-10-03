@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  pickVoice, playParts, readSpeechRate, ruleParts, sentences, spokenPerson, studiedParts, tenseParts,
+  guessLang, pickVoice, playParts, resolveLangs, readSpeechRate, ruleParts, sentences, spokenPerson, studiedParts, tenseParts,
   type Utterance,
 } from "@/lib/speech";
 import type { Block, VerbRow } from "@/lib/types";
@@ -62,11 +62,11 @@ describe("text into parts", () => {
       { kind: "example", id: "e", sentence: "Ich gebe {dem} Mann das Buch.", translation: "I give the man the book." },
     ];
     expect(ruleParts({ title: "Dativ", blocks })).toEqual([
-      { text: "Dativ", lang: "native" },
-      { text: "The dative marks the receiver.", lang: "native", blockId: "t" },
-      { text: "See the accusative.", lang: "native", blockId: "t" },
-      { text: "Masc", lang: "native", blockId: "g" },
-      { text: "Dat", lang: "native", blockId: "g" },
+      { text: "Dativ", lang: "auto" },
+      { text: "The dative marks the receiver.", lang: "auto", blockId: "t" },
+      { text: "See the accusative.", lang: "auto", blockId: "t" },
+      { text: "Masc", lang: "auto", blockId: "g" },
+      { text: "Dat", lang: "auto", blockId: "g" },
       { text: "dem", lang: "studied", blockId: "g" },
       { text: "Ich gebe dem Mann das Buch.", lang: "studied", blockId: "e" },
       { text: "I give the man the book.", lang: "native", blockId: "e" },
@@ -152,5 +152,46 @@ describe("readSpeechRate", () => {
   it("keeps a known speed and defaults anything else to normal", () => {
     expect(readSpeechRate("fast")).toBe("fast");
     expect(readSpeechRate(undefined)).toBe("normal");
+  });
+});
+
+describe("the language a rule is written in", () => {
+  it("hears a French sentence as French, and an English one as English", () => {
+    expect(guessLang("Le datif marque le destinataire et suit la préposition avec.", "fr", "en")).toBe("studied");
+    expect(guessLang("The dative marks the receiver and follows the preposition.", "fr", "en")).toBe("native");
+  });
+
+  it("knows a script the other language does not use", () => {
+    expect(guessLang("Это родительный падеж.", "ru", "en")).toBe("studied");
+    expect(guessLang("This is the genitive.", "ru", "en")).toBe("native");
+  });
+
+  it("falls back when the words give no clue", () => {
+    expect(guessLang("Masculin", "fr", "en")).toBe("native");
+    expect(guessLang("Masculin", "fr", "en", "studied")).toBe("studied");
+  });
+
+  it("reads a rule's undecided parts in the language of the rest of it", () => {
+    const french = resolveLangs(
+      [
+        { text: "Le datif", lang: "auto" },
+        { text: "Il marque le destinataire de la phrase.", lang: "auto" },
+        { text: "Masculin", lang: "auto" },
+        { text: "dem", lang: "studied" },
+        { text: "I give.", lang: "native" },
+      ],
+      "fr",
+      "en",
+    );
+    expect(french.map((part) => part.lang)).toEqual(["studied", "studied", "studied", "studied", "native"]);
+    const english = resolveLangs(
+      [
+        { text: "The dative marks the receiver.", lang: "auto" },
+        { text: "Masc", lang: "auto" },
+      ],
+      "fr",
+      "en",
+    );
+    expect(english.map((part) => part.lang)).toEqual(["native", "native"]);
   });
 });

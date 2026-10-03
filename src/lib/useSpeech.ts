@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 
-import { playParts, RATE_VALUE, type SpeechPart, type Utterance } from "@/lib/speech";
+import { playParts, RATE_VALUE, resolveLangs, type SpeechPart, type Utterance } from "@/lib/speech";
 import { useSettings } from "@/lib/useSettings";
 
 /*
@@ -75,7 +75,10 @@ export function useSpeech(key: string) {
     if (current) stopReading(current.key);
     if (!canSpeak() || parts.length === 0) return;
     const synth = window.speechSynthesis;
-    const stopThis = playParts(synth as unknown as Parameters<typeof playParts>[0], parts, {
+    // Text that may be in either language (a rule's prose) is placed now,
+    // against the account's two languages.
+    const spoken = resolveLangs(parts, settings.language, settings.nativeLanguage);
+    const stopThis = playParts(synth as unknown as Parameters<typeof playParts>[0], spoken, {
       studied: settings.language,
       native: settings.nativeLanguage,
       rate: RATE_VALUE[settings.speechRate],

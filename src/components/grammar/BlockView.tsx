@@ -63,8 +63,8 @@ function TableView({ table, linkIndex }: { table: TableBlock; linkIndex: LinkInd
                   <Cell
                     key={c}
                     data-field={`cell:${r}:${c}`}
-                    // Read aloud in the reader's own language when a selection starts here.
-                    data-speak-lang={isHeader ? "native" : undefined}
+                    // A header may be in either language; a selection starting here is judged by its words.
+                    data-speak-lang={isHeader ? "auto" : undefined}
                     className={isHeader ? headerClass : cellClass}
                     scope={scope}
                   >

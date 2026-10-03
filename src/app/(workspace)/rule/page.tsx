@@ -96,7 +96,7 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
   return (
     <article className="card p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="hand-title text-2xl sm:text-3xl" data-speak-lang="native">
+        <h1 className="hand-title text-2xl sm:text-3xl" data-speak-lang="auto">
           <span className="marker section-sage">{rule.title}</span>
         </h1>
         <TopicBadge name={rule.topic} />
@@ -113,7 +113,7 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
               <div
                 key={block.id}
                 data-speak-block={block.id}
-                data-speak-lang={block.kind === "text" ? "native" : "studied"}
+                data-speak-lang={block.kind === "text" ? "auto" : "studied"}
               >
                 <BlockView block={block} linkIndex={linkIndex} />
               </div>
