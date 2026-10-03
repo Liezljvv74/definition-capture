@@ -36,6 +36,7 @@
 
 - The function's tense argument is `target_tense`, not `tense`: inside plpgsql a parameter named like the table's `tense` column makes every query on that table ambiguous.
 - `verb_tense_progress` gets insert and update policies as well as select. The spec said writes go only through the function, but the function runs with the caller's rights (no function here is `security definer`), so the caller needs them, exactly as `progress` has them for `record_review`.
+- `record_tense_review` also refuses a tense the table does not have, and `home_summary` counts a repeated tense name once (both from the database review on 3 October 2026). An unnamed tense ('') stays allowed, because tables made before tenses were asked for have one.
 - `home_summary` also returns `verbs_new`, `verbs_learning` and `verbs_learned`, so "Learn new items" keeps counting words and phrases only while Your progress still counts verbs by their tenses.
 
 ---
@@ -188,8 +189,9 @@ create policy "Owners change their verb tense progress" on public.verb_tense_pro
   for update to authenticated
   using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
-revoke all on public.verb_tense_progress from anon;
-revoke delete, truncate on public.verb_tense_progress from authenticated;
+-- The same rights as progress: read, add and change, nothing else.
+revoke all on public.verb_tense_progress from anon, authenticated;
+grant select, insert, update on public.verb_tense_progress to authenticated;
 
 -- 3. The history says which tense an answer was for; null for everything else.
 alter table public.reviews
@@ -223,6 +225,14 @@ begin
     where id = target_item and user_id = owner and item_type = 'verb_table'
   ) then
     raise exception 'not your verb table';
+  end if;
+  -- Only a tense the table has, so no record is made that nothing would count.
+  -- An unnamed tense ('') is allowed: tables made before tenses were asked for
+  -- have one.
+  if not exists (
+    select 1 from public.items where id = target_item and target_tense = any(tenses)
+  ) then
+    raise exception 'not a tense of this table';
   end if;
 
   select * into prior from public.verb_tense_progress
@@ -305,9 +315,11 @@ begin
     left join public.progress p on p.item_id = i.id and p.user_id = owner
     where i.user_id = owner
   ),
-  -- Each tense of each verb table with at least one form filled in.
+  -- Each tense of each verb table with at least one form filled in, each name
+  -- once: a table can hold two columns of the same name, and they share one
+  -- schedule.
   counted as (
-    select i.id as item_id, t.name as tense
+    select distinct i.id as item_id, t.name as tense
     from public.items i
     cross join lateral unnest(i.tenses) with ordinality as t(name, ord)
     where i.user_id = owner and i.item_type = 'verb_table'
@@ -511,6 +523,27 @@ begin
   exception when raise_exception then
     if sqlerrm <> 'not your verb table' then raise; end if;
   end;
+  begin
+    perform public.record_tense_review('20000000-0000-0000-0000-000000000001', 'Plusquamperfekt', 'correct');
+    raise exception 'a tense the table lacks was accepted';
+  exception when raise_exception then
+    if sqlerrm <> 'not a tense of this table' then raise; end if;
+  end;
+end $$;
+
+-- Two columns of the same name count once.
+do $$
+declare s record;
+begin
+  -- Futur is not tried yet, so a double count would show as two new tenses.
+  update public.items
+  set tenses = array['Präsens', 'Perfekt', 'Futur', 'Futur'],
+      verb_rows = '[{"person":"ich","conjugations":["gehe","bin gegangen","werde gehen","werde gehen"],"notes":""}]'::jsonb
+  where id = '20000000-0000-0000-0000-000000000001';
+  select * into s from public.home_summary();
+  if s.verb_tenses_new <> 1 then
+    raise exception 'a repeated tense was counted twice: %', s;
+  end if;
 end $$;
 
 -- Another account sees none of it and cannot record against it.
@@ -541,7 +574,7 @@ Expected: both end with `ROLLBACK` and raise nothing. Break `bool_and(ts.answere
 
 - [ ] **Step 4: Document**
 
-In `Docs/schema.md`: add `verb_tense_progress` to the table list (now twelve tables) with a section like `progress`'s; add `reviews.tense`; add `schedule_step` and `record_tense_review` to the functions table (now ten functions); note `home_summary`'s new columns and that its flashcard counts are words and phrases only. Update CLAUDE.md's "Eleven tables ... eight functions" sentence to twelve and ten, and name `verb_tense_progress` beside `progress` and `reviews`.
+In `Docs/schema.md`: add `verb_tense_progress` to the table list (now twelve tables) with a section like `progress`'s; add `reviews.tense`; add `schedule_step` and `record_tense_review` to the functions table (now ten functions); note `home_summary`'s new columns and that its flashcard counts are words and phrases only, and that anything reading `reviews` for flashcard statistics must filter `tense is null`, since verb tense answers are reviews too. Update CLAUDE.md's "Eleven tables ... eight functions" sentence to twelve and ten, and name `verb_tense_progress` beside `progress` and `reviews`.
 
 - [ ] **Step 5: Commit**
 
