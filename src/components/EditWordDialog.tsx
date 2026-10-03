@@ -58,7 +58,7 @@ export function EditWordDialog({
   if (clash) {
     return (
       <Modal title="Another word already has that name" onClose={onClose}>
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <p className="text-sm text-ink-soft">
           <strong className="font-semibold">{clash.word}</strong> is already saved separately.
           Change the wording, or delete one of the two from your word list.
         </p>

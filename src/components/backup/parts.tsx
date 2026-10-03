@@ -31,7 +31,7 @@ export function ReplaceLine({
     <li className="flex flex-wrap gap-x-1.5">
       <span className="font-medium">{label}:</span>
       {untouched ? (
-        <span className="text-slate-600 dark:text-slate-300">
+        <span className="text-ink-soft">
           nothing in this file, so your {saved} saved{" "}
           {saved === 1 ? "item stays" : "items stay"} as they are
         </span>
@@ -63,21 +63,21 @@ export function ScopeChoice({
     <label
       className={`flex cursor-pointer items-start gap-2.5 rounded-lg border p-2.5 transition ${
         checked
-          ? "border-indigo-500 bg-indigo-50/60 dark:border-indigo-400 dark:bg-indigo-500/10"
-          : "border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+          ? "border-ink bg-marker/30"
+          : "border-rule hover:bg-marker/30"
       } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
     >
       <input
         type="radio"
         name="export-scope"
-        className="mt-0.5 size-4 accent-indigo-600"
+        className="mt-0.5 size-4 accent-accent"
         checked={checked}
         disabled={disabled}
         onChange={onSelect}
       />
       <span className="min-w-0">
         <span className="block text-sm font-medium">{label}</span>
-        <span className="block text-xs text-slate-500 dark:text-slate-400">{detail}</span>
+        <span className="block text-xs text-ink-soft">{detail}</span>
       </span>
     </label>
   );
@@ -100,10 +100,10 @@ export function ExportChoice({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="w-full cursor-pointer rounded-lg border border-slate-200 p-3 text-left transition hover:border-indigo-400 hover:bg-indigo-50/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:hover:border-indigo-500/60 dark:hover:bg-indigo-500/10"
+      className="w-full cursor-pointer rounded-lg border border-rule p-3 text-left transition hover:border-ink hover:bg-marker/25 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span className="block text-sm font-medium">{title}</span>
-      <span className="block text-xs text-slate-500 dark:text-slate-400">{detail}</span>
+      <span className="block text-xs text-ink-soft">{detail}</span>
     </button>
   );
 }
@@ -120,7 +120,7 @@ export function ResultBlock({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+      <p className="text-xs font-semibold tracking-wide text-ink-soft uppercase">
         {label}
       </p>
       <ul className="mt-1 space-y-0.5">
@@ -172,6 +172,6 @@ export const MODE_OPTIONS: { value: ImportMode; label: string; hint: string }[] 
  */
 export function WaitingForLists() {
   return (
-    <p className="text-sm text-slate-500 dark:text-slate-400">Loading your lists…</p>
+    <p className="text-sm text-ink-soft">Loading your lists…</p>
   );
 }

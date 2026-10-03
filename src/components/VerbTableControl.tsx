@@ -25,18 +25,18 @@ export function VerbTableControl({ verb }: { verb: string }) {
   );
 
   return (
-    <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+    <div className="rounded-lg border border-rule p-3">
       <p className="text-sm font-medium">Conjugation table</p>
 
       {existing ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-ink-soft">
             {name} already has one.
           </p>
           <Link
             href={`/verbs?verb=${encodeURIComponent(name)}`}
             aria-label={`Open the conjugation table for ${name}`}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-300"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-link hover:underline"
           >
             <TableIcon />
             Open it
@@ -50,7 +50,7 @@ export function VerbTableControl({ verb }: { verb: string }) {
           >
             + Create a conjugation table
           </Link>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-ink-soft">
             Takes you to the table on the Verbs page.
           </p>
         </div>

@@ -204,12 +204,12 @@ export function RefField({
               onClick={() => choose(index)}
               className={`flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm ${
                 index === activeIndex
-                  ? "bg-indigo-50 text-indigo-900 dark:bg-indigo-500/15 dark:text-indigo-100"
-                  : "text-slate-700 dark:text-slate-200"
+                  ? "bg-marker/30 text-link"
+                  : "text-ink-soft"
               }`}
             >
               <span className="truncate">{suggestion.name}</span>
-              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              <span className="inline-flex items-center rounded-md bg-marker/25 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-ink-soft">
                 {KIND_LABEL[suggestion.kind]}
               </span>
             </li>

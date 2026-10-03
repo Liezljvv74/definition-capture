@@ -8,7 +8,7 @@ import type { LinkIndex } from "@/lib/links";
 import { parseRef } from "@/lib/parseRef";
 
 const linkClass =
-  "text-indigo-700 underline underline-offset-2 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200";
+  "text-link underline underline-offset-2 hover:text-ink";
 
 /**
  * Renders a Ref value: ordinary words as text, recognised references as links.
@@ -31,7 +31,7 @@ export function RefText({ value, linkIndex }: { value: string; linkIndex: LinkIn
                 <span
                   key={index}
                   title="Nothing with this name is saved yet"
-                  className="text-slate-500 underline decoration-dotted underline-offset-2 dark:text-slate-400"
+                  className="text-ink-soft underline decoration-dotted underline-offset-2"
                 >
                   {token.label || token.name}
                 </span>
