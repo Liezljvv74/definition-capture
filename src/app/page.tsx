@@ -6,6 +6,7 @@ import type { CSSProperties } from "react";
 import { NotebookDoodles } from "@/components/notebook/NotebookDoodles";
 import { NotebookPaper } from "@/components/notebook/NotebookPaper";
 import { Scribble } from "@/components/notebook/Scribble";
+import { TryOneNow } from "@/components/notebook/TryOneNow";
 import { DESCRIPTION, FAQ, SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -24,28 +25,28 @@ const KEEP = [
   {
     title: "Words",
     text: "A word, its definition, a reference, and the collections it belongs to.",
-    look: "bg-tile-blue border-[3px] rounded-[4px_12px_3px_10px] shadow-[4px_5px_0_var(--color-ink)] tape tape-right",
+    look: "bg-tile-blue border-[3px] rounded-[4px_12px_3px_10px] shadow-[4px_5px_0_var(--color-shadow)] tape tape-right",
     deg: -1.8,
     doodle: "star",
   },
   {
     title: "Phrases",
     text: "Expressions with their literal meaning and an example of how they are really used.",
-    look: "bg-tile-green border-[1.5px] rounded-[10px_3px_12px_4px] shadow-[2px_3px_0_var(--color-ink)]",
+    look: "bg-tile-green border-[1.5px] rounded-[10px_3px_12px_4px] shadow-[2px_3px_0_var(--color-shadow)]",
     deg: 1.4,
     doodle: "heart",
   },
   {
     title: "Verb tables",
     text: "Conjugations laid out by person and tense, in the tenses you choose.",
-    look: "bg-tile-purple border-2 rounded-[3px_10px_4px_12px] shadow-[3px_4px_0_var(--color-ink)] tape tape-centre",
+    look: "bg-tile-purple border-2 rounded-[3px_10px_4px_12px] shadow-[3px_4px_0_var(--color-shadow)] tape tape-centre",
     deg: 1.2,
     doodle: "spiral",
   },
   {
     title: "Grammar rules",
     text: "Rules written your way, with tables and examples.",
-    look: "bg-tile-sage border-[3.5px] rounded-[12px_4px_10px_3px] shadow-[5px_5px_0_var(--color-ink)]",
+    look: "bg-tile-sage border-[3.5px] rounded-[12px_4px_10px_3px] shadow-[5px_5px_0_var(--color-shadow)]",
     deg: -1.1,
     doodle: "sparkle",
   },
@@ -108,7 +109,7 @@ export default function LandingPage() {
           <Image src="/captured-logo.png" alt="" width={32} height={32} priority />
           {SITE_NAME}
         </span>
-        <Link href="/sign-in" className="text-lg text-accent underline decoration-2 underline-offset-4">
+        <Link href="/sign-in" className="text-lg text-link underline decoration-2 underline-offset-4">
           Sign in
         </Link>
       </header>
@@ -135,7 +136,7 @@ export default function LandingPage() {
 
           <section
             aria-labelledby="remember-heading"
-            className="paste tape tape-two rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-tile-sky px-6 pt-5 pb-5 shadow-[5px_6px_0_rgb(29_39_66/0.9)]"
+            className="paste tape tape-two rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-tile-sky px-6 pt-5 pb-5 shadow-[5px_6px_0_var(--color-shadow)]"
             style={tilt(-0.9)}
           >
             <h2 id="remember-heading" className="hand-title text-[1.45rem] leading-9">
@@ -145,16 +146,17 @@ export default function LandingPage() {
               Flashcards are made from what you saved. You type the meaning, and each card comes back for review
               when it is due, less often as you keep getting it right.
             </p>
+            <TryOneNow />
           </section>
 
           <section
             aria-labelledby="private-heading"
-            className="paste tape tape-pink rounded-[4px] border-[1.5px] border-dashed border-ink-soft bg-white px-6 pt-6 pb-5 shadow-[2px_3px_8px_rgb(29_39_66/0.18)]"
+            className="paste tape tape-pink rounded-[4px] border-[1.5px] border-dashed border-ink-soft bg-card px-6 pt-6 pb-5 shadow-[2px_3px_8px_rgb(0_0_0/0.18)]"
             style={tilt(1.1)}
           >
             {/* A pair of scissors on the dashed edge: this piece was cut out. */}
             <svg className="absolute -top-[17px] right-[26px] size-[30px]" viewBox="0 0 40 40" aria-hidden="true">
-              <g fill="none" stroke="#1d2742" strokeWidth="2.5" strokeLinecap="round">
+              <g fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <circle cx="9" cy="30" r="5" />
                 <circle cx="9" cy="10" r="5" />
                 <path d="M13 13 L36 28 M13 27 L36 12" />
@@ -202,7 +204,7 @@ export default function LandingPage() {
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-[1.12rem] leading-7 [&::-webkit-details-marker]:hidden">
                     {question}
                     <svg className="size-4 flex-none transition-transform group-open:rotate-180" viewBox="0 0 16 16" aria-hidden="true">
-                      <path d="M3 5 L8 11 L13 5 Z" fill="#1d2742" />
+                      <path d="M3 5 L8 11 L13 5 Z" fill="currentColor" />
                     </svg>
                   </summary>
                   <p className="border-t-[1.5px] border-dashed border-rule px-4 pt-2.5 pb-3.5 leading-[26px] text-ink-soft">
