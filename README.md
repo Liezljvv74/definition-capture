@@ -19,13 +19,16 @@ or device. It is live at <https://definition-capture.vercel.app>.
   their own list.
 - **Verb tables**: a conjugation table per verb, with a column per tense, a row
   per person, a note against any row, and notes on the table.
+- **Verb practice**: blank tables to fill in for the tenses you choose, marked
+  box by box, with every tense of every verb on its own review schedule; a verb
+  is learned only when all its tenses are.
 - **Grammar rules**: a rule per page, written as text, table and example blocks,
   filed under one topic, with highlights and links in the reading view.
 - **Links**: `[[Name]]` links any item to any other, and every item has a stable
   page of its own.
-- **Flashcards**: a deck built from chosen lists and filters, or of only what is
-  due, one card at a time, with the typed answer marked and the schedule updated
-  from what happened.
+- **Flashcards**: a deck of words and phrases built from chosen lists and
+  filters, or of only what is due, one card at a time, with the typed answer
+  marked and the schedule updated from what happened.
 - **Tutor**: ask a grammar question and get an explanation at your level, built
   from reference sites for the language you are studying, which you can save as a
   grammar rule.
@@ -219,7 +222,7 @@ server code.
 
 ## Where the data lives
 
-Every list is in Supabase, in eleven tables with no views and eight functions,
+Every list is in Supabase, in twelve tables with no views and ten functions,
 none of them `security definer`. The design, and why it is shaped that way, is in
 [`Docs/schema.md`](Docs/schema.md); how it got there is in
 [`Docs/db-refactor-plan.md`](Docs/db-refactor-plan.md).
@@ -325,16 +328,19 @@ and one query for recent items, and sized to fit one laptop window. From the top
   last saved anything.
 - **Your progress**, beside the welcome and marked with two stars: a bar of New,
   Learning and Learned, counting only items that can make a card. Learned means a
-  streak of two or more correct answers. Hidden when there is nothing to count.
+  streak of two or more correct answers; a verb counts by its tenses, learned only
+  when every tense is. Hidden when there is nothing to count.
 - **Ready for review**, which follows the account's state: items due gives
   **Review now** (a deck of up to fifty due cards, most overdue first); nothing
   due but new items gives **Learn new items**; all caught up says when the next
   review is; items with no answer to show link to Vocabulary to add a definition;
   an empty account links to Vocabulary to capture a first word. The last three
   show a quote. **Customise deck** opens the deck builder, which asks which lists
-  to draw from (all items, words, phrases or verbs, or the most recently added),
+  to draw from (all items, words or phrases, or the most recently added),
   whether to take only items marked as needing review, which collections to
-  narrow to, and how many cards. The default is everything, fifty cards.
+  narrow to, and how many cards. The default is everything, fifty cards. These
+  counts are words and phrases only. Beneath them, "5 verb tenses due" (or "3
+  tenses to learn") with **Practise verbs** starts a verb practice session.
 - **Do you still remember this one?**: one difficult word or phrase (missed
   before, right under 80% of the time, or not yet learned, and longer than four
   letters). Pressing the word reveals its meaning in place.
@@ -395,7 +401,23 @@ table holds a column per tense and a row per person, with a note against any row
 and Notes on the table itself that render links like a Ref. A speaker in each
 tense heading reads that tense down the table, person and form ("ich gehe, du
 gehst, er, sie, es geht"). `/verbs?verb=<name>` opens the page at that table,
-which is where a link to a verb table lands.
+which is where a link to a verb table lands. A table holds each tense once, and
+every tense needs a name.
+
+Each verb shows its tenses with a mark for each: ✓ learned, … learning, ✗ missed
+last time, ○ not tried. **Practise** opens a dialog: the verbs that are due
+(asking exactly the tenses that are due), the tenses not yet tried, all verbs,
+or verbs you tick, and for the last two the tenses to ask. The session, at
+`/verbs/practise`, shows one verb at a time as a blank table: Tab moves across,
+Enter moves down, and **Check** marks every box, green or red with the right
+form beside it. Capitals and punctuation do not count and the answer separators
+work as on flashcards, but accents do count and a one-letter slip is not
+forgiven, since the ending is what is being practised. A tense is right only
+when its whole column is. Each tense has its own review schedule, the same rules
+as flashcards, and a verb is learned only when every tense on its table is: a
+tense added later reopens it. A column with no forms filled in is never asked.
+The end of a session lists what to look at again. The design is in
+[`Docs/verb-practice.md`](Docs/verb-practice.md).
 
 ### Grammar
 
@@ -435,9 +457,9 @@ in [`Docs/voice.md`](Docs/voice.md).
 
 ### Flashcards
 
-One card at a time from a deck built on the dashboard. The front is the word,
-phrase or verb, and you type what it means rather than deciding for yourself
-whether you knew it.
+One card at a time from a deck built on the dashboard. The front is the word or
+phrase, and you type what it means rather than deciding for yourself whether you
+knew it. Verbs are not in decks: they are practised as tables on the Verbs page.
 
 A right answer flashes pale green and moves on by itself. A wrong one flashes pale
 orange, ticks **needs review**, and waits, because there are three reasonable
@@ -654,7 +676,7 @@ unreadable is counted and reported rather than silently dropped.
 ```bash
 npx tsc --noEmit     # types
 npx eslint src/ e2e/   # lint
-npx vitest run       # 60 test files, node environment, no jsdom and no browser
+npx vitest run       # 62 test files, node environment, no jsdom and no browser
 npm run build        # when routing or rendering changed
 npm run e2e          # Playwright end-to-end tests
 ```
@@ -671,7 +693,9 @@ such as importing a backup, writing through the store, and deciding whether a
 typed answer is right; a test for anything that can lose data is broken on
 purpose once to confirm it notices. `supabase/tests/home_summary.sql` rehearses
 `home_summary` and the due-only deck against the local Supabase copy, inside a
-transaction that is rolled back.
+transaction that is rolled back, and `supabase/tests/verb_practice.sql` does the
+same for verb practice: the shared schedule, `record_tense_review` and what it
+refuses, row level security, and the verb counts on the dashboard.
 
 The end-to-end tests in `e2e/` sign in through the real form as a dedicated test
 account (`E2E_EMAIL` and `E2E_PASSWORD` in `.env.local`) and add and delete rows.
@@ -745,8 +769,9 @@ src/
       home/  vocabulary/  phrases/  word/  phrase/  verbs/  grammar/  rule/
       flashcards/  settings/  choose-password/  tutor/
   components/             the UI, with folders for home/, flashcards/, grammar/,
-                          tutor/, backup/ and notebook/ (the paper, doodles and
-                          the landing page's try card)
+                          tutor/, backup/, verbs/ (the practice dialog and the
+                          tense marks) and notebook/ (the paper, doodles and the
+                          landing page's try card)
   fonts/                  the digits-only Kalam subset that supplies the body's 7
   lib/                    data access and pure logic, tests beside each module
 e2e/
@@ -758,6 +783,7 @@ supabase/
   config.toml             CLI project config
   migrations/             the tables, indexes, functions and row level security policies
   tests/home_summary.sql  a rolled-back rehearsal of home_summary on the local copy
+  tests/verb_practice.sql the same for verb practice
 Docs/
   schema.md               the schema, and why it is shaped that way
   db-refactor-plan.md     how the schema reached its current shape
@@ -765,6 +791,7 @@ Docs/
   grammar.md              the grammar rules design
   tutor.md                the grammar tutor design
   voice.md                the read aloud design
+  verb-practice.md        the verb practice design
   plans/                  implementation plans, kept for the record
   layouts_and_pages.md    notes on Next.js routing, kept for reference
 public/                   the logo images and llms.txt
@@ -784,5 +811,8 @@ The modules worth knowing first, all in `src/lib/`:
   and what an import does.
 - `speech.ts` and `useSpeech.ts`: what is read aloud, in which language and
   voice, and the one reading that plays at a time.
+- `verbPractice.ts` and `verbPracticeData.ts`: what a verb practice session
+  asks, how it is marked, each tense's and verb's state, and the reads and
+  writes behind it.
 
 Unit tests sit beside the code they test, as `*.test.ts` and `*.test.tsx`.
