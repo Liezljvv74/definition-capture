@@ -301,8 +301,6 @@ export default function VocabularyPage() {
                 {wide !== true && (
                   <EntryCards
                     entries={visible}
-                    onSelectCollection={setCollection}
-                    linkIndex={linkIndex}
                     selection={selection}
                     onEdit={setEditingId}
                     onDelete={(id) => setPendingDelete([id])}
@@ -493,24 +491,20 @@ function EntryTable({
 
 function EntryCards({
   entries,
-  onSelectCollection,
-  linkIndex,
   selection,
   onEdit,
   onDelete,
 }: {
   entries: Entry[];
-  onSelectCollection: (name: string) => void;
-  linkIndex: LinkIndex;
   selection: ListSelection;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
   return (
-    // The phone list is written on the paper too: every line of an entry is
-    // one line of the ruling (32px), so the entries stay on the lines all the
-    // way down. Each text size repeats `leading-8`, because Tailwind's size
-    // classes bring their own line height.
+    // The phone list is written on the paper too, one ruled line (32px) per
+    // word: the word, then its meaning beside it, as a glossary is written by
+    // hand. Both are cut off when long; the word's own page has everything,
+    // including the Ref and collections this narrow line leaves out.
     <div data-ruled-snap className="leading-8 md:hidden">
       <label className="flex h-8 w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
         <SelectAllCheckbox
@@ -528,44 +522,28 @@ function EntryCards({
           return (
             <li
               key={entry.id}
-              className={`${selected ? "bg-tile-blue/60" : ""} ${
-                entry.needsDefinition ? "border-l-4 border-l-amber-400 pl-2" : ""
+              className={`flex h-8 items-center gap-2 text-sm ${selected ? "bg-tile-blue/60" : ""} ${
+                entry.needsDefinition ? "border-l-4 border-l-amber-400 pl-1.5" : ""
               }`}
             >
-              {/* Not a link as a whole: the Ref field may contain its own
-                  links, and an anchor cannot be nested inside another. */}
-              <div className="flex h-8 items-center gap-2.5">
-                <SelectRowCheckbox
-                  checked={selected}
-                  onChange={() => selection.toggle(entry.id)}
-                  label={entry.word}
-                />
-                <h2 className="min-w-0 flex-1 truncate font-semibold">
-                  <Link href={`/word?id=${entry.id}`} className="text-link hover:underline">
-                    {entry.word}
-                  </Link>
-                </h2>
-                {entry.needsDefinition && <NeedsDefinitionBadge />}
-                <div className="-mr-1 flex shrink-0 items-center gap-0.5">
-                  <SpeakButton speechKey={`word:${entry.id}`} label={entry.word} parts={() => studiedParts(entry.word)} />
-                  <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
-                  <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
-                </div>
+              <SelectRowCheckbox
+                checked={selected}
+                onChange={() => selection.toggle(entry.id)}
+                label={entry.word}
+              />
+              <h2 className="max-w-[45%] shrink-0 truncate font-semibold">
+                <Link href={`/word?id=${entry.id}`} className="text-link hover:underline">
+                  {entry.word}
+                </Link>
+              </h2>
+              <span className="min-w-0 flex-1 truncate text-ink-soft">
+                {entry.needsDefinition ? <NeedsDefinitionBadge /> : entry.definition}
+              </span>
+              <div className="-mr-1 flex shrink-0 items-center">
+                <SpeakButton speechKey={`word:${entry.id}`} label={entry.word} parts={() => studiedParts(entry.word)} />
+                <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
+                <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
               </div>
-              {entry.definition && <p className="line-clamp-2 text-sm leading-8 text-ink">{entry.definition}</p>}
-              {entry.ref && (
-                <p className="truncate text-xs leading-8 text-ink-soft">
-                  <span className="font-medium">Ref: </span>
-                  <RefText value={entry.ref} linkIndex={linkIndex} />
-                </p>
-              )}
-              {entry.collections.length > 0 && (
-                <div className="flex h-8 items-center gap-1.5 overflow-hidden">
-                  {entry.collections.map((name) => (
-                    <CollectionBadge key={name} name={name} onSelect={onSelectCollection} />
-                  ))}
-                </div>
-              )}
             </li>
           );
         })}
