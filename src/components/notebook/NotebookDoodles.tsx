@@ -45,7 +45,7 @@ export function NotebookDoodles() {
       if (!summary) return;
       const b = docBox(summary);
       drawDoodle("squiggle", b.left + b.width * 0.35, b.top + b.height - 2, { size: 64, colour: "#e8868b", life: 1800 });
-      drawDoodle("arrow", b.left - 26, b.top + b.height / 2, { size: 34, colour: "#4b35e8", life: 1800 });
+      drawDoodle("arrow", b.left - 26, b.top + b.height / 2, { size: 34, colour: "var(--nb-link)", life: 1800 });
     }
 
     document.addEventListener("mouseover", onTile);

@@ -73,7 +73,7 @@ function Deck() {
   return (
     <>
       <header>
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 notebook-page py-4">
           <Link href="/home" className="text-sm font-medium text-link hover:underline">
             ← Leave the challenge
           </Link>
@@ -83,7 +83,7 @@ function Deck() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 notebook-page py-8">
         {error && (
           <p role="alert" className="mb-4 text-sm text-red-700 dark:text-red-400">
             {error}
@@ -394,7 +394,7 @@ function Finished({
     if (piece.current && !reducedMotion()) celebrate(piece.current);
   }, []);
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
+    <main className="mx-auto w-full max-w-3xl flex-1 notebook-page py-12">
       <div ref={piece} className="card p-8 text-center">
         <h1 className="hand-title text-2xl">
           <span className="marker">Deck finished</span>
@@ -413,7 +413,7 @@ function Finished({
 
 function Loading() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-3xl flex-1 notebook-page py-8">
       <div className="card h-64 animate-pulse" aria-hidden="true" />
     </main>
   );
@@ -421,7 +421,7 @@ function Loading() {
 
 function Message({ title, body }: { title: string; body: string }) {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
+    <main className="mx-auto w-full max-w-3xl flex-1 notebook-page py-12">
       <div className="card p-8 text-center">
         <h1 className="hand-title text-2xl">
           <span className="marker">{title}</span>

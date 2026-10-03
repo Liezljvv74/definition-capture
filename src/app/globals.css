@@ -6,65 +6,11 @@
     "Helvetica Neue", Arial, sans-serif;
 
   /*
-   * The home page's palette: a yellow panel and a card each in blue, green and
-   * purple.
-   *
-   * The hues come from the logo. 44 is its yellow, 216 its navy, 254 its
-   * purple; green is the one the artwork does not contain at all, so it is
-   * built at 146, far enough from the blue beside it to be told apart at a
-   * glance.
-   *
-   * What is deliberately *not* taken from the logo is the saturation. An
-   * earlier version used the artwork's own colours at half strength over
-   * white, which gave four high-chroma tints next to a full-strength yellow
-   * panel, and the whole page read as something made for a child. These are
-   * the same hues at roughly a third of that saturation: muted enough to sit
-   * behind an hour of reading, still warm enough not to look like a form.
-   *
-   * The three cards are within 0.049 of each other in relative luminance, so
-   * the row reads as one set rather than one bright card and two quiet ones.
-   * The green is taken down further than its neighbours to get there, because
-   * green reads lighter than blue or purple at the same nominal lightness.
-   * The panel sits lighter than all three, between them and the page, which is
-   * what makes it read as a heading rather than a fourth card.
-   *
-   * None of these carries a dark variant, and that is the point rather than an
-   * omission: they are light colours whatever the browser is set to, so the
-   * text on them is dark in both themes. Every one clears 4.5:1 against slate
-   * 700 and better than 7.6:1 against the slate 800 the cards actually use.
+   * The two flashes an answer gets. Pale on purpose: they are a signal, not a
+   * verdict, and a saturated red for a word somebody is still learning is the
+   * wrong thing to say to them. Both carry dark text at better than 10:1. The
+   * rest of the palette is the notebook's, in notebook.css.
    */
-  --color-card-blue: #aec0db;
-  --color-card-green: #a2cdb5;
-  --color-card-purple: #bfb6dd;
-  /* Grammar: a green-grey, kept greyer than the Phrases green so the two
-     read as different places. It clears 6:1 against slate 700. It used to be
-     a rose, given up so that red means only a warning or an error. */
-  --color-card-sage: #bdc9bf;
-
-  /*
-   * The flashcard feature's own four.
-   *
-   * `challenge` is the pale blue of the card that starts it, lighter and
-   * cooler than the Vocabulary card so the two are not mistaken for each
-   * other: one is a place to go, the other is a thing to do.
-   *
-   * `flashcard` is an off-white with blue undertones rather than plain white,
-   * so a card reads as a card sitting on the page rather than as the page.
-   *
-   * `correct` and `wrong` are the two flashes an answer gets. Pale on purpose:
-   * they are a signal, not a verdict, and a saturated red for a word somebody
-   * is still learning is the wrong thing to say to them. Both carry dark text
-   * at better than 10:1, so the flash never costs legibility.
-   */
-  --color-challenge: #d7e6f4;
-  /*
-   * A card is a deeper blue than the challenge tile that offers it, and it
-   * wears the logo's own navy as a frame. The frame is what makes a square of
-   * colour read as a card: at half the width it no longer fills the column,
-   * so without an edge it looks like a panel that failed to stretch.
-   */
-  --color-flashcard: #bbd3eb;
-  --color-flashcard-frame: #1b4390;
   --color-flash-correct: #cbebd7;
   --color-flash-wrong: #f8d9bf;
 }
@@ -125,7 +71,7 @@ body {
 @utility field {
   @apply w-full border-0 border-b-2 border-ink bg-transparent px-1.5 py-1.5 text-base
     text-ink outline-none transition placeholder:text-ink-soft
-    focus:border-accent focus:bg-marker/30;
+    focus:border-focus focus:bg-marker/30;
   border-radius: 0;
   font-family: var(--font-hand);
   &:is(textarea) {
@@ -152,7 +98,7 @@ body {
     box-shadow: 1px 1px 0 var(--color-shadow);
   }
   &:focus-visible {
-    outline: 3px dashed var(--color-accent);
+    outline: 3px dashed var(--color-focus);
     outline-offset: 3px;
   }
   @media (prefers-reduced-motion: reduce) {
@@ -191,7 +137,7 @@ body {
 @utility link-button {
   @apply cursor-pointer text-link underline decoration-2 underline-offset-4;
   &:focus-visible {
-    outline: 3px dashed var(--color-accent);
+    outline: 3px dashed var(--color-focus);
     outline-offset: 3px;
   }
 }

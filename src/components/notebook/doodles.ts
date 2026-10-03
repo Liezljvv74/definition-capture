@@ -21,7 +21,7 @@ export const DOODLES = {
 export type DoodleShape = keyof typeof DOODLES;
 
 /** The notebook's pens: indigo, margin red, green, gold, ink. */
-const PENS = ["#4b35e8", "#e8868b", "#2f9e63", "#e0a800", "#1d2742"];
+const PENS = ["#4b35e8", "#e8868b", "#2f9e63", "#e0a800", "var(--nb-ink)"];
 
 export function reducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -87,5 +87,5 @@ export function celebrate(card: Element): void {
   drawDoodle("star", b.left + b.width - 8, b.top - 8, { size: 52, colour: "#e0a800", life });
   drawDoodle("sparkle", b.left + 6, b.top - 8, { size: 32, colour: "#e8868b", life });
   drawDoodle("heart", b.left + b.width * 0.3, b.top + b.height + 14, { size: 36, colour: "#e8868b", life });
-  drawDoodle("sparkle", b.left + b.width + 8, b.top + b.height * 0.75, { size: 26, colour: "#4b35e8", life });
+  drawDoodle("sparkle", b.left + b.width + 8, b.top + b.height * 0.75, { size: 26, colour: "var(--nb-link)", life });
 }

@@ -33,6 +33,7 @@
   --nb-tile-sky: #d9e8f7;
   --nb-accent: #4b35e8;
   --nb-link: #4b35e8;
+  --nb-focus: #4b35e8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -42,7 +43,7 @@
     --nb-margin: #b4646b;
     --nb-ink: #eef2f8;
     --nb-ink-soft: #b9c3d7;
-    --nb-marker: #8a6f12;
+    --nb-marker: #735c0f;
     --nb-card: #242d40;
     --nb-card-open: #2e3546;
     --nb-shadow: #06090f;
@@ -55,6 +56,8 @@
     --nb-accent: #4b35e8;
     /* Indigo text is about 2.3:1 on slate paper; this lavender clears 7:1. */
     --nb-link: #b8acff;
+    /* A focus ring needs 3:1 against the paper; indigo is about 2:1 here. */
+    --nb-focus: #b8acff;
   }
 }
 
@@ -75,6 +78,7 @@
   --color-tile-sky: var(--nb-tile-sky);
   --color-accent: var(--nb-accent);
   --color-link: var(--nb-link);
+  --color-focus: var(--nb-focus);
 
   /* next/font sets --font-kalam and --font-patrick on <html>; the rest of
      each stack is what shows if they fail to load. */
@@ -179,7 +183,9 @@
     transparent 92%
   );
   padding: 0 2px;
-  color: inherit;
+  /* Ink, not the paragraph's soft ink, which falls below 4.5:1 on the dark
+     highlighter. */
+  color: var(--color-ink);
 }
 
 /* An SVG scribble under a word that draws itself; see `Scribble`. */
@@ -335,7 +341,7 @@
   }
   &:focus-visible {
     outline: none;
-    border-bottom-color: var(--color-accent);
+    border-bottom-color: var(--color-focus);
     background: rgb(255 227 77 / 0.3);
   }
 }
@@ -414,7 +420,7 @@
 
 /* A visible keyboard focus everywhere in the notebook: a dashed outline. */
 .notebook :focus-visible {
-  outline: 3px dashed var(--color-accent);
+  outline: 3px dashed var(--color-focus);
   outline-offset: 4px;
 }
 

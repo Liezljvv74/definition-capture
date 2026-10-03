@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { celebrate, reducedMotion } from "@/components/notebook/doodles";
 
@@ -31,6 +31,10 @@ const normalise = (value: string) => value.trim().toLowerCase().replace(/[.!?]/g
 export function TryOneNow() {
   const inputId = useId();
   const card = useRef<HTMLDivElement>(null);
+  // The pause between a right answer and the next card; while it runs, Check
+  // does nothing, so a second press cannot celebrate twice or skip a card.
+  const advance = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(advance.current), []);
   const [at, setAt] = useState(0);
   const [answer, setAnswer] = useState("");
   const [wrong, setWrong] = useState(0);
@@ -42,13 +46,14 @@ export function TryOneNow() {
   function check(event: FormEvent) {
     event.preventDefault();
     const given = normalise(answer);
-    if (!given) return;
+    if (!given || advance.current !== undefined) return;
     const current = CARDS[at];
     if (current.answers.some((right) => normalise(right) === given)) {
       setMessage({ text: "Correct! Back for review in a few days.", tone: "good" });
       setWrong(0);
       if (card.current && !reducedMotion()) celebrate(card.current);
-      window.setTimeout(() => {
+      advance.current = window.setTimeout(() => {
+        advance.current = undefined;
         const next = (at + 1) % CARDS.length;
         setAt(next);
         setAnswer("");

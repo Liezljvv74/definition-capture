@@ -116,14 +116,14 @@ export type ProgressPart = {
   className: string;
 };
 
-/** The three parts of the progress bar, pale to navy, in the app's palette. */
+/** The three parts of the progress bar, pale to ink, in the notebook's tiles. */
 export function progressParts(s: HomeSummary): ProgressPart[] {
   const total = s.newItems + s.learning + s.learned;
   const share = (n: number) => (total === 0 ? 0 : (n / total) * 100);
   return [
-    { label: "New", count: s.newItems, percent: share(s.newItems), className: "bg-flashcard" },
-    { label: "Learning", count: s.learning, percent: share(s.learning), className: "bg-indigo-400" },
-    { label: "Learned", count: s.learned, percent: share(s.learned), className: "bg-flashcard-frame" },
+    { label: "New", count: s.newItems, percent: share(s.newItems), className: "bg-tile-sky" },
+    { label: "Learning", count: s.learning, percent: share(s.learning), className: "bg-tile-blue" },
+    { label: "Learned", count: s.learned, percent: share(s.learned), className: "bg-ink" },
   ];
 }
 
