@@ -58,8 +58,8 @@ export default function ChoosePasswordPage() {
 
   return (
     <>
-      <header className="notebook-page">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 pt-6">
+      <header className="notebook-page mx-auto w-full max-w-lg">
+        <div className="flex items-center justify-between gap-3 pt-6">
           <h1 className="hand-title text-2xl sm:text-3xl">
             <span className="marker">Choose a password</span>
           </h1>
