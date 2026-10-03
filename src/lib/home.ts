@@ -144,6 +144,11 @@ export function progressParts(s: HomeSummary): ProgressPart[] {
   ];
 }
 
+/** Everything the progress bar counts, verbs included, so its heading agrees with its legend. */
+export function progressTotal(s: HomeSummary): number {
+  return progressParts(s).reduce((n, part) => n + part.count, 0);
+}
+
 export type RecentItem = {
   id: string;
   itemType: string;

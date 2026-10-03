@@ -6,6 +6,7 @@ import {
   QUOTES,
   quoteFor,
   progressParts,
+  progressTotal,
   readRecent,
   readRemember,
   readSummary,
@@ -166,5 +167,12 @@ describe("quoteFor", () => {
 
   it("has no em dash in any quote or attribution", () => {
     for (const q of QUOTES) expect(`${q.text}${q.by}`).not.toContain("—");
+  });
+});
+
+describe("progressTotal", () => {
+  it("counts verbs as well as words and phrases, so a verbs-only account has progress", () => {
+    expect(progressTotal(summary({ newItems: 1, learned: 1, verbsLearning: 2 }))).toBe(4);
+    expect(progressTotal(summary({ verbsNew: 3 }))).toBe(3);
   });
 });

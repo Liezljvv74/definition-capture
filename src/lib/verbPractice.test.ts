@@ -120,6 +120,11 @@ describe("marking", () => {
     expect(markForm("", "gehe", ",/")).toBe(false);
   });
 
+  it("treats a phone's curly apostrophe as the straight one", () => {
+    expect(markForm("m’appelle", "m'appelle", ",/")).toBe(true);
+    expect(markForm("m'appelle", "m’appelle", ",/")).toBe(true);
+  });
+
   it("accepts any one alternative the separators offer", () => {
     expect(markForm("bist", "bist/seid", ",/")).toBe(true);
     expect(markForm("seid", "bist/seid", ",/")).toBe(true);

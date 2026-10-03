@@ -71,7 +71,7 @@ function VerbsShell({
 function VerbList() {
   const params = useSearchParams();
   const { tables, loaded } = useVerbTables();
-  const { records } = useTenseRecords();
+  const { records, loaded: recordsLoaded, error: recordsError } = useTenseRecords();
   /** True while the Practise dialog is open. */
   const [practising, setPractising] = useState(false);
   const sorting = useSorting();
@@ -258,7 +258,9 @@ function VerbList() {
 
         <div className="flex shrink-0 gap-2 sm:ml-auto">
           {tables.some((table) => countedTenses(table).length > 0) && (
-            <button type="button" className="btn btn-primary" onClick={() => setPractising(true)}>
+            // Not until the results have loaded: before then every tense would
+            // look not tried and nothing due.
+            <button type="button" className="btn btn-primary" disabled={!recordsLoaded} onClick={() => setPractising(true)}>
               Practise
             </button>
           )}
@@ -267,6 +269,10 @@ function VerbList() {
           </button>
         </div>
       </div>
+
+      {recordsError && (
+        <p role="alert" className="mb-2 text-sm text-red-700 dark:text-red-300">{recordsError}</p>
+      )}
 
       {/* Only while a search is narrowing things down: the total now lives in
           the header, so repeating it here would say the same thing twice. */}

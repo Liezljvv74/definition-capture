@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readTenseRecord } from "@/lib/verbPracticeData";
+import { readTenseRecord, recordTenses } from "@/lib/verbPracticeData";
 
 describe("readTenseRecord", () => {
   it("reads a row and refuses one without an item or a tense", () => {
@@ -9,5 +9,22 @@ describe("readTenseRecord", () => {
     expect(readTenseRecord({ tense: "Präsens" })).toBeNull();
     expect(readTenseRecord({ item_id: "v1" })).toBeNull();
     expect(readTenseRecord(null)).toBeNull();
+  });
+});
+
+describe("recordTenses", () => {
+  it("sends every tense even when one fails, and names the ones that failed", async () => {
+    const sent: string[] = [];
+    const failed = await recordTenses(
+      "v1",
+      [{ tense: "Präsens", right: true }, { tense: "Perfekt", right: false }, { tense: "Futur", right: true }],
+      1200,
+      async (_item, tense) => {
+        sent.push(tense);
+        if (tense === "Perfekt") throw new Error("offline");
+      },
+    );
+    expect(sent).toEqual(["Präsens", "Perfekt", "Futur"]);
+    expect(failed).toEqual([{ tense: "Perfekt", right: false }]);
   });
 });

@@ -43,3 +43,20 @@ export async function recordTense(itemId: string, tense: string, right: boolean,
   });
   if (error) throw new Error(`Could not record that answer: ${readError(error)}.`);
 }
+
+export type TenseResult = { tense: string; right: boolean };
+
+/**
+ * Records each tense of one verb on its own, so a failure on one does not
+ * stop the others being saved, and hands back the ones that failed for the
+ * page to offer again.
+ */
+export async function recordTenses(
+  itemId: string,
+  results: readonly TenseResult[],
+  tookMs: number | null,
+  record: (itemId: string, tense: string, right: boolean, tookMs: number | null) => Promise<void> = recordTense,
+): Promise<TenseResult[]> {
+  const outcomes = await Promise.allSettled(results.map((r) => record(itemId, r.tense, r.right, tookMs)));
+  return results.filter((_, at) => outcomes[at].status === "rejected");
+}
