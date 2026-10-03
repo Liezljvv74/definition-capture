@@ -145,20 +145,18 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
     <Modal title="Create flashcards" onClose={() => (busy ? undefined : onClose())}>
       <div className="space-y-5">
         <fieldset>
-          <legend className="mb-1.5 text-sm font-medium">What to draw from</legend>
+          <legend className="hand-title mb-1.5 text-base">What to draw from</legend>
           <div className="flex flex-col gap-2">
             {SOURCE_ORDER.map((source) => (
               <label
                 key={source}
-                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
-                  sources.includes(source)
-                    ? "border-indigo-500 bg-indigo-50/60 dark:border-indigo-400 dark:bg-indigo-500/10"
-                    : "border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                className={`flex cursor-pointer items-center gap-3 rounded-[4px_10px_4px_8px] border-2 border-ink p-3 text-sm transition ${
+                  sources.includes(source) ? "bg-marker text-[#1d2742] dark:text-ink" : "bg-card hover:bg-card-open"
                 }`}
               >
                 <input
                   type="checkbox"
-                  className="size-4 accent-indigo-600"
+                  className="size-4 accent-accent"
                   checked={sources.includes(source)}
                   disabled={busy}
                   onChange={() => toggleSource(source)}
@@ -167,7 +165,7 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
               </label>
             ))}
           </div>
-          <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 text-xs text-ink-soft">
             {available === null
               ? "Counting what you have…"
               : `${available} ${available === 1 ? "item has" : "items have"} an answer to show.`}
@@ -175,12 +173,12 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
         </fieldset>
 
         <fieldset>
-          <legend className="mb-1.5 text-sm font-medium">Narrow it down</legend>
+          <legend className="hand-title mb-1.5 text-base">Narrow it down</legend>
 
           <label className="flex cursor-pointer items-center gap-3 text-sm">
             <input
               type="checkbox"
-              className="size-4 accent-indigo-600"
+              className="size-4 accent-accent"
               checked={needsReviewOnly}
               disabled={busy}
               onChange={(event) => setNeedsReviewOnly(event.target.checked)}
@@ -189,16 +187,16 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
           </label>
 
           {collections === null ? (
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-xs text-ink-soft">
               Loading your collections…
             </p>
           ) : collections.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-xs text-ink-soft">
               Nothing is filed under a collection yet, so there is nothing to narrow by.
             </p>
           ) : (
             <div className="mt-3">
-              <p className="mb-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mb-1.5 text-xs text-ink-soft">
                 Collections. Choosing none means all of them.
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -213,8 +211,8 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
                       aria-pressed={on}
                       className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition ${
                         on
-                          ? "border-indigo-500 bg-indigo-600 text-white"
-                          : "border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                          ? "border-ink bg-marker text-[#1d2742] dark:text-ink"
+                          : "border-ink bg-card text-ink hover:bg-card-open"
                       }`}
                     >
                       {collection.name}
@@ -232,7 +230,7 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
           </label>
           <input
             id={`${ids}-size`}
-            className="field w-32"
+            className="ink-input w-32"
             type="number"
             min={1}
             max={500}
@@ -242,7 +240,7 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
             disabled={busy}
             onChange={(event) => setSize(event.target.value)}
           />
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-ink-soft">
             Leave it blank for {DEFAULT_DECK_SIZE}. If you ask for more than you have, you
             get what there is.
           </p>
