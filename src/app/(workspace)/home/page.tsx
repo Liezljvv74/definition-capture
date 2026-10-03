@@ -114,7 +114,12 @@ export default async function HomePage() {
           </section>
         )}
 
-        <ReviewCard state={reviewState(summary, now)} quote={quoteFor(now)} className="lg:col-span-2" />
+        <ReviewCard
+          state={reviewState(summary, now)}
+          quote={quoteFor(now)}
+          verbs={{ due: summary.verbTensesDue, fresh: summary.verbTensesNew }}
+          className="lg:col-span-2"
+        />
 
         {remember && <RememberCard item={remember} />}
 

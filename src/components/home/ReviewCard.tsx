@@ -18,10 +18,13 @@ import { plural, type ReviewState } from "@/lib/home";
 export function ReviewCard({
   state,
   quote,
+  verbs,
   className = "",
 }: {
   state: ReviewState;
   quote?: { text: string; by: string };
+  /** Verb tenses due and not yet tried, which verb practice asks rather than flashcards. */
+  verbs: { due: number; fresh: number };
   className?: string;
 }) {
   const router = useRouter();
@@ -119,6 +122,19 @@ export function ReviewCard({
           {action}
           {canCustomise && <CreateDeckButton />}
         </div>
+      )}
+      {(verbs.due > 0 || verbs.fresh > 0) && (
+        <p className="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
+          {verbs.due > 0
+            ? `${plural(verbs.due, "verb tense", "verb tenses")} due`
+            : `${plural(verbs.fresh, "tense", "tenses")} to learn`}
+          <Link
+            href={verbs.due > 0 ? "/verbs/practise?mode=due" : "/verbs/practise?mode=new"}
+            className="link-button"
+          >
+            Practise verbs
+          </Link>
+        </p>
       )}
       {error && (
         <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-300">
