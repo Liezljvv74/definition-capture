@@ -20,7 +20,7 @@ those migrations and in the git log; none of it is live.
 
 ## The shape
 
-Eleven tables, no views, eight functions, none of them `security definer`.
+Twelve tables, no views, ten functions, none of them `security definer`.
 
 | Table | Holds | Written by |
 | --- | --- | --- |
@@ -31,7 +31,8 @@ Eleven tables, no views, eight functions, none of them `security definer`.
 | `decks` | a deck asked for once and played | `build_deck` |
 | `deck_cards` | a deck's cards in order | `build_deck` |
 | `progress` | each item's place in the review schedule | `record_review` |
-| `reviews` | every answer ever given, append-only | `record_review` |
+| `verb_tense_progress` | each verb tense's place in the review schedule | `record_tense_review` |
+| `reviews` | every answer ever given, append-only | `record_review`, `record_tense_review` |
 | `user_settings` | one row of preferences per account | Settings |
 | `account_plans` | `free` or `paid`, for the grammar tutor; no row means free | an administrator only |
 | `tutor_usage` | one row per tutor question, append-only | the tutor route |
@@ -136,6 +137,18 @@ be read off the streak and the interval. Besides the primary key on
 `item_id`, `(user_id, item_id) include (due_at)` finds one account's rows,
 which the deck builder joins to without reading the table.
 
+### `verb_tense_progress`
+
+One row per (verb, tense) that has been practised, with the same schedule
+columns as `progress` (see Docs/verb-practice.md). Verbs are practised as a
+table per tense rather than as flashcards, so every tense has its own schedule
+and a verb counts as learned only when every tense on its table is. Primary key
+`(item_id, tense)`, which also serves the cascade from the composite foreign
+key to `items`; `(user_id, due_at)` for an account's rows. A tense is its name
+on the table, never blank; `record_tense_review` refuses a tense the table does
+not have. Select, insert and update policies on the owner, as `progress` has,
+because the function runs with the caller's rights.
+
 ### `reviews`
 
 Append-only: every answer, with its outcome, response time, and the schedule
@@ -151,6 +164,9 @@ The browser decides whether an answer was right, so `record_review` is
 `security invoker` and a reader could write their own rows directly. That is
 accepted: they are the reader's own rows. Nothing should treat `reviews` as a
 tamper-proof record.
+
+`tense` is set on a verb tense answer and null on every other review. Anything
+drawing flashcard statistics from `reviews` must filter `tense is null`.
 
 ### `user_settings`
 
@@ -177,9 +193,11 @@ All `security invoker`, all with `search_path = ''`, execute granted to
 | Function | Does |
 | --- | --- |
 | `save_items(payload jsonb)` | saves any number of items with their source and collections, in one transaction. Names are resolved, and created when missing, inside the call. A key left out of the payload leaves that part of an existing item alone. `user_id` comes from the session, never the payload. |
+| `schedule_step(streak, interval_days, ease, lapses, answer)` | the scheduling rules, shared by the two functions below so they cannot drift apart |
 | `record_review(item, answer, took_ms)` | writes a review and upserts the item's progress |
+| `record_tense_review(item, target_tense, answer, took_ms)` | the same for one tense of a verb table, into `verb_tense_progress` |
 | `build_deck(item_types, tag_ids, only_needs_review, only_recent, size, only_due)` | fills a deck, due first then at random, or newest first; keeps the newest ten decks. `only_due` (default false) draws only items whose `progress.due_at` has passed, most overdue first |
-| `home_summary()` | one row for the dashboard: `words`, `words_without_definition`, `phrases`, `verb_tables`, `grammar_rules`, `due`, `new_items`, `learning`, `learned`, `next_due_at`, `last_saved_at`, `remember_id`: a random difficult word or phrase (see Docs/homepage.md), else null. Security invoker, so row level security applies |
+| `home_summary()` | one row for the dashboard: `words`, `words_without_definition`, `phrases`, `verb_tables`, `grammar_rules`, `due`, `new_items`, `learning`, `learned`, `next_due_at`, `last_saved_at`, `remember_id`: a random difficult word or phrase (see Docs/homepage.md), else null; then `verb_tenses_due`, `verb_tenses_new`, `verbs_new`, `verbs_learning`, `verbs_learned`. The flashcard counts (`due` to `next_due_at`) are words and phrases only; verbs are counted by their tenses. Security invoker, so row level security applies |
 | `rename_tag(context, from, to)` | renames a tag, or merges it into one that already has the new name |
 | `rename_item_source(from, to)` | the same for a source |
 | `items_guard()`, `set_updated_at()` | triggers on `items` (and `user_settings` for the second) |

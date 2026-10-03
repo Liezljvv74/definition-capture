@@ -224,10 +224,11 @@ points at. A collection or source still in use cannot be deleted; the database
 refuses it and Settings switches the bin off.
 
 **`Docs/schema.md` is the design of record, and it is read before a table is
-added.** Eleven tables, no views, and eight functions, none of them `security
+added.** Twelve tables, no views, and ten functions, none of them `security
 definer`: `items` holds every word, phrase, verb table and grammar rule, with a check per type
 on its detail columns; `tags`, `item_tags` and `sources` label them; `decks`,
-`deck_cards`, `progress` and an append-only `reviews` carry the flashcards; and
+`deck_cards`, `progress` and an append-only `reviews` carry the flashcards, and
+`verb_tense_progress` the per-tense schedule of verb practice; and
 `user_settings` is one row of preferences; `account_plans` and `tutor_usage` carry the grammar tutor's plan and use. Every owned row carries `user_id`, and
 composite foreign keys `(x_id, user_id)` make a link between two accounts' rows
 impossible. `Docs/db-refactor-plan.md` records how the schema got here and why.
