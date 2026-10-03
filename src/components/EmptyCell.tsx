@@ -11,7 +11,7 @@
  */
 export function EmptyCell() {
   return (
-    <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
+    <span aria-hidden="true" className="text-ink-soft">
       -
     </span>
   );

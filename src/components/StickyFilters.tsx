@@ -23,4 +23,4 @@
  * of it.
  */
 export const STICKY_FILTERS =
-  "sticky top-[var(--nav-height)] z-20 -mx-4 border-b border-slate-200 bg-slate-100 px-4 py-3 sm:-mx-6 sm:px-6 dark:border-slate-800 dark:bg-slate-950";
+  "sticky top-[var(--nav-height)] z-20 -mr-4 border-b-[1.5px] border-dashed border-ink-soft bg-paper py-3 pr-4 sm:-mr-8 sm:pr-8";

@@ -75,10 +75,10 @@ export function StoreErrorBanner() {
   if (!message) return null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6">
+    <div className="notebook-page mx-auto w-full max-w-6xl pt-4">
       <div
         role="alert"
-        className="card flex items-start gap-3 border-red-200 bg-red-50 p-4 text-sm
+        className="card flex items-start gap-3 border-red-300 bg-red-50 p-4 text-sm
           text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
       >
         {/* The whole sentence comes from the store. A read that failed and a

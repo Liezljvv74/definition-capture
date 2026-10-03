@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState, type CSSProperties } from "react";
 
 import { AddWordDialog } from "@/components/AddWordDialog";
 import { CollectionBadge, NeedsDefinitionBadge } from "@/components/Badges";
@@ -156,13 +156,12 @@ export default function VocabularyPage() {
 
   return (
     <>
-      <header className="bg-card-blue">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-              Vocabulary
-            </h1>
-            <p className="mt-0.5 text-sm text-slate-700">
+      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
+        <div>
+          <h1 className="hand-title text-2xl sm:text-3xl">
+            <span className="marker">Vocabulary</span>
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">
               {!loaded
                 ? "Loading your vocabulary…"
                 : entries.length === 0
@@ -175,11 +174,10 @@ export default function VocabularyPage() {
                         : ""
                     }`}
             </p>
-          </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
         {!loaded ? (
           <div className="card h-64 animate-pulse" aria-hidden="true" />
         ) : entries.length === 0 ? (
@@ -232,10 +230,10 @@ export default function VocabularyPage() {
                 </div>
               )}
 
-              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
+              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
                 <input
                   type="checkbox"
-                  className="size-4 accent-indigo-600"
+                  className="size-4 accent-accent"
                   checked={onlyNeedsDefinition}
                   onChange={(event) => setOnlyNeedsDefinition(event.target.checked)}
                 />
@@ -301,7 +299,7 @@ export default function VocabularyPage() {
                   />
                 )}
                 {isFiltered && (
-                  <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-3 text-xs text-ink-soft">
                     Showing {visible.length} of {entries.length} words.
                   </p>
                 )}
@@ -357,7 +355,7 @@ function EntryTable({
   return (
     <div className="card hidden overflow-hidden md:block">
       <table className="w-full table-fixed border-collapse text-left text-sm">
-        <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
+        <thead className="border-b-2 border-ink bg-tile-sky text-xs tracking-wide text-ink">
           <tr>
             <th scope="col" className="w-10 px-3 py-2.5">
               <SelectAllCheckbox
@@ -384,7 +382,7 @@ function EntryTable({
                     <button
                       type="button"
                       onClick={() => onSort(column.key as SortKey)}
-                      className="inline-flex cursor-pointer items-center gap-1 hover:text-slate-900 dark:hover:text-slate-100"
+                      className="inline-flex cursor-pointer items-center gap-1 hover:underline"
                     >
                       {column.label}
                       <span aria-hidden="true" className={active ? "" : "opacity-30"}>
@@ -400,15 +398,15 @@ function EntryTable({
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+        <tbody className="divide-y divide-rule">
           {entries.map((entry) => {
             const selected = selection.isSelected(entry.id);
             return (
               <tr
                 key={entry.id}
-                className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                className={`transition-colors hover:bg-card-open ${
                   selected
-                    ? "bg-indigo-50/80 dark:bg-indigo-500/10"
+                    ? "bg-tile-sky"
                     : entry.needsDefinition
                       ? "bg-amber-50/70 dark:bg-amber-400/5"
                       : ""
@@ -430,12 +428,12 @@ function EntryTable({
                       being handed a form to escape from. */}
                   <Link
                     href={`/word?id=${entry.id}`}
-                    className="font-medium text-indigo-700 hover:underline dark:text-indigo-300"
+                    className="font-medium text-link hover:underline"
                   >
                     {entry.word}
                   </Link>
                 </td>
-                <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
+                <td className="px-4 py-3 align-top text-ink">
                   {entry.needsDefinition ? (
                     <NeedsDefinitionBadge />
                   ) : (
@@ -453,7 +451,7 @@ function EntryTable({
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-4 py-3 align-top text-slate-600 dark:text-slate-400">
+                <td className="px-4 py-3 align-top text-ink-soft">
                   {entry.ref ? (
                     <span className="line-clamp-3 break-words">
                       <RefText value={entry.ref} linkIndex={linkIndex} />
@@ -496,7 +494,7 @@ function EntryCards({
 }) {
   return (
     <div className="md:hidden">
-      <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-slate-600 select-none dark:text-slate-300">
+      <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
         <SelectAllCheckbox
           checked={selection.allSelected}
           indeterminate={selection.partiallySelected}
@@ -514,8 +512,8 @@ function EntryCards({
               {/* A plain card, not a link — the Ref field may contain its own links,
                   and an anchor cannot be nested inside another anchor. */}
               <div
-                className={`card p-4 transition hover:border-indigo-300 dark:hover:border-indigo-500/50 ${
-                  selected ? "border-indigo-400 bg-indigo-50/60 dark:bg-indigo-500/10" : ""
+                className={`card p-4 transition hover:border-accent ${
+                  selected ? "bg-tile-sky" : ""
                 } ${entry.needsDefinition ? "border-l-4 border-l-amber-400" : ""}`}
               >
                 <div className="flex items-start gap-2.5">
@@ -529,7 +527,7 @@ function EntryCards({
                   <h2 className="flex-1 font-semibold">
                     <Link
                       href={`/word?id=${entry.id}`}
-                      className="text-indigo-700 hover:underline dark:text-indigo-300"
+                      className="text-link hover:underline"
                     >
                       {entry.word}
                     </Link>
@@ -541,13 +539,13 @@ function EntryCards({
                   </div>
                 </div>
                 {entry.definition && (
-                  <p className="mt-1.5 line-clamp-3 text-sm text-slate-700 dark:text-slate-300">
+                  <p className="mt-1.5 line-clamp-3 text-sm text-ink">
                     {entry.definition}
                   </p>
                 )}
                 {entry.ref && (
-                  <p className="mt-2 text-xs break-words text-slate-600 dark:text-slate-400">
-                    <span className="font-medium text-slate-500 dark:text-slate-500">Ref: </span>
+                  <p className="mt-2 text-xs break-words text-ink-soft">
+                    <span className="font-medium text-ink-soft">Ref: </span>
                     <RefText value={entry.ref} linkIndex={linkIndex} />
                   </p>
                 )}
@@ -569,12 +567,16 @@ function EntryCards({
 
 function EmptyVocabulary({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="card mx-auto max-w-xl p-8 text-center">
+    <div
+      data-doodle="star"
+      className="paste tape tape-centre mx-auto max-w-xl rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-8 text-center shadow-[4px_5px_0_var(--color-shadow)]"
+      style={{ "--r": "-0.8deg" } as CSSProperties}
+    >
       <div aria-hidden="true" className="mb-3 text-4xl">
         📖
       </div>
-      <h2 className="text-lg font-semibold">No words yet</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
+      <h2 className="hand-title text-xl">No words yet</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
         Captured is a place to park the words and concepts you meet while studying, so
         you can search and review them later. Save a word now and write the definition whenever
         you like. Blank ones get flagged so they are easy to find again.
@@ -589,8 +591,8 @@ function EmptyVocabulary({ onAdd }: { onAdd: () => void }) {
 function NoMatches({ onClear }: { onClear: () => void }) {
   return (
     <div className="card p-8 text-center">
-      <h2 className="font-semibold">No words match those filters</h2>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+      <h2 className="hand-title text-lg">No words match those filters</h2>
+      <p className="mt-1 text-sm text-ink-soft">
         Try a different search, or clear the filters below.
       </p>
       <button type="button" className="btn btn-secondary mt-4" onClick={onClear}>

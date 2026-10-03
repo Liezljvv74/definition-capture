@@ -29,7 +29,7 @@ export function SelectRowCheckbox({
   return (
     <input
       type="checkbox"
-      className="size-4 cursor-pointer accent-indigo-600"
+      className="size-4 cursor-pointer accent-accent"
       checked={checked}
       onChange={onChange}
       aria-label={`Select ${label}`}
@@ -60,7 +60,7 @@ export function SelectAllCheckbox({
     <input
       ref={ref}
       type="checkbox"
-      className="size-4 cursor-pointer accent-indigo-600"
+      className="size-4 cursor-pointer accent-accent"
       checked={checked}
       onChange={onChange}
       aria-label={label}
@@ -85,13 +85,13 @@ export function SelectionBar({
 }) {
   return (
     <div
-      className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 dark:border-indigo-500/30 dark:bg-indigo-500/10"
+      className="mb-3 flex flex-wrap items-center gap-3 rounded-[4px_12px_3px_10px] border-2 border-ink bg-card-open px-3 py-2 shadow-[2px_3px_0_var(--color-shadow)]"
       role="region"
       aria-label="Selection actions"
     >
       <p
         aria-live="polite"
-        className="text-sm font-medium text-indigo-900 dark:text-indigo-100"
+        className="text-sm font-medium text-ink"
       >
         {count} {count === 1 ? noun : nounPlural} selected
       </p>
@@ -133,7 +133,7 @@ export function RowDeleteButton({
       disabled={disabledReason !== undefined}
       aria-label={`Delete ${label}`}
       title={disabledReason ?? `Delete ${label}`}
-      className={`inline-flex cursor-pointer items-center justify-center rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 dark:hover:bg-red-500/10 dark:hover:text-red-400 ${className}`}
+      className={`inline-flex cursor-pointer items-center justify-center rounded-md p-1.5 text-ink-soft transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-soft dark:hover:bg-red-500/10 dark:hover:text-red-400 ${className}`}
     >
       <TrashIcon />
     </button>
@@ -190,7 +190,7 @@ export function ConfirmDeleteDialog({
 
   return (
     <Modal title={title} onClose={onCancel}>
-      <p className="text-sm text-slate-700 dark:text-slate-300">
+      <p className="text-sm text-ink-soft">
         {many ? (
           <>
             These {names.length} {nounPlural} will be removed permanently. This cannot be
@@ -206,14 +206,14 @@ export function ConfirmDeleteDialog({
       {warning && <p className="mt-3 text-sm font-medium text-amber-700 dark:text-amber-400">{warning}</p>}
 
       {many && (
-        <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-300">
+        <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-rule bg-paper p-3 text-sm text-ink-soft">
           {shown.map((name, index) => (
             <li key={`${name}-${index}`} className="truncate">
               {name}
             </li>
           ))}
           {hidden > 0 && (
-            <li className="text-slate-500 italic dark:text-slate-400">
+            <li className="text-ink-soft italic">
               …and {hidden} more
             </li>
           )}
