@@ -160,7 +160,7 @@ export default function LandingPage() {
               </g>
             </svg>
             <h2 id="private-heading" className="hand-title text-[1.45rem] leading-9">
-              Private to you
+              Your work stays private ... unless YOU decide to share it
             </h2>
             <p className="mt-1 leading-7">
               Your lists belong to your account and nobody else can read them. Back everything up to a file whenever
