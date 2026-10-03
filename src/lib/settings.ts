@@ -29,6 +29,7 @@ import {
 } from "@/lib/constants";
 import { foldName } from "@/lib/foldName";
 import { readLanguageCode, readLanguageName } from "@/lib/languages";
+import { readSpeechRate, type SpeechRate } from "@/lib/speech";
 import { sortingFor } from "@/lib/sortName";
 import {
   ABANDONED,
@@ -89,6 +90,8 @@ export type Settings = {
   level: Level;
   /** Leading words Vocabulary sorts past, such as articles. */
   sortSkipWords: string[];
+  /** How fast the read-aloud buttons speak. A preference, so not in backups. */
+  speechRate: SpeechRate;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -112,6 +115,7 @@ export const DEFAULT_SETTINGS: Settings = {
   nativeLanguageOther: "",
   level: "",
   sortSkipWords: [],
+  speechRate: "normal",
 };
 
 /**
@@ -244,6 +248,7 @@ export function fromRow(
     ...readNativeLanguage(row.native_language, row.native_language_other),
     level: readLevel(row.level),
     sortSkipWords: readSkipWords(row.sort_skip_words),
+    speechRate: readSpeechRate(row.speech_rate),
   };
 }
 
@@ -430,6 +435,7 @@ export function currentSettings(): Settings {
  */
 export type RestoredSettings = Omit<
   Settings,
+  | "speechRate"
   | "language"
   | "languageOther"
   | "nativeLanguage"
@@ -555,6 +561,7 @@ export function saveSettings(change: Partial<Settings>): void {
       : readNativeLanguage(change.nativeLanguage ?? "", change.nativeLanguageOther ?? "")),
     level: readLevel(change.level ?? snapshot.settings.level),
     sortSkipWords: readSkipWords(change.sortSkipWords ?? snapshot.settings.sortSkipWords),
+    speechRate: readSpeechRate(change.speechRate ?? snapshot.settings.speechRate),
   };
 
   next.collections = sortedNames(next.collections, next.language);
@@ -595,6 +602,7 @@ export function saveSettings(change: Partial<Settings>): void {
         native_language_other: next.nativeLanguageOther,
         level: next.level,
         sort_skip_words: next.sortSkipWords,
+        speech_rate: next.speechRate,
       },
       { onConflict: "user_id" },
     )

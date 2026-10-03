@@ -59,6 +59,19 @@ describe("native language and level", () => {
     expect(currentSettings().level).toBe("C1");
   });
 
+  it("reads the reading speed, normal when missing or unknown", () => {
+    expect(row({ speech_rate: "slow" }).speechRate).toBe("slow");
+    expect(row({ speech_rate: "warp" }).speechRate).toBe("normal");
+    expect(row({}).speechRate).toBe("normal");
+    expect(fromRow(null, [], [], []).speechRate).toBe("normal");
+  });
+
+  it("writes the reading speed on save", () => {
+    saveSettings({ speechRate: "fast" });
+    expect(state.upserts.at(-1)).toMatchObject({ speech_rate: "fast" });
+    expect(currentSettings().speechRate).toBe("fast");
+  });
+
   it("leaves current values alone when an old backup lacks the fields", () => {
     const s = file({});
     expect(s).not.toBeNull();
