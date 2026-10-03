@@ -25,6 +25,21 @@ export const metadata: Metadata = { title: "Home" };
  *
  * The sizes are chosen so the dashboard fits one laptop screen without scrolling.
  */
+/** A small hand-drawn star, the doodle's shape, filled with the highlighter. */
+function Star({ className }: { className: string }) {
+  return (
+    <svg className={className} viewBox="0 0 100 100" aria-hidden="true">
+      <path
+        d="M50 6 L61 37 L94 39 L68 60 L77 93 L50 75 L23 93 L32 60 L6 39 L39 37 Z"
+        fill="var(--color-marker)"
+        stroke="var(--color-ink)"
+        strokeWidth="6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default async function HomePage() {
   const { name, summary, recent, remember } = await loadHome();
   const now = new Date();
@@ -66,9 +81,13 @@ export default async function HomePage() {
         </div>
 
         {totalCards > 0 && (
-          <section aria-labelledby="progress-heading" className="paste tape tape-two rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card px-3.5 py-2 shadow-[3px_4px_0_var(--color-shadow)]"
+          <section aria-labelledby="progress-heading" className="paste rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card px-3.5 py-2 shadow-[3px_4px_0_var(--color-shadow)]"
             style={tilt(-0.5)}
           >
+            {/* Stars rather than tape, so the progress stands out. Outside the
+                corners, never over the text. */}
+            <Star className="absolute -top-4 -left-4 size-7 -rotate-12" />
+            <Star className="absolute -top-3 -right-3 size-5 rotate-12" />
             <div className="flex items-baseline justify-between gap-3">
               <h2 id="progress-heading" className="hand-title text-base">Your progress</h2>
               <p className="text-xs text-ink-soft">{totalCards} items</p>
