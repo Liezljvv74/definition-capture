@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { signInLinkError } from "@/lib/authLinkError";
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { sendMagicLink, sendPasswordReset, signInWithPassword } from "@/lib/session";
+import { Brand } from "@/components/notebook/Brand";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
 /**
@@ -65,9 +66,10 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-md flex-1 px-4 py-12 sm:px-6">
-      <div className="card p-6">
-        <h1 className="text-xl font-semibold">Sign in to start</h1>
+    <main className="notebook-page mx-auto w-full max-w-md flex-1 py-10">
+      <Brand />
+      <div className="card relative tape tape-right p-6">
+        <h1 className="hand-title text-2xl"><span className="marker">Sign in to start</span></h1>
 
         {!isSupabaseConfigured ? (
           // A build with no credentials would otherwise show a sign-in form
@@ -162,7 +164,7 @@ function PasswordForm({
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-      <p className="text-sm text-slate-600 dark:text-slate-400">
+      <p className="text-sm text-ink-soft">
         Your words and phrases are private to your account.
       </p>
 
@@ -223,7 +225,7 @@ function PasswordForm({
         <button type="button" onClick={onUseEmail} className="link-button">
           Email me a link instead
         </button>
-        <span aria-hidden="true" className="text-slate-400">
+        <span aria-hidden="true" className="text-ink-soft">
           ·
         </span>
         <Link href="/sign-up" className="link-button">
@@ -302,7 +304,7 @@ function EmailLinkForm({
           <strong className="font-semibold">{email.trim()}</strong>. Open it on any device
           and you will land in your list, signed in.
         </p>
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-ink-soft">
           The link works once and expires after an hour. Only a few can be sent an hour, so
           give the first one a minute to arrive before asking for another, or set a
           password under Settings once you are in, and skip the email next time.
@@ -316,7 +318,7 @@ function EmailLinkForm({
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-      <p className="text-sm text-slate-600 dark:text-slate-400">
+      <p className="text-sm text-ink-soft">
         For an account with no password yet. Enter your email and we will send a link that
         signs you in.
       </p>
@@ -425,7 +427,7 @@ function ForgotPasswordForm({
           If <strong className="font-semibold">{email.trim()}</strong> has an account, a link
           to choose a new password is on its way to it.
         </p>
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-ink-soft">
           Opening it signs you in and takes you straight to the form. The link works once and
           expires after an hour. Choosing a password signs out anywhere else that was signed
           in, which is the point of changing it.
@@ -439,7 +441,7 @@ function ForgotPasswordForm({
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-      <p className="text-sm text-slate-600 dark:text-slate-400">
+      <p className="text-sm text-ink-soft">
         Enter your email and we will send a link that lets you choose a new password. You do
         not need the old one.
       </p>
