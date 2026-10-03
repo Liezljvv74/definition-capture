@@ -156,7 +156,7 @@ function Settings() {
 
   return (
     <Frame section={section}>
-      <div className="space-y-3">
+      <div className="space-y-6">
         {section.key === "profile" && (
           <>
             {/* Keyed on the stored name so a save, or a change in another tab,
@@ -242,12 +242,12 @@ function Frame({
   children: ReactNode;
 }) {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
+    <main className="notebook-page mx-auto w-full max-w-3xl flex-1 py-8">
       <header className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+        <h1 className="hand-title marker inline-block text-2xl sm:text-3xl">
           {section.label}
         </h1>
-        <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-0.5 text-sm text-ink-soft">
           {section.description}
         </p>
       </header>
@@ -439,7 +439,7 @@ function LanguageSection() {
         <LanguageOptions menu={menu} />
         <option value={OTHER_LANGUAGE}>Another language</option>
       </select>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-1 text-xs text-ink-soft">
         Sets the alphabetical order of every list.
       </p>
 
@@ -466,7 +466,7 @@ function LanguageSection() {
       {offer && (
         <div
           role="status"
-          className="mt-4 space-y-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800"
+          className="mt-4 space-y-4 rounded-[4px_10px_3px_8px] border-2 border-dashed border-ink p-3 text-sm"
         >
           {offer.lists.map(({ list, names }) => {
             const label = list === "sortSkipWords" ? "words to skip" : "verb persons";
@@ -656,7 +656,7 @@ function OtherLanguageField({
         </button>
       </div>
       {hint && (
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs text-ink-soft">
           Lists use a neutral alphabetical order. Add its articles to Words to skip when
           sorting.
         </p>
@@ -695,7 +695,7 @@ function AnswerSeparatorsSection() {
   return (
     <SettingSection title="Answer separators" summary={summary}>
       <fieldset>
-        <legend className="text-sm text-slate-600 dark:text-slate-300">
+        <legend className="text-sm text-ink-soft">
           When a flashcard is marked, these characters separate one acceptable answer from
           the next. An entry reading <strong>gladly, willingly</strong> is then answered by
           either word, by both, or by both in the other order.
@@ -709,17 +709,17 @@ function AnswerSeparatorsSection() {
             >
               <input
                 type="checkbox"
-                className="size-4 accent-indigo-600"
+                className="size-4 accent-accent"
                 checked={chosen.includes(choice.character)}
                 onChange={() => toggle(choice.character)}
               />
               <span className="font-medium">{choice.label}</span>
-              <span className="text-slate-500 dark:text-slate-400">{choice.example}</span>
+              <span className="text-ink-soft">{choice.example}</span>
             </label>
           ))}
         </div>
 
-        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-3 text-xs text-ink-soft">
           A character listed here stops being ordinary text in an answer: with the slash
           ticked, an entry reading <strong>and/or</strong> offers two answers rather than
           one. Untick everything to have answers marked exactly as they are written.
@@ -753,6 +753,13 @@ function PencilIcon() {
  * the controls underneath. Left mounted while closed rather than unmounted,
  * so a half-typed entry is still there if you fold it away and open it again.
  */
+const LOOKS = [
+  "tape border-[3px] rounded-[4px_12px_3px_10px]",
+  "border-[1.5px] rounded-[10px_4px_12px_3px]",
+  "tape tape-right border-2 rounded-[6px_3px_11px_5px]",
+  "border-[3.5px] border-dashed rounded-[3px_10px_5px_12px]",
+];
+
 function SettingSection({
   title,
   summary,
@@ -765,14 +772,17 @@ function SettingSection({
 }) {
   const bodyId = useId();
   const [open, setOpen] = useState(false);
+  // Hand-cut variety without rotation, since a section holds inputs: the
+  // border weight, corners and tape follow the title so neighbours differ.
+  const look = LOOKS[title.length % LOOKS.length];
 
   return (
-    <section className="card p-4 sm:p-5">
+    <section className={`card relative p-4 sm:p-5 ${look}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold">{title}</h2>
+          <h2 className="hand-title text-lg">{title}</h2>
           {summary !== undefined && (
-            <p className="mt-0.5 truncate text-sm text-slate-600 dark:text-slate-300">
+            <p className="mt-0.5 truncate text-sm text-ink-soft">
               {summary}
             </p>
           )}
@@ -785,7 +795,7 @@ function SettingSection({
           aria-label={open ? `Finish editing ${title}` : `Edit ${title}`}
           title={open ? "Done" : `Edit ${title}`}
           onClick={() => setOpen((current) => !current)}
-          className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+          className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-ink-soft transition hover:bg-marker/30 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {open ? "Done" : <PencilIcon />}
         </button>
@@ -794,7 +804,7 @@ function SettingSection({
       <div
         id={bodyId}
         hidden={!open}
-        className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800"
+        className="mt-4 border-t border-rule pt-4"
       >
         {children}
       </div>
@@ -813,12 +823,12 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
   return (
     <SettingSection title="Profile" summary={displayName || user?.email || "Not set"}>
       <dl>
-        <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+        <dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">
           Signed in as
         </dt>
         <dd className="mt-1 text-sm break-words">{user?.email ?? "Not set"}</dd>
       </dl>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-1 text-xs text-ink-soft">
         The address itself is the account. You can sign in with a one-time
         emailed link, or set a password below and use that instead.
       </p>
@@ -850,12 +860,12 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
             Save
           </button>
         </div>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs text-ink-soft">
           Optional. Leave it empty to go back to showing your email address.
         </p>
       </div>
 
-      <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
+      <div className="mt-5 border-t border-rule pt-4">
         <button type="button" className="btn btn-secondary" onClick={() => void signOut()}>
           Sign out
         </button>
@@ -969,7 +979,7 @@ function PasswordSection() {
 
   return (
     <SettingSection title="Password" summary="Change the password you sign in with">
-      <p className="text-sm text-slate-600 dark:text-slate-400">
+      <p className="text-sm text-ink-soft">
         Give the password you use now, then the one you would rather use. Everywhere else
         that is signed in to this account is signed out, which is the point of changing it.
       </p>
@@ -1001,7 +1011,7 @@ function PasswordSection() {
             value={password}
             onChange={typing(setPasswordDraft)}
           />
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-ink-soft">
             At least {MIN_PASSWORD} characters.
           </p>
         </div>
@@ -1055,7 +1065,7 @@ function PasswordSection() {
             forgotten theirs is in the same position. The link proves the
             mailbox, which is the proof the current-password box was asking
             for by another route. */}
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-sm text-ink-soft">
           Do not know your current password?{" "}
           <button
             type="button"
@@ -1111,11 +1121,11 @@ function ExportFolderSection() {
         !loaded ? "Checking…" : (name ?? "Your browser’s download folder")
       }
     >
-      <p className="text-sm text-slate-600 dark:text-slate-300">
+      <p className="text-sm text-ink-soft">
         Where{" "}
         <Link
           href="/vocabulary"
-          className="text-indigo-700 underline underline-offset-2 dark:text-indigo-300"
+          className="text-link underline underline-offset-2"
         >
           Export
         </Link>{" "}
@@ -1155,14 +1165,14 @@ function ExportFolderSection() {
               </button>
             )}
           </div>
-          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-3 text-xs text-ink-soft">
             Your browser may ask you to confirm access again in a new session,
             and if the folder is later moved or deleted the export will say so
             and offer you another one.
           </p>
         </>
       ) : (
-        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+        <p className="mt-4 text-sm text-ink-soft">
           This browser cannot hand a folder to a web page, so exports go to its
           own download folder. Change that in the browser&rsquo;s settings.
           Choosing a folder here works in Chrome and Edge.
