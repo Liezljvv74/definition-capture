@@ -96,17 +96,18 @@ function client() {
   return supabase;
 }
 
+/** The kinds of item a flashcard is made from; verbs are practised on their own page. */
+const CARD_TYPES = ["word", "phrase"];
+
 /**
  * Turns what the reader ticked into what the database function takes.
  *
  * Pure, and exported for its test: this is the only place that knows `all`
- * means an empty list and `recent` is an ordering. Getting it wrong would
- * silently build the wrong deck rather than fail, which is the kind of bug
- * that is noticed weeks later if at all.
+ * means words and phrases (never an empty list, which the database reads as
+ * every type, verbs included) and that `recent` is an ordering. Getting it
+ * wrong would silently build the wrong deck rather than fail, which is the
+ * kind of bug that is noticed weeks later if at all.
  */
-/** The kinds of item a flashcard is made from; verbs are practised on their own page. */
-const CARD_TYPES = ["word", "phrase"];
-
 export function toDeckRequest(request: DeckRequest): {
   item_types: string[];
   tag_ids: string[];
@@ -170,7 +171,7 @@ export async function countMatching(request: DeckRequest): Promise<number> {
     // `has_answer` is the database's copy of the rule `cardBack` applies.
     .eq("has_answer", true);
 
-  if (options.item_types.length > 0) query = query.in("item_type", options.item_types);
+  query = query.in("item_type", options.item_types);
   if (options.only_needs_review) query = query.eq("needs_review", true);
 
   const { count, error } = await query;
@@ -230,6 +231,9 @@ export function cardBack(item: CardItem): string {
       return [item.literal_meaning, item.usage_example]
         .filter((part): part is string => !!part)
         .join("\n\n");
+    // No longer shown, since verbs left the decks (`cardFromItem`), but kept:
+    // it is the app's copy of `items.has_answer`, which still gives verbs a
+    // back, and the parity test holds the two together.
     case "verb_table": {
       const tenses = readTenses(item.tenses);
       return readVerbRows(item.verb_rows, tenses.length)

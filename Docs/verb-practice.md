@@ -95,6 +95,10 @@ due date. A right tense comes back later and later; a wrong one soon.
   table already has, and a repeated name (which only an old backup could
   bring) is counted once.
 - Deleting a verb deletes its tense records (the foreign key cascades).
+- Verbs start fresh in verb practice. A verb learned on flashcards before this
+  keeps its old `progress` row, but nothing reads it any more, so it shows as
+  new until its tenses are practised (the owner chose this over carrying the
+  flashcard progress across, 3 October 2026).
 
 ## Database
 
@@ -106,7 +110,10 @@ that needs it reaches `main`:
   key `(item_id, tense)`; the composite foreign key `(item_id, user_id)` to
   `items` with `on delete cascade`, so a row can only belong to its owner's
   verb; an index for one account's due rows. RLS enabled, a select policy on
-  `(select auth.uid()) = user_id`, and writes only through the function below.
+  `(select auth.uid()) = user_id`, and insert and update policies too: results
+  are written by the function below, which runs with the caller's rights (no
+  function here is `security definer`), exactly as `progress` is written by
+  `record_review`.
 - **`reviews.tense`**: a nullable text column, set for a verb tense answer and
   null for every other review, so the history says which tense was practised.
 - **`record_tense_review(target_item, tense, answer, took_ms)`**: records one

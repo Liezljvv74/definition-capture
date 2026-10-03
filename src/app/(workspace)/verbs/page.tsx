@@ -258,9 +258,9 @@ function VerbList() {
 
         <div className="flex shrink-0 gap-2 sm:ml-auto">
           {tables.some((table) => countedTenses(table).length > 0) && (
-            // Not until the results have loaded: before then every tense would
-            // look not tried and nothing due.
-            <button type="button" className="btn btn-primary" disabled={!recordsLoaded} onClick={() => setPractising(true)}>
+            // Not until the results have loaded, and not if they failed to:
+            // either way every tense would look not tried and nothing due.
+            <button type="button" className="btn btn-primary" disabled={!recordsLoaded || recordsError !== null} onClick={() => setPractising(true)}>
               Practise
             </button>
           )}
@@ -303,7 +303,8 @@ function VerbList() {
               onEdited={() => setDirty(true)}
               onKeep={() => setWaiting(undefined)}
               onFinish={settle}
-              records={records}
+              // No marks at all rather than every tense marked not tried.
+              records={recordsError ? undefined : records}
             />
           );
         })}

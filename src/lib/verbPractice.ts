@@ -57,7 +57,12 @@ export type PracticeVerb = {
 export function practiceVerb(table: VerbTable, tenses: readonly string[]): PracticeVerb | null {
   const asked = countedTenses(table).filter((tense) => tenses.includes(tense));
   if (asked.length === 0) return null;
-  const columns = asked.map((tense) => table.tenses.indexOf(tense));
+  // The first column of each name that has a form: a repeated name (only an
+  // old backup can bring one) may have an empty column first, and asking that
+  // would record the tense as right with nothing typed.
+  const columns = asked.map((tense) =>
+    table.tenses.findIndex((name, at) => name === tense && table.rows.some((row) => (row.conjugations[at] ?? "").trim() !== "")),
+  );
   return {
     itemId: table.id,
     verb: table.verb,
@@ -70,6 +75,11 @@ export function practiceVerb(table: VerbTable, tenses: readonly string[]): Pract
       }),
     })),
   };
+}
+
+/** How many tenses a session asks, across its verbs. */
+export function tenseCount(plan: readonly PracticeVerb[]): number {
+  return plan.reduce((n, verb) => n + verb.tenses.length, 0);
 }
 
 export type PracticeMode = "due" | "new" | "all" | "choose";

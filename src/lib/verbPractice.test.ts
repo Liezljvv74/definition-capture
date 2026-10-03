@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { VerbTable } from "@/lib/types";
 import {
-  countedTenses, markForm, practiceVerb, sessionPlan, tenseMark, tenseRight, verbState,
+  countedTenses, markForm, practiceVerb, sessionPlan, tenseCount, tenseMark, tenseRight, verbState,
   type TenseRecord,
 } from "@/lib/verbPractice";
 
@@ -82,6 +82,14 @@ describe("what a verb asks", () => {
     });
   });
 
+  it("asks a repeated tense from its filled column, never an empty one", () => {
+    const odd = table({
+      tenses: ["Futur", "Futur"],
+      rows: [{ person: "ich", conjugations: ["", "werde gehen"], notes: "" }],
+    });
+    expect(practiceVerb(odd, ["Futur"])?.rows[0].cells).toEqual(["werde gehen"]);
+  });
+
   it("asks nothing when the verb has none of the tenses", () => {
     expect(practiceVerb(table(), ["Futur", "Imperfekt"])).toBeNull();
   });
@@ -139,3 +147,12 @@ describe("marking", () => {
     expect(tenseRight(verb, 0, { ...answers, "1:0": "gehts" }, ",/")).toBe(false);
   });
 });
+
+describe("tenseCount", () => {
+  it("adds up the tenses a session asks", () => {
+    const plan = [practiceVerb(table(), ["Präsens", "Perfekt"])!, practiceVerb(table(), ["Präsens"])!];
+    expect(tenseCount(plan)).toBe(3);
+    expect(tenseCount([])).toBe(0);
+  });
+});
+

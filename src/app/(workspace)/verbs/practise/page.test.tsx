@@ -6,7 +6,7 @@ const state = vi.hoisted(() => ({ recordsError: null as string | null }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams("mode=due") }));
 vi.mock("@/lib/useVerbTables", () => ({ useVerbTables: () => ({ tables: [], loaded: true, error: null }) }));
 vi.mock("@/lib/useTenseRecords", () => ({
-  useTenseRecords: () => ({ records: [], loaded: true, error: state.recordsError, reload: () => {} }),
+  useTenseRecords: () => ({ records: [], loaded: true, error: state.recordsError }),
 }));
 vi.mock("@/lib/useSettings", () => ({ useSettings: () => ({ settings: { answerSeparators: ",/" }, loaded: true }) }));
 

@@ -8,7 +8,8 @@ import { celebrate, reducedMotion } from "@/components/notebook/doodles";
 import { useSettings } from "@/lib/useSettings";
 import { useTenseRecords } from "@/lib/useTenseRecords";
 import { useVerbTables } from "@/lib/useVerbTables";
-import { markForm, sessionPlan, tenseRight, type PracticeMode, type PracticeVerb } from "@/lib/verbPractice";
+import { plural } from "@/lib/home";
+import { markForm, sessionPlan, tenseCount, tenseRight, type PracticeMode, type PracticeVerb } from "@/lib/verbPractice";
 import { recordTenses, type TenseResult } from "@/lib/verbPracticeData";
 
 const MODES: PracticeMode[] = ["due", "new", "all", "choose"];
@@ -30,7 +31,7 @@ function Practise() {
     return <main className="notebook-page mx-auto w-full max-w-4xl flex-1 py-8"><div className="card h-48 animate-pulse" aria-hidden="true" /></main>;
   }
 
-  const mode = (MODES.find((m) => m === params.get("mode")) ?? "due") as PracticeMode;
+  const mode = MODES.find((m) => m === params.get("mode")) ?? "due";
   const tenses = (params.get("tenses") ?? "").split(",").filter(Boolean).map(decodeURIComponent);
   const verbIds = (params.get("verbs") ?? "").split(",").filter(Boolean);
   const plan = sessionPlan(tables, records, { mode, tenses, verbIds }, new Date());
@@ -48,13 +49,39 @@ function Session({ plan: initial, loadError }: { plan: PracticeVerb[]; loadError
   const [checked, setChecked] = useState(false);
   const [missed, setMissed] = useState<{ verb: string; tense: string }[]>([]);
   const [rightTenses, setRightTenses] = useState(0);
-  const [failure] = useState<string | null>(loadError);
+
   // Results that could not be saved, kept so they can be sent again.
-  const [unsaved, setUnsaved] = useState<{ results: TenseResult[]; took: number } | null>(null);
+  // Each holds the verb it was for, so a save that fails after Next verb is
+  // retried against that verb, never the one now on screen.
+  const [unsaved, setUnsaved] = useState<{ itemId: string; verb: string; results: TenseResult[]; took: number }[]>([]);
+  const [retrying, setRetrying] = useState(false);
   const [message, setMessage] = useState("");
   // When the current verb was shown, for the answer time recorded with it.
   const [shownAt, setShownAt] = useState(() => Date.now());
   const card = useRef<HTMLDivElement>(null);
+
+  async function retry() {
+    if (retrying) return;
+    setRetrying(true);
+    const still = [];
+    for (const entry of unsaved) {
+      const failed = await recordTenses(entry.itemId, entry.results, entry.took);
+      if (failed.length > 0) still.push({ ...entry, results: failed });
+    }
+    setUnsaved(still);
+    setRetrying(false);
+  }
+
+  // Results that could not be saved, shown on the session and the end screen
+  // alike so none is lost unnoticed.
+  const unsavedNote = unsaved.length > 0 && (
+    <p role="alert" className="mt-1 text-sm text-red-700 dark:text-red-300">
+      Could not save {unsaved.map((entry) => `${entry.verb}: ${entry.results.map((r) => r.tense).join(", ")}`).join("; ")}.{" "}
+      <button type="button" className="link-button" disabled={retrying} onClick={() => void retry()}>
+        {retrying ? "Trying again…" : "Try again"}
+      </button>
+    </p>
+  );
 
   if (plan.length === 0) {
     return (
@@ -74,12 +101,12 @@ function Session({ plan: initial, loadError }: { plan: PracticeVerb[]; loadError
   }
 
   if (at >= plan.length) {
-    const total = plan.reduce((n, v) => n + v.tenses.length, 0);
+    const total = tenseCount(plan);
     return (
       <main className="notebook-page mx-auto w-full max-w-4xl flex-1 py-8">
         <div className="card p-6">
           <h1 className="hand-title text-2xl"><span className="marker section-purple">Practice finished</span></h1>
-          <p className="mt-2">{rightTenses} of {total} tenses right.</p>
+          <p className="mt-2">{rightTenses} of {plural(total, "tense", "tenses")} right.</p>
           {missed.length > 0 && (
             <>
               <h2 className="mt-4 text-sm font-semibold tracking-wide text-ink-soft uppercase">To look at again</h2>
@@ -93,6 +120,7 @@ function Session({ plan: initial, loadError }: { plan: PracticeVerb[]; loadError
               </ul>
             </>
           )}
+          {unsavedNote}
           <Link href="/verbs" className="btn btn-primary mt-5 inline-block">Back to Verbs</Link>
         </div>
       </main>
@@ -120,21 +148,15 @@ function Session({ plan: initial, loadError }: { plan: PracticeVerb[]; loadError
       }
     }
     const failed = await recordTenses(verb.itemId, results, took);
-    setUnsaved(failed.length > 0 ? { results: failed, took } : null);
+    if (failed.length > 0) setUnsaved((list) => [...list, { itemId: verb.itemId, verb: verb.verb, results: failed, took }]);
   }
 
-  async function retry() {
-    if (!unsaved) return;
-    const failed = await recordTenses(verb.itemId, unsaved.results, unsaved.took);
-    setUnsaved(failed.length > 0 ? { results: failed, took: unsaved.took } : null);
-  }
 
   function next() {
     setAt((n) => n + 1);
     setAnswers({});
     setChecked(false);
     setMessage("");
-    setUnsaved(null);
     setShownAt(Date.now());
   }
 
@@ -186,15 +208,8 @@ function Session({ plan: initial, loadError }: { plan: PracticeVerb[]; loadError
         </div>
 
         <p aria-live="polite" className="mt-3 min-h-6 text-sm">{message}</p>
-        {failure && <p role="alert" className="mt-1 text-sm text-red-700 dark:text-red-300">{failure}</p>}
-        {unsaved && (
-          <p role="alert" className="mt-1 text-sm text-red-700 dark:text-red-300">
-            Could not save {unsaved.results.map((r) => r.tense).join(", ")}.{" "}
-            <button type="button" className="link-button" onClick={() => void retry()}>
-              Try again
-            </button>
-          </p>
-        )}
+        {loadError && <p role="alert" className="mt-1 text-sm text-red-700 dark:text-red-300">{loadError}</p>}
+        {unsavedNote}
 
         <div className="mt-3 flex gap-2">
           {!checked ? (

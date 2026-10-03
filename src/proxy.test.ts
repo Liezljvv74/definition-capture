@@ -202,7 +202,7 @@ describe("signed out", () => {
   }
 
   it("does not carry the query string into the redirect", async () => {
-    // `/word/?id=…` names a row. The sign-in page has no use for it and the
+    // `/word/?id=…` names a row. The landing page has no use for it and the
     // referer would carry it onwards.
     const response = await ask("/word/?id=secret-word-id");
     expect(redirectPath(response)).toBe("/");
