@@ -6,6 +6,7 @@ import { Suspense, useEffect, useId, useMemo, useState, type CSSProperties } fro
 
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { VerbTableCard } from "@/components/VerbTableCard";
+import { PracticeDialog } from "@/components/verbs/PracticeDialog";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
 import { saveSettings } from "@/lib/settings";
 import { createEntry, findByWord } from "@/lib/storage";
@@ -14,7 +15,9 @@ import { useSettings } from "@/lib/useSettings";
 import { useSorting } from "@/lib/useSorting";
 import { foldName } from "@/lib/foldName";
 import { ANOTHER, chosenTense, TenseChoice } from "@/components/TenseChoice";
+import { useTenseRecords } from "@/lib/useTenseRecords";
 import { useVerbTables } from "@/lib/useVerbTables";
+import { countedTenses } from "@/lib/verbPractice";
 import { createVerbTable } from "@/lib/verbTables";
 
 /**
@@ -68,6 +71,9 @@ function VerbsShell({
 function VerbList() {
   const params = useSearchParams();
   const { tables, loaded } = useVerbTables();
+  const { records } = useTenseRecords();
+  /** True while the Practise dialog is open. */
+  const [practising, setPractising] = useState(false);
   const sorting = useSorting();
   const { loaded: settingsLoaded } = useSettings();
   const [query, setQuery] = useState("");
@@ -250,13 +256,16 @@ function VerbList() {
           />
         </div>
 
-        <button
-          type="button"
-          className="btn btn-primary shrink-0 sm:ml-auto"
-          onClick={() => setAdding(true)}
-        >
-          <span aria-hidden="true">+</span> Add verb
-        </button>
+        <div className="flex shrink-0 gap-2 sm:ml-auto">
+          {tables.some((table) => countedTenses(table).length > 0) && (
+            <button type="button" className="btn btn-primary" onClick={() => setPractising(true)}>
+              Practise
+            </button>
+          )}
+          <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>
+            <span aria-hidden="true">+</span> Add verb
+          </button>
+        </div>
       </div>
 
       {/* Only while a search is narrowing things down: the total now lives in
@@ -288,6 +297,7 @@ function VerbList() {
               onEdited={() => setDirty(true)}
               onKeep={() => setWaiting(undefined)}
               onFinish={settle}
+              records={records}
             />
           );
         })}
@@ -304,6 +314,10 @@ function VerbList() {
             Clear the search
           </button>
         </p>
+      )}
+
+      {practising && (
+        <PracticeDialog tables={tables} records={records} onClose={() => setPractising(false)} />
       )}
     </VerbsShell>
   );

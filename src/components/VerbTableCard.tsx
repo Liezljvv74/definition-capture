@@ -8,9 +8,11 @@ import { ANOTHER, chosenTense, TenseChoice } from "@/components/TenseChoice";
 import { LinkedFrom } from "@/components/LinkedFrom";
 import { RefField } from "@/components/RefField";
 import { RefText } from "@/components/RefText";
+import { TenseMarks } from "@/components/verbs/TenseMarks";
 import { SpeakButton } from "@/components/SpeakButton";
 import { foldName } from "@/lib/foldName";
 import { tenseParts } from "@/lib/speech";
+import type { TenseRecord } from "@/lib/verbPractice";
 import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useSettings } from "@/lib/useSettings";
 import { deleteVerbTable, saveVerbTable } from "@/lib/verbTables";
@@ -46,6 +48,7 @@ export function VerbTableCard({
   onEdited,
   onKeep,
   onFinish,
+  records,
 }: {
   table: VerbTable;
   open: boolean;
@@ -67,6 +70,8 @@ export function VerbTableCard({
   onKeep: () => void;
   /** Saved, discarded or deleted: the page may close it and move on. */
   onFinish: () => void;
+  /** The account's verb practice records, for each tense's mark. */
+  records?: readonly TenseRecord[];
 }) {
   const bodyId = useId();
   const sectionRef = useRef<HTMLElement>(null);
@@ -164,7 +169,10 @@ export function VerbTableCard({
         onClick={onToggle}
         className="flex w-full cursor-pointer items-center justify-between gap-3 rounded text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        <span className="truncate text-sm font-medium">{table.verb}</span>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-medium">{table.verb}</span>
+          {records && <TenseMarks table={table} records={records} compact />}
+        </span>
         <span
           aria-hidden="true"
           className={`shrink-0 text-[0.6rem] text-ink-soft transition ${
@@ -448,6 +456,9 @@ function NameTense({
   const [typed, setTyped] = useState("");
 
   const name = chosenTense(choice, typed);
+  // A table holds each tense once: two columns of one name would be asked as
+  // two tenses and share one schedule.
+  const taken = name !== "" && tenses.some((tense) => foldName(tense) === foldName(name));
 
   return (
     <div className="mt-2 rounded-lg border border-rule p-2">
@@ -470,7 +481,7 @@ function NameTense({
         <button
           type="button"
           className="btn btn-primary !px-2 !py-0.5 text-xs"
-          disabled={name === ""}
+          disabled={name === "" || taken}
           onClick={() => onAdd(name)}
         >
           Add
@@ -483,6 +494,11 @@ function NameTense({
           Cancel
         </button>
       </div>
+      {taken && (
+        <p role="alert" className="mt-1 text-xs text-red-700 dark:text-red-300">
+          That tense is already in this table.
+        </p>
+      )}
     </div>
   );
 }
