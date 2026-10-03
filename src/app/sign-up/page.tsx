@@ -74,8 +74,9 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="notebook-page mx-auto w-full max-w-md flex-1 py-10">
+    <>
       <Brand />
+      <main className="notebook-page mx-auto w-full max-w-md flex-1 py-8">
       <div className="card relative tape tape-right p-6">
         <h1 className="hand-title text-2xl"><span className="marker">Create an account</span></h1>
 
@@ -186,6 +187,7 @@ export default function SignUpPage() {
           </form>
         )}
       </div>
-    </main>
+      </main>
+    </>
   );
 }

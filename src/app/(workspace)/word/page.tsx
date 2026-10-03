@@ -7,12 +7,14 @@ import { Suspense, useState, type CSSProperties } from "react";
 import { CollectionBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
 import { EditWordDialog } from "@/components/EditWordDialog";
 import { LinkedFrom } from "@/components/LinkedFrom";
+import { SpeakButton } from "@/components/SpeakButton";
 import { RefText } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { LinkIndex } from "@/lib/links";
 import type { Entry } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useWords } from "@/lib/useWords";
+import { studiedParts } from "@/lib/speech";
 
 /**
  * Where a `[[Name]]` reference lands, addressed as `/word?id=abc123`.
@@ -91,6 +93,7 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
           <h1 className="hand-title text-2xl sm:text-3xl [overflow-wrap:anywhere]">
             <span className="marker section-blue">{entry.word}</span>
           </h1>
+          <SpeakButton speechKey={`word-page:${entry.id}`} label={entry.word} parts={() => studiedParts(entry.word)} className="mt-1" />
           {entry.needsDefinition && <NeedsDefinitionBadge />}
           {/* Editing is offered here so a cross-link that lands on a typo can
               fix it on the spot. Deleting is not: the word list owns that. */}

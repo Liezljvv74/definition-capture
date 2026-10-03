@@ -114,6 +114,7 @@ const settings: Settings = {
   nativeLanguageOther: "",
   level: "",
   sortSkipWords: [],
+  speechRate: "normal",
 };
 
 /** A settings block from a file written before topics existed: the key is absent, not empty. */

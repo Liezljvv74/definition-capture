@@ -485,3 +485,10 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* The part of a rule being read aloud; see RuleReader. */
+[data-reading] {
+  outline: 2px dashed var(--color-focus);
+  outline-offset: 4px;
+  border-radius: 4px;
+}

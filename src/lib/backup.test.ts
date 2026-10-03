@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  backupSettings,
   leavesListAlone,
   parseBackup,
   restoresSettings,
   type BackupContents,
 } from "@/lib/backup";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 import type { Entry, Phrase } from "@/lib/types";
 
 const ok = (text: string) => {
@@ -248,5 +250,13 @@ describe("restoresSettings", () => {
 
   it("restores nothing when the file carries no settings", () => {
     expect(restoresSettings(contents(), "replace")).toBe(false);
+  });
+});
+
+describe("the settings a backup carries", () => {
+  it("leaves the reading speed out", () => {
+    const settings = backupSettings({ ...DEFAULT_SETTINGS, speechRate: "fast" });
+    expect(settings).not.toHaveProperty("speechRate");
+    expect(settings.answerSeparators).toBe(DEFAULT_SETTINGS.answerSeparators);
   });
 });

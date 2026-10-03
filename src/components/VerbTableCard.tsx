@@ -8,7 +8,9 @@ import { ANOTHER, chosenTense, TenseChoice } from "@/components/TenseChoice";
 import { LinkedFrom } from "@/components/LinkedFrom";
 import { RefField } from "@/components/RefField";
 import { RefText } from "@/components/RefText";
+import { SpeakButton } from "@/components/SpeakButton";
 import { foldName } from "@/lib/foldName";
+import { tenseParts } from "@/lib/speech";
 import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useSettings } from "@/lib/useSettings";
 import { deleteVerbTable, saveVerbTable } from "@/lib/verbTables";
@@ -209,6 +211,14 @@ export function VerbTableCard({
                           {tense}
                         </strong>
                       )}
+                      {/* The whole tense down the table, as typed so far:
+                          `rows` is this card's editing state. */}
+                      <SpeakButton
+                        speechKey={`tense:${table.id}:${at}`}
+                        label={tense ? `${table.verb}, ${tense}` : table.verb}
+                        parts={() => tenseParts(rows, at)}
+                        className="!p-0.5"
+                      />
                       <AddTenseButton
                         at={at + 1}
                         tenses={tenses}

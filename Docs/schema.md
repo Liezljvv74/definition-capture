@@ -155,7 +155,7 @@ tamper-proof record.
 ### `user_settings`
 
 Display name, language, verb persons and tenses, answer separators, and the
-words to skip when sorting, the reader's native language (`native_language` code or `native_language_other` name, never both, same checks as the studied language) and CEFR `level` (`''` or A1 to C2), both read by the tutor. Collections and sources used to be arrays here,
+words to skip when sorting, the reader's native language (`native_language` code or `native_language_other` name, never both, same checks as the studied language) and CEFR `level` (`''` or A1 to C2), both read by the tutor, and `speech_rate` (`'slow'`, `'normal'` or `'fast'`, default `'normal'`), how fast read aloud speaks (see Docs/voice.md). Collections and sources used to be arrays here,
 copied into `tags` by a background call; they are rows of their own now.
 
 ### `account_plans` and `tutor_usage`

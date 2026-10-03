@@ -29,6 +29,12 @@ or device. It is live at <https://definition-capture.vercel.app>.
 - **Tutor**: ask a grammar question and get an explanation at your level, built
   from reference sites for the language you are studying, which you can save as a
   grammar rule.
+- **Read aloud**: a speaker beside every word and phrase, in the lists and on
+  their own pages, and beside a phrase's usage example; one in each verb tense
+  heading that reads the tense down the table; and a floating one on a rule page
+  that reads the whole rule, or only the selected text, each part in the
+  voice of the language it is written in. It uses the browser's own speech, and the speed (Slow,
+  Normal or Fast) is set in Settings.
 - **Backup**: export everything, or one list, as JSON or as an Excel workbook,
   and import a backup again without disturbing the lists the file says nothing
   about.

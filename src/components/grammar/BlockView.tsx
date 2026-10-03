@@ -60,7 +60,14 @@ function TableView({ table, linkIndex }: { table: TableBlock; linkIndex: LinkInd
                     ? "row"
                     : undefined;
                 return (
-                  <Cell key={c} data-field={`cell:${r}:${c}`} className={isHeader ? headerClass : cellClass} scope={scope}>
+                  <Cell
+                    key={c}
+                    data-field={`cell:${r}:${c}`}
+                    // A header may be in either language; a selection starting here is judged by its words.
+                    data-speak-lang={isHeader ? "auto" : undefined}
+                    className={isHeader ? headerClass : cellClass}
+                    scope={scope}
+                  >
                     <InlineText text={cell} linkIndex={linkIndex} />
                   </Cell>
                 );
@@ -83,7 +90,7 @@ function ExampleView({ example, linkIndex }: { example: ExampleBlock; linkIndex:
         <InlineText text={example.sentence} linkIndex={linkIndex} mode="sentence" />
       </p>
       {example.translation && (
-        <figcaption data-field="translation" className="mt-1 text-sm text-ink-soft">
+        <figcaption data-field="translation" data-speak-lang="native" className="mt-1 text-sm text-ink-soft">
           <InlineText text={example.translation} linkIndex={linkIndex} mode="plain" />
         </figcaption>
       )}

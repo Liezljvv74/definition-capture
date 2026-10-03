@@ -154,11 +154,18 @@ export type Backup = {
    * does not. Null means the file says nothing about settings, which is what
    * every backup written before version 3 looks like.
    */
-  settings: Settings | null;
+  settings: Omit<Settings, "speechRate"> | null;
 };
 
 /** Which lists an export should carry. */
 export type BackupScope = "all" | BackupList;
+
+/** The settings a backup carries: everything but the reading speed, which is a preference rather than data. */
+export function backupSettings(settings: Settings): Omit<Settings, "speechRate"> {
+  const { speechRate, ...rest } = settings;
+  void speechRate;
+  return rest;
+}
 
 export function buildBackup(scope: BackupScope = "all"): Backup {
   // Asking what is included, rather than what is excluded: a chain of "not
@@ -173,7 +180,7 @@ export function buildBackup(scope: BackupScope = "all"): Backup {
     phrases: wants("phrases") ? getPhrases().map(toWirePhrase) : [],
     verbTables: wants("verbTables") ? getVerbTables().map(toWireVerbTable) : [],
     rules: wants("rules") ? getRules().map(toWireRule) : [],
-    settings: scope === "all" ? currentSettings() : null,
+    settings: scope === "all" ? backupSettings(currentSettings()) : null,
   };
 }
 

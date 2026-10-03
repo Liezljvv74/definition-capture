@@ -7,12 +7,14 @@ import { Suspense, useState, type CSSProperties } from "react";
 import { CollectionBadge, SourceBadge } from "@/components/Badges";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { LinkedFrom } from "@/components/LinkedFrom";
+import { SpeakButton } from "@/components/SpeakButton";
 import { RefText } from "@/components/RefText";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { LinkIndex } from "@/lib/links";
 import type { Phrase } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
 import { usePhrases } from "@/lib/usePhrases";
+import { studiedParts } from "@/lib/speech";
 
 /**
  * Where a `[[Phrase]]` reference lands, addressed as `/phrase?id=abc123`.
@@ -92,6 +94,7 @@ function PhraseDetailCard({
           <h1 className="hand-title text-2xl sm:text-3xl [overflow-wrap:anywhere]">
             <span className="marker section-green">{phrase.phrase}</span>
           </h1>
+          <SpeakButton speechKey={`phrase-page:${phrase.id}`} label={phrase.phrase} parts={() => studiedParts(phrase.phrase)} className="mt-1" />
           {/* Editing is offered here so a cross-link that lands on a typo can
               fix it on the spot. Deleting is not: the list owns that. */}
           <button type="button" className="btn btn-primary ml-auto" onClick={() => setIsEditing(true)}>
@@ -107,7 +110,15 @@ function PhraseDetailCard({
 
             <Field label="Usage example" empty="No example yet.">
               {phrase.usageExample && (
-                <p className="whitespace-pre-wrap text-ink italic">“{phrase.usageExample}”</p>
+                <p className="flex items-start gap-1 whitespace-pre-wrap text-ink italic">
+                  <SpeakButton
+                    speechKey={`example:${phrase.id}`}
+                    label="the usage example"
+                    parts={() => studiedParts(phrase.usageExample)}
+                    className="-ml-1.5 not-italic"
+                  />
+                  <span>“{phrase.usageExample}”</span>
+                </p>
               )}
             </Field>
           </div>
