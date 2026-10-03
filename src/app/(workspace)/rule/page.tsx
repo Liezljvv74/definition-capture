@@ -9,6 +9,7 @@ import { LinkedFrom } from "@/components/LinkedFrom";
 import { BlockView } from "@/components/grammar/BlockView";
 import { ReadingTools } from "@/components/grammar/ReadingTools";
 import { RuleEditor } from "@/components/grammar/RuleEditor";
+import { RuleReader } from "@/components/grammar/RuleReader";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { LinkIndex } from "@/lib/links";
 import { updateRule } from "@/lib/rules";
@@ -95,7 +96,7 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
   return (
     <article className="card p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="hand-title text-2xl sm:text-3xl">
+        <h1 className="hand-title text-2xl sm:text-3xl" data-speak-lang="native">
           <span className="marker section-sage">{rule.title}</span>
         </h1>
         <TopicBadge name={rule.topic} />
@@ -106,8 +107,16 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
       ) : (
         <ReadingTools rule={rule}>
           <div className="mt-5 space-y-5 font-sans leading-relaxed">
+            {/* Each block says which language it is read in, and is the
+                element RuleReader outlines while reading it. */}
             {rule.blocks.map((block) => (
-              <BlockView key={block.id} block={block} linkIndex={linkIndex} />
+              <div
+                key={block.id}
+                data-speak-block={block.id}
+                data-speak-lang={block.kind === "text" ? "native" : "studied"}
+              >
+                <BlockView block={block} linkIndex={linkIndex} />
+              </div>
             ))}
           </div>
         </ReadingTools>
@@ -135,6 +144,8 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
           Edit
         </button>
       </div>
+
+      <RuleReader rule={rule} />
     </article>
   );
 }
