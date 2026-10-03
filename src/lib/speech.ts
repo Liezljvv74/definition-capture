@@ -185,30 +185,63 @@ export type PlayOptions = {
   make: (text: string) => Utterance;
   onPart?: (part: SpeechPart) => void;
   onEnd?: () => void;
+  /** A repeating timer, returning its cancel; tests pass a hand-turned one. */
+  every?: (tick: () => void, ms: number) => () => void;
+};
+
+/** How often the engine is asked whether it is still talking, and how many quiet checks in a row mean it has stopped. */
+const WATCH_MS = 250;
+const QUIET_CHECKS = 3;
+
+const everyDefault = (tick: () => void, ms: number) => {
+  const id = setInterval(tick, ms);
+  return () => clearInterval(id);
 };
 
 /**
- * Says the parts one after another and returns a stop. Whatever was being
- * said is cancelled first. Once stopped, nothing more is said and `onEnd` is
- * not called: cancelling makes the browser fire `onend` or `onerror` on the
- * utterance it cut short, and that must not start the next part.
+ * Says the parts one after another and returns a stop. Once stopped, nothing
+ * more is said and `onEnd` is not called: cancelling makes the browser fire
+ * `onend` or `onerror` on the utterance it cut short, and that must not start
+ * the next part.
+ *
+ * The engine's events are not trusted on their own. Chrome's online voices
+ * (Google's, used for any language with no voice installed) can report an
+ * utterance ended while still talking, or never report it at all. So when the
+ * engine says whether it is `speaking`, it is also asked every 250ms: the
+ * reading only ends once it has really gone quiet, and a part the engine went
+ * quiet on without an end is moved past. Whatever was playing is cancelled
+ * first, but only when something is, since a cancel just before a speak can
+ * swallow the speak in some browsers.
  */
 export function playParts(
-  synth: { speak(utterance: Utterance): void; cancel(): void },
+  synth: { speak(utterance: Utterance): void; cancel(): void; readonly speaking?: boolean; readonly pending?: boolean },
   parts: readonly SpeechPart[],
   options: PlayOptions,
 ): () => void {
+  const reports = "speaking" in synth;
+  const busy = () => Boolean(synth.speaking || synth.pending);
   let stopped = false;
+  let finishing = false;
   let at = 0;
-  synth.cancel();
+  let quiet = 0;
+  let advance: (() => void) | null = null;
+  let unwatch = () => {};
+
+  const end = () => {
+    stopped = true;
+    unwatch();
+    options.onEnd?.();
+  };
 
   const next = () => {
     if (stopped) return;
     const part = parts[at];
     at += 1;
     if (!part) {
-      stopped = true;
-      options.onEnd?.();
+      advance = null;
+      // Still talking after the last end: finish when it goes quiet.
+      if (reports && busy()) finishing = true;
+      else end();
       return;
     }
     const utterance = options.make(part.text);
@@ -222,20 +255,37 @@ export function playParts(
     // A part that fails on its own is skipped; one cut short by a stop is not
     // a failure, and `stopped` already ends the reading. Both handlers are
     // cleared by whichever fires first, since a browser may fire both.
-    const advance = () => {
+    const moveOn = () => {
       utterance.onend = null;
       utterance.onerror = null;
       next();
     };
-    utterance.onend = advance;
-    utterance.onerror = advance;
+    advance = moveOn;
+    utterance.onend = moveOn;
+    utterance.onerror = moveOn;
+    quiet = 0;
     options.onPart?.(part);
     synth.speak(utterance);
   };
 
+  if (reports) {
+    unwatch = (options.every ?? everyDefault)(() => {
+      if (stopped) return;
+      if (busy()) {
+        quiet = 0;
+        return;
+      }
+      quiet += 1;
+      if (finishing) end();
+      else if (quiet >= QUIET_CHECKS) advance?.();
+    }, WATCH_MS);
+  }
+
+  if (!reports || busy()) synth.cancel();
   next();
   return () => {
     stopped = true;
+    unwatch();
     synth.cancel();
   };
 }

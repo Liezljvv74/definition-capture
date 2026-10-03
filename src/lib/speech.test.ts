@@ -209,3 +209,67 @@ describe("a selection judged against its rule", () => {
     expect(resolveLangs([{ text: "This is the English note.", lang: "auto" }], "fr", "en", rule)[0].lang).toBe("native");
   });
 });
+
+/** An engine that reports whether it is talking, and a clock the test turns by hand. */
+function liveSynth() {
+  const spoken: Utterance[] = [];
+  const engine = { speaking: false, pending: false, cancels: 0 };
+  const ticks: (() => void)[] = [];
+  return {
+    spoken,
+    engine,
+    tick: () => ticks.forEach((tick) => tick()),
+    synth: {
+      get speaking() { return engine.speaking; },
+      get pending() { return engine.pending; },
+      speak: (u: Utterance) => void spoken.push(u),
+      cancel: () => void (engine.cancels += 1),
+    },
+    every: (tick: () => void) => {
+      ticks.push(tick);
+      return () => void ticks.splice(ticks.indexOf(tick), 1);
+    },
+  };
+}
+
+describe("playParts against an engine that misreports", () => {
+  const two = [
+    { text: "uno", lang: "studied" as const },
+    { text: "dos", lang: "studied" as const },
+  ];
+
+  it("stays playing while the engine is still talking after its last end", () => {
+    const live = liveSynth();
+    let ended = false;
+    playParts(live.synth, [two[0]], { studied: "es", native: "en", rate: 1, voices, make, every: live.every, onEnd: () => (ended = true) });
+    live.engine.speaking = true;
+    live.spoken[0].onend?.();
+    live.tick();
+    expect(ended).toBe(false);
+    live.engine.speaking = false;
+    live.tick();
+    expect(ended).toBe(true);
+  });
+
+  it("moves on when the engine goes quiet without an end", () => {
+    const live = liveSynth();
+    playParts(live.synth, two, { studied: "es", native: "en", rate: 1, voices, make, every: live.every });
+    live.engine.speaking = true;
+    live.tick();
+    live.engine.speaking = false;
+    live.tick();
+    live.tick();
+    expect(live.spoken).toHaveLength(1);
+    live.tick();
+    expect(live.spoken.map((u) => (u as Utterance & { text: string }).text)).toEqual(["uno", "dos"]);
+  });
+
+  it("cancels only when something is playing, and stops watching once stopped", () => {
+    const live = liveSynth();
+    const stop = playParts(live.synth, two, { studied: "es", native: "en", rate: 1, voices, make, every: live.every });
+    expect(live.engine.cancels).toBe(0);
+    stop();
+    for (let i = 0; i < 5; i += 1) live.tick();
+    expect(live.spoken).toHaveLength(1);
+  });
+});
