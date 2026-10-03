@@ -171,7 +171,7 @@ export function VerbTableCard({
       >
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-medium">{table.verb}</span>
-          {records && <TenseMarks table={table} records={records} compact />}
+          {records && <TenseMarks table={table} records={records} />}
         </span>
         <span
           aria-hidden="true"

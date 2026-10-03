@@ -24,8 +24,11 @@ export function PracticeDialog({
   const router = useRouter();
   const ids = useId();
   const now = new Date();
-  const dueCount = sessionPlan(tables, records, { mode: "due", tenses: [], verbIds: [] }, now).length;
-  const newCount = sessionPlan(tables, records, { mode: "new", tenses: [], verbIds: [] }, now).length;
+  // Counted in tenses, since a due or new session asks tenses, not whole verbs.
+  const tensesIn = (mode: PracticeMode) =>
+    sessionPlan(tables, records, { mode, tenses: [], verbIds: [] }, now).reduce((n, verb) => n + verb.tenses.length, 0);
+  const dueCount = tensesIn("due");
+  const newCount = tensesIn("new");
   const allTenses = [...new Set(tables.flatMap(countedTenses))];
 
   const [mode, setMode] = useState<PracticeMode>(dueCount > 0 ? "due" : newCount > 0 ? "new" : "all");
