@@ -160,12 +160,12 @@ export function VerbTableCard({
         aria-expanded={open}
         aria-controls={bodyId}
         onClick={onToggle}
-        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <span className="truncate text-sm font-medium">{table.verb}</span>
         <span
           aria-hidden="true"
-          className={`shrink-0 text-[0.6rem] text-slate-400 transition dark:text-slate-500 ${
+          className={`shrink-0 text-[0.6rem] text-ink-soft transition ${
             open ? "rotate-180" : ""
           }`}
         >
@@ -176,11 +176,11 @@ export function VerbTableCard({
       <div
         id={bodyId}
         hidden={!open}
-        className="mt-2 border-t border-slate-200 pt-2 dark:border-slate-800"
+        className="mt-2 border-t border-rule pt-2"
       >
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
+            <thead className="border-b-2 border-ink text-xs tracking-wide text-ink">
               <tr>
                 <th scope="col" className="w-28 px-1.5 py-1.5 font-semibold">
                   Person
@@ -205,7 +205,7 @@ export function VerbTableCard({
                       />
                       <span className="sr-only">Conjugation</span>
                       {tense && (
-                        <strong className="font-bold text-slate-700 dark:text-slate-200">
+                        <strong className="font-bold text-ink">
                           {tense}
                         </strong>
                       )}
@@ -249,7 +249,7 @@ export function VerbTableCard({
             <div className="mt-3">
               <label
                 htmlFor={`${bodyId}-ref`}
-                className="mb-1 block text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400"
+                className="mb-1 block text-xs font-semibold tracking-wide text-ink-soft uppercase"
               >
                 Notes
               </label>
@@ -265,7 +265,7 @@ export function VerbTableCard({
                 placeholder="Anything about this verb. [[Name]] links to anything you have saved."
               />
               {table.ref && (
-                <p className="mt-1.5 text-sm break-words text-slate-700 dark:text-slate-300">
+                <p className="mt-1.5 text-sm break-words text-ink">
                   <RefText value={table.ref} linkIndex={linkIndex} />
                 </p>
               )}
@@ -286,7 +286,7 @@ export function VerbTableCard({
         )}
 
         {full && (
-          <p className="mt-1 text-[0.7rem] text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-[0.7rem] text-ink-soft">
             That is as many tenses as one table holds ({MAX_TENSES}).
           </p>
         )}
@@ -327,7 +327,7 @@ export function VerbTableCard({
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           {confirmingRemove ? (
             <span className="flex items-center gap-2 text-xs">
-              <span className="text-slate-600 dark:text-slate-300">
+              <span className="text-ink-soft">
                 Delete the table for {table.verb}?
               </span>
               <button
@@ -409,7 +409,7 @@ function AddTenseButton({
       onClick={() => onClick(at)}
       aria-label={where}
       title={disabled ? "No room for another tense" : where}
-      className="cursor-pointer rounded border border-slate-300 px-1 leading-none text-slate-500 transition hover:border-indigo-400 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700 dark:text-slate-400 dark:hover:text-indigo-300"
+      className="cursor-pointer rounded border border-ink-soft px-1 leading-none text-ink-soft transition hover:border-accent hover:text-link disabled:cursor-not-allowed disabled:opacity-30"
     >
       +
     </button>
@@ -440,7 +440,7 @@ function NameTense({
   const name = chosenTense(choice, typed);
 
   return (
-    <div className="mt-2 rounded-lg border border-slate-200 p-2 dark:border-slate-800">
+    <div className="mt-2 rounded-lg border border-rule p-2">
       <label htmlFor={ids} className="block text-xs font-medium">
         Which tense goes {describeGap(at, tenses)}?
       </label>
@@ -538,10 +538,10 @@ function RowFields({
             aria-expanded={notesShowing}
             aria-label={`${written ? "Edit" : "Add"} notes for ${row.person}`}
             title={written ? row.notes : "Add a note"}
-            className={`cursor-pointer rounded p-0.5 transition hover:bg-slate-100 dark:hover:bg-slate-800 ${
+            className={`cursor-pointer rounded p-0.5 transition hover:bg-tile-sky ${
               written
-                ? "text-indigo-700 dark:text-indigo-300"
-                : "text-slate-400 dark:text-slate-500"
+                ? "text-link"
+                : "text-ink-soft"
             }`}
           >
             <NotesIcon written={written} />
