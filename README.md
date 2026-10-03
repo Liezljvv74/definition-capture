@@ -280,15 +280,27 @@ The dashboard runs as an administrator, which is the only way a plan changes.
 
 ### The landing page
 
-`/` is public and is the page search engines are meant to read. It fits one
-laptop screen: what the app is, what it keeps, how the flashcards work and that
-the lists are private, **Create an account** and **Sign in**, and a few questions
+`/` is public and is the page search engines are meant to read: what the app
+is, what it keeps, how the flashcards work (with a sample card to try, **Try one
+now**, which saves nothing) and that the lists are private, **Create an
+account** and **Sign in**, and a few questions
 as collapsible `<details>` dropdowns whose answers are still in the HTML. It reads
 no session and is prerendered, and carries `WebApplication` and `FAQPage`
 structured data built from the same questions. `robots.ts` lets crawlers read the
 public pages and keeps them out of the workspace, `sitemap.ts` lists the three
 public pages, `opengraph-image.tsx` draws the preview image, and `public/llms.txt`
 describes the app in plain text. Every workspace page is marked `noindex`.
+
+### The look
+
+Every page is drawn as lined notebook paper: a red margin line, punch holes,
+pasted-on cards, tape, a highlighter and small doodles that draw themselves
+when a tile is hovered, a question is opened or a flashcard is answered right.
+Headings are in Kalam and text in Patrick Hand, with tables in a plain sans
+font. A device set to dark mode gets a dark notebook. Grammar pages stay plain
+on purpose, so a rule is easy to read, and reduced motion turns every animation
+off. The tokens and pieces are in `src/app/notebook.css` and
+`src/components/notebook/`.
 
 ### Navigation
 
