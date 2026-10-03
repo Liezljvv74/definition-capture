@@ -58,20 +58,20 @@ export default function ChoosePasswordPage() {
 
   return (
     <>
-      <header className="bg-card-blue">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <h1 className="text-xl font-semibold tracking-tight text-indigo-950 sm:text-2xl">
-            Choose a password
+      <header className="notebook-page">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 pt-6">
+          <h1 className="hand-title text-2xl sm:text-3xl">
+            <span className="marker">Choose a password</span>
           </h1>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-8 sm:px-6">
-        <div className="card p-5 sm:p-7">
+      <main className="notebook-page mx-auto w-full max-w-lg flex-1 py-8">
+        <div className="card relative tape p-5 sm:p-7">
           {done ? (
             <>
-              <h2 className="text-lg font-semibold">That is your password now</h2>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              <h2 className="hand-title text-xl">That is your password now</h2>
+              <p className="mt-2 text-sm text-ink-soft">
                 You are signed in on this device. Anywhere else that was signed in has been
                 signed out, which is the point of changing it.
               </p>
@@ -91,7 +91,7 @@ export default function ChoosePasswordPage() {
             </>
           ) : (
             <form onSubmit={submit} className="space-y-4">
-              <p className="text-sm text-slate-600 dark:text-slate-300">
+              <p className="text-sm text-ink-soft">
                 You followed a reset link, so you are signed in already. Pick a password and
                 you can sign in with it from now on.
               </p>
@@ -112,7 +112,7 @@ export default function ChoosePasswordPage() {
                     setError(null);
                   }}
                 />
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-xs text-ink-soft">
                   At least {MIN_PASSWORD} characters.
                 </p>
               </div>
