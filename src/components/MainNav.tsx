@@ -108,7 +108,7 @@ function MobileMenu({ pathname }: { pathname: string }) {
       <ul
         id="mobile-menu"
         hidden={!open}
-        className="absolute inset-x-0 top-full border-b border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+        className="notebook-page absolute inset-x-0 top-full border-b-2 border-dashed border-rule bg-paper py-2"
       >
         {destinations.map((item) => (
           <li key={item.href}>
@@ -184,16 +184,16 @@ export function MainNav() {
        * cards as well as over the page, and without it the bar and a card
        * beneath would run together.
        */
-      className="sticky top-0 z-30 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+      className="sticky top-0 z-30 border-b-2 border-dashed border-rule bg-paper"
     >
       {/* No `overflow-x-auto` here on purpose: it would clip the dropdowns,
           because an overflow on one axis makes the other one scroll too. */}
-      <ul className="mx-auto flex max-w-6xl items-center gap-1 px-4 sm:px-6">
+      <ul className="notebook-page mx-auto flex max-w-6xl items-center gap-1">
         <li className="mr-2 shrink-0 sm:mr-3">
           <Link
             href="/home"
             aria-label="Captured, home"
-            className="-ml-1 block rounded-md p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+            className="-ml-1 block rounded-md p-1"
           >
             {/* Width and height reserve the space before the file loads, so
                 the nav does not jump. `priority` because this is above the

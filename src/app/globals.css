@@ -99,51 +99,108 @@ html {
  * filter bar in `StickyFilters.tsx`, which is opaque so rows do not slide
  * through it, and the nav, which is deliberately one step darker.
  */
+/*
+ * Every page is a page of the notebook (notebook.css). The paper itself is
+ * drawn by `NotebookPaper` in the root layout; this is the colour shown for
+ * the moment before it paints, and the ink everything inherits.
+ */
 body {
-  @apply bg-slate-100 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  @apply antialiased;
 }
 
-/* Shared form control styling so every input, select, and textarea matches. */
+/*
+ * The shared controls, restyled for the notebook in place: the class names
+ * stay, so every screen that already uses them changes with them. None of
+ * them tilts: these are the elements people tap and type in most, which the
+ * owner's brief keeps straight.
+ */
+
+/*
+ * A text field is a single ruled line, no box, with a yellow wash while it
+ * has focus. A textarea keeps a light dashed box: a block of several lines
+ * with only a bottom edge reads as one line that wraps.
+ */
 @utility field {
-  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-    text-slate-900 shadow-xs outline-none transition
-    placeholder:text-slate-400
-    focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30
-    dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100
-    dark:placeholder:text-slate-500 dark:focus:border-indigo-400
-    dark:focus:ring-indigo-400/30;
+  @apply w-full border-0 border-b-2 border-ink bg-transparent px-1.5 py-1.5 text-base
+    text-ink outline-none transition placeholder:text-ink-soft
+    focus:border-accent focus:bg-marker/30;
+  border-radius: 0;
+  font-family: var(--font-hand);
+  &:is(textarea) {
+    border: 1.5px dashed var(--color-ink-soft);
+    border-radius: 6px 10px 6px 12px;
+    background: var(--color-card);
+  }
 }
 
+/* A hand-cut button: uneven corners, an offset shadow, a lift on hover. */
 @utility btn {
-  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg
-    px-3.5 py-2 text-sm font-medium transition
-    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500
-    disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2 text-base
+    transition disabled:cursor-not-allowed disabled:opacity-50;
+  font-family: var(--font-hand);
+  border: 2px solid var(--color-ink);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  box-shadow: 2px 3px 0 var(--color-shadow);
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 3px 5px 0 var(--color-shadow);
+  }
+  &:active:not(:disabled) {
+    transform: translate(1px, 2px);
+    box-shadow: 1px 1px 0 var(--color-shadow);
+  }
+  &:focus-visible {
+    outline: 3px dashed var(--color-accent);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
 }
 
 @utility btn-primary {
-  @apply bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700;
+  background: var(--color-accent);
+  color: #fff;
 }
 
 @utility btn-secondary {
-  @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100
-    dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+  background: var(--color-card);
+  color: var(--color-ink);
+  border-width: 1.5px;
 }
 
+/* Red stays for what destroys something, the owner's rule for red. */
 @utility btn-danger {
-  @apply bg-red-600 text-white shadow-sm hover:bg-red-500 active:bg-red-700;
+  @apply bg-red-600 text-white;
 }
 
+/* A piece of paper on the page: offset shadow, corners cut by hand. */
 @utility card {
-  @apply rounded-xl border border-slate-200 bg-white shadow-sm
-    dark:border-slate-800 dark:bg-slate-900;
+  background: var(--color-card);
+  border: 2px solid var(--color-ink);
+  border-radius: 5px 12px 6px 10px;
+  box-shadow: 3px 4px 0 var(--color-shadow);
 }
 
-/* A button that reads as a link — for the "use this other way in" choices on
-   the sign-in screen, which switch a form rather than navigating anywhere and
-   so must stay buttons however much they look like links. */
 @utility link-button {
-  @apply cursor-pointer text-indigo-700 underline underline-offset-2
-    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500
-    dark:text-indigo-300;
+  @apply cursor-pointer text-link underline decoration-2 underline-offset-4;
+  &:focus-visible {
+    outline: 3px dashed var(--color-accent);
+    outline-offset: 3px;
+  }
+}
+
+/*
+ * Dense data stays in a plain face: a table of words and conjugations is read
+ * cell by cell, and handwriting slows that down. Headings and body text keep
+ * the notebook's hands.
+ */
+table {
+  font-family: var(--font-sans);
 }

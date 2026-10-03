@@ -3,12 +3,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 /** Shared by the plain tabs and the dropdown triggers, so they sit level. */
+// The notebook's tabs: handwriting, and the current one marked with the
+// highlighter rather than a coloured underline.
 export const TAB_BASE =
-  "-mb-px inline-block border-b-2 px-3 py-2.5 text-sm font-medium transition";
-export const TAB_ON =
-  "border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300";
-export const TAB_OFF =
-  "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-100";
+  "-mb-px inline-block border-b-2 px-3 py-2 text-lg leading-6 transition [font-family:var(--font-hand)]";
+export const TAB_ON = "marker-low border-ink text-ink";
+export const TAB_OFF = "border-transparent text-ink-soft hover:border-rule hover:text-ink";
 
 /**
  * A nav tab that opens a menu instead of navigating.
@@ -118,7 +118,7 @@ export function NavMenu({
         role="menu"
         aria-label={label}
         hidden={!open}
-        className={`card absolute top-full z-20 mt-1 min-w-40 p-1 shadow-lg ${
+        className={`card absolute top-full z-20 mt-1 min-w-40 p-1 ${
           align === "right" ? "right-0" : "left-0"
         }`}
       >
@@ -151,8 +151,8 @@ const ICON_TAB =
 
 /** The shape every item in one of these menus takes. */
 export const MENU_ITEM =
-  "block w-full cursor-pointer rounded-md px-3 py-1.5 text-left text-sm font-medium transition text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800";
+  "block w-full cursor-pointer rounded-md px-3 py-1.5 text-left text-base transition text-ink hover:bg-marker/30";
 
 /** The same, for the item standing for the page you are already on. */
 export const MENU_ITEM_CURRENT =
-  "block w-full rounded-md px-3 py-1.5 text-left text-sm font-medium transition bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300";
+  "block w-full rounded-md px-3 py-1.5 text-left text-base transition bg-marker/45 text-ink";

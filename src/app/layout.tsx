@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Kalam, Patrick_Hand } from "next/font/google";
 
 import { EnterMovesDown } from "@/components/EnterMovesDown";
+import { NotebookDoodles } from "@/components/notebook/NotebookDoodles";
+import { NotebookPaper } from "@/components/notebook/NotebookPaper";
 
 import { DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -40,7 +42,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             pages inside it run. What used to be a client component hiding
             markup the browser had already been given is now a redirect that
             happens before the markup exists. */}
-        {children}
+        {/* Every page is a page of the notebook: ruled paper, margin line and
+            punch holes behind it, and the doodle triggers once for all. */}
+        <NotebookPaper>
+          <NotebookDoodles />
+          {children}
+        </NotebookPaper>
       </body>
     </html>
   );

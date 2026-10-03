@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 import { docBox, drawDoodle, reducedMotion, type DoodleShape } from "@/components/notebook/doodles";
@@ -21,8 +22,12 @@ const IDLE: DoodleShape[] = ["star", "heart", "spiral", "sparkle", "squiggle", "
  *   never under reduced motion.
  */
 export function NotebookDoodles() {
+  // Grammar is where a learner reads closely, so nothing appears there on its
+  // own: the owner asked for those pages to stay calm.
+  const calm = /^\/(grammar|rule)(\/|$)/.test(usePathname() ?? "");
+
   useEffect(() => {
-    const reduce = reducedMotion();
+    const reduce = reducedMotion() || calm;
 
     function onTile(event: Event) {
       const tile = (event.target as Element | null)?.closest?.("[data-doodle]");
@@ -68,7 +73,7 @@ export function NotebookDoodles() {
       document.removeEventListener("toggle", onToggle, true);
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [calm]);
 
   return null;
 }

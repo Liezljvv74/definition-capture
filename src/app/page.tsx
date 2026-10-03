@@ -3,8 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
-import { NotebookDoodles } from "@/components/notebook/NotebookDoodles";
-import { NotebookPaper } from "@/components/notebook/NotebookPaper";
 import { Scribble } from "@/components/notebook/Scribble";
 import { TryOneNow } from "@/components/notebook/TryOneNow";
 import { DESCRIPTION, FAQ, SITE_NAME, SITE_URL } from "@/lib/site";
@@ -73,7 +71,8 @@ const STRIPS = [
  * themselves. The copy is the live copy, not the mock-up's older wording.
  *
  * Prerendered: it reads no session, so it is built once and served from the
- * edge. Only `NotebookDoodles` runs in the browser. The proxy sends a
+ * edge. The paper and the doodles come from the root layout; only the try
+ * card runs in the browser. The proxy sends a
  * signed-in visitor on to /home before this renders.
  */
 export default function LandingPage() {
@@ -101,9 +100,7 @@ export default function LandingPage() {
   };
 
   return (
-    <NotebookPaper>
-      <NotebookDoodles />
-
+    <>
       <header className="notebook-page mx-auto flex w-full max-w-6xl items-center justify-between pt-4">
         <span className="hand-title flex items-center gap-2 text-xl">
           <Image src="/captured-logo.png" alt="" width={32} height={32} priority />
@@ -222,6 +219,6 @@ export default function LandingPage() {
         // Escaped so no answer text can close the script element early.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
       />
-    </NotebookPaper>
+    </>
   );
 }
