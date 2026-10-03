@@ -88,6 +88,12 @@ due date. A right tense comes back later and later; a wrong one soon.
 - A tense removed from a table is no longer counted; its record stays and
   counts again if a tense of the same name comes back. A tense is identified
   by its name on the table.
+- Every tense must have a name: an unnamed tense is never practised or
+  counted, and the database refuses to record one. New tables and the
+  add-tense dialog already require a name.
+- A table holds each tense once: the add-tense dialog refuses a name the
+  table already has, and a repeated name (which only an old backup could
+  bring) is counted once.
 - Deleting a verb deletes its tense records (the foreign key cascades).
 
 ## Database

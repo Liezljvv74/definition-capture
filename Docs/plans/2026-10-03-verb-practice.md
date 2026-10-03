@@ -36,7 +36,9 @@
 
 - The function's tense argument is `target_tense`, not `tense`: inside plpgsql a parameter named like the table's `tense` column makes every query on that table ambiguous.
 - `verb_tense_progress` gets insert and update policies as well as select. The spec said writes go only through the function, but the function runs with the caller's rights (no function here is `security definer`), so the caller needs them, exactly as `progress` has them for `record_review`.
-- `record_tense_review` also refuses a tense the table does not have, and `home_summary` counts a repeated tense name once (both from the database review on 3 October 2026). An unnamed tense ('') stays allowed, because tables made before tenses were asked for have one.
+- `record_tense_review` also refuses a tense the table does not have, and `home_summary` counts a repeated tense name once (both from the database review on 3 October 2026).
+- Unnamed tenses are not allowed (the owner, 3 October 2026): a blank tense is never practised or counted, and the database refuses to record one. New tables and the add-tense dialog already require a name; only an old table or backup could hold a blank one, and the live data had none.
+- The add-tense dialog refuses a name already on the table (the owner asked why a table could hold two columns of the same name: nothing stopped it).
 - `home_summary` also returns `verbs_new`, `verbs_learning` and `verbs_learned`, so "Learn new items" keeps counting words and phrases only while Your progress still counts verbs by their tenses.
 
 ---
@@ -162,7 +164,7 @@ $$;
 create table public.verb_tense_progress (
   item_id uuid not null,
   user_id uuid not null,
-  tense text not null check (char_length(tense) <= 100),
+  tense text not null check (btrim(tense) <> '' and char_length(tense) <= 100),
   times_seen integer not null default 0 check (times_seen >= 0),
   times_correct integer not null default 0
     check (times_correct >= 0 and times_correct <= times_seen),
@@ -217,7 +219,7 @@ begin
   if answer is null or answer not in ('correct', 'again', 'revealed', 'skipped') then
     raise exception 'unknown answer %', answer;
   end if;
-  if target_tense is null then
+  if target_tense is null or btrim(target_tense) = '' then
     raise exception 'no tense';
   end if;
   if not exists (
@@ -227,8 +229,6 @@ begin
     raise exception 'not your verb table';
   end if;
   -- Only a tense the table has, so no record is made that nothing would count.
-  -- An unnamed tense ('') is allowed: tables made before tenses were asked for
-  -- have one.
   if not exists (
     select 1 from public.items where id = target_item and target_tense = any(tenses)
   ) then
@@ -315,14 +315,15 @@ begin
     left join public.progress p on p.item_id = i.id and p.user_id = owner
     where i.user_id = owner
   ),
-  -- Each tense of each verb table with at least one form filled in, each name
-  -- once: a table can hold two columns of the same name, and they share one
-  -- schedule.
+  -- Each named tense of each verb table with at least one form filled in, each
+  -- name once: an unnamed column is never practised, and two columns of the
+  -- same name (which only an old backup could bring now) share one schedule.
   counted as (
     select distinct i.id as item_id, t.name as tense
     from public.items i
     cross join lateral unnest(i.tenses) with ordinality as t(name, ord)
     where i.user_id = owner and i.item_type = 'verb_table'
+      and btrim(t.name) <> ''
       and exists (
         select 1 from jsonb_array_elements(coalesce(i.verb_rows, '[]'::jsonb)) r
         where btrim(coalesce(r -> 'conjugations' ->> (t.ord::integer - 1), '')) <> ''
@@ -524,6 +525,12 @@ begin
     if sqlerrm <> 'not your verb table' then raise; end if;
   end;
   begin
+    perform public.record_tense_review('20000000-0000-0000-0000-000000000001', '  ', 'correct');
+    raise exception 'an unnamed tense was accepted';
+  exception when raise_exception then
+    if sqlerrm <> 'no tense' then raise; end if;
+  end;
+  begin
     perform public.record_tense_review('20000000-0000-0000-0000-000000000001', 'Plusquamperfekt', 'correct');
     raise exception 'a tense the table lacks was accepted';
   exception when raise_exception then
@@ -641,6 +648,14 @@ const now = new Date("2026-10-03T12:00:00.000Z");
 describe("counted tenses", () => {
   it("counts only tenses with at least one form", () => {
     expect(countedTenses(table())).toEqual(["Präsens", "Perfekt"]);
+  });
+
+  it("never counts an unnamed tense, and counts a repeated name once", () => {
+    const odd = table({
+      tenses: ["", "Präsens", "Präsens"],
+      rows: [{ person: "ich", conjugations: ["gehe", "gehe", "gehe"], notes: "" }],
+    });
+    expect(countedTenses(odd)).toEqual(["Präsens"]);
   });
 });
 
@@ -761,14 +776,14 @@ export type TenseRecord = { itemId: string; tense: string; streak: number; times
 export type TenseMark = "learned" | "learning" | "missed" | "new";
 
 /**
- * The tenses a verb is practised in: those with at least one form filled in,
- * in table order, each name once. An empty column can never be asked, so it
- * must never stop a verb counting as learned.
+ * The tenses a verb is practised in: named ones with at least one form filled
+ * in, in table order, each name once. An empty or unnamed column can never be
+ * asked, so it must never stop a verb counting as learned.
  */
 export function countedTenses(table: VerbTable): string[] {
   const seen = new Set<string>();
   return table.tenses.filter((tense, at) => {
-    if (seen.has(tense)) return false;
+    if (tense.trim() === "" || seen.has(tense)) return false;
     const filled = table.rows.some((row) => (row.conjugations[at] ?? "").trim() !== "");
     if (filled) seen.add(tense);
     return filled;
@@ -1066,12 +1081,12 @@ export function TenseMarks({ table, records, compact = false }: { table: VerbTab
   const tenses = countedTenses(table);
   if (tenses.length === 0) return null;
   const marks = tenses.map((tense) => ({ tense, mark: tenseMark(recordFor(records, table.id, tense)) }));
-  const label = marks.map(({ tense, mark }) => `${tense || "Conjugation"} ${WORD[mark]}`).join(", ");
+  const label = marks.map(({ tense, mark }) => `${tense} ${WORD[mark]}`).join(", ");
   return (
     <span className="flex flex-wrap gap-x-2 text-xs text-ink-soft" aria-label={label} title={label}>
       {marks.map(({ tense, mark }) => (
         <span key={tense} aria-hidden="true">
-          {compact ? SYMBOL[mark] : `${tense || "Conjugation"} ${SYMBOL[mark]}`}
+          {compact ? SYMBOL[mark] : `${tense} ${SYMBOL[mark]}`}
         </span>
       ))}
     </span>
@@ -1154,7 +1169,7 @@ export function PracticeDialog({
             {allTenses.map((tense) => (
               <label key={tense} className="flex cursor-pointer items-center gap-2 text-sm">
                 <input type="checkbox" className="size-4 accent-accent" checked={tenses.includes(tense)} onChange={() => setTenses(toggle(tenses, tense))} />
-                {tense || "Conjugation"}
+                {tense}
               </label>
             ))}
           </fieldset>
@@ -1192,13 +1207,26 @@ export function PracticeDialog({
 
 In `src/app/(workspace)/verbs/page.tsx`: call `useTenseRecords()` where the tables are used; pass `records` to each `VerbTableCard`; add a **Practise** button (`btn btn-primary`) beside the existing Add verb control, shown when at least one table has a counted tense, which opens `PracticeDialog` with the tables and records. Keep the page's existing layout and empty state.
 
-- [ ] **Step 4: Checks, commit**
+- [ ] **Step 4: No tense twice on one table**
+
+In `NameTense` in `src/components/VerbTableCard.tsx` (the add-tense dialog), refuse a name the table already has, compared with `foldName` as the rest of the file compares tense names:
+
+```tsx
+  const name = chosenTense(choice, typed);
+  // A table holds each tense once: two columns of one name would be asked as
+  // two tenses and share one schedule.
+  const taken = name !== "" && tenses.some((tense) => foldName(tense) === foldName(name));
+```
+
+Disable **Add** when `name === "" || taken`, and when `taken` show `<p className="mt-1 text-xs text-red-700 dark:text-red-300" role="alert">That tense is already in this table.</p>` under the controls (a refusal, so red is right).
+
+- [ ] **Step 5: Checks, commit**
 
 Run: `npx tsc --noEmit && npx eslint src/ e2e/ && npx vitest run`.
 
 ```bash
 git add src/components/verbs src/app/(workspace)/verbs/page.tsx src/components/VerbTableCard.tsx
-git commit -m "Add the Practise dialog and tense marks to the Verbs page" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Add the Practise dialog and tense marks, and refuse a tense twice on one table" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1296,7 +1324,7 @@ function Session({ plan: initial, loadError }: { plan: PracticeVerb[]; loadError
                 {missed.map(({ verb, tense }) => (
                   <li key={`${verb}:${tense}`}>
                     <Link href={`/verbs?verb=${encodeURIComponent(verb)}`} className="text-link underline">{verb}</Link>{" "}
-                    <span className="text-ink-soft">{tense || "Conjugation"}</span>
+                    <span className="text-ink-soft">{tense}</span>
                   </li>
                 ))}
               </ul>
@@ -1355,7 +1383,7 @@ function Session({ plan: initial, loadError }: { plan: PracticeVerb[]; loadError
               <tr>
                 <th scope="col" className="w-28 px-1.5 py-1.5 font-semibold">Person</th>
                 {verb.tenses.map((tense) => (
-                  <th key={tense} scope="col" className="min-w-36 px-1.5 py-1.5 font-semibold">{tense || "Conjugation"}</th>
+                  <th key={tense} scope="col" className="min-w-36 px-1.5 py-1.5 font-semibold">{tense}</th>
                 ))}
               </tr>
             </thead>
@@ -1369,7 +1397,7 @@ function Session({ plan: initial, loadError }: { plan: PracticeVerb[]; loadError
                     const right = checked && markForm(answers[key] ?? "", expected, separators);
                     return (
                       <td key={k} className="px-1.5 py-1 align-top">
-                        <label htmlFor={`cell-${key}`} className="sr-only">{`${verb.tenses[k] || "Conjugation"} for ${row.person}`}</label>
+                        <label htmlFor={`cell-${key}`} className="sr-only">{`${verb.tenses[k]} for ${row.person}`}</label>
                         <input
                           id={`cell-${key}`}
                           className={`field !px-2 !py-1 text-sm ${checked ? (right ? "!border-emerald-600" : "!border-red-600") : ""}`}
