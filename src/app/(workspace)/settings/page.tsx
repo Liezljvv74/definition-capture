@@ -34,6 +34,7 @@ import { useRules } from "@/lib/useRules";
 import { useSession } from "@/lib/useSession";
 import { useSettings } from "@/lib/useSettings";
 import { useWords } from "@/lib/useWords";
+import { SPEECH_RATES, type SpeechRate } from "@/lib/speech";
 
 /**
  * The two lists words and phrases point at. A collection or source still in
@@ -169,6 +170,8 @@ function Settings() {
             />
 
             <NativeLanguageSection />
+
+            <ReadingSpeedSection />
 
             <PasswordSection />
 
@@ -724,6 +727,34 @@ function AnswerSeparatorsSection() {
           ticked, an entry reading <strong>and/or</strong> offers two answers rather than
           one. Untick everything to have answers marked exactly as they are written.
         </p>
+      </fieldset>
+    </SettingSection>
+  );
+}
+
+const RATE_LABEL: Record<SpeechRate, string> = { slow: "Slow", normal: "Normal", fast: "Fast" };
+
+/** How fast the speaker buttons read; see Docs/voice.md. */
+function ReadingSpeedSection() {
+  const { settings } = useSettings();
+  return (
+    <SettingSection title="Reading speed" summary={RATE_LABEL[settings.speechRate]}>
+      <fieldset>
+        <legend className="text-sm text-ink-soft">How fast the speaker buttons read aloud.</legend>
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+          {SPEECH_RATES.map((rate) => (
+            <label key={rate} className="flex cursor-pointer items-center gap-2 text-sm select-none">
+              <input
+                type="radio"
+                name="speech-rate"
+                className="size-4 accent-accent"
+                checked={settings.speechRate === rate}
+                onChange={() => saveSettings({ speechRate: rate })}
+              />
+              {RATE_LABEL[rate]}
+            </label>
+          ))}
+        </div>
       </fieldset>
     </SettingSection>
   );
