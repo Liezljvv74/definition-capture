@@ -56,7 +56,7 @@ export function RuleReader({ rule }: { rule: Rule }) {
       // is what lets "select, then press" read only the selection.
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => (playing ? stop() : read())}
-      className="fixed right-4 bottom-44 z-20 inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-ink bg-card text-ink shadow-[3px_4px_0_var(--color-shadow)] transition hover:text-link sm:right-8"
+      className="fixed right-4 bottom-44 z-20 inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-ink bg-card text-ink shadow-[3px_4px_0_var(--color-shadow)] transition hover:text-link"
     >
       {playing ? <StopIcon className="size-5" /> : <SpeakerIcon className="size-6" />}
     </button>
