@@ -26,18 +26,18 @@ import { readTenses, readVerbRows } from "@/lib/types";
  * `recent` changes the ordering rather than the filter. `toDeckRequest`
  * untangles them, in one place, so no caller has to remember which is which.
  */
-export type CardSource = "all" | "word" | "phrase" | "verb_table" | "recent";
+export type CardSource = "all" | "word" | "phrase" | "recent";
 
 export const SOURCE_LABELS: Record<CardSource, string> = {
   all: "All items",
   word: "Words only",
   phrase: "Phrases only",
-  verb_table: "Verbs only",
   recent: "Most recently added",
 };
 
 /** The order they are offered in, with the default first. */
-export const SOURCE_ORDER: CardSource[] = ["all", "word", "phrase", "verb_table", "recent"];
+// No verbs: they are practised as tables on the Verbs page (Docs/verb-practice.md).
+export const SOURCE_ORDER: CardSource[] = ["all", "word", "phrase", "recent"];
 
 export type DeckRequest = {
   sources: CardSource[];
@@ -104,6 +104,9 @@ function client() {
  * silently build the wrong deck rather than fail, which is the kind of bug
  * that is noticed weeks later if at all.
  */
+/** The kinds of item a flashcard is made from; verbs are practised on their own page. */
+const CARD_TYPES = ["word", "phrase"];
+
 export function toDeckRequest(request: DeckRequest): {
   item_types: string[];
   tag_ids: string[];
@@ -113,14 +116,13 @@ export function toDeckRequest(request: DeckRequest): {
   only_due: boolean;
 } {
   const chosen = new Set(request.sources);
-  const types = ["word", "phrase", "verb_table"].filter((type) =>
-    chosen.has(type as CardSource),
-  );
+  const types = CARD_TYPES.filter((type) => chosen.has(type as CardSource));
 
   return {
-    // Empty means every type. "All items" says so outright, and so does
-    // picking nothing at all, which is the same request phrased by omission.
-    item_types: chosen.has("all") ? [] : types,
+    // Words and phrases for "All items", and for picking nothing at all,
+    // which is the same request phrased by omission. Never empty: to the
+    // database that means every type, verbs included.
+    item_types: chosen.has("all") || types.length === 0 ? [...CARD_TYPES] : types,
     tag_ids: request.collectionIds,
     only_needs_review: request.needsReviewOnly,
     only_recent: chosen.has("recent"),
@@ -265,19 +267,25 @@ export async function loadDeck(deckId: string): Promise<Card[]> {
 
   return (data ?? [])
     .map((row) => {
-      const item = (row as { items?: unknown }).items as
-        | (CardItem & { id: string; needs_review: boolean })
-        | null;
-      if (!item) return null;
-      return {
-        id: String(item.id),
-        itemType: String(item.item_type),
-        front: String(item.title ?? ""),
-        back: cardBack(item),
-        needsReview: item.needs_review === true,
-      };
+      const item = (row as { items?: unknown }).items as (CardItem & { id: string; needs_review: boolean }) | null;
+      return item ? cardFromItem(item) : null;
     })
     .filter((card): card is Card => card !== null);
+}
+
+/**
+ * One deck row's item as a card. A verb table makes none: verbs left the
+ * decks for verb practice, and one may still sit in an older saved deck.
+ */
+export function cardFromItem(item: CardItem & { id: string; needs_review: boolean }): Card | null {
+  if (item.item_type === "verb_table") return null;
+  return {
+    id: String(item.id),
+    itemType: String(item.item_type),
+    front: String(item.title ?? ""),
+    back: cardBack(item),
+    needsReview: item.needs_review === true,
+  };
 }
 
 /**

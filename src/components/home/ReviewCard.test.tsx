@@ -6,7 +6,7 @@ import { ReviewCard } from "@/components/home/ReviewCard";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 const html = (state: Parameters<typeof ReviewCard>[0]["state"]) =>
-  renderToStaticMarkup(<ReviewCard state={state} />);
+  renderToStaticMarkup(<ReviewCard state={state} verbs={{ due: 0, fresh: 0 }} />);
 
 describe("ReviewCard", () => {
   it("names the due count and offers Review now", () => {
@@ -46,7 +46,7 @@ describe("ReviewCard", () => {
   it("shows a quote only when there is nothing to review", () => {
     const quote = { text: "A different language", by: "Federico Fellini" };
     const out = (state: Parameters<typeof ReviewCard>[0]["state"]) =>
-      renderToStaticMarkup(<ReviewCard state={state} quote={quote} />);
+      renderToStaticMarkup(<ReviewCard state={state} quote={quote} verbs={{ due: 0, fresh: 0 }} />);
     for (const state of [{ kind: "caughtUp", next: null }, { kind: "noCards" }, { kind: "empty" }] as const) {
       expect(out(state)).toContain("“A different language”");
       expect(out(state)).toContain("Federico Fellini");
@@ -55,3 +55,26 @@ describe("ReviewCard", () => {
     expect(out({ kind: "new", count: 2 })).not.toContain("Fellini");
   });
 });
+
+describe("ReviewCard verb practice line", () => {
+  const caughtUp = { kind: "caughtUp", next: null } as unknown as Parameters<typeof ReviewCard>[0]["state"];
+  const line = (verbs: { due: number; fresh: number }) =>
+    renderToStaticMarkup(<ReviewCard state={caughtUp} verbs={verbs} />);
+
+  it("says how many verb tenses are due and starts a due session", () => {
+    const out = line({ due: 5, fresh: 3 });
+    expect(out).toContain("5 verb tenses due");
+    expect(out).toMatch(/href="\/verbs\/practise\/?\?mode=due"/);
+  });
+
+  it("offers the tenses not yet tried when none is due", () => {
+    const out = line({ due: 0, fresh: 1 });
+    expect(out).toContain("1 tense to learn");
+    expect(out).toMatch(/href="\/verbs\/practise\/?\?mode=new"/);
+  });
+
+  it("says nothing about verbs when there is nothing to practise", () => {
+    expect(line({ due: 0, fresh: 0 })).not.toContain("Practise verbs");
+  });
+});
+

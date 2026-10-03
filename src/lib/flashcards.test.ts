@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   cardBack,
+  cardFromItem,
   DEFAULT_DECK_SIZE,
   sizeOf,
+  SOURCE_ORDER,
   toDeckRequest,
   type CardSource,
   type DeckRequest,
@@ -29,39 +31,34 @@ const ask = (over: Partial<DeckRequest> = {}): DeckRequest => ({
 });
 
 describe("toDeckRequest", () => {
-  it("sends no types for All items, which is how the default means everything", () => {
+  it("draws words and phrases for All items, verbs being practised on their own page", () => {
     const sent = toDeckRequest(ask({ sources: ["all"] }));
-    expect(sent.item_types).toEqual([]);
+    expect(sent.item_types).toEqual(["word", "phrase"]);
     expect(sent.only_recent).toBe(false);
+    expect(SOURCE_ORDER).not.toContain("verb_table");
   });
 
-  it("sends nothing for an empty choice either, since it is the same request", () => {
-    expect(toDeckRequest(ask({ sources: [] })).item_types).toEqual([]);
+  it("draws words and phrases for an empty choice too, since it is the same request", () => {
+    expect(toDeckRequest(ask({ sources: [] })).item_types).toEqual(["word", "phrase"]);
   });
 
   it("sends the types that were chosen, and only those", () => {
     expect(toDeckRequest(ask({ sources: ["phrase"] })).item_types).toEqual(["phrase"]);
-    expect(toDeckRequest(ask({ sources: ["word", "verb_table"] })).item_types).toEqual([
-      "word",
-      "verb_table",
-    ]);
+    expect(toDeckRequest(ask({ sources: ["word", "phrase"] })).item_types).toEqual(["word", "phrase"]);
   });
 
   it("keeps the order the database expects, not the order they were ticked", () => {
     // The function takes a list to match against, so order is not meaningful
     // to it; pinning it anyway keeps the request stable and readable in a
     // log.
-    expect(toDeckRequest(ask({ sources: ["verb_table", "word"] })).item_types).toEqual([
-      "word",
-      "verb_table",
-    ]);
+    expect(toDeckRequest(ask({ sources: ["phrase", "word"] })).item_types).toEqual(["word", "phrase"]);
   });
 
   it("treats Most recently added as an ordering, not as a type", () => {
     const sent = toDeckRequest(ask({ sources: ["recent"] }));
     expect(sent.only_recent).toBe(true);
-    // No type restriction: "the most recent things" means across all of them.
-    expect(sent.item_types).toEqual([]);
+    // Across words and phrases: "the most recent things" of every kind a card is made from.
+    expect(sent.item_types).toEqual(["word", "phrase"]);
   });
 
   it("can combine recency with a type", () => {
@@ -72,9 +69,9 @@ describe("toDeckRequest", () => {
 
   it("lets All items win over a type that is also ticked", () => {
     // The dialog does not allow this, and the translation must not depend on
-    // the dialog behaving: both on means everything, not one of them.
+    // the dialog behaving: both on means every card type, not one of them.
     const sent = toDeckRequest(ask({ sources: ["all", "phrase"] as CardSource[] }));
-    expect(sent.item_types).toEqual([]);
+    expect(sent.item_types).toEqual(["word", "phrase"]);
   });
 
   it("passes the filters through as they are", () => {
@@ -205,5 +202,19 @@ describe("cardBack", () => {
     for (const row of cases) {
       expect(cardBack(row) !== "", JSON.stringify(row)).toBe(hasAnswer(row));
     }
+  });
+});
+
+describe("cardFromItem", () => {
+  it("makes no card from a verb table left in an old deck", () => {
+    const base = { definition: null, literal_meaning: null, usage_example: null, tenses: null, verb_rows: null };
+    expect(cardFromItem({ ...base, id: "v", item_type: "verb_table", title: "gehen", tenses: ["P"], verb_rows: [], needs_review: false })).toBeNull();
+  });
+
+  it("makes a card from a word", () => {
+    const base = { definition: null, literal_meaning: null, usage_example: null, tenses: null, verb_rows: null };
+    expect(cardFromItem({ ...base, id: "w", item_type: "word", title: "Hund", definition: "dog", needs_review: true })).toEqual({
+      id: "w", itemType: "word", front: "Hund", back: "dog", needsReview: true,
+    });
   });
 });

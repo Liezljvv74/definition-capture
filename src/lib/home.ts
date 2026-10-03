@@ -20,6 +20,12 @@ export type HomeSummary = {
   nextDueAt: string | null;
   lastSavedAt: string | null;
   rememberId: string | null;
+  /** Verb practice, counted by tense (Docs/verb-practice.md); the counts above are words and phrases. */
+  verbTensesDue: number;
+  verbTensesNew: number;
+  verbsNew: number;
+  verbsLearning: number;
+  verbsLearned: number;
 };
 
 const count = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
@@ -41,6 +47,11 @@ export function readSummary(row: unknown): HomeSummary {
     nextDueAt: text(r.next_due_at),
     lastSavedAt: text(r.last_saved_at),
     rememberId: text(r.remember_id),
+    verbTensesDue: count(r.verb_tenses_due),
+    verbTensesNew: count(r.verb_tenses_new),
+    verbsNew: count(r.verbs_new),
+    verbsLearning: count(r.verbs_learning),
+    verbsLearned: count(r.verbs_learned),
   };
 }
 
@@ -116,15 +127,26 @@ export type ProgressPart = {
   className: string;
 };
 
-/** The three parts of the progress bar, pale to ink, in the notebook's tiles. */
+/**
+ * The three parts of the progress bar, pale to ink, in the notebook's tiles.
+ * A verb counts once, by its tenses: learned only when every tense is.
+ */
 export function progressParts(s: HomeSummary): ProgressPart[] {
-  const total = s.newItems + s.learning + s.learned;
+  const fresh = s.newItems + s.verbsNew;
+  const learning = s.learning + s.verbsLearning;
+  const learned = s.learned + s.verbsLearned;
+  const total = fresh + learning + learned;
   const share = (n: number) => (total === 0 ? 0 : (n / total) * 100);
   return [
-    { label: "New", count: s.newItems, percent: share(s.newItems), className: "bg-tile-sky" },
-    { label: "Learning", count: s.learning, percent: share(s.learning), className: "bg-tile-blue" },
-    { label: "Learned", count: s.learned, percent: share(s.learned), className: "bg-ink" },
+    { label: "New", count: fresh, percent: share(fresh), className: "bg-tile-sky" },
+    { label: "Learning", count: learning, percent: share(learning), className: "bg-tile-blue" },
+    { label: "Learned", count: learned, percent: share(learned), className: "bg-ink" },
   ];
+}
+
+/** Everything the progress bar counts, verbs included, so its heading agrees with its legend. */
+export function progressTotal(s: HomeSummary): number {
+  return progressParts(s).reduce((n, part) => n + part.count, 0);
 }
 
 export type RecentItem = {

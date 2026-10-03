@@ -6,6 +6,7 @@ import {
   QUOTES,
   quoteFor,
   progressParts,
+  progressTotal,
   readRecent,
   readRemember,
   readSummary,
@@ -19,6 +20,7 @@ const summary = (over: Partial<HomeSummary> = {}): HomeSummary => ({
   words: 0, wordsWithoutDefinition: 0, phrases: 0, verbTables: 0, grammarRules: 0,
   due: 0, newItems: 0, learning: 0, learned: 0,
   nextDueAt: null, lastSavedAt: null, rememberId: null,
+  verbTensesDue: 0, verbTensesNew: 0, verbsNew: 0, verbsLearning: 0, verbsLearned: 0,
   ...over,
 });
 
@@ -30,11 +32,13 @@ describe("readSummary", () => {
       words: 3, words_without_definition: 1, phrases: 2, verb_tables: 4, grammar_rules: 5,
       due: 6, new_items: 7, learning: 8, learned: 9,
       next_due_at: "2026-10-03T00:00:00Z", last_saved_at: "2026-10-01T00:00:00Z", remember_id: "abc",
+      verb_tenses_due: 10, verb_tenses_new: 11, verbs_new: 12, verbs_learning: 13, verbs_learned: 14,
     });
     expect(s).toEqual({
       words: 3, wordsWithoutDefinition: 1, phrases: 2, verbTables: 4, grammarRules: 5,
       due: 6, newItems: 7, learning: 8, learned: 9,
       nextDueAt: "2026-10-03T00:00:00Z", lastSavedAt: "2026-10-01T00:00:00Z", rememberId: "abc",
+      verbTensesDue: 10, verbTensesNew: 11, verbsNew: 12, verbsLearning: 13, verbsLearned: 14,
     });
   });
 
@@ -89,6 +93,11 @@ describe("progressParts", () => {
     expect(parts.map((p) => [p.label, p.count, p.percent])).toEqual([
       ["New", 1, 25], ["Learning", 1, 25], ["Learned", 2, 50],
     ]);
+  });
+
+  it("counts a verb by its tenses alongside the words and phrases", () => {
+    const parts = progressParts(summary({ newItems: 1, verbsNew: 1, learning: 0, verbsLearning: 2, learned: 3, verbsLearned: 1 }));
+    expect(parts.map((p) => [p.label, p.count])).toEqual([["New", 2], ["Learning", 2], ["Learned", 4]]);
   });
 
   it("gives zero widths rather than dividing by zero", () => {
@@ -158,5 +167,12 @@ describe("quoteFor", () => {
 
   it("has no em dash in any quote or attribution", () => {
     for (const q of QUOTES) expect(`${q.text}${q.by}`).not.toContain("—");
+  });
+});
+
+describe("progressTotal", () => {
+  it("counts verbs as well as words and phrases, so a verbs-only account has progress", () => {
+    expect(progressTotal(summary({ newItems: 1, learned: 1, verbsLearning: 2 }))).toBe(4);
+    expect(progressTotal(summary({ verbsNew: 3 }))).toBe(3);
   });
 });

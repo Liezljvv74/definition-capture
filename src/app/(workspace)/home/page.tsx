@@ -6,7 +6,7 @@ import { Scribble } from "@/components/notebook/Scribble";
 
 import { RememberCard } from "@/components/home/RememberCard";
 import { ReviewCard } from "@/components/home/ReviewCard";
-import { itemHref, plural, progressParts, quoteFor, relativeDay, reviewState, typeLabel } from "@/lib/home";
+import { itemHref, plural, progressParts, progressTotal, quoteFor, relativeDay, reviewState, typeLabel } from "@/lib/home";
 import { loadHome } from "@/lib/homeData";
 
 /** A paste block's tilt, which notebook.css reads from `--r`. */
@@ -44,7 +44,7 @@ export default async function HomePage() {
   const { name, summary, recent, remember } = await loadHome();
   const now = new Date();
   const parts = progressParts(summary);
-  const totalCards = summary.newItems + summary.learning + summary.learned;
+  const totalCards = progressTotal(summary);
 
   const lists = [
     {
@@ -114,7 +114,12 @@ export default async function HomePage() {
           </section>
         )}
 
-        <ReviewCard state={reviewState(summary, now)} quote={quoteFor(now)} className="lg:col-span-2" />
+        <ReviewCard
+          state={reviewState(summary, now)}
+          quote={quoteFor(now)}
+          verbs={{ due: summary.verbTensesDue, fresh: summary.verbTensesNew }}
+          className="lg:col-span-2"
+        />
 
         {remember && <RememberCard item={remember} />}
 

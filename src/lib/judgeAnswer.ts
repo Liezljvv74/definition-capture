@@ -30,7 +30,10 @@ export function normaliseAnswer(value: string): string {
   return value
     .normalize("NFC")
     .toLowerCase()
-    .replace(/[.,;:!?"'()[\]{}]/g, " ")
+    // Curly quotes too: a phone's keyboard types them for ' and ", and
+    // verb practice, which forgives no slip, would otherwise mark m’appelle
+    // wrong against m'appelle.
+    .replace(/[.,;:!?"'‘’“”()[\]{}]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
