@@ -95,10 +95,10 @@ export function ReviewCard({
   return (
     <section
       aria-labelledby="review-heading"
-      className={`rounded-2xl border border-indigo-100 bg-challenge p-5 text-slate-900 ${className}`}
+      className={`relative tape tape-two rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-tile-sky p-5 shadow-[5px_6px_0_var(--color-shadow)] ${className}`}
     >
-      <p className="text-xs font-semibold tracking-wider text-slate-600 uppercase">Ready for review</p>
-      <h2 id="review-heading" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl">
+      <p className="text-sm font-semibold tracking-wider text-ink-soft uppercase">Ready for review</p>
+      <h2 id="review-heading" className="hand-title mt-1.5 text-xl sm:text-2xl">
         {heading}
       </h2>
       {showQuote && (
@@ -111,7 +111,7 @@ export function ReviewCard({
           <blockquote className="line-clamp-5 text-sm sm:line-clamp-2 leading-5 font-bold italic">
             {`“${quote.text}”`}
           </blockquote>
-          <figcaption className="mt-1 text-xs leading-4 font-normal text-slate-600 not-italic">{quote.by}</figcaption>
+          <figcaption className="mt-1 text-xs leading-4 font-normal text-ink-soft not-italic">{quote.by}</figcaption>
         </figure>
       )}
       {(action || canCustomise) && (
@@ -121,7 +121,7 @@ export function ReviewCard({
         </div>
       )}
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red-700">
+        <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       )}
