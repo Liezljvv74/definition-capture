@@ -38,6 +38,14 @@ type PhraseSortKey = "phrase" | "literalMeaning";
 /** null keeps the order phrases were added in, newest first. */
 type PhraseSort = { key: PhraseSortKey; direction: "asc" | "desc" } | null;
 
+/*
+ * A row is one line of the paper's ruling, 32px, as on Vocabulary. Text sits
+ * low in it, on the line; checkboxes and buttons are centred. Nothing in a
+ * row may be taller, or every row below it slips off its line.
+ */
+const ROW_TEXT = "h-8 px-3 pt-1 pb-0 leading-7 align-top";
+const ROW_CONTROL = "h-8 px-2 py-0 align-middle";
+
 const COLUMNS: { key?: PhraseSortKey; label: string; className?: string }[] = [
   // Phrase gives up the most, from 24%, because a phrase is a line of text
   // and the two columns beside it are paragraphs.
@@ -144,7 +152,7 @@ export default function PhrasesPage() {
         ) : (
           <>
             <div
-              className={`${STICKY_FILTERS} mb-4 flex flex-wrap items-center gap-2`}
+              className={`${STICKY_FILTERS} flex flex-wrap items-center gap-2`}
             >
               <div className="w-full sm:w-1/3 lg:min-w-64">
                 <label htmlFor="phrase-search" className="sr-only">
@@ -297,11 +305,15 @@ function PhraseTable({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="card hidden overflow-hidden md:block">
-      <table className="w-full table-fixed border-collapse text-left text-sm">
-        <thead className="border-b-2 border-ink bg-tile-green text-xs tracking-wide text-ink">
+    // Written on the paper, like Vocabulary: no card or borders, one ruled
+    // line per row, so each cell is cut to one line; the phrase's own page
+    // shows it in full. `data-ruled-snap` lets `RuledLines` move the table's
+    // top onto a line.
+    <div data-ruled-snap className="hidden md:block">
+      <table className="w-full table-fixed border-collapse text-left font-hand text-[1.05rem]">
+        <thead className="text-ink">
           <tr>
-            <th scope="col" className="w-10 px-3 py-2.5">
+            <th scope="col" className={`w-10 ${ROW_CONTROL}`}>
               <SelectAllCheckbox
                 checked={selection.allSelected}
                 indeterminate={selection.partiallySelected}
@@ -318,7 +330,7 @@ function PhraseTable({
                 <th
                   key={column.label}
                   scope="col"
-                  className={`px-4 py-2.5 font-semibold ${column.className ?? ""}`}
+                  className={`hand-title ${ROW_TEXT} ${column.className ?? ""}`}
                   aria-sort={
                     direction === null
                       ? "none"
@@ -351,29 +363,30 @@ function PhraseTable({
                 </th>
               );
             })}
-            <th scope="col" className="w-24 px-3 py-2.5">
+            <th scope="col" className={`w-24 ${ROW_CONTROL}`}>
               <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-rule">
+        <tbody>
           {phrases.map((phrase) => {
             const selected = selection.isSelected(phrase.id);
             return (
               <tr
                 key={phrase.id}
-                className={`transition-colors hover:bg-card-open ${
-                  selected ? "bg-tile-green" : ""
+                // Washes, not fills, so the ruling still shows through.
+                className={`transition-colors hover:bg-marker/20 ${
+                  selected ? "bg-tile-green/60" : ""
                 }`}
               >
-                <td className="px-3 py-3 align-top">
+                <td className={ROW_CONTROL}>
                   <SelectRowCheckbox
                     checked={selected}
                     onChange={() => selection.toggle(phrase.id)}
                     label={phrase.phrase}
                   />
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className={`${ROW_TEXT} truncate`} title={phrase.phrase}>
                   {/* The name opens the phrase, it does not edit it, which is
                       what the Vocabulary list does and for the same reason:
                       stopping at a row while reading is not a decision to
@@ -383,26 +396,26 @@ function PhraseTable({
                     href={`/phrase?id=${phrase.id}`}
                     className="font-medium text-link hover:underline"
                   >
-                    <span className="line-clamp-3 break-words">{phrase.phrase}</span>
+                    {phrase.phrase}
                   </Link>
                 </td>
-                <td className="px-4 py-3 align-top text-ink">
+                <td className={`${ROW_TEXT} truncate text-ink`} title={phrase.literalMeaning || undefined}>
                   {phrase.literalMeaning ? (
-                    <span className="line-clamp-3 break-words">{phrase.literalMeaning}</span>
+                    phrase.literalMeaning
                   ) : (
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-4 py-3 align-top text-ink">
+                <td className={`${ROW_TEXT} truncate text-ink`} title={phrase.usageExample || undefined}>
                   {phrase.usageExample ? (
-                    <span className="line-clamp-3 italic">{phrase.usageExample}</span>
+                    <span className="italic">{phrase.usageExample}</span>
                   ) : (
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className={ROW_TEXT}>
                   {phrase.collections.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex gap-1 overflow-hidden">
                       {phrase.collections.map((name) => (
                         <CollectionBadge key={name} name={name} onSelect={onSelectCollection} />
                       ))}
@@ -411,16 +424,16 @@ function PhraseTable({
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-4 py-3 align-top text-ink-soft">
+                <td className={`${ROW_TEXT} truncate text-ink-soft`}>
                   {phrase.ref ? (
-                    <span className="line-clamp-3 break-words">
+                    <span>
                       <RefText value={phrase.ref} linkIndex={linkIndex} />
                     </span>
                   ) : (
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-3 py-3 align-top">
+                <td className={ROW_CONTROL}>
                   <div className="flex items-center justify-end gap-0.5">
                     <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
                     <RowDeleteButton
@@ -455,8 +468,11 @@ function PhraseCards({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="md:hidden">
-      <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
+    // Written on the paper too, as on Vocabulary: every line of an entry is
+    // one line of the ruling (32px). Each text size repeats `leading-8`,
+    // because Tailwind's size classes bring their own line height.
+    <div data-ruled-snap className="leading-8 md:hidden">
+      <label className="flex h-8 w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
         <SelectAllCheckbox
           checked={selection.allSelected}
           indeterminate={selection.partiallySelected}
@@ -466,64 +482,46 @@ function PhraseCards({
         Select all
       </label>
 
-      <ul className="space-y-3">
+      <ul>
         {phrases.map((phrase) => {
           const selected = selection.isSelected(phrase.id);
           return (
-            <li key={phrase.id}>
-              <div
-                className={`card p-4 transition hover:border-accent ${
-                  selected ? "bg-tile-green" : ""
-                }`}
-              >
-                <div className="flex items-start gap-2.5">
-                  <span className="pt-1">
-                    <SelectRowCheckbox
-                      checked={selected}
-                      onChange={() => selection.toggle(phrase.id)}
-                      label={phrase.phrase}
-                    />
-                  </span>
-                  <h2 className="flex-1 font-semibold">
-                    <Link
-                      href={`/phrase?id=${phrase.id}`}
-                      className="text-link hover:underline"
-                    >
-                      {phrase.phrase}
-                    </Link>
-                  </h2>
-                  <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-0.5">
-                    <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
-                    <RowDeleteButton
-                      label={phrase.phrase}
-                      onClick={() => onDelete(phrase.id)}
-                    />
-                  </div>
+            <li key={phrase.id} className={selected ? "bg-tile-green/60" : ""}>
+              <div className="flex h-8 items-center gap-2.5">
+                <SelectRowCheckbox
+                  checked={selected}
+                  onChange={() => selection.toggle(phrase.id)}
+                  label={phrase.phrase}
+                />
+                <h2 className="min-w-0 flex-1 truncate font-semibold">
+                  <Link href={`/phrase?id=${phrase.id}`} className="text-link hover:underline">
+                    {phrase.phrase}
+                  </Link>
+                </h2>
+                <div className="-mr-1 flex shrink-0 items-center gap-0.5">
+                  <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
+                  <RowDeleteButton label={phrase.phrase} onClick={() => onDelete(phrase.id)} />
                 </div>
-                {phrase.collections.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {phrase.collections.map((name) => (
-                      <CollectionBadge key={name} name={name} />
-                    ))}
-                  </div>
-                )}
-                {phrase.literalMeaning && (
-                  <p className="mt-1.5 text-sm text-ink">
-                    {phrase.literalMeaning}
-                  </p>
-                )}
-                {phrase.usageExample && (
-                  <p className="mt-1.5 text-sm text-ink-soft italic">
-                    “{phrase.usageExample}”
-                  </p>
-                )}
-                {phrase.ref && (
-                  <p className="mt-2 text-xs break-words text-ink-soft">
-                    <span className="font-medium text-ink-soft">Ref: </span>
-                    <RefText value={phrase.ref} linkIndex={linkIndex} />
-                  </p>
-                )}
               </div>
+              {phrase.collections.length > 0 && (
+                <div className="flex h-8 items-center gap-1 overflow-hidden">
+                  {phrase.collections.map((name) => (
+                    <CollectionBadge key={name} name={name} />
+                  ))}
+                </div>
+              )}
+              {phrase.literalMeaning && (
+                <p className="line-clamp-2 text-sm leading-8 text-ink">{phrase.literalMeaning}</p>
+              )}
+              {phrase.usageExample && (
+                <p className="line-clamp-2 text-sm leading-8 text-ink-soft italic">“{phrase.usageExample}”</p>
+              )}
+              {phrase.ref && (
+                <p className="truncate text-xs leading-8 text-ink-soft">
+                  <span className="font-medium">Ref: </span>
+                  <RefText value={phrase.ref} linkIndex={linkIndex} />
+                </p>
+              )}
             </li>
           );
         })}
