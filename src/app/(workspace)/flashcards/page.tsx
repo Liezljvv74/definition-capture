@@ -266,7 +266,9 @@ function CardFace({
        */}
       <div
         ref={cardEl}
-        style={{ "--r": "-1.2deg" } as CSSProperties}
+        // The wobble only runs once an answer is marked, when the card has
+        // its tilt, so it shakes around the same angle.
+        style={{ "--r": "-1.2deg", "--wobble-r": "-1.2deg" } as CSSProperties}
         className={`tape tape-centre relative mx-auto flex aspect-square w-full max-w-sm flex-col rounded-[4px_14px_5px_12px] border-[3px] border-ink p-6 shadow-[4px_5px_0_var(--color-shadow)] transition-colors duration-200 ${tilted ? "paste" : ""} ${face} ${ink}`}
       >
         <p className="text-xs font-medium tracking-[0.14em] uppercase">
