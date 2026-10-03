@@ -1089,7 +1089,10 @@ function ExportFolderSection() {
 
   // Read on each render rather than held in state: it cannot change while the
   // page is open, and it is false during the server render.
-  const canChoose = supportsExportFolder();
+  // Read as an external store with a server answer of "no", so the server's
+  // HTML and the browser's first render agree; reading the browser feature
+  // during render made them differ, which React reported as a hydration error.
+  const canChoose = useSyncExternalStore(neverChanges, supportsExportFolder, () => false);
 
   async function choose() {
     setBusy(true);
