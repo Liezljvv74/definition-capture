@@ -74,7 +74,7 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
 
   if (editing) {
     return (
-      <article className="card p-5 sm:p-7">
+      <article className="card p-4 sm:p-7">
         <RuleEditor
           rule={rule}
           topics={settings.topics}
@@ -94,9 +94,9 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
   }
 
   return (
-    <article className="card p-5 sm:p-7">
+    <article className="card p-4 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="hand-title text-2xl sm:text-3xl" data-speak-lang="auto">
+        <h1 className="hand-title text-xl sm:text-3xl" data-speak-lang="auto">
           <span className="marker section-sage">{rule.title}</span>
         </h1>
         <TopicBadge name={rule.topic} />
@@ -106,7 +106,9 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
         <p className="mt-4 text-ink-soft italic">Nothing written yet. Use Edit to start.</p>
       ) : (
         <ReadingTools rule={rule}>
-          <div className="mt-5 space-y-5 font-sans leading-relaxed">
+          {/* Smaller on a phone, where a rule's text, tables and examples
+              otherwise crowd the narrow screen. */}
+          <div className="mt-4 space-y-4 font-sans text-sm leading-relaxed sm:mt-5 sm:space-y-5 sm:text-lg sm:leading-relaxed">
             {/* Each block says which language it is read in, and is the
                 element RuleReader outlines while reading it. */}
             {rule.blocks.map((block) => (
