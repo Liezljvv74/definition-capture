@@ -33,7 +33,7 @@ export default function RulePage() {
 
 function Skeleton() {
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+    <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
       <div className="card h-56 animate-pulse" aria-hidden="true" />
     </main>
   );
@@ -48,14 +48,12 @@ function RuleDetail() {
 
   return (
     <>
-      <header className="bg-card-sage">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <Link href="/grammar" className="text-sm font-medium text-slate-900 hover:underline">
-            ← Back to Grammar
-          </Link>
-        </div>
+      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
+        <Link href="/grammar" className="text-sm font-medium text-link hover:underline">
+          ← Back to Grammar
+        </Link>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
         {!loaded ? (
           <div className="card h-56 animate-pulse" aria-hidden="true" />
         ) : rule ? (
@@ -97,15 +95,17 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
   return (
     <article className="card p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{rule.title}</h1>
+        <h1 className="hand-title text-2xl sm:text-3xl">
+          <span className="marker">{rule.title}</span>
+        </h1>
         <TopicBadge name={rule.topic} />
       </div>
 
       {rule.blocks.length === 0 ? (
-        <p className="mt-4 text-slate-500 italic dark:text-slate-400">Nothing written yet. Use Edit to start.</p>
+        <p className="mt-4 text-ink-soft italic">Nothing written yet. Use Edit to start.</p>
       ) : (
         <ReadingTools rule={rule}>
-          <div className="mt-5 space-y-5">
+          <div className="mt-5 space-y-5 font-sans leading-relaxed">
             {rule.blocks.map((block) => (
               <BlockView key={block.id} block={block} linkIndex={linkIndex} />
             ))}
@@ -113,13 +113,13 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
         </ReadingTools>
       )}
 
-      <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2 dark:border-slate-800">
+      <dl className="mt-6 grid gap-4 border-t border-rule pt-5 sm:grid-cols-2">
         <div>
-          <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">Date added</dt>
-          <dd className="mt-1.5 text-sm text-slate-700 dark:text-slate-300">
+          <dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">Date added</dt>
+          <dd className="mt-1.5 text-sm text-ink">
             <span title={formatDateTime(rule.dateAdded)}>{formatDate(rule.dateAdded)}</span>
             {rule.dateUpdated && (
-              <span className="block text-xs text-slate-500 dark:text-slate-400" title={formatDateTime(rule.dateUpdated)}>
+              <span className="block text-xs text-ink-soft" title={formatDateTime(rule.dateUpdated)}>
                 Edited {formatDate(rule.dateUpdated)}
               </span>
             )}
@@ -130,7 +130,7 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
       <LinkedFrom href={`/rule?id=${rule.id}`} />
 
       {/* Deleting is not offered here; the Grammar list owns that, as the word list does. */}
-      <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+      <div className="mt-6 border-t border-rule pt-5">
         <button type="button" className="btn btn-primary" onClick={() => setEditing(true)}>
           Edit
         </button>
@@ -142,8 +142,8 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
 function NotFound() {
   return (
     <div className="card mx-auto max-w-lg p-8 text-center">
-      <h1 className="text-lg font-semibold">Rule not found</h1>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      <h1 className="hand-title text-xl">Rule not found</h1>
+      <p className="mt-2 text-sm text-ink-soft">
         There is no rule with that ID in your account. It may have been deleted, or the link may
         belong to a different account.
       </p>

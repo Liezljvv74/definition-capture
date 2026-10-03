@@ -28,13 +28,13 @@ export function SelectionToolbar({
 }) {
   const keep = (event: MouseEvent) => event.preventDefault();
   const button =
-    "cursor-pointer rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700";
+    "cursor-pointer rounded px-2 py-1 text-xs font-medium text-ink hover:bg-tile-sky";
   return (
     <div
       role="toolbar"
       aria-label="Selection"
       style={{ top, left }}
-      className="absolute z-20 flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-md dark:border-slate-700 dark:bg-slate-800"
+      className="absolute z-20 flex max-w-full flex-wrap items-center gap-1 rounded-lg border-2 border-ink bg-card p-1 shadow-md"
     >
       {onHighlight &&
         HIGHLIGHT_COLOURS.map((colour) => (
@@ -45,7 +45,7 @@ export function SelectionToolbar({
             onClick={() => onHighlight(colour)}
             aria-label={`Highlight ${colour}`}
             title={`Highlight ${colour}`}
-            className={`size-6 cursor-pointer rounded-full border border-slate-300 dark:border-slate-600 ${HIGHLIGHT_CLASS[colour]}`}
+            className={`size-6 cursor-pointer rounded-full border border-ink-soft ${HIGHLIGHT_CLASS[colour]}`}
           />
         ))}
       {onRemove && (

@@ -130,7 +130,7 @@ export function RuleEditor({
         </p>
       )}
 
-      <div className="flex gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+      <div className="flex gap-2 border-t border-rule pt-4">
         <button type="submit" className="btn btn-primary" disabled={problem !== null}>
           Save
         </button>

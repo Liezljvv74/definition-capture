@@ -86,7 +86,7 @@ export function MarkedField({
   // a tint off its words. `transition-none` while marked stops the box's
   // letters fading out over the copy's own instant appearance, which
   // otherwise shows the text doubled for a moment.
-  const own = `${shared} relative block ${wrap ? "resize-none overflow-hidden" : multiline ? "resize-y" : ""} ${marked ? "bg-transparent! text-transparent! caret-slate-900 dark:caret-slate-100 transition-none" : ""}`;
+  const own = `${shared} relative block ${wrap ? "resize-none overflow-hidden" : multiline ? "resize-y" : ""} ${marked ? "bg-transparent! text-transparent! caret-ink transition-none" : ""}`;
 
   return (
     <div className="relative">
@@ -101,7 +101,7 @@ export function MarkedField({
       >
         {runs.map((run, index) =>
           run.marker ? (
-            <span key={index} className="text-slate-400 dark:text-slate-500">{run.text}</span>
+            <span key={index} className="text-ink-soft">{run.text}</span>
           ) : run.colour ? (
             <mark key={index} className={`rounded-sm text-inherit ${HIGHLIGHT_CLASS[run.colour]}`}>{run.text}</mark>
           ) : (

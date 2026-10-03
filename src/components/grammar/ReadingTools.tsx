@@ -165,7 +165,7 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
         <div
           aria-hidden="true"
           style={shown.outline}
-          className="pointer-events-none absolute rounded-sm bg-indigo-500/10 ring-2 ring-indigo-500 dark:ring-indigo-400"
+          className="pointer-events-none absolute rounded-sm bg-accent/10 ring-2 ring-link"
         />
       )}
       {shown && (onHighlight || onRemove || onLink || onNewRule) && (

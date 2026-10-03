@@ -8,7 +8,7 @@ import { foldName } from "@/lib/foldName";
 import type { LinkIndex } from "@/lib/links";
 
 const linkClass =
-  "text-indigo-700 underline underline-offset-2 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200";
+  "text-link underline underline-offset-2 hover:opacity-80";
 
 /**
  * Light enough to read dark text through in both themes. Blue rather than
@@ -63,7 +63,7 @@ function Inline({ tokens, linkIndex }: { tokens: InlineToken[]; linkIndex: LinkI
                   key={index}
                   data-at={token.at}
                   title="Nothing with this name is saved yet"
-                  className="text-slate-500 underline decoration-dotted underline-offset-2 dark:text-slate-400"
+                  className="text-ink-soft underline decoration-dotted underline-offset-2"
                 >
                   {words}
                 </span>
@@ -93,7 +93,7 @@ export function RichText({ text, linkIndex }: { text: string; linkIndex: LinkInd
   const groups = useMemo(() => groupBullets(lines), [lines]);
 
   return (
-    <div data-field="text" className="space-y-2 text-slate-800 dark:text-slate-200">
+    <div data-field="text" className="space-y-2 text-ink">
       {groups.map((group, index) =>
         group.kind === "list" ? (
           <ul key={index} className="list-disc space-y-1 pl-5">
