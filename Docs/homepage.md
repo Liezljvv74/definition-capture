@@ -208,7 +208,7 @@ the app is this page's whole job.
 ### Metadata and crawler files
 
 - Root `metadata` gains `metadataBase` (`https://definition-capture.vercel.app`),
-  a title template (`%s · Definition Capture`), a description, Open Graph and
+  a title template (`%s · Captured`), a description, Open Graph and
   Twitter card fields, and a canonical URL for `/`.
 - `src/app/opengraph-image.tsx` draws the preview image with `next/og`, which
   ships with Next: no new dependency.

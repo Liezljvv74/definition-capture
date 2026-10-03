@@ -49,7 +49,7 @@ export function backupFileName(
     String(date.getMonth() + 1).padStart(2, "0"),
     String(date.getDate()).padStart(2, "0"),
   ].join("-");
-  return `definition-capture-${SCOPE_FILE_WORD[scope]}-${stamp}.${format}`;
+  return `captured-${SCOPE_FILE_WORD[scope]}-${stamp}.${format}`;
 }
 
 /** Hands a finished blob to the browser as a download. */

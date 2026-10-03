@@ -1,6 +1,6 @@
-# Definition Capture
+# Captured
 
-Definition Capture is a private language-learning workspace. You save the
+Captured is a private language-learning workspace. You save the
 words, phrases, verb conjugations and grammar rules you meet, and flashcards built
 from them come back when they are due. Every list is stored in Supabase and
 belongs to the account that saved it, so the same lists are there on any browser

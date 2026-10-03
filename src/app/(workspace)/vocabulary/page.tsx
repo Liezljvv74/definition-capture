@@ -575,7 +575,7 @@ function EmptyVocabulary({ onAdd }: { onAdd: () => void }) {
       </div>
       <h2 className="text-lg font-semibold">No words yet</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-300">
-        Definition Capture is a place to park the words and concepts you meet while studying, so
+        Captured is a place to park the words and concepts you meet while studying, so
         you can search and review them later. Save a word now and write the definition whenever
         you like. Blank ones get flagged so they are easy to find again.
       </p>
