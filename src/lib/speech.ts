@@ -71,12 +71,19 @@ export function guessLang(text: string, studied: string, native: string, fallbac
 
 /**
  * Settles every "auto" part. The whole of the undecided text is judged first,
- * so a part with no clue of its own, a table heading such as "Masculin",
- * follows the language the rest of the rule is written in.
+ * together with `context` (the rest of the rule a selection was taken from),
+ * so a part with no clue of its own, a heading such as "Masculin" or a
+ * selected "Quel auxiliaire choisir?", follows the language the rule is
+ * written in. A part's own words still decide when they can.
  */
-export function resolveLangs(parts: readonly SpeechPart[], studied: string, native: string): SpeechPart[] {
+export function resolveLangs(
+  parts: readonly SpeechPart[],
+  studied: string,
+  native: string,
+  context: readonly string[] = [],
+): SpeechPart[] {
   const undecided = parts.filter((part) => part.lang === "auto").map((part) => part.text);
-  const overall = guessLang(undecided.join(" "), studied, native);
+  const overall = guessLang([...undecided, ...context].join(" "), studied, native);
   return parts.map((part) =>
     part.lang === "auto" ? { ...part, lang: guessLang(part.text, studied, native, overall) } : part,
   );

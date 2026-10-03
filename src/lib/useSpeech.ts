@@ -71,13 +71,14 @@ export function useSpeech(key: string) {
 
   useEffect(() => () => stopReading(key), [key]);
 
-  function start(parts: SpeechPart[], onPart?: (part: SpeechPart) => void) {
+  /** `context` is text the parts come from, used to place parts that give no clue of their own. */
+  function start(parts: SpeechPart[], onPart?: (part: SpeechPart) => void, context: readonly string[] = []) {
     if (current) stopReading(current.key);
     if (!canSpeak() || parts.length === 0) return;
     const synth = window.speechSynthesis;
     // Text that may be in either language (a rule's prose) is placed now,
     // against the account's two languages.
-    const spoken = resolveLangs(parts, settings.language, settings.nativeLanguage);
+    const spoken = resolveLangs(parts, settings.language, settings.nativeLanguage, context);
     const stopThis = playParts(synth as unknown as Parameters<typeof playParts>[0], spoken, {
       studied: settings.language,
       native: settings.nativeLanguage,

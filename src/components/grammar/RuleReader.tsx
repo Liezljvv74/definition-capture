@@ -44,7 +44,17 @@ export function RuleReader({ rule }: { rule: Rule }) {
       const where = marked.getAttribute("data-speak-lang");
       const lang: SpeechPart["lang"] = where === "auto" ? "auto" : where === "native" ? "native" : "studied";
       setActive(null);
-      start(sentences(text).map((sentence) => ({ text: sentence, lang })));
+      // The rest of the rule goes along as context, so a selection with no
+      // clue of its own ("Quel auxiliaire choisir?") is read in the language
+      // the rule is written in rather than the reader's.
+      const rest = ruleParts(rule)
+        .filter((part) => part.lang === "auto")
+        .map((part) => part.text);
+      start(
+        sentences(text).map((sentence) => ({ text: sentence, lang })),
+        undefined,
+        rest,
+      );
       return;
     }
     start(ruleParts(rule), (part) => setActive(part.blockId ?? null));

@@ -47,7 +47,9 @@ Text is read as shown: link markup and the `{taught words}` braces are
 removed with `plainText`, and a link reads as its label.
 
 With text selected inside the rule, the button reads only the selection. A
-selection in the rule's text or a heading is judged by its words, as above;
+selection in the rule's text or a heading is judged by its words, as above,
+with the rest of the rule as context, so a selection with no clue of its own
+("Quel auxiliaire choisir?") takes the language the rule is written in;
 one in an example sentence or a table cell is read in the studied language,
 and one in a translation in the native language.
 

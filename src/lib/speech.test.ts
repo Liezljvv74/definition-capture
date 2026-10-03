@@ -195,3 +195,17 @@ describe("the language a rule is written in", () => {
     expect(english.map((part) => part.lang)).toEqual(["native", "native"]);
   });
 });
+
+describe("a selection judged against its rule", () => {
+  it("takes the rule's language when the selection gives no clue", () => {
+    const rule = ["Le passé composé se forme avec avoir ou être.", "On choisit être pour les verbes de mouvement."];
+    const alone = [{ text: "Quel auxiliaire choisir?", lang: "auto" as const }];
+    expect(resolveLangs(alone, "fr", "en")[0].lang).toBe("native");
+    expect(resolveLangs(alone, "fr", "en", rule)[0].lang).toBe("studied");
+  });
+
+  it("still lets a selection's own words decide", () => {
+    const rule = ["Le passé composé se forme avec avoir ou être."];
+    expect(resolveLangs([{ text: "This is the English note.", lang: "auto" }], "fr", "en", rule)[0].lang).toBe("native");
+  });
+});
