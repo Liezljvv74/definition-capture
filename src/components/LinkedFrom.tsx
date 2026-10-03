@@ -20,7 +20,7 @@ export function LinkedFrom({ href }: { href: string }) {
   const linkers = useMemo(() => linkedFrom(targets, linkIndex, href), [targets, linkIndex, href]);
   if (linkers.length === 0) return null;
   return (
-    <section className="mt-6 border-t border-rule pt-5">
+    <section className="mt-4 border-t border-rule pt-3">
       <h2 className="text-xs font-semibold tracking-wide text-ink-soft uppercase">Linked from</h2>
       <ul className="mt-2 flex flex-wrap gap-2">
         {linkers.map((t) => (

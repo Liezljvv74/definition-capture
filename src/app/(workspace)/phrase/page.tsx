@@ -38,7 +38,7 @@ export default function PhraseDetailPage() {
 
 function DetailSkeleton() {
   return (
-    <main className="notebook-page mx-auto w-full max-w-3xl flex-1 py-6">
+    <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6">
       <div className="card h-56 animate-pulse" aria-hidden="true" />
     </main>
   );
@@ -53,13 +53,13 @@ function PhraseDetail() {
 
   return (
     <>
-      <header className="notebook-page mx-auto w-full max-w-3xl pt-6">
+      <header className="notebook-page mx-auto w-full max-w-5xl pt-6">
         <Link href="/phrases" className="text-sm font-medium text-link hover:underline">
           ← Back to phrases
         </Link>
       </header>
 
-      <main className="notebook-page mx-auto w-full max-w-3xl flex-1 py-6">
+      <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6">
         {!loaded ? (
           <div className="card h-56 animate-pulse" aria-hidden="true" />
         ) : phrase ? (
@@ -84,72 +84,71 @@ function PhraseDetailCard({
 
   return (
     <>
-      <article
-        className="paste tape rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-5 shadow-[4px_5px_0_var(--color-shadow)] sm:p-7"
-        style={{ "--r": "0.4deg" } as CSSProperties}
-      >
-        <h1 className="hand-title text-2xl sm:text-3xl [overflow-wrap:anywhere]">
-          <span className="marker section-green">{phrase.phrase}</span>
-        </h1>
-
-        <Field label="Literal meaning" empty="No literal meaning yet. Use Edit to fill it in.">
-          {phrase.literalMeaning && (
-            <p className="whitespace-pre-wrap text-ink">
-              {phrase.literalMeaning}
-            </p>
-          )}
-        </Field>
-
-        <Field label="Usage example" empty="No example yet.">
-          {phrase.usageExample && (
-            <p className="whitespace-pre-wrap text-ink italic">
-              “{phrase.usageExample}”
-            </p>
-          )}
-        </Field>
-
-        <Field label="Source" empty="None">
-          <SourceBadge source={phrase.source} />
-        </Field>
-
-        <Field label="Collection" empty="None">
-          {phrase.collections.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {phrase.collections.map((name) => (
-                <CollectionBadge key={name} name={name} />
-              ))}
-            </div>
-          )}
-        </Field>
-
-        <Field label="Ref" empty="None">
-          {phrase.ref && (
-            <p className="break-words text-ink">
-              <RefText value={phrase.ref} linkIndex={linkIndex} />
-            </p>
-          )}
-        </Field>
-
-        {/* The day, with the time on hover, the way the word page shows it. A
-            phrase restored from a backup keeps the date it was captured, so
-            this is not simply when the row reached this database. */}
-        <Field label="Date added" empty="Unknown">
-          {phrase.dateAdded && (
-            <p className="text-ink">
-              <span title={formatDateTime(phrase.dateAdded)}>{formatDate(phrase.dateAdded)}</span>
-            </p>
-          )}
-        </Field>
-
-        <LinkedFrom href={`/phrase?id=${phrase.id}`} />
-
-        {/* Editing is offered here so a cross-link that lands on a typo can fix
-            it on the spot. Deleting is not — the list owns that. */}
-        <div className="mt-6 border-t border-rule pt-5">
-          <button type="button" className="btn btn-primary" onClick={() => setIsEditing(true)}>
+      {/* Laid out to fit one screen, as the word page is: the meaning and
+          example on the left, the four short facts as two pairs on the
+          right, and Edit beside the title. */}
+      <article className="tape rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-5 shadow-[4px_5px_0_var(--color-shadow)] sm:p-6">
+        <div className="flex flex-wrap items-start gap-3">
+          <h1 className="hand-title text-2xl sm:text-3xl [overflow-wrap:anywhere]">
+            <span className="marker section-green">{phrase.phrase}</span>
+          </h1>
+          {/* Editing is offered here so a cross-link that lands on a typo can
+              fix it on the spot. Deleting is not: the list owns that. */}
+          <button type="button" className="btn btn-primary ml-auto" onClick={() => setIsEditing(true)}>
             Edit
           </button>
         </div>
+
+        <div className="mt-4 grid gap-x-8 gap-y-5 md:grid-cols-2">
+          <div className="space-y-4">
+            <Field label="Literal meaning" empty="No literal meaning yet. Use Edit to fill it in.">
+              {phrase.literalMeaning && <p className="whitespace-pre-wrap text-ink">{phrase.literalMeaning}</p>}
+            </Field>
+
+            <Field label="Usage example" empty="No example yet.">
+              {phrase.usageExample && (
+                <p className="whitespace-pre-wrap text-ink italic">“{phrase.usageExample}”</p>
+              )}
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 content-start gap-x-6 gap-y-4">
+            <Field label="Source" empty="None">
+              <SourceBadge source={phrase.source} />
+            </Field>
+
+            <Field label="Collection" empty="None">
+              {phrase.collections.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {phrase.collections.map((name) => (
+                    <CollectionBadge key={name} name={name} />
+                  ))}
+                </div>
+              )}
+            </Field>
+
+            <Field label="Ref" empty="None">
+              {phrase.ref && (
+                <p className="text-sm break-words text-ink">
+                  <RefText value={phrase.ref} linkIndex={linkIndex} />
+                </p>
+              )}
+            </Field>
+
+            {/* The day, with the time on hover, the way the word page shows it. A
+                phrase restored from a backup keeps the date it was captured, so
+                this is not simply when the row reached this database. */}
+            <Field label="Date added" empty="Unknown">
+              {phrase.dateAdded && (
+                <p className="text-sm text-ink">
+                  <span title={formatDateTime(phrase.dateAdded)}>{formatDate(phrase.dateAdded)}</span>
+                </p>
+              )}
+            </Field>
+          </div>
+        </div>
+
+        <LinkedFrom href={`/phrase?id=${phrase.id}`} />
       </article>
 
       {isEditing && (
@@ -173,11 +172,11 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mt-5">
+    <div>
       <h2 className="text-xs font-semibold tracking-wide text-ink-soft uppercase">
         {label}
       </h2>
-      <div className="mt-1.5">
+      <div className="mt-1">
         {children || <p className="text-ink-soft italic">{empty}</p>}
       </div>
     </div>
