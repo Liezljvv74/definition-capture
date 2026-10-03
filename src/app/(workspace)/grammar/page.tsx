@@ -83,7 +83,7 @@ export default function GrammarPage() {
           </div>
         ) : (
           <>
-            <div className={`${STICKY_FILTERS} flex flex-wrap items-center gap-2`}>
+            <div className={`${STICKY_FILTERS} flex flex-wrap items-center gap-2 sm:mb-3`}>
               <div className="w-full sm:w-1/2 lg:w-64">
                 <label htmlFor="rule-search" className="sr-only">Search rules</label>
                 <input id="rule-search" type="search" className="field" placeholder="Search rules…" value={query} onChange={(event) => setQuery(event.target.value)} />
@@ -110,20 +110,36 @@ export default function GrammarPage() {
               </p>
             )}
 
-            {/* Written on the paper like the word lists: no cards, one ruled
-                line per rule, so the title and its topic stay on one line and
-                a long title is cut off rather than wrapping. */}
-            <ul data-ruled-snap>
+            {/* On a phone, written on the paper like the word lists: no
+                cards, one ruled line per rule, so the title and its topic stay
+                on one line and a long title is cut off rather than wrapping.
+                Wider screens keep the cards. */}
+            <ul data-ruled-snap className="sm:hidden">
               {visible.map((rule) => (
-                <li key={rule.id} className="flex h-8 items-center gap-2 text-sm sm:gap-3 sm:text-base">
+                <li key={rule.id} className="flex h-8 items-center gap-2 text-sm">
                   <Link href={`/rule?id=${rule.id}`} className="min-w-0 truncate font-medium text-link hover:underline" title={rule.title}>
                     {rule.title}
                   </Link>
                   <TopicBadge name={rule.topic} onSelect={setTopic} />
-                  <span className="hidden text-xs whitespace-nowrap text-ink-soft sm:inline">
+                  <span className="ml-auto flex shrink-0 items-center gap-0.5">
+                    <RowEditButton label={rule.title} onClick={() => router.push(`/rule?id=${rule.id}&edit=1`)} />
+                    <RowDeleteButton label={rule.title} onClick={() => setPendingDelete([rule.id])} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <ul className="hidden space-y-1.5 sm:block">
+              {visible.map((rule) => (
+                <li key={rule.id} className="card flex flex-wrap items-center gap-3 px-4 py-3">
+                  <Link href={`/rule?id=${rule.id}`} className="font-medium text-link hover:underline">
+                    {rule.title}
+                  </Link>
+                  <TopicBadge name={rule.topic} onSelect={setTopic} />
+                  <span className="text-xs text-ink-soft">
                     {rule.blocks.length === 0 ? "Nothing written yet" : `${rule.blocks.length} ${rule.blocks.length === 1 ? "block" : "blocks"}`}
                   </span>
-                  <span className="ml-auto flex shrink-0 items-center gap-0.5">
+                  <span className="ml-auto flex items-center gap-1">
                     <RowEditButton label={rule.title} onClick={() => router.push(`/rule?id=${rule.id}&edit=1`)} />
                     <RowDeleteButton label={rule.title} onClick={() => setPendingDelete([rule.id])} />
                   </span>

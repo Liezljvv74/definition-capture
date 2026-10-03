@@ -108,7 +108,7 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
         <ReadingTools rule={rule}>
           {/* Smaller on a phone, where a rule's text, tables and examples
               otherwise crowd the narrow screen. */}
-          <div className="mt-4 space-y-4 font-sans text-sm leading-relaxed sm:mt-5 sm:space-y-5 sm:text-lg">
+          <div className="mt-4 space-y-4 font-sans text-sm leading-relaxed sm:mt-5 sm:space-y-5 sm:text-lg sm:leading-relaxed">
             {/* Each block says which language it is read in, and is the
                 element RuleReader outlines while reading it. */}
             {rule.blocks.map((block) => (

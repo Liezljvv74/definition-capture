@@ -157,7 +157,9 @@ function Settings() {
 
   return (
     <Frame section={section}>
-      <div className="border-t-[1.5px] border-dashed border-rule">
+      {/* On a phone the settings are slim lines with a rule above the first;
+          on wider screens, separate cards as they always were. */}
+      <div className="max-sm:border-t-[1.5px] max-sm:border-dashed max-sm:border-rule sm:space-y-6">
         {section.key === "profile" && (
           <>
             {/* Keyed on the stored name so a save, or a change in another tab,
@@ -762,7 +764,24 @@ function ReadingSpeedSection() {
 
 /* ------------------------------------------------------------ the roll-up */
 
-/** The caret on a setting's line, pointing down while it is open. */
+function PencilIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4"
+    >
+      <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 1 1-3 7.5-7.5Z" />
+    </svg>
+  );
+}
+
+/** The caret on a setting's phone line, pointing down while it is open. */
 function Caret({ open }: { open: boolean }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" className={`size-4 shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}>
@@ -771,13 +790,25 @@ function Caret({ open }: { open: boolean }) {
   );
 }
 
+/*
+ * A card's hand-cut variety on wider screens, without rotation, since a
+ * section holds inputs: the border weight, corners and tape follow the title
+ * so neighbours differ. Prefixed `sm:` because a phone shows a plain line.
+ */
+const LOOKS = [
+  "sm:tape sm:border-[3px] sm:rounded-[4px_12px_3px_10px]",
+  "sm:border-[1.5px] sm:rounded-[10px_4px_12px_3px]",
+  "sm:tape sm:tape-right sm:border-2 sm:rounded-[6px_3px_11px_5px]",
+  "sm:border-[3.5px] sm:border-dashed sm:rounded-[3px_10px_5px_12px]",
+];
+
 /**
- * One setting as a slim line written on the page: its name, what it is set to,
- * and a caret. Pressing the line drops its controls open underneath, and
- * pressing again folds them away. It replaced a taped card per setting at the
- * owner's request on 3 October 2026, so a phone shows the whole list at once.
- * The controls stay mounted while folded, so a half-typed entry is still
- * there when the line is opened again.
+ * One rolled-up setting. On a phone it is a slim line written on the page,
+ * its name, what it is set to and a caret, and pressing the line drops its
+ * controls open underneath; the owner asked for that on 3 October 2026, for
+ * phones only. On wider screens it is the card it always was, with a pencil
+ * that opens the controls. Either way the controls stay mounted while
+ * folded, so a half-typed entry is still there when it is opened again.
  */
 function SettingSection({
   title,
@@ -791,10 +822,12 @@ function SettingSection({
 }) {
   const bodyId = useId();
   const [open, setOpen] = useState(false);
+  const look = LOOKS[title.length % LOOKS.length];
 
   return (
-    <section className="border-b-[1.5px] border-dashed border-rule">
-      <h2>
+    <section className={`max-sm:border-b-[1.5px] max-sm:border-dashed max-sm:border-rule sm:card sm:relative sm:p-5 ${look}`}>
+      {/* Phone: the whole line opens and closes the setting. */}
+      <h2 className="sm:hidden">
         <button
           type="button"
           aria-expanded={open}
@@ -802,7 +835,7 @@ function SettingSection({
           onClick={() => setOpen((current) => !current)}
           className="flex w-full cursor-pointer items-center gap-3 py-2.5 text-left transition hover:bg-marker/20"
         >
-          <span className="hand-title shrink-0 text-base sm:text-lg">{title}</span>
+          <span className="hand-title shrink-0 text-base">{title}</span>
           {summary !== undefined && (
             <span className="min-w-0 flex-1 truncate text-right text-sm text-ink-soft">{summary}</span>
           )}
@@ -812,7 +845,35 @@ function SettingSection({
         </button>
       </h2>
 
-      <div id={bodyId} hidden={!open} className="pt-1 pb-5">
+      {/* Wider screens: the card's heading, summary and pencil. */}
+      <div className="hidden items-start justify-between gap-3 sm:flex">
+        <div className="min-w-0">
+          <h2 className="hand-title text-lg">{title}</h2>
+          {summary !== undefined && (
+            <p className="mt-0.5 truncate text-sm text-ink-soft">
+              {summary}
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          aria-label={open ? `Finish editing ${title}` : `Edit ${title}`}
+          title={open ? "Done" : `Edit ${title}`}
+          onClick={() => setOpen((current) => !current)}
+          className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-ink-soft transition hover:bg-marker/30 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {open ? "Done" : <PencilIcon />}
+        </button>
+      </div>
+
+      <div
+        id={bodyId}
+        hidden={!open}
+        className="max-sm:pt-1 max-sm:pb-5 sm:mt-4 sm:border-t sm:border-rule sm:pt-4"
+      >
         {children}
       </div>
     </section>
