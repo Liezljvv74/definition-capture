@@ -88,7 +88,9 @@ function PhraseDetailCard({
         className="paste tape rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-5 shadow-[4px_5px_0_var(--color-shadow)] sm:p-7"
         style={{ "--r": "0.4deg" } as CSSProperties}
       >
-        <h1 className="hand-title text-2xl sm:text-3xl [overflow-wrap:anywhere]">{phrase.phrase}</h1>
+        <h1 className="hand-title text-2xl sm:text-3xl [overflow-wrap:anywhere]">
+          <span className="marker section-green">{phrase.phrase}</span>
+        </h1>
 
         <Field label="Literal meaning" empty="No literal meaning yet. Use Edit to fill it in.">
           {phrase.literalMeaning && (

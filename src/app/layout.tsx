@@ -4,6 +4,7 @@ import { Kalam, Patrick_Hand } from "next/font/google";
 import { EnterMovesDown } from "@/components/EnterMovesDown";
 import { NotebookDoodles } from "@/components/notebook/NotebookDoodles";
 import { NotebookPaper } from "@/components/notebook/NotebookPaper";
+import { RuledLines } from "@/components/notebook/RuledLines";
 
 import { DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             punch holes behind it, and the doodle triggers once for all. */}
         <NotebookPaper>
           <NotebookDoodles />
+          <RuledLines />
           {children}
         </NotebookPaper>
       </body>

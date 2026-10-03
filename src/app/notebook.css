@@ -61,6 +61,17 @@
   }
 }
 
+:root {
+  /* The ruling itself, shared by the page and anything that covers it. */
+  --ruling: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    var(--nb-rule) 31px,
+    var(--nb-rule) 32px
+  );
+}
+
 @theme inline {
   --color-paper: var(--nb-paper);
   --color-rule: var(--nb-rule);
@@ -96,19 +107,27 @@
 @utility notebook {
   position: relative;
   background-color: var(--color-paper);
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 31px,
-    var(--color-rule) 31px,
-    var(--color-rule) 32px
-  );
+  background-image: var(--ruling);
+  /* One line per tile, so the ruling repeats evenly from any starting point. */
+  background-size: 100% 32px;
   background-position: 0 20px;
   color: var(--color-ink);
   font-family: var(--font-hand);
   font-size: 1.125rem;
   line-height: 1.75;
   overflow-x: clip;
+}
+
+/*
+ * A block that covers the paper but keeps its lines, such as the sticky
+ * filter bar: `RuledLines` sets `--ruled-y` as it moves so its lines meet
+ * the page's.
+ */
+@utility ruled {
+  background-color: var(--color-paper);
+  background-image: var(--ruling);
+  background-size: 100% 32px;
+  background-position: 0 var(--ruled-y, 20px);
 }
 
 @utility notebook-margin {
@@ -161,12 +180,30 @@
   color: var(--color-ink);
 }
 
-/* A yellow marker band behind a word or a heading. */
+/*
+ * Each section keeps its dashboard tile's colour on its own pages: a
+ * `section-*` class on an ancestor turns the highlighter that colour. The
+ * owner asked for it on 3 October 2026; elsewhere the marker stays yellow.
+ */
+@utility section-blue {
+  --section: var(--color-tile-blue);
+}
+@utility section-green {
+  --section: var(--color-tile-green);
+}
+@utility section-purple {
+  --section: var(--color-tile-purple);
+}
+@utility section-sage {
+  --section: var(--color-tile-sage);
+}
+
+/* A marker band behind a word or a heading, yellow unless a section says. */
 @utility marker {
   background: linear-gradient(
     transparent 12%,
-    var(--color-marker) 12%,
-    var(--color-marker) 90%,
+    var(--section, var(--color-marker)) 12%,
+    var(--section, var(--color-marker)) 90%,
     transparent 90%
   );
   padding: 0 0.3em;
@@ -178,8 +215,8 @@
 @utility marker-low {
   background: linear-gradient(
     transparent 55%,
-    var(--color-marker) 55%,
-    var(--color-marker) 92%,
+    var(--section, var(--color-marker)) 55%,
+    var(--section, var(--color-marker)) 92%,
     transparent 92%
   );
   padding: 0 2px;

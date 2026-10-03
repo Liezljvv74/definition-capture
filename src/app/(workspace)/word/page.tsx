@@ -84,7 +84,9 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
         style={{ "--r": "-0.4deg" } as CSSProperties}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="hand-title text-2xl sm:text-3xl [overflow-wrap:anywhere]">{entry.word}</h1>
+          <h1 className="hand-title text-2xl sm:text-3xl [overflow-wrap:anywhere]">
+            <span className="marker section-blue">{entry.word}</span>
+          </h1>
           {entry.needsDefinition && <NeedsDefinitionBadge />}
         </div>
 

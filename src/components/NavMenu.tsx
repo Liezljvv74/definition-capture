@@ -155,4 +155,4 @@ export const MENU_ITEM =
 
 /** The same, for the item standing for the page you are already on. */
 export const MENU_ITEM_CURRENT =
-  "block w-full rounded-md px-3 py-1.5 text-left text-base transition bg-marker/45 text-ink";
+  "block w-full rounded-md px-3 py-1.5 text-left text-base transition bg-[var(--section,var(--color-marker))] text-ink";

@@ -124,7 +124,7 @@ export default function PhrasesPage() {
       <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
         <div>
           <h1 className="hand-title text-2xl sm:text-3xl">
-            <span className="marker">Idioms, Proverbs and other Phrases</span>
+            <span className="marker section-green">Idioms, Proverbs and other Phrases</span>
           </h1>
           <p className="mt-1 text-sm text-ink-soft">
               {!loaded
@@ -299,7 +299,7 @@ function PhraseTable({
   return (
     <div className="card hidden overflow-hidden md:block">
       <table className="w-full table-fixed border-collapse text-left text-sm">
-        <thead className="border-b-2 border-ink bg-tile-sky text-xs tracking-wide text-ink">
+        <thead className="border-b-2 border-ink bg-tile-green text-xs tracking-wide text-ink">
           <tr>
             <th scope="col" className="w-10 px-3 py-2.5">
               <SelectAllCheckbox
@@ -363,7 +363,7 @@ function PhraseTable({
               <tr
                 key={phrase.id}
                 className={`transition-colors hover:bg-card-open ${
-                  selected ? "bg-tile-sky" : ""
+                  selected ? "bg-tile-green" : ""
                 }`}
               >
                 <td className="px-3 py-3 align-top">
@@ -473,7 +473,7 @@ function PhraseCards({
             <li key={phrase.id}>
               <div
                 className={`card p-4 transition hover:border-accent ${
-                  selected ? "bg-tile-sky" : ""
+                  selected ? "bg-tile-green" : ""
                 }`}
               >
                 <div className="flex items-start gap-2.5">

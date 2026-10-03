@@ -17,7 +17,7 @@ export function RememberCard({ item, className = "" }: { item: RememberItem; cla
   const meaningId = `remember-${item.id}`;
 
   return (
-    <section aria-labelledby="remember-heading" className={`relative tape tape-pink rounded-[4px] border-[1.5px] border-dashed border-ink-soft bg-card p-4 shadow-[2px_3px_8px_rgb(0_0_0/0.18)] ${className}`}>
+    <section aria-labelledby="remember-heading" className={`relative tape tape-pink rounded-[4px] border-[1.5px] border-dashed border-ink-soft bg-card px-4 py-3 shadow-[2px_3px_8px_rgb(0_0_0/0.18)] ${className}`}>
       <h2 id="remember-heading" className="text-sm font-semibold tracking-wider text-ink-soft uppercase">
         Do you still remember this one?
       </h2>

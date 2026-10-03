@@ -145,8 +145,11 @@ body {
 /*
  * Dense data stays in a plain face: a table of words and conjugations is read
  * cell by cell, and handwriting slows that down. Headings and body text keep
- * the notebook's hands.
+ * the notebook's hands. In the base layer, so a table that is meant to look
+ * written (the word list) can say `font-hand`.
  */
-table {
-  font-family: var(--font-sans);
+@layer base {
+  table {
+    font-family: var(--font-sans);
+  }
 }

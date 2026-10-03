@@ -96,7 +96,7 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
     <article className="card p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h1 className="hand-title text-2xl sm:text-3xl">
-          <span className="marker">{rule.title}</span>
+          <span className="marker section-sage">{rule.title}</span>
         </h1>
         <TopicBadge name={rule.topic} />
       </div>

@@ -95,10 +95,10 @@ export function ReviewCard({
   return (
     <section
       aria-labelledby="review-heading"
-      className={`relative tape tape-two rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-tile-sky p-5 shadow-[5px_6px_0_var(--color-shadow)] ${className}`}
+      className={`relative tape tape-two rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-tile-sky px-5 py-3 shadow-[5px_6px_0_var(--color-shadow)] ${className}`}
     >
       <p className="text-sm font-semibold tracking-wider text-ink-soft uppercase">Ready for review</p>
-      <h2 id="review-heading" className="hand-title mt-1.5 text-xl sm:text-2xl">
+      <h2 id="review-heading" className="hand-title mt-0.5 text-xl">
         {heading}
       </h2>
       {showQuote && (
@@ -115,7 +115,7 @@ export function ReviewCard({
         </figure>
       )}
       {(action || canCustomise) && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-3">
           {action}
           {canCustomise && <CreateDeckButton />}
         </div>

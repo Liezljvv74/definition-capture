@@ -50,21 +50,22 @@ export default async function HomePage() {
   ];
 
   return (
-    <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6 sm:py-8">
-      <div className="grid gap-x-5 gap-y-7 lg:grid-cols-3">
+    <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-4 sm:py-5">
+      {/* Sized to fit one laptop window, at the owner's request. */}
+      <div className="grid gap-x-5 gap-y-5 lg:grid-cols-3">
         <div className="lg:col-span-3">
-          <h1 className="hand-title text-2xl [overflow-wrap:anywhere] sm:text-3xl">
+          <h1 className="hand-title text-2xl [overflow-wrap:anywhere]">
             Welcome back, <Scribble>{name}</Scribble>
           </h1>
           {summary.lastSavedAt && (
-            <p className="mt-2 text-sm text-ink-soft">
+            <p className="text-sm text-ink-soft">
               Last saved {relativeDay(summary.lastSavedAt, now)}. Here is where you left off.
             </p>
           )}
         </div>
 
         {totalCards > 0 && (
-          <section aria-labelledby="progress-heading" className="paste tape tape-two rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-4 shadow-[4px_5px_0_var(--color-shadow)] lg:col-span-3"
+          <section aria-labelledby="progress-heading" className="paste tape tape-two rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card px-4 py-2.5 shadow-[4px_5px_0_var(--color-shadow)] lg:col-span-3"
             style={tilt(-0.5)}
           >
             <div className="flex items-baseline justify-between gap-3">
@@ -74,7 +75,7 @@ export default async function HomePage() {
             <div
               role="img"
               aria-label={parts.map((p) => `${p.count} ${p.label.toLowerCase()}`).join(", ")}
-              className="mt-2 flex h-3 gap-0.5 overflow-hidden rounded-full border-[1.5px] border-ink"
+              className="mt-1 flex h-3 gap-0.5 overflow-hidden rounded-full border-[1.5px] border-ink"
             >
               {parts
                 .filter((p) => p.count > 0)
@@ -98,17 +99,17 @@ export default async function HomePage() {
         {remember && <RememberCard item={remember} />}
 
         {recent.length > 0 && (
-          <section aria-labelledby="recent-heading" className="paste tape tape-pink rounded-[4px] border-[1.5px] border-dashed border-ink-soft bg-card p-4 shadow-[2px_3px_8px_rgb(0_0_0/0.18)] lg:col-span-3"
+          <section aria-labelledby="recent-heading" className="paste tape tape-pink rounded-[4px] border-[1.5px] border-dashed border-ink-soft bg-card px-4 py-2.5 shadow-[2px_3px_8px_rgb(0_0_0/0.18)] lg:col-span-3"
             style={tilt(0.6)}
           >
             <h2 id="recent-heading" className="hand-title text-lg">Recently captured</h2>
-            <ul className="mt-2 grid gap-x-8 sm:grid-cols-2">
+            <ul className="mt-1 grid gap-x-8 sm:grid-cols-2">
               {recent.map((item) => (
-                <li key={item.id} className="border-t-[1.5px] border-dashed border-rule py-1.5">
-                  <Link href={itemHref(item)} className="font-semibold [overflow-wrap:anywhere] text-link hover:underline">
+                <li key={item.id} className="flex items-baseline gap-2 border-t-[1.5px] border-dashed border-rule py-1">
+                  <Link href={itemHref(item)} className="min-w-0 truncate font-semibold text-link hover:underline">
                     {item.title}
                   </Link>
-                  <p className="text-sm text-ink-soft">
+                  <p className="min-w-0 truncate text-sm text-ink-soft">
                     {[typeLabel(item.itemType), item.collection, relativeDay(item.createdAt, now)]
                       .filter(Boolean)
                       .join(" · ")}
@@ -119,13 +120,13 @@ export default async function HomePage() {
           </section>
         )}
 
-        <nav aria-label="Your lists" className="grid gap-x-5 gap-y-6 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-4">
+        <nav aria-label="Your lists" className="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-4">
           {lists.map((list) => (
             <Link
               key={list.href}
               href={list.href}
               data-doodle={list.doodle}
-              className={`paste border-ink p-3 ${list.look}`}
+              className={`paste border-ink px-3 py-2 ${list.look}`}
               style={tilt(list.deg)}
             >
               <span className="hand-title block text-lg">{list.label}</span>

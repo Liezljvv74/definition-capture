@@ -58,6 +58,15 @@ const LINKS = [
   { href: "/tutor", label: "Tutor", isActive: (path: string) => path.startsWith("/tutor") },
 ] as const;
 
+/** The section colour for the page being shown, after its dashboard tile. */
+function sectionClass(path: string): string {
+  if (inView(GLOSSARY_VIEWS[0], path)) return "section-blue";
+  if (inView(GLOSSARY_VIEWS[1], path)) return "section-green";
+  if (LINKS[0].isActive(path)) return "section-purple";
+  if (LINKS[1].isActive(path)) return "section-sage";
+  return "";
+}
+
 /**
  * The destinations as a panel, for phone widths where four tabs and the
  * Backup and Settings controls do not fit in one row. Backup and Settings
@@ -184,7 +193,7 @@ export function MainNav() {
        * cards as well as over the page, and without it the bar and a card
        * beneath would run together.
        */
-      className="sticky top-0 z-30 border-b-2 border-dashed border-rule bg-paper"
+      className={`sticky top-0 z-30 border-b-2 border-dashed border-rule bg-paper ${sectionClass(pathname)}`}
     >
       {/* No `overflow-x-auto` here on purpose: it would clip the dropdowns,
           because an overflow on one axis makes the other one scroll too. */}

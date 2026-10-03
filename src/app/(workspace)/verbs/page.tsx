@@ -53,7 +53,7 @@ function VerbsShell({
       <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
         <div>
           <h1 className="hand-title text-2xl sm:text-3xl">
-            <span className="marker">Verbs</span>
+            <span className="marker section-purple">Verbs</span>
           </h1>
           <p className="mt-1 text-sm text-ink-soft">
               {subtitle ?? "Loading your verbs…"}

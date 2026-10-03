@@ -18,9 +18,9 @@
  * the controls. The negative margins let that background reach the edges of
  * the content column rather than stopping at the padding.
  *
- * It has to be the page's own colour, set on `body` in `globals.css`. Any
- * other value and this reads as a band across the page rather than as part
- * of it.
+ * It is the paper itself, lines included (`ruled`), with `RuledLines`
+ * keeping its lines level with the page's as it sticks. Plain paper colour
+ * read as a gap in the ruling.
  */
 export const STICKY_FILTERS =
-  "sticky top-[var(--nav-height)] z-20 -mr-4 border-b-[1.5px] border-dashed border-ink-soft bg-paper py-3 pr-4 md:-mr-8 md:pr-8";
+  "ruled sticky top-[var(--nav-height)] z-20 -mr-4 py-3 pr-4 md:-mr-8 md:pr-8";

@@ -34,6 +34,14 @@ type SortKey = "word" | "definition" | "dateAdded";
 type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
 
+/*
+ * A row is one line of the paper's ruling, 32px. Text sits low in it, on the
+ * line; checkboxes and buttons are centred. Nothing in a row may be taller,
+ * or every row below it slips off its line.
+ */
+const ROW_TEXT = "h-8 px-3 pt-1 pb-0 leading-7 align-top";
+const ROW_CONTROL = "h-8 px-2 py-0 align-middle";
+
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
   { key: "word", label: "Word", className: "w-[22%]" },
   { key: "definition", label: "Definition" },
@@ -159,7 +167,7 @@ export default function VocabularyPage() {
       <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
         <div>
           <h1 className="hand-title text-2xl sm:text-3xl">
-            <span className="marker">Vocabulary</span>
+            <span className="marker section-blue">Vocabulary</span>
           </h1>
           <p className="mt-1 text-sm text-ink-soft">
               {!loaded
@@ -185,7 +193,7 @@ export default function VocabularyPage() {
         ) : (
           <>
             <div
-              className={`${STICKY_FILTERS} mb-4 flex flex-wrap items-center gap-2`}
+              className={`${STICKY_FILTERS} flex flex-wrap items-center gap-2`}
             >
               {/*
                * A bounded width rather than `flex-1`. Letting the search take
@@ -353,11 +361,17 @@ function EntryTable({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="card hidden overflow-hidden md:block">
-      <table className="w-full table-fixed border-collapse text-left text-sm">
-        <thead className="border-b-2 border-ink bg-tile-sky text-xs tracking-wide text-ink">
+    // Written on the paper rather than boxed: no card, no borders, and every
+    // row exactly one line of the ruling (32px), so the words sit on the
+    // lines. A border or a second line of text would push every row below it
+    // off its line, which is why the definition and ref are cut to one line;
+    // the word's own page shows them in full. `data-ruled-snap` lets
+    // `RuledLines` move the table's top onto a line.
+    <div data-ruled-snap className="hidden md:block">
+      <table className="w-full table-fixed border-collapse text-left font-hand text-[1.05rem]">
+        <thead className="text-ink">
           <tr>
-            <th scope="col" className="w-10 px-3 py-2.5">
+            <th scope="col" className={`w-10 ${ROW_CONTROL}`}>
               <SelectAllCheckbox
                 checked={selection.allSelected}
                 indeterminate={selection.partiallySelected}
@@ -371,7 +385,7 @@ function EntryTable({
                 <th
                   key={column.label}
                   scope="col"
-                  className={`px-4 py-2.5 font-semibold ${column.className ?? ""}`}
+                  className={`hand-title ${ROW_TEXT} ${column.className ?? ""}`}
                   aria-sort={
                     active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"
                   }
@@ -393,33 +407,34 @@ function EntryTable({
                 </th>
               );
             })}
-            <th scope="col" className="w-24 px-3 py-2.5">
+            <th scope="col" className={`w-24 ${ROW_CONTROL}`}>
               <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-rule">
+        <tbody>
           {entries.map((entry) => {
             const selected = selection.isSelected(entry.id);
             return (
               <tr
                 key={entry.id}
-                className={`transition-colors hover:bg-card-open ${
+                // Washes, not fills, so the ruling still shows through.
+                className={`transition-colors hover:bg-marker/20 ${
                   selected
-                    ? "bg-tile-sky"
+                    ? "bg-tile-blue/60"
                     : entry.needsDefinition
                       ? "bg-amber-50/70 dark:bg-amber-400/5"
                       : ""
                 }`}
               >
-                <td className="px-3 py-3 align-top">
+                <td className={ROW_CONTROL}>
                   <SelectRowCheckbox
                     checked={selected}
                     onChange={() => selection.toggle(entry.id)}
                     label={entry.word}
                   />
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className={`${ROW_TEXT} truncate`}>
                   {/* The name opens the word, it does not edit it. Reading is
                       what somebody is doing when they scan a list and stop at
                       a row; editing is a decision, and it has the pencil at
@@ -433,16 +448,12 @@ function EntryTable({
                     {entry.word}
                   </Link>
                 </td>
-                <td className="px-4 py-3 align-top text-ink">
-                  {entry.needsDefinition ? (
-                    <NeedsDefinitionBadge />
-                  ) : (
-                    <span className="line-clamp-3">{entry.definition}</span>
-                  )}
+                <td className={`${ROW_TEXT} truncate text-ink`} title={entry.definition || undefined}>
+                  {entry.needsDefinition ? <NeedsDefinitionBadge /> : entry.definition}
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className={ROW_TEXT}>
                   {entry.collections.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex gap-1 overflow-hidden">
                       {entry.collections.map((name) => (
                         <CollectionBadge key={name} name={name} onSelect={onSelectCollection} />
                       ))}
@@ -451,16 +462,16 @@ function EntryTable({
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-4 py-3 align-top text-ink-soft">
+                <td className={`${ROW_TEXT} truncate text-ink-soft`}>
                   {entry.ref ? (
-                    <span className="line-clamp-3 break-words">
+                    <span>
                       <RefText value={entry.ref} linkIndex={linkIndex} />
                     </span>
                   ) : (
                     <EmptyCell />
                   )}
                 </td>
-                <td className="px-3 py-3 align-top">
+                <td className={ROW_CONTROL}>
                   <div className="flex items-center justify-end gap-0.5">
                     <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
                     <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
@@ -493,8 +504,12 @@ function EntryCards({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="md:hidden">
-      <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
+    // The phone list is written on the paper too: every line of an entry is
+    // one line of the ruling (32px), so the entries stay on the lines all the
+    // way down. Each text size repeats `leading-8`, because Tailwind's size
+    // classes bring their own line height.
+    <div data-ruled-snap className="leading-8 md:hidden">
+      <label className="flex h-8 w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
         <SelectAllCheckbox
           checked={selection.allSelected}
           indeterminate={selection.partiallySelected}
@@ -504,57 +519,49 @@ function EntryCards({
         Select all
       </label>
 
-      <ul className="space-y-3">
+      <ul>
         {entries.map((entry) => {
           const selected = selection.isSelected(entry.id);
           return (
-            <li key={entry.id}>
-              {/* A plain card, not a link — the Ref field may contain its own links,
-                  and an anchor cannot be nested inside another anchor. */}
-              <div
-                className={`card p-4 transition hover:border-accent ${
-                  selected ? "bg-tile-sky" : ""
-                } ${entry.needsDefinition ? "border-l-4 border-l-amber-400" : ""}`}
-              >
-                <div className="flex items-start gap-2.5">
-                  <span className="pt-1">
-                    <SelectRowCheckbox
-                      checked={selected}
-                      onChange={() => selection.toggle(entry.id)}
-                      label={entry.word}
-                    />
-                  </span>
-                  <h2 className="flex-1 font-semibold">
-                    <Link
-                      href={`/word?id=${entry.id}`}
-                      className="text-link hover:underline"
-                    >
-                      {entry.word}
-                    </Link>
-                  </h2>
-                  {entry.needsDefinition && <NeedsDefinitionBadge />}
-                  <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-0.5">
-                    <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
-                    <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
-                  </div>
+            <li
+              key={entry.id}
+              className={`${selected ? "bg-tile-blue/60" : ""} ${
+                entry.needsDefinition ? "border-l-4 border-l-amber-400 pl-2" : ""
+              }`}
+            >
+              {/* Not a link as a whole: the Ref field may contain its own
+                  links, and an anchor cannot be nested inside another. */}
+              <div className="flex h-8 items-center gap-2.5">
+                <SelectRowCheckbox
+                  checked={selected}
+                  onChange={() => selection.toggle(entry.id)}
+                  label={entry.word}
+                />
+                <h2 className="min-w-0 flex-1 truncate font-semibold">
+                  <Link href={`/word?id=${entry.id}`} className="text-link hover:underline">
+                    {entry.word}
+                  </Link>
+                </h2>
+                {entry.needsDefinition && <NeedsDefinitionBadge />}
+                <div className="-mr-1 flex shrink-0 items-center gap-0.5">
+                  <RowEditButton label={entry.word} onClick={() => onEdit(entry.id)} />
+                  <RowDeleteButton label={entry.word} onClick={() => onDelete(entry.id)} />
                 </div>
-                {entry.definition && (
-                  <p className="mt-1.5 line-clamp-3 text-sm text-ink">
-                    {entry.definition}
-                  </p>
-                )}
-                {entry.ref && (
-                  <p className="mt-2 text-xs break-words text-ink-soft">
-                    <span className="font-medium text-ink-soft">Ref: </span>
-                    <RefText value={entry.ref} linkIndex={linkIndex} />
-                  </p>
-                )}
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              </div>
+              {entry.definition && <p className="line-clamp-2 text-sm leading-8 text-ink">{entry.definition}</p>}
+              {entry.ref && (
+                <p className="truncate text-xs leading-8 text-ink-soft">
+                  <span className="font-medium">Ref: </span>
+                  <RefText value={entry.ref} linkIndex={linkIndex} />
+                </p>
+              )}
+              {entry.collections.length > 0 && (
+                <div className="flex h-8 items-center gap-1.5 overflow-hidden">
                   {entry.collections.map((name) => (
                     <CollectionBadge key={name} name={name} onSelect={onSelectCollection} />
                   ))}
                 </div>
-              </div>
+              )}
             </li>
           );
         })}
