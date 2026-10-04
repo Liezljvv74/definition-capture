@@ -17,12 +17,18 @@ import { useListPage } from "@/lib/useListPage";
 import { useRules } from "@/lib/useRules";
 import { useSettings } from "@/lib/useSettings";
 import { useSorting } from "@/lib/useSorting";
+import type { Rule } from "@/lib/types";
 
 /**
  * Every rule, one row each, with the same search, filter and per-row
  * controls as the other lists. The List | Map toggle arrives in stage 4 of
  * the design; until then this is the list alone.
  */
+// Outside the component, so `useListPage` is handed the same two functions on
+// every render rather than new ones.
+const ruleId = (rule: Rule) => rule.id;
+const ruleTitle = (rule: Rule) => rule.title;
+
 export default function GrammarPage() {
   const router = useRouter();
   const { rules, loaded } = useRules();
@@ -41,11 +47,7 @@ export default function GrammarPage() {
       .sort((a, b) => sorting.compareText(a.title, b.title));
   }, [rules, query, topic, sorting]);
 
-  const { pendingDelete, setPendingDelete, pendingNames } = useListPage(
-    visible,
-    (rule) => rule.id,
-    (rule) => rule.title,
-  );
+  const { pendingDelete, setPendingDelete, pendingNames } = useListPage(visible, ruleId, ruleTitle);
 
   // The filter offers every topic in use as well as the Settings list, so a
   // rule filed under a topic since taken off the list is still reachable.

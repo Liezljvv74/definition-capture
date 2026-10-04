@@ -288,20 +288,6 @@ describe("buildBackup", () => {
     }
   });
 
-  it("leaves the other lists empty in a scoped export", () => {
-    // Nothing is signed in under test, so every list is empty either way; what
-    // is asserted here is the shape, which is what Import reads to decide
-    // whether Replace may touch a list.
-    const scoped = buildBackup("words");
-    expect(scoped.phrases).toEqual([]);
-    expect(scoped.verbTables).toEqual([]);
-    expect(scoped.rules).toEqual([]);
-  });
-
-  it("leaves words, phrases, and verb tables empty in a rules-only export", () => {
-    const scoped = buildBackup("rules");
-    expect(scoped.words).toEqual([]);
-    expect(scoped.phrases).toEqual([]);
-    expect(scoped.verbTables).toEqual([]);
-  });
+  // That a scoped export carries only its own list is tested in
+  // buildBackup.test.ts, with every list filled, so a leak would show.
 });
