@@ -398,8 +398,8 @@ function withNamesInUse(contents: BackupContents): RestoredSettings {
 
 /**
  * Applies a parsed backup to every list with the same mode. "Replace" only
- * wipes a list the file actually carries, so restoring a single-list export (
- * or a version 2 file written before conjugation tables existed) cannot
+ * wipes a list the file actually carries, so restoring a single-list export
+ * (or a version 2 file written before conjugation tables existed) cannot
  * silently delete the lists it says nothing about.
  */
 export function applyImport(contents: BackupContents, mode: ImportMode): ImportResult {
