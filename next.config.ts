@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   //
   // It used to be a static export on GitHub Pages: HTML on a host with no
   // process behind it, so the only place a "are you signed in?" question could
-  // be asked was the browser — and a check the browser makes is a check the
+  // be asked was the browser, and a check the browser makes is a check the
   // browser can be told to skip. The markup of every page was served to anyone
   // who asked, and row level security was the only thing actually keeping one
   // account's terms from another's.
@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
   // their Origin header is the LAN IP rather than localhost. Dev-only setting.
   //
   // The whole subnet rather than one address, because the router hands these
-  // out by DHCP and has already moved this machine once — which silently broke
+  // out by DHCP and has already moved this machine once, which silently broke
   // phone access until the number here was changed to match. A `*` stands for
   // one trailing segment, so this admits 192.168.0.x and nothing outside the
   // LAN. It applies to `next dev` only; a build ignores it entirely.
@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       // `unsafe-inline` rather than a nonce, and this is the honest limit of
       // this policy. Nonces have to be minted per request, which means every
-      // page carrying one must be server-rendered — and `/sign-in` and
+      // page carrying one must be server-rendered, and `/sign-in` and
       // `/sign-up` are deliberately static. A nonce in a build-time HTML file
       // is a nonce an attacker can read, and worse, a mismatched one would
       // block the sign-in page's own scripts and lock everyone out of the
@@ -59,10 +59,15 @@ const nextConfig: NextConfig = {
       "frame-src 'self' https://challenges.cloudflare.com",
       "img-src 'self' data: blob:",
       "font-src 'self'",
-      // The point of the whole policy. Even if a script does get injected and
-      // reads the session cookie — which it can, because `@supabase/ssr`
-      // writes it from JavaScript and it therefore cannot be HttpOnly — it
-      // has nowhere to send it. In dev the HMR socket needs adding.
+      // Narrows where an injected script could send what it reads, such as the
+      // session cookie (readable from JavaScript, because `@supabase/ssr`
+      // writes it there, so it cannot be HttpOnly): `fetch`, XHR and
+      // WebSocket reach only this site and the Supabase project, and with
+      // `img-src` and `form-action` the usual beacons are closed too. It is
+      // not a wall: a script can still carry data out by navigating the page
+      // somewhere else, which no `connect-src` stops. It raises the cost; not
+      // letting script in at all is the real defence. In dev the HMR socket
+      // needs adding.
       `connect-src 'self' ${supabase}${isDev ? " ws: wss:" : ""}`.trim(),
       "object-src 'none'",
       "base-uri 'self'",

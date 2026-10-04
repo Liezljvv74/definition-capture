@@ -10,7 +10,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
  * `@types/node` 22 or newer, this project pins ^20, and bumping the type
  * baseline of the whole app to install a test runner is the tail wagging the
  * dog. (The runtime here is actually Node 24, so those types are already
- * behind — worth correcting one day, as its own change.)
+ * behind, worth correcting one day as its own change.)
  */
 export default defineConfig({
   // Reads the `@/*` alias straight out of tsconfig.json, so the alias is

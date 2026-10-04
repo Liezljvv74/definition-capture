@@ -158,7 +158,7 @@ enabled = true
 #
 # This and `additional_redirect_urls` below mirror what is set on the hosted
 # project. The redirect is the exact string `authRedirectUrl()` builds in
-# `src/lib/supabaseClient.ts` — the server route that trades a link's `?code=`
+# `src/lib/supabaseClient.ts`: the server route that trades a link's `?code=`
 # for a session, not a page. A link whose redirect is not listed here bounces
 # to the site root instead of signing anyone in.
 #
@@ -168,11 +168,11 @@ enabled = true
 # `site_url` is always an allowed redirect target, and it is where a link whose
 # own redirect is not on the list gets sent. It pointed at the abandoned Pages
 # origin long after that site stopped being built, which made a domain nobody
-# owns any more a valid destination for a sign-in code. Until there is a
-# deployment it should name the only origin this app actually runs on.
+# owns any more a valid destination for a sign-in code. For the local copy it
+# names localhost; the hosted project names the production origin.
 #
 # WARNING: most of the rest of this file is still the stock `supabase init`
-# template, and it does NOT match the hosted project — running
+# template, and it does NOT match the hosted project: running
 # `supabase config push` from this directory would turn off email
 # confirmations and TOTP MFA, shorten the OTP, and loosen the email rate
 # limit. Run `supabase config diff` first, and push a minimal config that
@@ -183,6 +183,7 @@ site_url = "http://localhost:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
   "http://localhost:3000/auth/callback",
+  "http://localhost:3000/auth/reset",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
@@ -399,8 +400,8 @@ allow_dynamic_registration = false
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
-# `per_worker` (default) — enables hot reload during local development.
-# `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
+# `per_worker` (default): enables hot reload during local development.
+# `oneshot`: fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
 policy = "per_worker"
 # Port to attach the Chrome inspector for debugging edge functions.
 inspector_port = 8083

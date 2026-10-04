@@ -148,12 +148,17 @@ export function titleProblem(title: string): string | null {
 
 /* --------------------------------------------------------------- mutations */
 
+/** A rule's title and topic as they are stored: trimmed, the same way on create and on update. */
+const cleanNames = (input: { title: string; topic: string }) => ({
+  title: input.title.trim(),
+  topic: input.topic.trim(),
+});
+
 /** A new rule, empty unless `blocks` is given; one insert either way, so a caller never needs a second save that could race it. */
 export function createRule(input: { title: string; topic: string; blocks?: Block[] }): Rule {
   const rule: Rule = {
     id: createId(),
-    title: input.title.trim(),
-    topic: input.topic.trim(),
+    ...cleanNames(input),
     blocks: input.blocks ?? [],
     dateAdded: new Date().toISOString(),
     dateUpdated: null,
@@ -167,8 +172,7 @@ export function updateRule(id: string, input: RuleInput): Rule | null {
   if (!existing) return null;
   const updated: Rule = {
     ...existing,
-    title: input.title.trim(),
-    topic: input.topic.trim(),
+    ...cleanNames(input),
     blocks: input.blocks,
     dateUpdated: new Date().toISOString(),
   };
