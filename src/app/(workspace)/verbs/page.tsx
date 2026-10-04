@@ -190,7 +190,7 @@ function VerbList() {
 
   if (!loaded || !settingsLoaded) return <VerbsShell />;
 
-  // A verb on its way in — from a word, or typed here.
+  // A verb on its way in: from a word, or typed here.
   if (pending !== "" && !has(pending)) {
     return (
       <VerbsShell subtitle="Adding a verb">
@@ -289,7 +289,7 @@ function VerbList() {
             <VerbTableCard
               // Whether it is open is part of the key, so opening a card
               // mounts it fresh from what is stored and closing one throws
-              // its draft away — which is why an edited card is asked
+              // its draft away, which is why an edited card is asked
               // about before either happens.
               key={`${table.id}:${isOpen}`}
               table={table}
@@ -378,7 +378,7 @@ function NewTableForm({ verb, onCancel }: { verb: string; onCancel?: () => void 
 
     // A verb typed here may not be in the word list at all. Add it, empty,
     // rather than leaving a conjugation table for a word the glossary has
-    // never heard of — the two are matched by name, and a table with no
+    // never heard of; the two are matched by name, and a table with no
     // word behind it is a dead end. A verb that is already there is left
     // exactly as it is.
     if (!findByWord(name)) createEntry({ ...EMPTY_ENTRY_INPUT, word: name });

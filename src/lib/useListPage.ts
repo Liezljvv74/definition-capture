@@ -8,7 +8,7 @@ import { useListSelection, type ListSelection } from "@/lib/useListSelection";
  * The bookkeeping every list page does around its rows.
  *
  * The word and phrase pages are not the same page and should not be forced
- * into one — they sort on different keys, filter on different things, and
+ * into one: they sort on different keys, filter on different things, and
  * their tables share almost no columns. But four small pieces were identical
  * in both, character for character apart from the noun: deriving the visible
  * ids, handing them to `useListSelection`, resolving the id being edited back
@@ -16,7 +16,7 @@ import { useListSelection, type ListSelection } from "@/lib/useListSelection";
  * confirmation dialog.
  *
  * Those four are here. They are the parts where a divergence would be a bug
- * rather than a design choice — a confirmation dialog listing names in a
+ * rather than a design choice, a confirmation dialog listing names in a
  * different order from the screen, or a selection that outlives a filter.
  *
  * `items` must already be filtered and sorted: the selection is intersected

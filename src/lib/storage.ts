@@ -3,7 +3,7 @@
  * component ever talks to Supabase directly.
  *
  * Every function below keeps the signature it had when this was a localStorage
- * store — `createEntry` still hands back the finished `Entry` there and then.
+ * store; `createEntry` still hands back the finished `Entry` there and then.
  * That is what let the switch to a database stay inside this file and
  * `remoteStore.ts`: the forms and dialogs never learned that saving became a
  * network call. See `remoteStore.ts` for how an optimistic write reports a
@@ -29,7 +29,7 @@ import {
 /**
  * Turns unknown JSON into an Entry, or null if it is unusable.
  * `allowMissingId` is for imported backups, where a hand-written or older file
- * may have no id yet — the caller assigns one.
+ * may have no id yet; the caller assigns one.
  *
  * This reads the camelCase shape a backup file uses. Database rows arrive in
  * snake_case and go through `fromRow` instead.
@@ -129,7 +129,7 @@ export function fromWordRow(row: Record<string, unknown>): Entry | null {
     // The database keeps `updated_at` itself and starts it at `created_at`,
     // so the two being equal is what "never edited" looks like.
     dateUpdated: updatedAt && updatedAt !== dateAdded ? updatedAt : null,
-    // Never trusted from storage — recomputed from the text, same as before.
+    // Never trusted from storage, recomputed from the text, same as before.
     needsDefinition: needsDefinition(definition),
   };
 }
@@ -210,7 +210,7 @@ export function updateEntry(id: string, input: EntryInput): Entry | null {
 }
 
 /**
- * Removes every entry whose id is listed, in one write — so a bulk delete is a
+ * Removes every entry whose id is listed, in one write, so a bulk delete is a
  * single round trip and a single re-render, not one per row. Returns how many
  * were actually removed; ids that are not in the word list are ignored.
  */
@@ -240,7 +240,7 @@ function newestFirst(entries: Entry[]): Entry[] {
 
 /**
  * Merges imported entries into the word list. Existing entries are matched by
- * word, case- and accent-insensitively — the same rule the add form uses.
+ * word, case- and accent-insensitively, the same rule the add form uses.
  * Imported entries keep their original `dateAdded`, which is the point of a
  * backup.
  *

@@ -10,7 +10,7 @@ import { useSettings } from "@/lib/useSettings";
 
 /**
  * Sits at the right-hand end of the main nav so it is always clear whose
- * words are on screen — with two accounts and one browser, that matters more
+ * words are on screen; with two accounts and one browser, that matters more
  * than the space it costs.
  *
  * Signing out lives in Settings rather than here. It is a rare, destructive-

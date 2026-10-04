@@ -1,5 +1,5 @@
 /**
- * The persistence plumbing for a Supabase-backed list — the replacement for
+ * The persistence plumbing for a Supabase-backed list, the replacement for
  * `createBrowserStore`, which said in its own header that swapping in a real
  * API should mean rewriting one file. This is that file.
  *
@@ -14,8 +14,8 @@
  *     background. The screen never waits on the network.
  *
  * The cost of (2) is that a write can fail after the UI has already moved on.
- * When that happens the store reloads from the database — so what is on screen
- * is what is really stored — and puts a message in `error` for the banner to
+ * When that happens the store reloads from the database, so what is on screen
+ * is what is really stored, and puts a message in `error` for the banner to
  * show. Losing a write silently would be worse than an ugly banner.
  */
 
@@ -55,11 +55,11 @@ export type RemoteStore<T> = {
    * item being renamed must not count as a clash with itself.
    */
   findByName: (name: string, ignoreId?: string) => T | undefined;
-  /** Throw the whole list away and store these instead — a backup restore. */
+  /** Throw the whole list away and store these instead: a backup restore. */
   replaceAll: (items: T[]) => void;
-  /** Store many new items in one write — the localStorage import. */
+  /** Store many new items in one write: the localStorage import. */
   insertMany: (items: T[]) => void;
-  /** Replace many existing items in one write — the merge half of an import. */
+  /** Replace many existing items in one write: the merge half of an import. */
   updateMany: (items: T[]) => void;
   /** Clear the error banner. */
   clearError: () => void;
@@ -99,7 +99,7 @@ export const REFRESH_GAP_MS = 2000;
 
 /**
  * How long to wait before each re-attempt of a read that failed on a clock
- * complaint. Two retries, roughly two seconds all told — long enough to outlast
+ * complaint. Two retries, roughly two seconds all told, long enough to outlast
  * the drift described in `isNotYetValidError`, short enough that a genuinely
  * broken token still reports itself promptly.
  */
@@ -110,7 +110,7 @@ const RETRY_DELAYS_MS = [400, 1500];
  *
  * PostgREST caps any single response at the project's `max_rows`, which is
  * 1000 here and on hosted Supabase by default. A plain `select("*")` past that
- * came back quietly truncated — no error, no flag — and the app showed the
+ * came back quietly truncated (no error, no flag) and the app showed the
  * first 1000 rows as though they were the whole list. That was not merely a
  * display bug: `buildBackup` reads this same cache, so an export followed by a
  * Replace import deleted every row beyond the cut. Reading in pages until a
@@ -149,7 +149,7 @@ function inBatches<V>(values: readonly V[], size: number): V[][] {
  *
  * Two tabs used to stay in step through the `storage` event, which the
  * localStorage store got for free. A database has no such event, so every
- * store re-reads when a tab is looked at again — which is when a stale list
+ * store re-reads when a tab is looked at again, which is when a stale list
  * would actually be noticed. It is not live sync: a second tab sitting
  * visible alongside the first will not update until it is focused.
  *
@@ -171,8 +171,8 @@ export function watchForRefocus(refresh: () => void): void {
  * Supabase mints the token in one service and checks it in another. When those
  * two clocks disagree by even a second, a token that was issued *just* now can
  * look as though it comes from the future, and PostgREST answers "JWT issued at
- * future". It is transient by definition — the moment the checking clock
- * catches up, the very same token is accepted — and it lands almost exclusively
+ * future". It is transient by definition; the moment the checking clock
+ * catches up, the very same token is accepted, and it lands almost exclusively
  * on the first read after signing in, which is the worst possible moment to
  * show somebody an error about JSON web tokens.
  *
@@ -194,7 +194,7 @@ export const ABANDONED = Symbol("abandoned");
  * This is exported, and every read in the app goes through it, because the
  * alternative was tried and failed: `settings.ts` copied this module's loading
  * behaviour by hand, the retry was added here afterwards, and the copy never
- * got it — so the one read most likely to hit the problem, the settings read
+ * got it, so the one read most likely to hit the problem, the settings read
  * on the first page after signing in, still reported a raw JWT complaint. A
  * shared function is what makes a fix like that arrive everywhere at once.
  *
@@ -300,7 +300,7 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
    * `listeners` is people looking at the list; `errorListeners` is the banner,
    * which sits in the workspace layout and is therefore mounted on every page
    * whether or not this list is on screen. Sharing one set meant it was never
-   * empty, so there was no way to ask "is anyone actually watching?" — and the
+   * empty, so there was no way to ask "is anyone actually watching?", and the
    * catch-up read on returning to the tab re-fetched every list started
    * earlier in the session, including the ones the current page never shows.
    */
@@ -394,7 +394,7 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
         const batch = answer.data ?? [];
         data.push(...batch);
         // A short page is the last one. A full page means there may be more,
-        // so ask again — including the exact-multiple case, where the next
+        // so ask again, including the exact-multiple case, where the next
         // request comes back empty and ends the loop.
         if (batch.length < PAGE_SIZE) break;
         const last = batch[batch.length - 1] as Row;
@@ -408,7 +408,7 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
       // `snapshot.error` rather than null: a write that failed is still a
       // write that failed, and this read is the reload that put the truth back
       // on screen. Clearing it here made the banner vanish a moment after it
-      // appeared — the silent failure this whole design exists to avoid. Only
+      // appeared, the silent failure this whole design exists to avoid. Only
       // `clearError`, behind the banner’s Dismiss button, takes it away.
       publish({ items, loaded: true, error: snapshot.error });
     } finally {
@@ -716,9 +716,9 @@ export function createId(): string {
 /**
  * The id an imported row should be saved under.
  *
- * Ids in a backup are whatever the exporting version used — the localStorage
+ * Ids in a backup are whatever the exporting version used: the localStorage
  * store minted short random strings, which the `uuid` primary key will not
- * accept — and one file can name the same id twice. Anything unusable, or
+ * accept, and one file can name the same id twice. Anything unusable, or
  * already spoken for, is replaced with a fresh one.
  *
  * It lives here rather than in a store because all three lists import the same

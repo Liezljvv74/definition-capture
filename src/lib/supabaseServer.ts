@@ -1,5 +1,5 @@
 /**
- * The server's Supabase client — the one the app is trusted on.
+ * The server's Supabase client, the one the app is trusted on.
  *
  * Reads the session out of the request's cookies, which is what lets a Server
  * Component ask who is signed in before it renders anything. Never import this
@@ -9,8 +9,8 @@
  * Use `getClaims()` and not `getSession()` on anything that comes out of here.
  * `getSession` reads the cookie and believes it; a cookie is something the
  * caller sends, so believing it means rendering whatever page an attacker asks
- * for. `getClaims` verifies the token's signature — locally against the
- * project's public JWKS, since this project signs with an asymmetric key —
+ * for. `getClaims` verifies the token's signature (locally against the
+ * project's public JWKS, since this project signs with an asymmetric key)
  * before it says who anybody is.
  */
 
@@ -39,7 +39,7 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient | nul
             cookieStore.set(name, value, options);
           }
         } catch {
-          // A Server Component cannot set cookies — the response headers have
+          // A Server Component cannot set cookies; the response headers have
           // already gone out by the time it renders. Ignoring it is correct
           // rather than lazy: the proxy in `src/proxy.ts` runs before every
           // request and refreshes the session cookies there, so anything

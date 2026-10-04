@@ -18,7 +18,7 @@ export type ImportPlan<T> = {
 };
 
 export type ImportRules<T> = {
-  /** The folded name two rows are "the same" by — see `foldName`. */
+  /** The folded name two rows are "the same" by; see `foldName`. */
   keyOf: (item: T) => string;
   idOf: (item: T) => string;
   /** The item with a different id. */
@@ -32,7 +32,7 @@ export type ImportRules<T> = {
  *
  * This is pure on purpose. The three stores each ran this logic inline,
  * wrapped around calls to a module-scope store, which made it reachable only
- * through a live Supabase session — and under test every one of those writes
+ * through a live Supabase session, and under test every one of those writes
  * is a silent no-op, so the functions would have reported counts for writes
  * that never happened. That is exactly the blind spot the duplicate-word bug
  * lived in: a second copy of a word in one file matched a row that had not

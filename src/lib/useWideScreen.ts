@@ -16,7 +16,7 @@ function subscribe(listener: () => void): () => void {
 
 /**
  * True on a desktop-width viewport, false on a narrow one, and **null until
- * the answer is known** — which is the whole reason this exists rather than a
+ * the answer is known**, which is the whole reason this exists rather than a
  * plain `useState` + effect.
  *
  * The two list pages each render a table and a card list, with CSS hiding one
@@ -27,8 +27,8 @@ function subscribe(listener: () => void): () => void {
  * Picking one in JavaScript instead would normally trade that for a flash:
  * the server has no viewport, so it has to guess, and a phone would draw the
  * desktop table for a frame before correcting itself. The `null` avoids the
- * trade. While the answer is unknown — during the server render and the first
- * client render that hydrates it — callers fall back to rendering both and
+ * trade. While the answer is unknown (during the server render and the first
+ * client render that hydrates it) callers fall back to rendering both and
  * letting CSS choose, exactly as before. The moment the browser answers, they
  * switch to one. First paint is byte-identical to the old behaviour; every
  * render after it does half the work.

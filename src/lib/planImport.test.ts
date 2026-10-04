@@ -23,7 +23,7 @@ const plan = (existing: Row[], incoming: Row[], mode: "skip" | "update" | "repla
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-describe("planImport — skip", () => {
+describe("planImport: skip", () => {
   it("adds what is new and leaves matching rows alone", () => {
     const mine = [row("Tür", "door")];
     const result = plan(mine, [row("Tür", "CHANGED"), row("Buch", "book")], "skip");
@@ -34,7 +34,7 @@ describe("planImport — skip", () => {
   });
 });
 
-describe("planImport — update", () => {
+describe("planImport: update", () => {
   it("overwrites a matching row but keeps its id", () => {
     const mine = [row("Tür", "door", "11111111-1111-1111-1111-111111111111")];
     const result = plan(mine, [row("Tür", "doorway")], "update");
@@ -57,7 +57,7 @@ describe("planImport — update", () => {
   });
 });
 
-describe("planImport — a file that names the same row twice", () => {
+describe("planImport: a file that names the same row twice", () => {
   /**
    * The bug this extraction exists for. New rows are inserted after the loop,
    * so a second copy used to match a row that was not in the store yet: the
@@ -103,7 +103,7 @@ describe("planImport — a file that names the same row twice", () => {
   });
 });
 
-describe("planImport — replace", () => {
+describe("planImport: replace", () => {
   it("returns the whole list and nothing else", () => {
     const result = plan([row("Old")], [row("Tür"), row("Buch")], "replace");
 
@@ -162,7 +162,7 @@ describe("planImport — replace", () => {
   });
 });
 
-describe("planImport — ids", () => {
+describe("planImport: ids", () => {
   it("keeps a usable uuid", () => {
     const id = "22222222-2222-2222-2222-222222222222";
     const result = plan([], [row("Tür", "", id)], "update");
@@ -202,7 +202,7 @@ describe("planImport — ids", () => {
   });
 });
 
-describe("planImport — nothing to do", () => {
+describe("planImport: nothing to do", () => {
   it("returns empty plans for an empty file", () => {
     for (const mode of ["skip", "update"] as const) {
       const result = plan([row("Tür")], [], mode);

@@ -23,7 +23,7 @@ export function SelectRowCheckbox({
 }: {
   checked: boolean;
   onChange: () => void;
-  /** What is being selected, e.g. the word itself — read out by screen readers. */
+  /** What is being selected, e.g. the word itself, read out by screen readers. */
   label: string;
 }) {
   return (
@@ -51,7 +51,7 @@ export function SelectAllCheckbox({
   const ref = useRef<HTMLInputElement>(null);
 
   // `indeterminate` is a DOM property with no HTML attribute, so React cannot
-  // set it from JSX — it has to be written on the node after every render.
+  // set it from JSX; it has to be written on the node after every render.
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = indeterminate;
   }, [indeterminate]);

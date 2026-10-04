@@ -11,7 +11,7 @@ import { Brand } from "@/components/notebook/Brand";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
 /**
- * The sign-in page — the one route in the app a signed-out visitor may see.
+ * The sign-in page, the one route in the app a signed-out visitor may see.
  *
  * It used to be a component wrapped around the whole app, hiding the workspace
  * from the browser it had already been sent to. Now `src/proxy.ts` sends

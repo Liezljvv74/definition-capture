@@ -41,7 +41,7 @@ type RefFieldProps = {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  /** Names the form must not offer — normally whatever it is editing. */
+  /** Names the form must not offer, normally whatever it is editing. */
   exclude?: readonly string[];
   /** The kind of item the form edits, so an excluded name is only dropped when the link would reach that item. */
   selfKind?: LinkKind;
@@ -68,7 +68,7 @@ export function RefField({
 
   // `exclude` is rebuilt by the parent on every keystroke, so it is reduced to
   // a string the memo below can actually compare. Newline is the separator
-  // because a name can hold spaces — "Boil the ocean" is one name, not three.
+  // because a name can hold spaces: "Boil the ocean" is one name, not three.
   const excluded = exclude?.join("\n") ?? "";
 
   const suggestions = useMemo(() => {
@@ -92,7 +92,7 @@ export function RefField({
   /**
    * A Ref field near the foot of a dialog would otherwise drop its list off
    * the bottom of the screen, so it opens upwards when there is no room below
-   * and more room above. Re-measured on resize, and on any scroll — the
+   * and more room above. Re-measured on resize, and on any scroll, the
    * dialog scrolls inside its own overlay rather than moving the window,
    * which only a capturing listener sees.
    */

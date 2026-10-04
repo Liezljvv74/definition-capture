@@ -11,7 +11,7 @@ import {
 
 /**
  * Who is signed in. `loaded` is false until Supabase has finished looking for
- * a saved session — render nothing account-shaped until it is true, or the
+ * a saved session: render nothing account-shaped until it is true, or the
  * sign-in screen will flash in front of a reader who is already signed in.
  */
 export function useSession(): SessionSnapshot {

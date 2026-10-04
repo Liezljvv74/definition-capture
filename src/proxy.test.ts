@@ -9,8 +9,8 @@ import { config, proxy } from "@/proxy";
 /**
  * The session check that runs before any page is rendered.
  *
- * Supabase is mocked, so this proves the *app's* decisions — who is turned
- * away, and from where — not that a signature is really verified. That part
+ * Supabase is mocked, so this proves the *app's* decisions: who is turned
+ * away, and from where, not that a signature is really verified. That part
  * is `getClaims`, and taking it on trust is the deliberate limit of this file.
  */
 let signedIn = false;
@@ -64,7 +64,7 @@ const redirectPath = (response: Response) => {
  * Every protected route, read off the filesystem rather than typed out.
  *
  * This is the point of the file. An eighth page added under `(workspace)`
- * tomorrow is covered by these tests the moment it exists — which is the
+ * tomorrow is covered by these tests the moment it exists, which is the
  * failure the layout's own comment warns about, a check that stops being
  * true because somebody added a page and nobody added a test.
  */
@@ -223,7 +223,7 @@ describe("signed out", () => {
   }
 });
 
-describe("signed out — a public prefix is not a public page", () => {
+describe("signed out: a public prefix is not a public page", () => {
   it("keeps every other path protected now that / is public", async () => {
     for (const path of ["/vocabulary/", "/home/", "/x"]) {
       const response = await ask(path);
@@ -325,7 +325,7 @@ describe("the matcher", () => {
 
   it("runs on pages, route handlers and anything else with an extension", () => {
     // The old pattern excluded every path ending in a static-looking
-    // extension, at any depth — so "runs before every request" was not true.
+    // extension, at any depth, so "runs before every request" was not true.
     for (const path of ["/vocabulary/", "/", "/api/export.js", "/vocabulary/notes.txt"]) {
       expect(matches(path)).toBe(true);
     }

@@ -55,7 +55,7 @@ function start(): void {
   }
   started = true;
 
-  // Resolves the saved session, and — because `detectSessionInUrl` is on —
+  // Resolves the saved session, and, because `detectSessionInUrl` is on,
   // exchanges the `?code=` a magic link arrives with.
   void supabase.auth.getSession().then(({ data }) => {
     publish(toSnapshot(readUser(data.session)));
@@ -135,7 +135,7 @@ const refusal = (message: string) => (/captcha/i.test(message) ? CAPTCHA_MESSAGE
  *
  * Note that a refusal is not always reported. With confirmations on, signing up
  * with an address that already has an account returns success rather than
- * saying so — Supabase does that deliberately, so that a stranger cannot use
+ * saying so; Supabase does that deliberately, so that a stranger cannot use
  * this form to discover who has an account here. The screen must therefore not
  * promise that a new account was made, only that a confirmation email is on its
  * way if one was needed.
@@ -254,7 +254,7 @@ export async function sendPasswordReset(
  * Gives the signed-in account a password, or replaces the one it has.
  *
  * An account that has only ever been used through an emailed link has no
- * password at all, and no way to be given one from the sign-in screen — the
+ * password at all, and no way to be given one from the sign-in screen, the
  * request has to come from a session that already exists. So it lives in
  * Settings, and it is how an existing reader stops depending on the email
  * sender.
@@ -270,7 +270,7 @@ export async function setPassword(password: string): Promise<{ error: string | n
   //
   // Changing a password is what you do when you think someone else may have
   // had your account, and leaving their session signed in would make the
-  // change pointless — Supabase does not revoke anything on its own. `others`
+  // change pointless; Supabase does not revoke anything on its own. `others`
   // rather than `global` so the person doing it is not signed out of the page
   // they are standing on.
   //
@@ -282,7 +282,7 @@ export async function setPassword(password: string): Promise<{ error: string | n
 
 /**
  * Emails a one-time sign-in link. Supabase creates the account on the first
- * link, so this is both sign-up and sign-in — there is no separate register
+ * link, so this is both sign-up and sign-in; there is no separate register
  * step and no password to store.
  */
 export async function sendMagicLink(

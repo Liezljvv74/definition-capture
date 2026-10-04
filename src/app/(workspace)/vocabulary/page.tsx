@@ -94,8 +94,8 @@ export default function VocabularyPage() {
    * Sorting and filtering are two memos, not one, and the split is what keeps
    * typing in the search box quick.
    *
-   * Sorting is the expensive half — a comparator over the whole list, run
-   * O(n log n) times — and it does not depend on the query at all. Together in
+   * Sorting is the expensive half: a comparator over the whole list, run
+   * O(n log n) times, and it does not depend on the query at all. Together in
    * one memo, every keystroke re-sorted everything; apart, a keystroke only
    * re-runs the filter, which is a single linear pass. `filter` preserves
    * order, so the result is exactly what it was before.
@@ -140,7 +140,7 @@ export default function VocabularyPage() {
     });
   }, [sorted, deferredQuery, onlyNeedsDefinition, collection]);
 
-  // Selection, the row being edited, and the names the delete dialog lists —
+  // Selection, the row being edited, and the names the delete dialog lists,
   // the four pieces the phrase page also needs, and the ones where the two
   // drifting apart would be a bug rather than a choice.
   const {

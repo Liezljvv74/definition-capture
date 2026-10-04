@@ -46,7 +46,7 @@ describe("splitWordAndDefinition", () => {
     expect(splitWordAndDefinition("https://example.com")).toBeNull();
   });
 
-  it("gives up on a URL even when a usable dash follows — a known limit", () => {
+  it("gives up on a URL even when a usable dash follows: a known limit", () => {
     // Only the leftmost separator is checked against `://`, so the perfectly
     // good dash split is never reached. Harmless (the paste is left alone)
     // but pinned, because the asymmetry is easy to "fix" into a regression.

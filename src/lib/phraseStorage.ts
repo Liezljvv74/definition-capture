@@ -1,5 +1,5 @@
 /**
- * The phrase store — the word list's sibling, built on the same plumbing.
+ * The phrase store, the word list's sibling, built on the same plumbing.
  *
  * Phrases are looked up by wording, not by when they were captured, so the
  * list keeps the order they were added in (newest first), offers sorting by

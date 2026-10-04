@@ -15,7 +15,7 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
   // The prompt below replaces the form rather than sitting on top of it, so
   // the form unmounts and its state goes with it. Holding the draft here
   // means “Back to editing” returns the words that were typed, not a blank
-  // form — which is what it used to do.
+  // form, which is what it used to do.
   const [draft, setDraft] = useState<EntryInput>(EMPTY_ENTRY_INPUT);
   /** The saved entry being edited, once the reader has chosen to edit it. */
   const [editing, setEditing] = useState<Entry | null>(null);
@@ -23,7 +23,7 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
   function handleSubmit(input: EntryInput) {
     const existing = findByWord(input.word);
     if (existing) {
-      // Never silently duplicate — ask what the user meant.
+      // Never silently duplicate: ask what the user meant.
       setDraft(input);
       setDuplicate(existing);
       return;
@@ -37,7 +37,7 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
       <Modal title={`Edit ${editing.word}`} onClose={onClose}>
         {/* What was typed on the add form is shown rather than applied.
             Updating used to mean overwriting this entry with it sight
-            unseen, which is not a decision the reader had made — they had
+            unseen, which is not a decision the reader had made; they had
             only said “yes, that one”. Here it is theirs to copy across, or
             ignore. */}
         {draft.definition.trim() && draft.definition.trim() !== editing.definition && (
@@ -72,7 +72,7 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
 
   // A word is saved once. The unique index on (user_id, lower(word)) refuses
   // a second one outright, and `[[Name]]` links, this duplicate check, and
-  // import matching all resolve a name to exactly one entry — so there is no
+  // import matching all resolve a name to exactly one entry, so there is no
   // “keep both” on offer here. Offering it meant drawing a row optimistically
   // and watching the database take it away again.
   if (duplicate) {

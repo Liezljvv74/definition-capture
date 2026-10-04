@@ -10,7 +10,7 @@ import type { Phrase, PhraseInput } from "@/lib/types";
 /**
  * Edits a saved phrase without leaving the list. The phrase detail page shows
  * the same four fields the list row already shows, so making every edit
- * navigate there was a round trip for nothing — this is the counterpart to
+ * navigate there was a round trip for nothing; this is the counterpart to
  * `AddPhraseDialog`, and the two now work the same way.
  */
 export function EditPhraseDialog({
@@ -32,7 +32,7 @@ export function EditPhraseDialog({
   // The clash screen replaces the form rather than sitting on top of it, so
   // the form unmounts and its state goes with it. Holding the draft here
   // means “Back to editing” returns the rename in progress, rather than
-  // reverting to what is saved — which is what it used to do.
+  // reverting to what is saved, which is what it used to do.
   const [draft, setDraft] = useState<PhraseInput>({
     phrase: phrase.phrase,
     literalMeaning: phrase.literalMeaning,

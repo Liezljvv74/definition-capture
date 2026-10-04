@@ -1,11 +1,11 @@
 /**
  * One backup file covers every list. Keeping them together means a single
- * Export gives you everything — there is no second file to remember.
+ * Export gives you everything; there is no second file to remember.
  *
  * "Every list" was once "both lists", and the gap between the two was a real
  * way to lose data: conjugation tables were added as a third list and this
  * module was never widened, so Export quietly left them out and a Replace
- * import — which deletes before it writes — took them away for good. Adding a
+ * import (which deletes before it writes) took them away for good. Adding a
  * list means adding it here.
  */
 
@@ -269,8 +269,8 @@ export function parseBackup(text: string): BackupParse {
   /**
    * What each list turned out to be, one row per list.
    *
-   * The two questions below used to be written out by hand — three `&&`s and
-   * three more — so a fourth list would have compiled while being left out of
+   * The two questions below used to be written out by hand, three `&&`s and
+   * three more, so a fourth list would have compiled while being left out of
    * both. Keyed on `BackupList`, leaving one out is a build error.
    */
   const lists: Record<BackupList, { present: boolean; readable: number; unreadable: number }> =
@@ -355,7 +355,7 @@ export function leavesListAlone(
  * Whether restoring would also put the file's settings back.
  *
  * Settings are one row rather than a list, so "add only what I don't have"
- * has nothing to mean for them — there is always exactly one set. Skip leaves
+ * has nothing to mean for them; there is always exactly one set. Skip leaves
  * them alone; the two modes that are willing to overwrite saved data
  * overwrite these too.
  */
@@ -398,8 +398,8 @@ function withNamesInUse(contents: BackupContents): RestoredSettings {
 
 /**
  * Applies a parsed backup to every list with the same mode. "Replace" only
- * wipes a list the file actually carries, so restoring a single-list export —
- * or a version 2 file written before conjugation tables existed — cannot
+ * wipes a list the file actually carries, so restoring a single-list export (
+ * or a version 2 file written before conjugation tables existed) cannot
  * silently delete the lists it says nothing about.
  */
 export function applyImport(contents: BackupContents, mode: ImportMode): ImportResult {

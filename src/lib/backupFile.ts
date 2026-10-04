@@ -1,7 +1,7 @@
 /**
  * Browser file plumbing for exports: turning the lists into a downloaded
  * file, and reading a chosen file back as text. All of the data rules live in
- * the stores and in `backup.ts` — this module only moves bytes in and out of
+ * the stores and in `backup.ts`; this module only moves bytes in and out of
  * the page.
  *
  * Two formats, for two different jobs:
@@ -9,7 +9,7 @@
  *   xlsx   a readable workbook for working with the lists outside the app
  */
 
-// Types only — erased at compile time, so this import costs the bundle
+// Types only: erased at compile time, so this import costs the bundle
 // nothing. The library itself is fetched on demand in `downloadExcelBackup`:
 // it is ~30 KB gzipped, it is the fifth largest chunk in the build, and it
 // is needed only when someone actually asks for a workbook.
@@ -72,7 +72,7 @@ function downloadBlob(blob: Blob, fileName: string): void {
  * folder's name, or null when it went to the browser.
  *
  * A folder that is configured but unusable throws out of here rather than
- * quietly falling back — someone who has pointed their backups at a folder
+ * quietly falling back, someone who has pointed their backups at a folder
  * should be told when they did not land there, not left to find out later.
  */
 async function deliver(blob: Blob, fileName: string): Promise<string | null> {
@@ -89,7 +89,7 @@ export type ExportSummary = {
   folder: string | null;
 };
 
-/** The complete backup — this is the file Import reads. */
+/** The complete backup; this is the file Import reads. */
 export async function downloadJsonBackup(
   scope: BackupScope = "all",
 ): Promise<ExportSummary> {

@@ -138,7 +138,7 @@ function Topics() {
  * meant to be skimmed would defeat the point of rolling it up.
  *
  * The lists and the name are per account and follow you between devices. The
- * export folder cannot — see `exportFolder.ts` for why — so it says as much
+ * export folder cannot (see `exportFolder.ts` for why) so it says as much
  * on the section itself rather than leaving the difference to be discovered.
  */
 export default function SettingsPage() {
@@ -163,7 +163,7 @@ function Settings() {
         {section.key === "profile" && (
           <>
             {/* Keyed on the stored name so a save, or a change in another tab,
-                remounts the field with the new value — React’s way of resetting
+                remounts the field with the new value, React’s way of resetting
                 state from a prop without an effect that writes state. */}
             <ProfileSection
               key={settings.displayName}
@@ -257,7 +257,7 @@ function Frame({
         </p>
       </header>
 
-      {/* A failed settings save used to be reported here, and only here —
+      {/* A failed settings save used to be reported here, and only here,
           which meant a save made from the verbs page or a table card failed
           silently. `StoreErrorBanner` in the workspace layout now shows it
           wherever it happens, so repeating it on this page would say the same
@@ -957,7 +957,7 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
  *
  * There is no "current password" field. Supabase accepts the change on the
  * strength of the session alone, and requiring one here would shut out exactly
- * the people this section is for — the accounts that have no password yet.
+ * the people this section is for: the accounts that have no password yet.
  */
 /**
  * Changing the password of the account you are signed in to.

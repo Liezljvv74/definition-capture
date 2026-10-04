@@ -14,7 +14,7 @@ export const TAB_OFF = "border-transparent text-ink-soft hover:border-rule hover
  * A nav tab that opens a menu instead of navigating.
  *
  * Extracted when the Backup menu was added, because the interesting part of
- * one of these is not the markup — it is closing at the right moments, and
+ * one of these is not the markup; it is closing at the right moments, and
  * putting focus back on the trigger when Escape closes it so the keyboard is
  * not stranded at the top of the document. A second hand-rolled copy of that
  * is how one menu quietly ends up less usable than the other.

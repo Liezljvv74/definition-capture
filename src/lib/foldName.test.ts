@@ -6,8 +6,8 @@ import { foldName } from "@/lib/foldName";
  * `foldName` is the single definition of "same name" in this app, so these
  * tests are really about one property: two spellings a reader would call the
  * same word must fold to the same string, and two they would call different
- * must not. Everything that matches names — the duplicate checks, `[[Name]]`
- * links, autocomplete, the import matchers — inherits whatever is asserted
+ * must not. Everything that matches names (the duplicate checks, `[[Name]]`
+ * links, autocomplete, the import matchers) inherits whatever is asserted
  * here.
  */
 describe("foldName", () => {
@@ -39,8 +39,8 @@ describe("foldName", () => {
   });
 
   it("keeps genuinely different words apart", () => {
-    // `compareText` treats these as equal for *ordering* — accents are not a
-    // sorting distinction — but they are different words and must never
+    // `compareText` treats these as equal for *ordering*; accents are not a
+    // sorting distinction, but they are different words and must never
     // collapse into one entry.
     expect(foldName("Tür")).not.toBe(foldName("Tur"));
     expect(foldName("schon")).not.toBe(foldName("schön"));
@@ -49,7 +49,7 @@ describe("foldName", () => {
   it("does not fold a dotted capital I to a dotless i", () => {
     // `toLocaleLowerCase` on a Turkish-locale machine lowercases "I" to "ı",
     // which would make that browser disagree with every other one about what
-    // counts as a duplicate — over rows they share. The locale-independent
+    // counts as a duplicate, over rows they share. The locale-independent
     // fold is the point.
     expect(foldName("ICH")).toBe("ich");
     expect(foldName("ICH")).not.toBe("ıch");

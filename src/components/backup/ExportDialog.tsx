@@ -33,7 +33,7 @@ type State =
 /**
  * Choose what to export and in which format.
  *
- * The scope is named outright — Everything, Words, Phrases, Verb tables —
+ * The scope is named outright: Everything, Words, Phrases, Verb tables,
  * rather than offered as "everything or this page". It used to read the
  * current path, which worked while these controls only appeared on the two
  * list pages. From the nav bar there is no such thing as "this page": on

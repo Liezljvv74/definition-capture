@@ -15,13 +15,13 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
   // The prompt below replaces the form rather than sitting on top of it, so
   // the form unmounts and its state goes with it. Holding the draft here
   // means “Back to editing” returns the words that were typed, not a blank
-  // form — which is what it used to do.
+  // form, which is what it used to do.
   const [draft, setDraft] = useState<PhraseInput>(EMPTY_PHRASE_INPUT);
 
   function handleSubmit(input: PhraseInput) {
     const existing = findByPhrase(input.phrase);
     if (existing) {
-      // Never silently duplicate — ask what the user meant.
+      // Never silently duplicate: ask what the user meant.
       setDraft(input);
       setDuplicate(existing);
       return;
