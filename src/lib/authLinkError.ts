@@ -5,7 +5,7 @@
  * the reader back to the app with `error`, `error_code`, and
  * `error_description` in the URL rather than a session. Without this the app
  * would notice only that nobody is signed in, show the sign-in form again,
- * and leave the obvious next move as "ask for another link" — which spends
+ * and leave the obvious next move as "ask for another link", which spends
  * another of the few emails an hour the built-in sender allows, on a problem
  * a sentence could have explained.
  *

@@ -20,8 +20,8 @@ import { studiedParts } from "@/lib/speech";
  * Where a `[[Name]]` reference lands, addressed as `/word?id=abc123`.
  *
  * The id is a query parameter rather than a path segment. That began as a
- * static-export constraint — there was no server, and `/vocabulary/[id]` had no
- * ids to pre-render — which no longer applies now that there is one. The URL
+ * static-export constraint; there was no server, and `/vocabulary/[id]` had no
+ * ids to pre-render, which no longer applies now that there is one. The URL
  * shape is kept because links to it have been pasted into notes outside the
  * app, where nothing can follow a rename; moving
  * to `/vocabulary/[id]` would mean a redirect for those, and is worth doing only

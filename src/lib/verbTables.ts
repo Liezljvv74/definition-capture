@@ -3,7 +3,7 @@
  *
  * Built on the same factory as the word and phrase lists, so it reads
  * synchronously, writes optimistically, and reports a failed write the same
- * way they do. Nothing new is invented here — see `remoteStore.ts`.
+ * way they do. Nothing new is invented here; see `remoteStore.ts`.
  *
  * A table belongs to a verb by name. That is what lets the Edit word screen
  * ask "does this word have a table yet?" without storing a second key, and it
@@ -124,7 +124,7 @@ export function deleteVerbTable(id: string): void {
  * the camelCase shape a backup file uses; database rows go through `fromRow`.
  *
  * `rows` is read against the tense count, so the invariant the whole table
- * depends on — one conjugation per column, no more and no fewer — holds for a
+ * depends on (one conjugation per column, no more and no fewer) holds for a
  * hand-edited backup exactly as it does for a row out of the database.
  */
 /**
@@ -229,7 +229,7 @@ export function mergeVerbTable(existing: VerbTable, candidate: ParsedVerbTable):
 
 /**
  * Merges imported tables into the list. Matched by verb name, which is the
- * same rule `findVerbTable` and the unique index already use — a second table
+ * same rule `findVerbTable` and the unique index already use: a second table
  * for the same verb is not a thing that can exist.
  */
 export function importVerbTables(incoming: ParsedVerbTable[], mode: ImportMode): ImportCounts {

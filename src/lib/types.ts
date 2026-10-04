@@ -17,7 +17,7 @@ export type Entry = {
   dateAdded: string;
   /** ISO timestamp of the last edit, or null if never edited. */
   dateUpdated: string | null;
-  /** Always derived from `definition` — true when there is nothing written yet. */
+  /** Always derived from `definition`, true when there is nothing written yet. */
   needsDefinition: boolean;
 };
 
@@ -85,7 +85,7 @@ export const EMPTY_PHRASE_INPUT: PhraseInput = {
 
 /** One person's line in a conjugation table. */
 export type VerbRow = {
-  /** ich, du, er/sie/es … — from the list configured in Settings. */
+  /** ich, du, er/sie/es …, from the list configured in Settings. */
   person: string;
   /** One per tense: `conjugations[i]` belongs to the table's `tenses[i]`. */
   conjugations: string[];
@@ -100,7 +100,7 @@ export type VerbTable = {
   id: string;
   verb: string;
   /**
-   * One per column, in display order — present, past, future, whatever
+   * One per column, in display order: present, past, future, whatever
    * the reader calls them. A table made before the question was asked has
    * a single empty one, and nothing invents an answer for it.
    */
@@ -232,7 +232,7 @@ export function readSource(value: unknown): Source {
   return readString(value).trim() || DEFAULT_SOURCE;
 }
 
-/** "Needs definition" is never trusted from storage — it is recomputed from the text. */
+/** "Needs definition" is never trusted from storage; it is recomputed from the text. */
 export function needsDefinition(definition: string): boolean {
   return definition.trim().length === 0;
 }
@@ -243,7 +243,7 @@ export function readString(value: unknown): string {
 }
 
 /**
- * A list of names from anywhere untrusted — a database row, a backup file, a
+ * A list of names from anywhere untrusted: a database row, a backup file, a
  * form. Trimmed, blanks dropped, duplicates removed case-insensitively (the
  * first spelling wins), and capped, so the same rules hold whichever door the
  * data came through.

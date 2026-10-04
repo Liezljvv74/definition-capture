@@ -16,7 +16,7 @@ const only = (text: string): RefToken => {
  * `rel="noopener"`, and one promoted to `url` gets an href straight out of
  * user-controlled text.
  */
-describe("parseRef — link safety", () => {
+describe("parseRef: link safety", () => {
   it("does not treat a protocol-relative URL as an internal path", () => {
     // `//evil.com` looks like a path but leaves the site.
     expect(kinds("//evil.com")).toEqual(["text"]);
@@ -54,7 +54,7 @@ describe("parseRef — link safety", () => {
   });
 });
 
-describe("parseRef — classification", () => {
+describe("parseRef: classification", () => {
   it("links an http(s) URL and drops the scheme for display", () => {
     expect(only("https://example.com/docs")).toEqual({
       kind: "url",
@@ -83,7 +83,7 @@ describe("parseRef — classification", () => {
   });
 });
 
-describe("parseRef — word links", () => {
+describe("parseRef: word links", () => {
   it("reads [[Name]] as a word, keeping the name verbatim", () => {
     expect(only("[[Closure]]")).toEqual({ kind: "word", name: "Closure" });
     // Accents and spaces survive; this is a language app and the name is a key.
@@ -117,7 +117,7 @@ describe("parseRef — word links", () => {
   });
 });
 
-describe("parseRef — punctuation and spacing", () => {
+describe("parseRef: punctuation and spacing", () => {
   it("peels wrapping punctuation off a link", () => {
     expect(parseRef("(https://example.com).")).toEqual([
       { kind: "text", value: "(" },
@@ -126,7 +126,7 @@ describe("parseRef — punctuation and spacing", () => {
     ]);
   });
 
-  it("takes a closing bracket that belongs to the URL with it — a known limit", () => {
+  it("takes a closing bracket that belongs to the URL with it: a known limit", () => {
     // A Wikipedia link with a parenthesised title loses its last bracket,
     // which matters for an app whose readers cite German reference pages. Pinned
     // rather than endorsed: change it deliberately, not by accident.

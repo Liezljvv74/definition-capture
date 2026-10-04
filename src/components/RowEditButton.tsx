@@ -4,7 +4,7 @@
  * The pencil at the end of a row, beside the bin.
  *
  * Clicking a row's name already opens the same dialog, but that is not an
- * affordance anyone finds — it looks like a link to a page, and next to a
+ * affordance anyone finds; it looks like a link to a page, and next to a
  * delete icon with no companion it reads as though deleting were the only
  * thing a row can do. Indigo rather than red on hover, so the pair cannot be
  * mistaken for each other at a glance.

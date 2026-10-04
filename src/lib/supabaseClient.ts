@@ -3,7 +3,7 @@
  *
  * Built with `createBrowserClient` from `@supabase/ssr` rather than the plain
  * `createClient`, and the difference is where the session is kept. The plain
- * client stores it in `localStorage`, which no server can read — fine when the
+ * client stores it in `localStorage`, which no server can read, fine when the
  * app was a static export with no server to speak of, useless now that
  * `src/proxy.ts` has to decide whether a request may see a page. The SSR
  * client keeps the session in cookies instead, so the same session the browser
@@ -29,7 +29,7 @@ const publishableKey =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-/** True when the build was given credentials — the sign-in screen checks this. */
+/** True when the build was given credentials; the sign-in screen checks this. */
 export const isSupabaseConfigured = Boolean(url && publishableKey);
 
 let client: SupabaseClient | null = null;

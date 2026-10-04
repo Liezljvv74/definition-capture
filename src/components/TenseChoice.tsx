@@ -3,15 +3,15 @@
 /**
  * Pick a tense from the remembered ones, or type a new one.
  *
- * Asked in two places — when a table is first made, and when a column is
- * inserted into one — and built twice until now, down to a second copy of the
+ * Asked in two places: when a table is first made, and when a column is
+ * inserted into one, and built twice until now, down to a second copy of the
  * `ANOTHER` sentinel and of the labelling trick below. They are the same
  * question, and a difference between them would only ever be a mistake.
  *
  * The state stays with the caller. Both of them already hold it for their own
  * reasons: the new-table form submits it alongside the verb and the persons,
  * and the insert form clears it on cancel. What is shared here is the part
- * that was actually duplicated — the markup, the sentinel, and the rule about
+ * that was actually duplicated: the markup, the sentinel, and the rule about
  * which control carries the label.
  */
 
@@ -33,7 +33,7 @@ export function TenseChoice({
   placeholder,
   compact = false,
 }: {
-  /** Belongs to whichever control is actually showing — see below. */
+  /** Belongs to whichever control is actually showing: see below. */
   id: string;
   known: readonly string[];
   choice: string;

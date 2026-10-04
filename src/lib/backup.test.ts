@@ -49,7 +49,7 @@ const phrase = (text: string): Phrase => ({
   ref: "",
 });
 
-describe("parseBackup — rejects", () => {
+describe("parseBackup: rejects", () => {
   it("anything that is not JSON", () => {
     expect(parseBackup("not json").ok).toBe(false);
     expect(parseBackup("").ok).toBe(false);
@@ -67,7 +67,7 @@ describe("parseBackup — rejects", () => {
   });
 });
 
-describe("parseBackup — reads", () => {
+describe("parseBackup: reads", () => {
   it("a bare array as a list of words", () => {
     // What a hand-written file or a very early export looks like.
     const parsed = ok(JSON.stringify([entry("Tür")]));
@@ -83,7 +83,7 @@ describe("parseBackup — reads", () => {
   });
 
   it("a version 2 file, leaving verb tables and settings absent", () => {
-    // Absent is not the same as empty — see the Replace tests below.
+    // Absent is not the same as empty; see the Replace tests below.
     const parsed = ok(
       JSON.stringify({ version: 2, entries: [entry("Tür")], phrases: [] }),
     );
@@ -190,7 +190,7 @@ describe("parseBackup — reads", () => {
 /**
  * Replace deletes before it writes, so what it declines to touch is the most
  * consequential thing in this module. A list the file says nothing about must
- * survive — otherwise restoring a terms-only export, or a backup written
+ * survive; otherwise restoring a terms-only export, or a backup written
  * before conjugation tables existed, silently destroys everything else.
  */
 describe("Replace only touches the lists the file carries", () => {

@@ -4,7 +4,7 @@
  *
  * This is the check the app used to be missing. As a static export there was
  * nowhere to ask the question except the browser, and `SignInGate` only ever
- * hid the workspace — the markup was served to anyone who asked. Here the
+ * hid the workspace; the markup was served to anyone who asked. Here the
  * question is asked and answered before a page is rendered at all.
  *
  * Named `proxy.ts` rather than `middleware.ts` because Next 16 renamed the
@@ -175,12 +175,12 @@ export const config = {
   //
   // The public files are named one by one. This used to end in a pattern that
   // excluded *any* path ending in `.png`, `.css`, `.js`, `.txt` and so on, at
-  // any depth — which quietly meant "runs before every request" was not true.
+  // any depth, which quietly meant "runs before every request" was not true.
   // Nothing protected happened to match, because `trailingSlash: true` ends
   // every page path with a slash, but the exclusion was a standing invitation:
   // one route handler or data URL ending in a listed extension and it would
   // have skipped the session check and the cookie refresh with it. An exact
-  // list cannot widen by accident — a new file in `public/` either gets added
+  // list cannot widen by accident; a new file in `public/` either gets added
   // here or simply goes through the proxy, and going through it is harmless.
   //
   // The crawler files (robots.txt, sitemap.xml, llms.txt and the generated

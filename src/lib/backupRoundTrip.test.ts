@@ -12,8 +12,8 @@ import { toWireVerbTable } from "@/lib/verbTables";
  * An export has to be readable by this app's own Import, and until now nothing
  * said so: `buildBackup` was imported by no test at all.
  *
- * That gap is what let the write side drift. There was no writer to speak of —
- * the domain objects went straight to `JSON.stringify` — so renaming a field
+ * That gap is what let the write side drift. There was no writer to speak of:
+ * the domain objects went straight to `JSON.stringify`, so renaming a field
  * changed the file format with nothing to notice, and the reader was patched
  * afterwards to cope. These tests put the two halves in the same room.
  */

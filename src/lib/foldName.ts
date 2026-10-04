@@ -15,7 +15,7 @@
  * pasted from a PDF, or typed on a Mac, frequently arrives decomposed. Without
  * this, `Tür` pasted one way would fail the duplicate check against `Tür`
  * typed the other, be imported as a second entry, and never be found by a
- * `[[Tür]]` link — all silently, because the two spellings look the same.
+ * `[[Tür]]` link, all silently, because the two spellings look the same.
  *
  * `toLowerCase` rather than `toLocaleLowerCase` because the locale-aware
  * version follows whatever locale the machine is set to, and on a Turkish one

@@ -8,8 +8,8 @@ import { useCallback, useMemo, useState } from "react";
  *
  * The hook is handed the ids that are on screen right now (already searched,
  * filtered, and sorted). Selection is intersected with that list on every
- * render, which means a row that the user filters away — or that a delete has
- * just removed — silently leaves the selection. "Delete selected" can therefore
+ * render, which means a row that the user filters away (or that a delete has
+ * just removed) silently leaves the selection. "Delete selected" can therefore
  * only ever delete rows the user can actually see, which is the whole point.
  */
 export type ListSelection = {
@@ -70,7 +70,7 @@ export function useListSelection(visibleIds: readonly string[]): ListSelection {
    * Every callback above is already stable, and then a fresh object literal
    * wrapped them on each render, so anything downstream comparing this prop
    * saw a new value every time. Nothing measurable today, because no row is
-   * memoised yet — but it is exactly the trap that makes someone add `memo`
+   * memoised yet, but it is exactly the trap that makes someone add `memo`
    * to a row, see no improvement, and conclude memoising does not help here.
    */
   return useMemo(

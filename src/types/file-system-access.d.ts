@@ -2,7 +2,7 @@
  * The parts of the File System Access API that TypeScript's DOM library does
  * not describe yet. `FileSystemDirectoryHandle` and the writable stream are
  * already in `lib.dom`; the directory picker and the permission methods are
- * not, and both are optional at runtime — Firefox and Safari have neither.
+ * not, and both are optional at runtime; Firefox and Safari have neither.
  * They are declared optional here too, so the code has to check before it
  * calls, which is exactly what it must do anyway.
  */

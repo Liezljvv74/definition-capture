@@ -166,7 +166,7 @@ export const MODE_OPTIONS: { value: ImportMode; label: string; hint: string }[] 
  * Shown while the lists are still being fetched.
  *
  * Not cosmetic. `buildBackup` reads the stores' in-memory cache, and these
- * dialogs can now be opened from any page — including ones that show no list
+ * dialogs can now be opened from any page, including ones that show no list
  * and so never started one. Exporting before the first read came back would
  * quietly write an empty file.
  */

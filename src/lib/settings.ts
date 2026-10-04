@@ -15,7 +15,7 @@
  * Shaped like the list stores in `remoteStore.ts` and read the same way, but
  * deliberately not built on them: that factory is about a list of rows with
  * ids and an order, and this is one row with neither. What is copied is the
- * behaviour that matters — synchronous reads, optimistic writes, and a reload
+ * behaviour that matters: synchronous reads, optimistic writes, and a reload
  * putting the truth back when a write fails.
  */
 
@@ -54,7 +54,7 @@ export type Settings = {
   /** The groupings a grammar rule is filed under, one per rule. Empty until the reader adds one. */
   topics: string[];
   /**
-   * The people every conjugation table is built from — ich, du, er/sie/es,
+   * The people every conjugation table is built from: ich, du, er/sie/es,
    * and so on. Empty means never asked, which is what makes the first verb
    * table ask before it is made.
    */
@@ -225,7 +225,7 @@ export function fromRow(
   const sources = readNameList(sourceNames, NO_LIMIT);
   const lists = {
     // An empty stored list means the defaults rather than nothing to pick
-    // from — a form with no options is not a state worth honouring.
+    // from; a form with no options is not a state worth honouring.
     collections: collections.length > 0 ? collections : [...DEFAULT_COLLECTIONS],
     sources: sources.length > 0 ? sources : [...DEFAULT_SOURCES],
     // No fallback to defaults here: there are none. An account with no
@@ -461,8 +461,8 @@ export type RestoredSettings = Omit<
  * Settings out of a backup file. Reads the camelCase shape an export writes,
  * the way `fromRow` reads a database row.
  *
- * Null means the file carries no settings at all — an older backup, or a
- * scoped one — and that is deliberately different from carrying empty
+ * Null means the file carries no settings at all (an older backup, or a
+ * scoped one) and that is deliberately different from carrying empty
  * settings: the first restores nothing, the second would overwrite the
  * reader's collections and sources with blanks.
  */

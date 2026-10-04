@@ -12,8 +12,8 @@ import {
 } from "@/lib/types";
 
 /**
- * These readers are the boundary between unknown JSON — a database row, a
- * backup file someone edited by hand — and everything downstream that treats
+ * These readers are the boundary between unknown JSON (a database row, a
+ * backup file someone edited by hand) and everything downstream that treats
  * its input as already valid. Their contract is that they never throw and
  * always return something the app can render.
  */
@@ -116,7 +116,7 @@ describe("readVerbRows", () => {
   });
 
   it("holds the invariant whatever the row contained", () => {
-    // The database cannot enforce "one conjugation per tense" — it is
+    // The database cannot enforce "one conjugation per tense"; it is
     // repaired here, on every read, and everything downstream assumes it.
     const rows = readVerbRows(
       [
@@ -144,7 +144,7 @@ describe("readVerbRows", () => {
   });
 
   it("counts the row cap after blanks are dropped, not before", () => {
-    // 5 unusable rows then 30 good ones still yields all 30 — the cap is
+    // 5 unusable rows then 30 good ones still yields all 30; the cap is
     // applied to what survives, which is not obvious from the loop.
     const junk = Array(5).fill({ person: "" });
     const good = Array(30).fill({ person: "ich", conjugations: ["x"] });

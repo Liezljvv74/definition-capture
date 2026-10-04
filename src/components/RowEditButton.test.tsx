@@ -7,7 +7,7 @@ import { RowEditButton } from "@/components/RowEditButton";
  * Rendered to a string rather than to a DOM. It needs no jsdom, no testing
  * library and no browser, which is what makes it worth having for a button
  * this small: what is asserted is the part that is easy to break silently and
- * invisible when it is wrong — the accessible name, and the fact that the
+ * invisible when it is wrong: the accessible name, and the fact that the
  * pencil does not look like the bin beside it.
  */
 describe("RowEditButton", () => {

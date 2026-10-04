@@ -8,7 +8,7 @@ import { findByWord, updateEntry } from "@/lib/storage";
 import type { Entry, EntryInput } from "@/lib/types";
 
 /**
- * Edits a word without leaving the list — the counterpart to
+ * Edits a word without leaving the list, the counterpart to
  * `AddWordDialog`, and the twin of `EditPhraseDialog`.
  *
  * Every editable field lives in this one form, Source included. There is no
@@ -34,7 +34,7 @@ export function EditWordDialog({
   // The clash screen replaces the form rather than sitting on top of it, so
   // the form unmounts and its state goes with it. Holding the draft here
   // means “Back to editing” returns the rename in progress, rather than
-  // reverting to what is saved — which is what it used to do.
+  // reverting to what is saved, which is what it used to do.
   const [draft, setDraft] = useState<EntryInput>({
     word: entry.word,
     definition: entry.definition,

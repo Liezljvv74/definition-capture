@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import WorkspaceLayout from "./layout";
 
 /**
- * The second session check — the one that sits with the pages it protects.
+ * The second session check, the one that sits with the pages it protects.
  *
  * It exists because a check living in only one place stops being true the
  * moment somebody edits that place: narrow the proxy's matcher by accident
  * and every page behind it swings open. So the thing worth asserting here is
- * not "a signed-out request is refused" in general — `proxy.test.ts` covers
- * that — but that this layout refuses *on its own*, with the proxy entirely
+ * not "a signed-out request is refused" in general (`proxy.test.ts` covers
+ * that) but that this layout refuses *on its own*, with the proxy entirely
  * out of the picture. Nothing in this file imports or runs the proxy.
  */
 const { redirect, serverUserId } = vi.hoisted(() => ({

@@ -528,7 +528,7 @@ describe("coming back to the tab", () => {
    *
    * The banner is why that is not obvious. It sits in the workspace layout, so
    * it is mounted on every page, and it used to register through the same set
-   * as the list itself — which meant the set was never empty and every list
+   * as the list itself, which meant the set was never empty and every list
    * started earlier in the session re-read itself on every alt-tab, however
    * far the reader had navigated from it.
    */

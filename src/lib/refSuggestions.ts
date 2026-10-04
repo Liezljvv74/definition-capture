@@ -1,5 +1,5 @@
 /**
- * The lookup behind the Ref field's autocomplete. Ref stays free text — this
+ * The lookup behind the Ref field's autocomplete. Ref stays free text; this
  * only offers the `[[Name]]` form of an internal link while you are typing a
  * name, and never rewrites anything on its own.
  *
@@ -58,7 +58,7 @@ export function looksLikeUrl(text: string): boolean {
 
 /**
  * The word the caret is inside, which is what a completion replaces. Ref holds
- * a whole line of free text — `Lecture 4, page 12 [[Closure]]` is one value —
+ * a whole line of free text, `Lecture 4, page 12 [[Closure]]` is one value,
  * so only the word being typed is treated as the query, and the rest of the
  * line is left alone.
  */

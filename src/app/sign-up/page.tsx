@@ -12,7 +12,7 @@ import { isSupabaseConfigured } from "@/lib/supabaseClient";
 /**
  * Making an account, for someone who does not have one.
  *
- * Until now the only way in was an account that already existed — created by
+ * Until now the only way in was an account that already existed, created by
  * hand in the Supabase dashboard, or brought into being by the first sign-in
  * link sent to an address. Neither is something a visitor can do.
  *
@@ -89,7 +89,7 @@ export default function SignUpPage() {
         ) : checkEmail ? (
           // Carefully worded. Supabase answers an address that already has an
           // account exactly as it answers a new one, so that this form cannot
-          // be used to find out who has an account here — which means this
+          // be used to find out who has an account here, which means this
           // screen must not claim an account was created.
           <div className="mt-3 space-y-3 text-sm">
             <p>

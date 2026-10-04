@@ -24,7 +24,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * `src/proxy.ts` already turns an unsigned request away before it reaches
  * here, so in ordinary use this never redirects. It is here because a check
  * that only lives in one place stops being true the moment somebody edits that
- * place — narrow the proxy's matcher by accident and every page behind it
+ * place; narrow the proxy's matcher by accident and every page behind it
  * would swing open. This is the check that sits with the pages it protects.
  *
  * `serverUserId` verifies the token's signature rather than trusting the
@@ -38,7 +38,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     <>
       {/* The nav lives here rather than in the root layout so it exists only
           behind this check. Every destination in it is protected, and the
-          Backup menu inside it reaches the account's lists — neither belongs
+          Backup menu inside it reaches the account's lists; neither belongs
           on the sign-in page. */}
       <MainNav />
       <StoreErrorBanner />

@@ -66,7 +66,7 @@ export function EntryForm({
 
   /**
    * The standing list, plus any name this entry already carries that is no
-   * longer offered — editing a word must not quietly strip a collection just
+   * longer offered; editing a word must not quietly strip a collection just
    * because the list in `constants.ts` has moved on since it was filed.
    */
   const collectionOptions = useMemo(() => {

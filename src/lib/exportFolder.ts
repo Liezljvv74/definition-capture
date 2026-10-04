@@ -5,7 +5,7 @@
  * This one cannot: a folder is granted to *this browser on this machine* as a
  * `FileSystemDirectoryHandle`, an opaque object that is meaningless anywhere
  * else and cannot be turned into text. So it is kept in IndexedDB, which is
- * the only browser store that can hold one — `localStorage` takes strings
+ * the only browser store that can hold one, `localStorage` takes strings
  * only. The consequence to know about is that the choice is per browser, not
  * per account.
  *
@@ -16,7 +16,7 @@
  *
  * Permission is not permanent. The browser may ask again in a new session,
  * and the folder may be moved or deleted between exports, so every write
- * checks first and reports a failure the caller can offer a way out of —
+ * checks first and reports a failure the caller can offer a way out of,
  * silently redirecting someone's backup to a different folder would be worse
  * than an error.
  */
@@ -136,7 +136,7 @@ export function getServerSnapshot(): ExportFolderSnapshot {
 
 /**
  * Opens the folder picker and remembers what comes back. Returns false when
- * the dialog was dismissed, which is not an error — the folder is unchanged.
+ * the dialog was dismissed, which is not an error; the folder is unchanged.
  * Must be called from a click: the browser refuses otherwise.
  */
 export async function chooseExportFolder(): Promise<boolean> {

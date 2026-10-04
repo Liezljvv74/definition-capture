@@ -43,7 +43,7 @@ const noError = () => null;
 /**
  * Says so when a save did not reach the database.
  *
- * Writes are optimistic — the screen updates before the network answers, which
+ * Writes are optimistic; the screen updates before the network answers, which
  * is what keeps the app feeling like the localStorage version it grew out of.
  * The price is that a failure arrives after the fact, with the edit already
  * drawn. The store handles that by reloading the list so the screen shows what
@@ -55,7 +55,7 @@ const noError = () => null;
  * watches *all* of them: the conjugation tables were added as a third list and
  * this file was not updated, so for a while a failed table save reverted a
  * whole grid of typed work without a word on screen. Settings is here for the
- * same reason — it is saved from the verbs page and from a table card, neither
+ * same reason; it is saved from the verbs page and from a table card, neither
  * of which has anywhere to show a failure.
  *
  * A new store is not finished until it appears in `STORES` above.

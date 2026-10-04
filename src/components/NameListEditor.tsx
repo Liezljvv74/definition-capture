@@ -139,7 +139,7 @@ export function NameListEditor({
   return (
     <fieldset>
       {/* The rolled-up section header already shows this name, so the legend
-          is for screen readers only — a fieldset still needs one. */}
+          is for screen readers only; a fieldset still needs one. */}
       <legend className="sr-only">{legend}</legend>
       <p className="text-sm text-ink-soft">{description}</p>
 

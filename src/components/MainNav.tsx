@@ -18,7 +18,7 @@ import {
 
 /**
  * The two views behind the Glossary tab. They are one section with two
- * lists — separate stores, separate pages, separate URLs — and this is only
+ * lists: separate stores, separate pages, separate URLs, and this is only
  * how you get between them.
  */
 const GLOSSARY_VIEWS = [

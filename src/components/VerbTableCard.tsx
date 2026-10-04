@@ -22,7 +22,7 @@ import { deleteVerbTable, saveVerbTable } from "@/lib/verbTables";
  *
  * A table holds a column per tense. `tenses[i]` heads the column that every
  * row's `conjugations[i]` fills, so the two are edited together and saved
- * together — a heading without its column, or the reverse, is not a state
+ * together: a heading without its column, or the reverse, is not a state
  * worth being able to reach.
  *
  * Everything is a draft until Save, which is what lets Cancel mean
@@ -35,7 +35,7 @@ import { deleteVerbTable, saveVerbTable } from "@/lib/verbTables";
  * start from what is stored rather than from an abandoned edit.
  *
  * Because closing throws the draft away, the page holds a card back once
- * it has been edited and hands it `asking` — the moment to offer to save
+ * it has been edited and hands it `asking`, the moment to offer to save
  * instead. The offer is made here rather than on the page so that it
  * appears beside the work it is about, whichever card was clicked.
  */
@@ -66,7 +66,7 @@ export function VerbTableCard({
   onToggle: () => void;
   /** The draft has changed; from here on, closing it is guarded. */
   onEdited: () => void;
-  /** Nothing to decide after all — stay open and carry on. */
+  /** Nothing to decide after all: stay open and carry on. */
   onKeep: () => void;
   /** Saved, discarded or deleted: the page may close it and move on. */
   onFinish: () => void;
@@ -134,7 +134,7 @@ export function VerbTableCard({
 
   function cancel() {
     // The draft is dropped by the remount on the way back in, so this
-    // only has to put the card away — and the page stops it on the way
+    // only has to put the card away, and the page stops it on the way
     // out if there is anything to lose.
     onToggle();
   }
@@ -200,12 +200,12 @@ export function VerbTableCard({
                     <span className="flex items-center gap-1">
                       {/* A + on both sides of every tense. The one after a
                           column and the one before the next name the same
-                          place to insert, so either reaches it — they sit in
+                          place to insert, so either reaches it; they sit in
                           separate cells, which is what keeps the pair from
                           reading as one doubled button.
 
                           "Conjugation" survives for screen readers, which
-                          would otherwise meet a column with no name — and a
+                          would otherwise meet a column with no name, and a
                           table made before tenses were asked for has none. */}
                       <AddTenseButton
                         at={at}
@@ -435,7 +435,7 @@ function AddTenseButton({
 }
 
 /**
- * Names the column about to be inserted — the same question the first table
+ * Names the column about to be inserted, the same question the first table
  * asked, offering the same remembered answers.
  */
 function NameTense({

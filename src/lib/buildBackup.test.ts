@@ -13,7 +13,7 @@ import { createVerbTable } from "@/lib/verbTables";
  * Its round-trip neighbour proves the codecs agree with the reader, but it
  * builds the file by hand. This one seeds the real stores and reads what comes
  * out, which is the only way to notice `buildBackup` handing the domain
- * objects over without mapping them — the exact drift that let the `term` to
+ * objects over without mapping them, the exact drift that let the `term` to
  * `word` rename change the file format silently.
  *
  * No Supabase and a fake session, so the stores keep their rows in memory and

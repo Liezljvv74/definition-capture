@@ -1,6 +1,6 @@
 /**
  * The Ref field is free text that quietly turns recognisable references into
- * links. Nothing is required — plain notes stay plain.
+ * links. Nothing is required; plain notes stay plain.
  *
  *   [[Closure]]                 → the word called "Closure"
  *   [[Dativ|dem]]               → the same, shown as "dem"
@@ -30,7 +30,7 @@ const NAME_LINK = /(\[\[[^[\]\n]+\]\])/g;
  * It exists because testing `startsWith("[[")` instead was looser than the
  * pattern that does the splitting: `[[a[b]]` never matches `NAME_LINK`, so it
  * arrives as one unsplit segment, and the loose check then read it as a word
- * named `a[b` — a name `NAME_LINK` cannot produce and no `[[Name]]` the
+ * named `a[b`, a name `NAME_LINK` cannot produce and no `[[Name]]` the
  * autocomplete writes will ever resolve to. Two spellings of one rule is how
  * they drift; this is the one rule.
  */

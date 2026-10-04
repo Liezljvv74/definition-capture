@@ -87,7 +87,7 @@ describe("compareNames in German", () => {
   });
 
   it("strips only one article", () => {
-    // "die Katze" is what is left, and it sorts under K — not under D, and
+    // "die Katze" is what is left, and it sorts under K, not under D, and
     // not under whatever a second strip would leave.
     expect(sorted(["die die Katze", "Apfel", "Zebra"])).toEqual([
       "Apfel",
@@ -109,7 +109,7 @@ describe("compareText in German", () => {
   it("ignores case and accents, which makes some different words tie", () => {
     // `sensitivity: "base"` is deliberate for ordering, and the consequence
     // is that these compare equal. The list pages break the tie on date, so
-    // the order stays stable — but nothing here should "fix" this into a
+    // the order stays stable, but nothing here should "fix" this into a
     // distinction, because that would file Über after Z again.
     expect(compareText("Tur", "Tür")).toBe(0);
     expect(compareText("tur", "TUR")).toBe(0);
