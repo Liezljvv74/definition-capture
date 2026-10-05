@@ -15,6 +15,7 @@ import {
   highlightCells,
   isCells,
   linkRange,
+  rangeHolds,
   removeHighlight,
   unhighlightCells,
   withFieldText,
@@ -101,7 +102,7 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
   function link(chosen: { selected: Selected; range: LinkRange }, name: string) {
     const target = rule.blocks.find((candidate) => candidate.id === chosen.selected.blockId);
     const current = target ? fieldText(target, chosen.selected.field) : null;
-    if (target && current !== null && current.slice(chosen.range.start, chosen.range.end) === chosen.range.words) {
+    if (target && current !== null && rangeHolds(current, chosen.range)) {
       saveBlock(withFieldText(target, chosen.selected.field, applyLink(current, chosen.range, name)));
     }
   }
