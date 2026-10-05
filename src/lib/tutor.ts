@@ -87,6 +87,11 @@ export function tutorInstructions(input: { studied: string; answerIn: string; le
       : "No reference search is available for this language, so say plainly where you are unsure.",
     `Answer only grammar and language-learning questions about ${studied}. Decline anything else in one polite sentence, still as a valid reply.`,
     "Reply as JSON with a short title, a topic, and blocks. A text block may use **bold** for emphasis; in an example sentence, wrap the word or words being taught in {curly braces}; use braces nowhere else. Put no links or web addresses in the text: the sources are shown separately.",
+    // The owner's rule (5 October 2026): an answer came back ending a paragraph
+    // with "Source: duden.de and dwds.de." The references belong only in the
+    // list under the answer; cleanText removes any that still slip in.
+    "Never name, quote or cite a source, website or dictionary anywhere in the title, topic or blocks, " +
+      "not even as a short \"Source:\" note: the references are listed after the explanation for you.",
     // Last, so it weighs most: on 3 October 2026 a question written in English
     // with German terms in it, answered from German reference pages, came back
     // entirely in German although English was chosen.
@@ -129,6 +134,10 @@ export const REPLY_SCHEMA = {
   },
 };
 
+const SEARCH_PROMPT =
+  "Web search results from reference sites are given below. Base the answer on them, but do not cite, link, quote or name them " +
+  "anywhere in the reply: the app lists them under the answer itself.";
+
 export function buildRequest(input: {
   model: string;
   instructions: string;
@@ -155,8 +164,14 @@ export function buildRequest(input: {
     // all; the same request with this plugin kept the schema and cited five
     // pages, every one on an allowed domain. Exa honours the domain list on
     // any model.
+    //
+    // `search_prompt` replaces the plugin's own, which tells the model to cite
+    // each result as a Markdown link. Real calls on 5 October 2026 with the
+    // default put "([duden.de](...))" all through the explanation in spite of
+    // the instructions; with this one, two answers named no source and still
+    // listed five.
     ...(input.domains.length > 0 && {
-      plugins: [{ id: "web", engine: "exa", include_domains: input.domains, max_results: 5 }],
+      plugins: [{ id: "web", engine: "exa", include_domains: input.domains, max_results: 5, search_prompt: SEARCH_PROMPT }],
     }),
   };
 }
@@ -165,16 +180,34 @@ export type TutorReply = { title: string; topic: string; blocks: Block[]; source
 
 /** The model's reply is untrusted: it must parse, have the shape, and keep at least one block. */
 /**
+ * A "Source: ..." note, in the reference sites' own languages, through the end
+ * of its sentence or its bracket. The label must be at a word start, so a word
+ * that merely ends in one ("Ressource:") is left alone.
+ */
+const SOURCE_NOTE =
+  /\s*\(?(?<!\p{L})(?:sources?|references?|quellen?|fuentes?|fontes?|fonti|bronn?en|bron|источники?)\s*:[^\n]*?(?:\.(?=\s|$)|\)|$)/giu;
+
+const SITE_NAMES = [...new Set(Object.values(REFERENCE_DOMAINS).flat())].map((d) =>
+  d.replace(/^www\./, "").replace(/\./g, "\\."),
+);
+/** A bracket naming one of the reference sites, such as "(duden.de)" or "(see dwds.de)". */
+const SITE_BRACKET = new RegExp(`\\s*\\([^()]*(?:${SITE_NAMES.join("|")})[^()]*\\)`, "gi");
+
+/**
  * Text the model was told not to write, removed whatever it did: braces mark
  * the practice gap only in an example sentence and show literally anywhere
  * else, and links belong in the sources list under the answer, not in the
- * explanation. `[words](url)` keeps its words; a bare web address goes. An
+ * explanation. `[words](url)` keeps its words; a bare web address goes, and
+ * so does a "Source:" note or a bracket naming a reference site. An
  * em dash becomes a comma, the owner's rule for every text the app shows.
  */
 function cleanText(text: string): string {
   return text
     .replace(/\[([^\]]*)\]\((?:https?:\/\/|www\.)[^)\s]*\)/g, "$1")
     .replace(/(?:https?:\/\/|www\.)[^\s)]+/g, "")
+    // After the links, so a linked note is removed whole rather than left as its words.
+    .replace(SOURCE_NOTE, "")
+    .replace(SITE_BRACKET, "")
     .replace(/[{}]/g, "")
     // The owner wants no em dashes in anything the app shows.
     .replace(/\s*—\s*/g, ", ")

@@ -540,7 +540,8 @@ for context. The conversation lives only in the page: leaving or reloading clear
 it.
 
 Answers are grounded in a fixed list of reference sites for the studied language
-and link to the pages they used. When the language has no list, or the search
+and link to the pages they used, listed under the answer and never named in
+the explanation itself. When the language has no list, or the search
 found nothing, the answer says "Not checked against a reference". **Save as
 rule** under an answer opens a dialog with its suggested title and topic, both
 editable, and saves exactly what is shown as a grammar rule. When a rule
