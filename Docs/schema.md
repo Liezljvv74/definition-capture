@@ -20,7 +20,7 @@ those migrations and in the git log; none of it is live.
 
 ## The shape
 
-Twelve tables, no views, ten functions, none of them `security definer`.
+Thirteen tables, no views, ten functions, none of them `security definer`.
 
 | Table | Holds | Written by |
 | --- | --- | --- |
@@ -36,6 +36,7 @@ Twelve tables, no views, ten functions, none of them `security definer`.
 | `user_settings` | one row of preferences per account | Settings |
 | `account_plans` | `free` or `paid`, for the grammar tutor; no row means free | an administrator only |
 | `tutor_usage` | one row per tutor question, append-only | the tutor route |
+| `conversation_messages` | the messages of an account's one open conversation | the conversation route |
 
 ### Principles
 
@@ -182,6 +183,19 @@ no one in the app: no insert, update or delete grant or policy for
 and insert only, with the insert policy checking `user_id`, so a count can grow
 but never be wound back. The migration ends with a check that raises if either
 grant set drifts. `supabase/tests/tutor.sql` rehearses all of it.
+
+### `conversation_messages`
+
+The Conversations page's messages, saved so a reload shows them. An account
+has one conversation or none: "New conversation" deletes every row, so there
+is no conversation id and nothing is kept that no page shows. The id is an
+identity rather than a uuid because it is also the order: the route inserts a
+question and its reply in one statement, which gives both the same
+`created_at`. `role` is `user` or `assistant`, never `system`. Select, insert
+and delete on the owner, no update; insert is granted on `user_id`, `role` and
+`content` only, so the order and the time stay the database's. Index
+`(user_id, id)` serves the page's read. The migration checks its policies and
+grants, and `supabase/tests/conversation_messages.sql` rehearses them.
 
 ---
 

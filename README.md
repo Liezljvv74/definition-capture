@@ -32,6 +32,8 @@ or device. It is live at <https://definition-capture.vercel.app>.
 - **Tutor**: ask a grammar question and get an explanation at your level, built
   from reference sites for the language you are studying, which you can save as a
   grammar rule.
+- **Conversations**: a plain chat with the same model, under the Tutor tab,
+  that remembers the earlier messages so a follow-up can refer back.
 - **Read aloud**: a speaker beside every word and phrase, in the lists and on
   their own pages, and beside a phrase's usage example; one in each verb tense
   heading that reads the tense down the table; and a floating one on a rule page
@@ -224,7 +226,7 @@ server code.
 
 ## Where the data lives
 
-Every list is in Supabase, in twelve tables with no views and ten functions,
+Every list is in Supabase, in thirteen tables with no views and ten functions,
 none of them `security definer`. The design, and why it is shaped that way, is in
 [`Docs/schema.md`](Docs/schema.md); how it got there is in
 [`Docs/db-refactor-plan.md`](Docs/db-refactor-plan.md).
@@ -273,6 +275,8 @@ Two more tables belong to the tutor. `account_plans` holds an account's plan,
 `free` or `paid`, and an account can read its own row but never write it; no row
 means free. `tutor_usage` has one row per question asked, which an account can
 add and read but not change or delete, so the count only grows.
+`conversation_messages` holds the Conversations page's messages, which an
+account can add, read and delete but not change.
 
 To mark an account paid, add a row to `account_plans` in the Supabase
 dashboard's Table Editor with that account's `user_id` and `plan` set to `paid`.
@@ -552,6 +556,18 @@ offering the question box. The OpenRouter key is read only by the server route
 `POST /api/tutor`, which checks the session and the allowance before calling out.
 The design is in [`Docs/tutor.md`](Docs/tutor.md).
 
+### Conversations
+
+The Tutor tab is a menu of two pages: **Grammar tutor** (`/tutor`) and
+**Conversations** (`/conversations`), a plain chat about anything. Your messages
+and the replies are listed above a box at the bottom; Ctrl or Cmd with Enter
+sends. The conversation is saved as it goes, so a reload shows it again;
+**New conversation** deletes it and starts a fresh one. Replies come in your
+native language from Settings (with none set, in the language you write in).
+Each message goes with the last ten before it, so "what did you mean by that?"
+is understood. It goes through `POST /api/conversation`, uses the same
+model (`OPENROUTER_MODEL`) and spends the same allowance as the tutor.
+
 ### Choosing a password
 
 `/choose-password` is where a reset link lands, already signed in. New password,
@@ -700,6 +716,8 @@ purpose once to confirm it notices. `supabase/tests/home_summary.sql` rehearses
 transaction that is rolled back, and `supabase/tests/verb_practice.sql` does the
 same for verb practice: the shared schedule, `record_tense_review` and what it
 refuses, row level security, and the verb counts on the dashboard.
+`supabase/tests/conversation_messages.sql` rehearses the conversation table's
+row level security and grants the same way.
 
 The end-to-end tests in `e2e/` sign in through the real form as a dedicated test
 account (`E2E_EMAIL` and `E2E_PASSWORD` in `.env.local`) and add and delete rows.
@@ -766,12 +784,14 @@ src/
     sign-in/, sign-up/    the two ways in
     auth/callback/        trades a sign-in link's ?code= for a session
     auth/reset/           the same for a reset link, then on to /choose-password
-    api/tutor/            the one route that calls OpenRouter, with the key
+    api/tutor/            the grammar tutor's route
+    api/conversation/     the Conversations route; both call OpenRouter
+                          through src/lib/tutorServer.ts, which holds the key
     (workspace)/          everything behind a sign-in. The brackets keep the
                           group out of the URL; its layout.tsx re-checks the
                           session on the server and sets noindex
       home/  vocabulary/  phrases/  word/  phrase/  verbs/  grammar/  rule/
-      flashcards/  settings/  choose-password/  tutor/
+      flashcards/  settings/  choose-password/  tutor/  conversations/
   components/             the UI, with folders for home/, flashcards/, grammar/,
                           tutor/, backup/, verbs/ (the practice dialog and the
                           tense marks) and notebook/ (the paper, doodles and the
