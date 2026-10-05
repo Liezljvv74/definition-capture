@@ -8,6 +8,7 @@ import {
   highlightCells,
   linkRange,
   removeHighlight,
+  removeLinks,
   unhighlightCells,
   withFieldText,
 } from "@/lib/selectionEdits";
@@ -204,5 +205,30 @@ describe("links from a selection", () => {
     expect(linkRange(text, "text", pick(text, "c\nd"))).toBeNull();
     expect(linkRange("gebe dem", "sentence", pick("gebe dem", "dem", "sentence"))).toBeNull();
     expect(linkRange("a\nb", "cell:0:0", span(0, 3, "cell:0:0"))).toBeNull();
+  });
+});
+
+describe("removing links", () => {
+  it("turns a touched link back into the words it shows, bold kept, inside a highlight too", () => {
+    const text = "Ich gebe [[Dativ|dem]] Mann **[[Fall]]** ==y:und [[Kasus]]==";
+    expect(removeLinks(text, "text", pick(text, "dem"))).toBe("Ich gebe dem Mann **[[Fall]]** ==y:und [[Kasus]]==");
+    expect(removeLinks(text, "text", pick(text, "Fall"))).toBe("Ich gebe [[Dativ|dem]] Mann **Fall** ==y:und [[Kasus]]==");
+    expect(removeLinks(text, "text", pick(text, "Kasus"))).toBe("Ich gebe [[Dativ|dem]] Mann **[[Fall]]** ==y:und Kasus==");
+  });
+
+  it("takes off every link a selection runs across, and works in a cell", () => {
+    const text = "[[A]] und [[B|b]]";
+    expect(removeLinks(text, "text", { blockId: "b", field: "text", start: 0, end: text.length })).toBe("A und b");
+    expect(removeLinks("[[Dativ]]", "cell:0:0", pick("[[Dativ]]", "Dativ", "cell:0:0"))).toBe("Dativ");
+  });
+
+  it("offers nothing where no link is touched, or in an example", () => {
+    expect(removeLinks("plain words [[A]]", "text", pick("plain words [[A]]", "plain"))).toBeNull();
+    expect(removeLinks("gebe [[A]]", "sentence", pick("gebe [[A]]", "A", "sentence"))).toBeNull();
+  });
+
+  it("refuses when the bare words would read differently", () => {
+    const text = "[[A|*b*]]";
+    expect(removeLinks(text, "text", pick(text, "*b*"))).toBeNull();
   });
 });

@@ -15,6 +15,7 @@ import {
   HIGHLIGHT_CODE,
   parseInline,
   parseTextBlock,
+  shownText,
   shownWords,
   type HighlightColour,
   type InlineMode,
@@ -200,6 +201,28 @@ export function linkRange(text: string, field: Field, selected: Selected): LinkR
 /** True when the text still holds the range's words where they were found, markers and all. */
 export function rangeHolds(text: string, range: LinkRange): boolean {
   return text.slice(range.start, range.end) === (range.bold ? `**${range.words}**` : range.words);
+}
+
+/**
+ * The text with every link the selection touches turned back into the words
+ * it shows, or null when it touches none. A bold link stays bold. Refused,
+ * like removing a highlight, when the bare words would read differently,
+ * such as a label holding stars that would then start italic.
+ */
+export function removeLinks(text: string, field: Field, selected: Selected): string | null {
+  if (modeOf(field) !== "rich") return null;
+  const tokens = tokensOf(text, field);
+  const touched = tokens
+    .flatMap((t) => (t.kind === "highlight" ? t.tokens : [t]))
+    .filter((t): t is Extract<InlineToken, { kind: "link" }> => t.kind === "link" && overlaps(t, selected.start, selected.end));
+  if (touched.length === 0) return null;
+  // Last first, so taking one off does not move the ones before it.
+  let result = text;
+  for (const link of [...touched].reverse()) {
+    const words = shownText(link);
+    result = result.slice(0, link.from) + (link.bold ? `**${words}**` : words) + result.slice(link.to);
+  }
+  return shownWords(tokensOf(result, field)) === shownWords(tokens) ? result : null;
 }
 
 /**

@@ -18,6 +18,7 @@ export function SelectionToolbar({
   onRemove,
   onLink,
   onNewRule,
+  onUnlink = null,
 }: {
   top: number;
   left: number;
@@ -25,6 +26,7 @@ export function SelectionToolbar({
   onRemove: (() => void) | null;
   onLink: (() => void) | null;
   onNewRule: (() => void) | null;
+  onUnlink?: (() => void) | null;
 }) {
   const keep = (event: MouseEvent) => event.preventDefault();
   const button =
@@ -51,6 +53,11 @@ export function SelectionToolbar({
       {onRemove && (
         <button type="button" onMouseDown={keep} onClick={onRemove} className={button}>
           Remove highlight
+        </button>
+      )}
+      {onUnlink && (
+        <button type="button" onMouseDown={keep} onClick={onUnlink} className={button}>
+          Remove link
         </button>
       )}
       {onLink && (

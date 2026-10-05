@@ -17,6 +17,7 @@ import {
   linkRange,
   rangeHolds,
   removeHighlight,
+  removeLinks,
   unhighlightCells,
   withFieldText,
   type CellSelection,
@@ -114,6 +115,7 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
   let onRemove: (() => void) | null = null;
   let onLink: (() => void) | null = null;
   let onNewRule: (() => void) | null = null;
+  let onUnlink: (() => void) | null = null;
 
   if (selected && block) {
     if (isCells(selected)) {
@@ -141,6 +143,8 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
             if (next !== null && next !== text) saveBlock(withFieldText(block, selected.field, next));
           };
         }
+        const unlinked = removeLinks(text, selected.field, selected);
+        if (unlinked !== null) onUnlink = () => saveBlock(withFieldText(block, selected.field, unlinked));
         const removed = removeHighlight(text, selected.field, selected);
         if (removed !== null) onRemove = () => saveBlock(withFieldText(block, selected.field, removed));
 
@@ -160,7 +164,22 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
     // While cells are selected the browser's own selection colour is hidden:
     // it runs in reading order, row by row, and for a column would light up
     // cells outside it. The outline shows what is selected instead.
-    <div ref={root} className={`relative ${shown?.outline ? "selection:bg-transparent" : ""}`}>
+    <div
+      ref={root}
+      className={`relative ${shown?.outline ? "selection:bg-transparent" : ""}`}
+      // A right click on a link selects its words instead of opening the
+      // browser's menu, so the toolbar comes up below it with Remove link.
+      onContextMenu={(event) => {
+        const words = (event.target as Element).closest?.("[data-link]");
+        if (!words || !root.current?.contains(words)) return;
+        event.preventDefault();
+        const range = document.createRange();
+        range.selectNodeContents(words);
+        const selection = document.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }}
+    >
       {children}
       {shown?.outline && (
         <div
@@ -169,7 +188,7 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
           className="pointer-events-none absolute rounded-sm bg-accent/10 ring-2 ring-link"
         />
       )}
-      {shown && (onHighlight || onRemove || onLink || onNewRule) && (
+      {shown && (onHighlight || onRemove || onLink || onNewRule || onUnlink) && (
         <SelectionToolbar
           top={shown.top}
           left={shown.left}
@@ -177,6 +196,7 @@ export function ReadingTools({ rule, children }: { rule: Rule; children: ReactNo
           onRemove={onRemove}
           onLink={onLink}
           onNewRule={onNewRule}
+          onUnlink={onUnlink}
         />
       )}
       {dialog?.kind === "link" && (

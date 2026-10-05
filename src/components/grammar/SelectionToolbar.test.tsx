@@ -15,5 +15,13 @@ describe("SelectionToolbar", () => {
     expect(html).not.toContain("Remove highlight");
     expect(html).not.toContain("Link to");
     expect(html).toContain("New rule from this");
+    expect(html).not.toContain("Remove link");
+  });
+
+  it("offers Remove link when given it", () => {
+    const html = renderToStaticMarkup(
+      <SelectionToolbar top={0} left={0} onHighlight={null} onRemove={null} onLink={null} onNewRule={null} onUnlink={() => {}} />,
+    );
+    expect(html).toContain("Remove link");
   });
 });
