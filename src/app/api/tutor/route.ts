@@ -1,20 +1,18 @@
 /**
  * POST /api/tutor: asks the grammar tutor one question.
  *
- * This is the only place OPENROUTER_API_KEY is read (`tutorServer.ts` reads
- * only OPENROUTER_MODEL), and it is never logged or sent back. Nothing in the
- * request is trusted for the plan, the user or the limits: the session says who
- * is asking, and the
- * database says what they have used. Logs carry status codes and short
+ * The key is read in `tutorServer.ts` alone, and never logged or sent back.
+ * Nothing in the request is trusted for the plan, the user or the limits: the
+ * session says who is asking, and the database says what they have used. Logs carry status codes and short
  * reasons only, never the learner's text or the reply.
  */
 
 import { NextResponse } from "next/server";
 import { languageName } from "@/lib/languages";
-import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { reserveMessage } from "@/lib/reserveMessage";
 import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
 import { allowance, buildRequest, QUESTION_MAX, readHistory, readReply, REFERENCE_DOMAINS, tutorInstructions } from "@/lib/tutor";
-import { countUsage, loadTutorState, recordQuestion, tutorModel } from "@/lib/tutorServer";
+import { askOpenRouter, loadTutorState, openRouterConfigured, tutorModel } from "@/lib/tutorServer";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -39,9 +37,7 @@ export async function POST(request: Request) {
   const history = readHistory(body.history);
   const answerIn = body.answerIn === "native" ? "native" : "studied";
 
-  // Checked before the reservation so a missing key does not spend a question.
-  const key = process.env.OPENROUTER_API_KEY;
-  if (!key) {
+  if (!openRouterConfigured()) {
     console.error("tutor: OPENROUTER_API_KEY is not configured");
     return fail(502, "tutor_failed");
   }
@@ -60,33 +56,13 @@ export async function POST(request: Request) {
   const before = allowance(state);
   if (before.reason !== "ok") return fail(403, before.reason);
 
-  // Reserve, then count again. The row is this request's place in line: N
-  // parallel requests each insert before any of them re-counts, so each sees
-  // the others and the limit holds. Checking once and recording after the
-  // call, as this once did, let every parallel request see the old count.
+  let left, reason;
   try {
-    await recordQuestion(supabase, userId);
+    ({ left, reason } = await reserveMessage(supabase, userId, state.plan));
   } catch {
     console.error("tutor: could not reserve the question");
     return fail(502, "tutor_failed");
   }
-  let usage;
-  try {
-    usage = await countUsage(supabase);
-  } catch {
-    console.error("tutor: could not re-count the account's usage");
-    return fail(502, "tutor_failed");
-  }
-  // These counts include the row just inserted and `allowance` wants what was
-  // used before this request. A request that lost the race is refused and its
-  // row stays: a spent reservation is not given back.
-  const { remaining, reason } = allowance({
-    plan: state.plan,
-    usedTotal: usage.usedTotal - 1,
-    usedToday: usage.usedToday - 1,
-  });
-  // What is left once this request's own reservation is spent.
-  const left = Math.max(0, remaining - 1);
   if (reason !== "ok") return fail(403, reason, left);
 
   const native = settings.nativeLanguage ? languageName(settings.nativeLanguage) : settings.nativeLanguageOther.trim();
@@ -96,16 +72,8 @@ export async function POST(request: Request) {
 
   let reply;
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      signal: AbortSignal.timeout(55_000),
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": SITE_URL,
-        "X-Title": SITE_NAME,
-      },
-      body: JSON.stringify(
+    reply = readReply(
+      await askOpenRouter(
         buildRequest({
           model: tutorModel(),
           instructions: tutorInstructions({ studied, answerIn: answerName, level: settings.level, grounded: domains.length > 0 }),
@@ -114,14 +82,9 @@ export async function POST(request: Request) {
           domains,
         }),
       ),
-    });
-    if (!res.ok) {
-      console.error(`tutor: OpenRouter answered ${res.status}`);
-      return fail(502, "tutor_failed", left);
-    }
-    reply = readReply(await res.json());
-  } catch {
-    console.error("tutor: the OpenRouter call threw");
+    );
+  } catch (error) {
+    console.error(`tutor: ${error instanceof Error ? error.message : "the OpenRouter call threw"}`);
     return fail(502, "tutor_failed", left);
   }
   if (!reply) {

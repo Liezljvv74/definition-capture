@@ -29,14 +29,22 @@ const GLOSSARY_VIEWS = [
   { href: "/phrases", label: "Phrases", prefixes: ["/phrases", "/phrase"] },
 ] as const;
 
+/** The two pages behind the Tutor tab, a dropdown for the same reason as Glossary. */
+const TUTOR_VIEWS = [
+  { href: "/tutor", label: "Grammar tutor", prefixes: ["/tutor"] },
+  { href: "/conversations", label: "Conversations", prefixes: ["/conversations"] },
+] as const;
+
+type View = { href: string; label: string; prefixes: readonly string[] };
+
 /** True of any of a view's paths, so a detail page counts as its list. */
-function inView(view: (typeof GLOSSARY_VIEWS)[number], path: string): boolean {
+function inView(view: View, path: string): boolean {
   return view.prefixes.some((prefix) => path.startsWith(prefix));
 }
 
 /** True anywhere in the section, including a single word or phrase page. */
-function inGlossary(path: string): boolean {
-  return GLOSSARY_VIEWS.some((view) => inView(view, path));
+function inSection(views: readonly View[], path: string): boolean {
+  return views.some((view) => inView(view, path));
 }
 
 /**
@@ -55,7 +63,6 @@ const LINKS = [
     label: "Grammar",
     isActive: (path: string) => path.startsWith("/grammar") || path.startsWith("/rule"),
   },
-  { href: "/tutor", label: "Tutor", isActive: (path: string) => path.startsWith("/tutor") },
 ] as const;
 
 /** The section colour for the page being shown, after its dashboard tile. */
@@ -100,6 +107,7 @@ function MobileMenu({ pathname }: { pathname: string }) {
   const destinations = [
     ...GLOSSARY_VIEWS.map((view) => ({ href: view.href, label: view.label, active: inView(view, pathname) })),
     ...LINKS.map((link) => ({ href: link.href, label: link.label, active: link.isActive(pathname) })),
+    ...TUTOR_VIEWS.map((view) => ({ href: view.href, label: view.label, active: inView(view, pathname) })),
   ];
 
   return (
@@ -134,6 +142,28 @@ function MobileMenu({ pathname }: { pathname: string }) {
       </ul>
     </li>
   );
+}
+
+/** A dropdown's links, the current one marked. */
+function ViewItems({ views, pathname, close }: { views: readonly View[]; pathname: string; close: () => void }) {
+  return views.map((view) => {
+    const current = inView(view, pathname);
+    return (
+      <li key={view.href} role="none">
+        <Link
+          role="menuitem"
+          href={view.href}
+          aria-current={current ? "page" : undefined}
+          // Closed here rather than by watching the path: a second click on
+          // the view you are already on should still put it away.
+          onClick={close}
+          className={current ? MENU_ITEM_CURRENT : MENU_ITEM}
+        >
+          {view.label}
+        </Link>
+      </li>
+    );
+  });
 }
 
 /**
@@ -225,28 +255,8 @@ export function MainNav() {
          * pages, so going somewhere on click would mean quietly preferring
          * one of them.
          */}
-        <NavMenu label="Glossary" active={inGlossary(pathname)} wrapperClass="hidden sm:block">
-          {(close) =>
-            GLOSSARY_VIEWS.map((view) => {
-              const current = inView(view, pathname);
-              return (
-                <li key={view.href} role="none">
-                  <Link
-                    role="menuitem"
-                    href={view.href}
-                    aria-current={current ? "page" : undefined}
-                    // Closed here rather than by watching the path: a second
-                    // click on the view you are already on should still put
-                    // it away.
-                    onClick={close}
-                    className={current ? MENU_ITEM_CURRENT : MENU_ITEM}
-                  >
-                    {view.label}
-                  </Link>
-                </li>
-              );
-            })
-          }
+        <NavMenu label="Glossary" active={inSection(GLOSSARY_VIEWS, pathname)} wrapperClass="hidden sm:block">
+          {(close) => <ViewItems views={GLOSSARY_VIEWS} pathname={pathname} close={close} />}
         </NavMenu>
 
         {LINKS.map((link) => {
@@ -264,6 +274,10 @@ export function MainNav() {
             </li>
           );
         })}
+
+        <NavMenu label="Tutor" active={inSection(TUTOR_VIEWS, pathname)} wrapperClass="hidden sm:block">
+          {(close) => <ViewItems views={TUTOR_VIEWS} pathname={pathname} close={close} />}
+        </NavMenu>
 
         {/*
          * Backup is a tab rather than a pair of buttons on the two list

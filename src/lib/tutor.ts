@@ -242,3 +242,47 @@ export function withSeeAlso(blocks: Block[], titles: string[]): Block[] {
   if (titles.length === 0) return blocks;
   return [...blocks, { ...newTextBlock(), text: `See also ${titles.map((t) => `[[${t}]]`).join(", ")}.` }];
 }
+
+/*
+ * Conversations: free talk with the same model, in plain text rather than
+ * the tutor's JSON, with the same history rules and the same allowance.
+ */
+
+/** `answerIn` is the native language from Settings; with none set, the reply follows the person's own language. */
+export function chatInstructions(answerIn: string | null): string {
+  return [
+    "You are a friendly conversation partner. Reply in plain text without Markdown, in short paragraphs. " +
+      "Use the earlier turns to understand follow-up questions.",
+    // Last, so it weighs most, as in the tutor's instructions.
+    answerIn
+      ? `Always reply in ${answerIn}, even when the person writes in another language.`
+      : "Reply in the language the person last wrote in.",
+  ].join("\n\n");
+}
+
+export function buildChatRequest(input: {
+  model: string;
+  answerIn: string | null;
+  history: TutorTurn[];
+  message: string;
+}): Record<string, unknown> {
+  return {
+    model: input.model,
+    messages: [
+      { role: "system", content: chatInstructions(input.answerIn) },
+      ...input.history,
+      { role: "user", content: input.message },
+    ],
+    // The same budget as the tutor, for the same reason: reasoning tokens come out of it.
+    max_tokens: 6000,
+    reasoning: { effort: "low" },
+  };
+}
+
+/** The reply's text, or null when there is none. An em dash becomes a comma, the owner's rule. */
+export function readChatReply(json: unknown): string | null {
+  const content = (json as { choices?: { message?: { content?: unknown } }[] } | null)?.choices?.[0]?.message?.content;
+  if (typeof content !== "string") return null;
+  const text = content.replace(/\s*—\s*/g, ", ").trim();
+  return text || null;
+}

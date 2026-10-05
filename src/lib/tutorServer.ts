@@ -1,6 +1,7 @@
 /**
- * The tutor route's reads and its one write. Server only: it holds nothing
- * secret itself, but it is written to run in a route handler and imports no
+ * The reads, the one write and the OpenRouter call shared by the tutor and
+ * conversation routes. Server only: this is the one module that reads
+ * OPENROUTER_API_KEY, which is never logged or sent back, and it imports no
  * browser code.
  *
  * Every call runs under the caller's own session, so row level security
@@ -9,7 +10,8 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DEFAULT_TUTOR_MODEL, startOfUtcDay, type Plan } from "@/lib/tutor";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { DEFAULT_TUTOR_MODEL, startOfUtcDay, type Plan, type TutorTurn } from "@/lib/tutor";
 
 export type TutorSettings = {
   language: string;
@@ -66,4 +68,60 @@ export async function recordQuestion(supabase: SupabaseClient, userId: string): 
 
 export function tutorModel(): string {
   return process.env.OPENROUTER_MODEL?.trim() || DEFAULT_TUTOR_MODEL;
+}
+
+/** Checked before a reservation, so a missing key does not spend a message. */
+export function openRouterConfigured(): boolean {
+  return Boolean(process.env.OPENROUTER_API_KEY);
+}
+
+/**
+ * One chat-completions call, returning the parsed JSON. Throws on a failed
+ * status with only the status in the message, so a caller can log it without
+ * logging anything the learner wrote.
+ */
+export async function askOpenRouter(body: Record<string, unknown>): Promise<unknown> {
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    signal: AbortSignal.timeout(55_000),
+    headers: {
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": SITE_URL,
+      "X-Title": SITE_NAME,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`OpenRouter answered ${res.status}`);
+  return res.json();
+}
+
+/*
+ * The one open conversation of an account, in `conversation_messages`. Row
+ * level security scopes every call to the caller, so none filters by user.
+ */
+
+/** Reply text past this is cut before it is saved; the table refuses longer. */
+export const SAVED_MESSAGE_MAX = 32000;
+
+// ponytail: reads the whole conversation; page it if one grows to thousands of messages.
+export async function loadConversation(supabase: SupabaseClient): Promise<TutorTurn[]> {
+  const { data, error } = await supabase.from("conversation_messages").select("role, content").order("id");
+  if (error) throw new Error("conversation unavailable");
+  return data as TutorTurn[];
+}
+
+/** A question and its reply, in one insert so that one is never saved without the other. */
+export async function saveExchange(supabase: SupabaseClient, userId: string, message: string, reply: string): Promise<void> {
+  const { error } = await supabase.from("conversation_messages").insert([
+    { user_id: userId, role: "user", content: message },
+    { user_id: userId, role: "assistant", content: reply.slice(0, SAVED_MESSAGE_MAX) },
+  ]);
+  if (error) throw new Error("conversation not saved");
+}
+
+export async function clearConversation(supabase: SupabaseClient, userId: string): Promise<void> {
+  // The filter is required by the client for a delete, and row level security would apply it anyway.
+  const { error } = await supabase.from("conversation_messages").delete().eq("user_id", userId);
+  if (error) throw new Error("conversation not cleared");
 }
