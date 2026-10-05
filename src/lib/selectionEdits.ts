@@ -41,8 +41,8 @@ export const isCells = (selection: Selected | CellSelection): selection is CellS
  */
 export type SelectionPoint = { blockId: string; field: Field; offset: number | null };
 
-/** The words a link would be made of, and where they are. */
-export type LinkRange = { start: number; end: number; words: string };
+/** The words a link would be made of, and where they are; `bold` when they are all of one bold run, whose `**` the range includes. */
+export type LinkRange = { start: number; end: number; words: string; bold?: true };
 
 type Highlight = Extract<InlineToken, { kind: "highlight" }>;
 
@@ -175,10 +175,12 @@ export function removeHighlight(text: string, field: Field, selected: Selected):
 
 /**
  * The words a link would be made of, when the selection lies within plain
- * words of a text block or a table cell, or null. Not over bold, a link or a
- * line break, none of which a link can hold, and not holding a bracket,
- * which would end the link early. Inside a highlight is fine: the link then
- * sits inside it. Examples take no links.
+ * words of a text block or a table cell, or within one bold run, or null.
+ * A bold run is taken whole, as a highlight takes it, and becomes a bold
+ * link: an edit never cuts through markup, and a header cell is often all
+ * bold. Not across a link, italic or a line break, and not holding a
+ * bracket, which would end the link early. Inside a highlight is fine: the
+ * link then sits inside it. Examples take no links.
  */
 export function linkRange(text: string, field: Field, selected: Selected): LinkRange | null {
   if (modeOf(field) !== "rich") return null;
@@ -186,9 +188,18 @@ export function linkRange(text: string, field: Field, selected: Selected): LinkR
   if (start === end) return null;
   const leaves = tokensOf(text, field).flatMap((t) => (t.kind === "highlight" ? t.tokens : [t]));
   const home = leaves.find((t) => t.from <= start && end <= t.to);
+  if (home?.kind === "bold") {
+    const words = home.value.trim();
+    return !words || /[[\]]/.test(words) ? null : { start: home.from, end: home.to, words, bold: true };
+  }
   if (!home || home.kind !== "text") return null;
   const words = text.slice(start, end);
   return /[[\]\n]/.test(words) ? null : { start, end, words };
+}
+
+/** True when the text still holds the range's words where they were found, markers and all. */
+export function rangeHolds(text: string, range: LinkRange): boolean {
+  return text.slice(range.start, range.end) === (range.bold ? `**${range.words}**` : range.words);
 }
 
 /**
@@ -198,7 +209,8 @@ export function linkRange(text: string, field: Field, selected: Selected): LinkR
  * would otherwise start showing a capital it was not written with.
  */
 export function applyLink(text: string, range: LinkRange, name: string): string {
-  const link = range.words === name ? `[[${name}]]` : `[[${name}|${range.words}]]`;
+  const bare = range.words === name ? `[[${name}]]` : `[[${name}|${range.words}]]`;
+  const link = range.bold ? `**${bare}**` : bare;
   return text.slice(0, range.start) + link + text.slice(range.end);
 }
 

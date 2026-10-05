@@ -57,23 +57,21 @@ function Inline({ tokens, linkIndex }: { tokens: InlineToken[]; linkIndex: LinkI
             const words = shownText(token);
             // Unresolved names read as dotted text, exactly as in a Ref, so
             // one look says the same thing everywhere.
-            if (!href) {
-              return (
-                <span
-                  key={index}
-                  data-at={token.at}
-                  title="Nothing with this name is saved yet"
-                  className="text-ink-soft underline decoration-dotted underline-offset-2"
-                >
-                  {words}
-                </span>
-              );
-            }
-            return (
-              <Link key={index} href={href} data-at={token.at} className={linkClass}>
+            const shown = !href ? (
+              <span
+                data-at={token.at}
+                title="Nothing with this name is saved yet"
+                className="text-ink-soft underline decoration-dotted underline-offset-2"
+              >
+                {words}
+              </span>
+            ) : (
+              <Link href={href} data-at={token.at} className={linkClass}>
                 {words}
               </Link>
             );
+            // `data-at` stays on the element holding the words, inside the bold.
+            return token.bold ? <strong key={index}>{shown}</strong> : <span key={index} className="contents">{shown}</span>;
           }
         }
       })}

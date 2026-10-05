@@ -24,6 +24,12 @@ describe("BlockView", () => {
     expect(markup).toContain("decoration-dotted");
   });
 
+  it("draws a bold link bold, with where its words start", () => {
+    const markup = html({ kind: "text", id: "a", text: "**[[Cases|Fälle]]**" });
+    expect(markup).toMatch(/<strong><a [^>]*href="\/rule\?id=r1"[^>]*data-at="10"|<strong><a [^>]*data-at="10"[^>]*href="\/rule\?id=r1"/);
+    expect(markup).toContain("Fälle</a></strong>");
+  });
+
   it("marks the header row and column of a table", () => {
     const markup = html({
       kind: "table",

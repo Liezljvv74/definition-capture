@@ -183,9 +183,22 @@ describe("links from a selection", () => {
     expect(linkRange("dem", "cell:1:2", pick("dem", "dem", "cell:1:2"))).toEqual({ start: 0, end: 3, words: "dem" });
   });
 
-  it("refuses bold, links, brackets, examples and more than one line", () => {
+  it("links a bold run whole and keeps it bold, in text and in a header cell", () => {
+    const text = "Der **dritte Fall** ist wichtig.";
+    const range = linkRange(text, "text", pick(text, "Fall"))!;
+    expect(range).toEqual({ start: 4, end: 19, words: "dritte Fall", bold: true });
+    expect(applyLink(text, range, "Dativ")).toBe("Der **[[Dativ|dritte Fall]]** ist wichtig.");
+    const header = "**Dativ**";
+    expect(applyLink(header, linkRange(header, "cell:0:1", pick(header, "Dativ", "cell:0:1"))!, "Dativ")).toBe("**[[Dativ]]**");
+  });
+
+  it("refuses a selection running out of bold into plain words", () => {
+    const text = "the **dative** case";
+    expect(linkRange(text, "text", pick(text, "dative** case"))).toBeNull();
+  });
+
+  it("refuses links, brackets, examples and more than one line", () => {
     const text = "**dem** [[Fall]] a [b] c\nd";
-    expect(linkRange(text, "text", pick(text, "dem"))).toBeNull();
     expect(linkRange(text, "text", pick(text, "Fall"))).toBeNull();
     expect(linkRange(text, "text", pick(text, "[b]"))).toBeNull();
     expect(linkRange(text, "text", pick(text, "c\nd"))).toBeNull();

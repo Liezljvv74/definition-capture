@@ -21,6 +21,17 @@ describe("parseInline", () => {
     ]);
   });
 
+  it("reads a link wrapped whole in bold as a bold link, without its stars", () => {
+    const tokens = parseInline("see **[[Dativ|dem Fall]]** now");
+    expect(tokens).toMatchObject([
+      { kind: "text", value: "see " },
+      { kind: "link", name: "Dativ", label: "dem Fall", bold: true, at: 14 },
+      { kind: "text", value: " now" },
+    ]);
+    expect(plainText("see **[[Dativ|dem Fall]]** now")).toBe("see dem Fall now");
+    expect(parseInline("**[[Dativ]]**")).toMatchObject([{ kind: "link", name: "Dativ", bold: true, at: 4 }]);
+  });
+
   it("shows unclosed markup as the characters typed", () => {
     expect(parseInline("a **b")).toMatchObject([{ kind: "text", value: "a **b" }]);
     expect(parseInline("a *b")).toMatchObject([{ kind: "text", value: "a *b" }]);

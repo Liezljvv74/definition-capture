@@ -449,7 +449,9 @@ Selecting text in the reading view offers **Highlight** in yellow, green, blue o
 purple (and Remove highlight), **Link to…**, which searches every item by name,
 and lists under those the rules whose text mentions any of the words (showing
 where), and turns the selection into a link, and **New rule from this**, which creates an empty rule
-from the selected words and links to it. Rules make no flashcards.
+from the selected words and links to it. Both work on bold words too, such as a
+bold table header: the whole bold phrase becomes the link and stays bold
+(`**[[Name|words]]**`). Rules make no flashcards.
 
 A round speaker floats at the bottom right of a rule's page. It reads the whole
 rule from the top, outlining each part as it goes, or only the selected text when

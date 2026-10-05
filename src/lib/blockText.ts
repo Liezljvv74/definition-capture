@@ -37,8 +37,8 @@ export type InlineToken =
   | ({ kind: "text"; value: string; at: number } & Span)
   | ({ kind: "bold"; value: string; at: number } & Span)
   | ({ kind: "italic"; value: string; at: number } & Span)
-  /** A name, resolved against the link index when shown; see `RefText`. */
-  | ({ kind: "link"; name: string; label?: string; at: number } & Span)
+  /** A name, resolved against the link index when shown; see `RefText`. `bold` when written `**[[...]]**`. */
+  | ({ kind: "link"; name: string; label?: string; bold?: true; at: number } & Span)
   /** A word practice will blank out, `{dem}`; only in an example sentence. */
   | ({ kind: "gap"; value: string; at: number } & Span)
   | ({ kind: "highlight"; colour: HighlightColour; tokens: InlineToken[] } & Span);
@@ -60,8 +60,12 @@ export type InlineMode = "rich" | "sentence" | "plain";
  * and never holds a bracket. Kept as its own copy because that module also
  * turns bare URLs into links, which a passage of grammar must not do to
  * every slash it contains.
+ *
+ * A link wrapped whole in `**` is a bold link, read here because links are
+ * read before emphasis: bold around a link would otherwise show its stars.
+ * It is what linking a bold word writes, so the word stays bold.
  */
-const LINK = /(\[\[[^[\]\n]+\]\])/;
+const LINK = /(\*\*\[\[[^[\]\n]+\]\]\*\*|\[\[[^[\]\n]+\]\])/;
 /**
  * Bold before italic, so `**` is not read as an empty italic pair. An italic
  * run may not start or end with a space, so a lone star in "2 * 3 * 4" is
@@ -140,13 +144,17 @@ function parseMarkup(text: string, mode: InlineMode, base: number, tokens: Inlin
     if (piece.match && mode === "sentence") {
       tokens.push({ kind: "gap", value: piece.value.slice(1, -1), at: piece.at + 1, from: piece.at, to });
     } else if (piece.match) {
-      const inner = piece.value.slice(2, -2);
+      const bold = piece.value.startsWith("**");
+      // How far the name or label sits in: the `[[`, and the `**` before it.
+      const open = bold ? 4 : 2;
+      const inner = piece.value.slice(open, -open);
       const { name, label } = linkParts(inner);
+      const extra = bold ? { bold: true as const } : {};
       // The shown words start where the trimmed label or name does, which
       // `indexOf` finds: only spaces stand before them in their part.
       if (!name) pushText(tokens, piece.value, piece.at);
-      else if (label) tokens.push({ kind: "link", name, label, at: piece.at + 2 + inner.indexOf(label, inner.indexOf("|") + 1), from: piece.at, to });
-      else tokens.push({ kind: "link", name, at: piece.at + 2 + inner.indexOf(name), from: piece.at, to });
+      else if (label) tokens.push({ kind: "link", name, label, ...extra, at: piece.at + open + inner.indexOf(label, inner.indexOf("|") + 1), from: piece.at, to });
+      else tokens.push({ kind: "link", name, ...extra, at: piece.at + open + inner.indexOf(name), from: piece.at, to });
     } else if (mode === "sentence") {
       pushText(tokens, piece.value, piece.at);
     } else {
