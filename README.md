@@ -578,7 +578,8 @@ The Tutor tab is a menu of two pages: **Grammar tutor** (`/tutor`) and
 you are studying, which needs that language chosen in Settings. Your messages
 and the replies are listed above a box at the bottom; Ctrl or Cmd with Enter
 sends. The conversation is saved as it goes, so a reload shows it again;
-**New conversation** deletes it and starts a fresh one. Replies come in your
+**New conversation**, at the top and staying in view under the nav as the
+conversation scrolls, deletes it and starts a fresh one. Replies come in your
 native language from Settings (with none set, in the language you write in).
 Each message goes with the last ten saved before it, read back on the server
 rather than sent by the browser, so "what did you mean by that?" is understood.
