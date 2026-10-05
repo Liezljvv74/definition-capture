@@ -7,8 +7,10 @@ import { useState, type CSSProperties } from "react";
 import { BlockView } from "@/components/grammar/BlockView";
 import { SaveAsRuleDialog } from "@/components/tutor/SaveAsRuleDialog";
 import { plainText } from "@/lib/blockText";
+import { findByTitle } from "@/lib/rules";
 import { HISTORY_LIMIT, QUESTION_MAX, type Plan, type TutorReply, type TutorTurn } from "@/lib/tutor";
 import type { Block } from "@/lib/types";
+import { useRules } from "@/lib/useRules";
 
 type Reason = "ok" | "trialUsed" | "dailyLimit";
 type Exchange = { question: string; reply: TutorReply };
@@ -19,7 +21,9 @@ function answerText(reply: TutorReply): string {
     block.kind === "text" ? plainText(block.text)
     : block.kind === "table" ? block.cells.map((row) => row.map(plainText).join(" | ")).join("\n")
     : `${plainText(block.sentence)} (${plainText(block.translation)})`;
-  return [reply.title, ...reply.blocks.map(body)].join("\n");
+  // Named, so a follow-up is answered in full rather than pointed to the rule again.
+  const pointed = reply.existingRule ? [`(Pointed the learner to their saved rule "${reply.existingRule}".)`] : [];
+  return [reply.title, ...reply.blocks.map(body), ...pointed].join("\n");
 }
 
 /** The source's title, or its host when it has none. */
@@ -33,6 +37,17 @@ function sourceLabel(source: { url: string; title: string }): string {
 }
 
 const NOTICE = "card p-5 text-sm [overflow-wrap:anywhere]";
+
+/** A link to the saved rule an answer points to; nothing while the rules load or if it has since gone. */
+function SavedRuleLink({ title }: { title: string }) {
+  const rule = findByTitle(title);
+  if (!rule) return null;
+  return (
+    <Link href={`/rule/?id=${rule.id}`} className="btn btn-secondary">
+      Open “{rule.title}”
+    </Link>
+  );
+}
 
 export function TutorChat(props: {
   remaining: number;
@@ -54,6 +69,8 @@ export function TutorChat(props: {
   // Titles of the rules saved from this conversation, in order, so the next
   // one saved can link to them.
   const [savedTitles, setSavedTitles] = useState<string[]>([]);
+  // Loads the rules, so an answer that points to a saved one can link to it.
+  useRules();
 
   async function ask() {
     const question = text.trim();
@@ -162,9 +179,14 @@ export function TutorChat(props: {
                 ) : (
                   <p className="text-ink-soft">Not checked against a reference</p>
                 )}
-                <button type="button" className="btn btn-secondary" onClick={() => setSaving(reply)}>
-                  Save as rule
-                </button>
+                {reply.existingRule ? (
+                  // The rule is already saved, so the answer offers it rather than a second copy.
+                  <SavedRuleLink title={reply.existingRule} />
+                ) : (
+                  <button type="button" className="btn btn-secondary" onClick={() => setSaving(reply)}>
+                    Save as rule
+                  </button>
+                )}
               </div>
             </div>
           </section>

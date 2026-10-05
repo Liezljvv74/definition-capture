@@ -4,6 +4,7 @@ const userId = vi.fn();
 const loadTutorState = vi.fn();
 const countUsage = vi.fn();
 const recordQuestion = vi.fn();
+const loadRuleTitles = vi.fn();
 vi.mock("@/lib/supabaseServer", () => ({
   createSupabaseServerClient: async () => ({}),
   serverUserId: () => userId(),
@@ -13,6 +14,7 @@ vi.mock("@/lib/tutorServer", async (orig) => ({
   countUsage: (...a: unknown[]) => countUsage(...a),
   loadTutorState: (...a: unknown[]) => loadTutorState(...a),
   recordQuestion: (...a: unknown[]) => recordQuestion(...a),
+  loadRuleTitles: (...a: unknown[]) => loadRuleTitles(...a),
 }));
 
 import { POST } from "./route";
@@ -36,6 +38,7 @@ beforeEach(() => {
   loadTutorState.mockResolvedValue({ plan: "free", usedTotal: 0, usedToday: 0, settings });
   countUsage.mockResolvedValue({ usedTotal: 1, usedToday: 1 });
   fetchMock.mockResolvedValue(ok(JSON.stringify(goodReply)));
+  loadRuleTitles.mockResolvedValue([]);
 });
 
 describe("POST /api/tutor", () => {
@@ -185,6 +188,22 @@ describe("POST /api/tutor", () => {
     });
     await post({ question: "hi", answerIn: "native" });
     expect(sent().messages[0].content).toContain("Answer in French");
+  });
+
+  it("sends the saved rule titles and points to one only when it is saved", async () => {
+    loadRuleTitles.mockResolvedValue(["The dative case"]);
+    fetchMock.mockResolvedValue(ok(JSON.stringify({ ...goodReply, existing_rule: "The dative case", related_rules: ["Made up"] })));
+    const json = await (await post({ question: "dative?" })).json();
+    expect(sent().messages[0].content).toContain('["The dative case"]');
+    expect(json.reply.existingRule).toBe("The dative case");
+    expect(json.reply.relatedRules).toEqual([]);
+  });
+
+  it("still answers when the rule titles cannot be read", async () => {
+    loadRuleTitles.mockRejectedValue(new Error("x"));
+    const res = await post({ question: "hi" });
+    expect(res.status).toBe(200);
+    expect(sent().messages[0].content).toContain("Leave existing_rule empty");
   });
 
   it("answerIn native uses the native language when set", async () => {

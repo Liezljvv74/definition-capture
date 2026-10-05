@@ -552,6 +552,15 @@ first free numbered one, "Title (2)". Every rule saved after the first in one
 conversation ends with a "See also" line linking to the ones saved before it,
 which list it under Linked from; the line can be edited away like any other.
 
+The tutor knows the titles of your saved rules (the newest 300). When one
+already covers a question, the answer says so, links to it, and asks what
+exactly you would like clarified, rather than explaining it again; say what,
+and the follow-up is answered in full. An answer that points to a saved rule
+has no Save as rule. Every other answer names up to three saved rules related
+to it, and the save dialog offers them as boxes to tick, none ticked: each one
+ticked is added to the "See also" line, and saving with none ticked makes a
+rule linked to nothing.
+
 A free account gets 5 tutor messages in total. A paid account gets 30 a day,
 counted from midnight UTC. Failed answers count, and a refused question is not
 recorded. With no studied language chosen, the page links to Settings instead of

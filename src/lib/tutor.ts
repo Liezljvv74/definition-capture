@@ -1,4 +1,5 @@
 import { newTextBlock, readBlocks } from "@/lib/blocks";
+import { foldName } from "@/lib/foldName";
 import { readString, type Block } from "@/lib/types";
 
 // Pure on purpose: the route and the page both import this, so it touches
@@ -69,8 +70,19 @@ export function readHistory(value: unknown): TutorTurn[] {
   return turns.slice(-HISTORY_LIMIT);
 }
 
-export function tutorInstructions(input: { studied: string; answerIn: string; level: string; grounded: boolean }): string {
+/** How many related rules an answer may suggest linking to. */
+export const RELATED_MAX = 3;
+
+export function tutorInstructions(input: {
+  studied: string;
+  answerIn: string;
+  level: string;
+  grounded: boolean;
+  /** The titles of the learner's saved grammar rules. */
+  rules?: string[];
+}): string {
   const { studied, answerIn } = input;
+  const rules = input.rules ?? [];
   return [
     `You are a grammar tutor for ${studied}. Answer in ${answerIn}.`,
     // The owner's rule (2 October 2026): the answers were accurate but hard
@@ -92,6 +104,18 @@ export function tutorInstructions(input: { studied: string; answerIn: string; le
     // list under the answer; cleanText removes any that still slip in.
     "Never name, quote or cite a source, website or dictionary anywhere in the title, topic or blocks, " +
       "not even as a short \"Source:\" note: the references are listed after the explanation for you.",
+    // The owner's rules (5 October 2026): a question a saved rule already
+    // answers is met with that rule and a question back, not a second copy of
+    // it; and every answer names the saved rules it could be linked to when
+    // it is saved. The titles are the learner's own, so quoting them as JSON
+    // is for the model's sake rather than for safety.
+    rules.length > 0
+      ? `The learner has already saved grammar rules with these exact titles: ${JSON.stringify(rules)}. ` +
+        "If one of them already covers what the question asks, and the earlier turns have not already pointed the learner to it, " +
+        "do not explain it again: put that exact title in existing_rule, and reply with one short text block saying the rule is already saved " +
+        "and asking what exactly the learner would like clarified about it. Otherwise leave existing_rule empty and answer in full. " +
+        `In related_rules, list the exact titles of up to ${RELATED_MAX} saved rules closely related to your answer, other than existing_rule, or none.`
+      : "Leave existing_rule empty and related_rules empty.",
     // Last, so it weighs most: on 3 October 2026 a question written in English
     // with German terms in it, answered from German reference pages, came back
     // entirely in German although English was chosen.
@@ -103,10 +127,12 @@ const str = { type: "string" };
 export const REPLY_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "topic", "blocks"],
+  required: ["title", "topic", "blocks", "existing_rule", "related_rules"],
   properties: {
     title: str,
     topic: str,
+    existing_rule: str,
+    related_rules: { type: "array", items: str },
     blocks: {
       type: "array",
       items: {
@@ -176,7 +202,29 @@ export function buildRequest(input: {
   };
 }
 
-export type TutorReply = { title: string; topic: string; blocks: Block[]; sources: { url: string; title: string }[] };
+export type TutorReply = {
+  title: string;
+  topic: string;
+  blocks: Block[];
+  sources: { url: string; title: string }[];
+  /** A saved rule that already covers the question, which the answer points to rather than repeats. */
+  existingRule: string | null;
+  /** Saved rules the answer could be linked to when it is saved. */
+  relatedRules: string[];
+};
+
+/**
+ * The names the model gave, kept only where they are one of `titles`, as
+ * those are spelled, without repeats. The model is told the exact titles and
+ * still may misspell or invent one, and a link to a name that is not saved
+ * would read as dotted text.
+ */
+function savedTitles(value: unknown, titles: string[]): string[] {
+  const byName = new Map(titles.map((title) => [foldName(title), title]));
+  const names = Array.isArray(value) ? value : [value];
+  const kept = names.flatMap((name) => (typeof name === "string" && byName.has(foldName(name)) ? [byName.get(foldName(name))!] : []));
+  return [...new Set(kept)];
+}
 
 /** The model's reply is untrusted: it must parse, have the shape, and keep at least one block. */
 /**
@@ -222,10 +270,11 @@ function cleanBlock(block: Block): Block {
   return block;
 }
 
-export function readReply(json: unknown): TutorReply | null {
+/** `ruleTitles` are the learner's saved rules, which the reply's rule names are checked against. */
+export function readReply(json: unknown, ruleTitles: string[] = []): TutorReply | null {
   const message = (json as { choices?: { message?: { content?: unknown; annotations?: unknown } }[] } | null)?.choices?.[0]?.message;
   if (typeof message?.content !== "string") return null;
-  let parsed: { title?: unknown; topic?: unknown; blocks?: unknown };
+  let parsed: { title?: unknown; topic?: unknown; blocks?: unknown; existing_rule?: unknown; related_rules?: unknown };
   try {
     parsed = JSON.parse(message.content);
   } catch {
@@ -249,11 +298,14 @@ export function readReply(json: unknown): TutorReply | null {
     }
     if (!sources.has(url)) sources.set(url, readString(cite.title));
   }
+  const existingRule = savedTitles(parsed.existing_rule, ruleTitles)[0] ?? null;
   return {
     title: parsed.title.slice(0, 120),
     topic: parsed.topic.slice(0, 120),
     blocks,
     sources: [...sources].map(([url, title]) => ({ url, title })),
+    existingRule,
+    relatedRules: savedTitles(parsed.related_rules, ruleTitles).filter((t) => t !== existingRule).slice(0, RELATED_MAX),
   };
 }
 

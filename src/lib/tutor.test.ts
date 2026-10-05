@@ -208,6 +208,38 @@ describe("readReply", () => {
   });
 });
 
+describe("saved rules", () => {
+  const wrap = (fields: Record<string, unknown>) => ({
+    choices: [{ message: { content: JSON.stringify({ title: "t", topic: "c", blocks: [{ kind: "text", text: "x" }], ...fields }) } }],
+  });
+  const saved = ["The dative case", "Word order", "Modal verbs"];
+
+  it("tells the tutor the saved titles, and to point to one that already covers the question", () => {
+    const text = tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true, rules: saved });
+    expect(text).toContain(JSON.stringify(saved));
+    expect(text).toMatch(/existing_rule/);
+    expect(text).toMatch(/what exactly the learner would like clarified/);
+    expect(tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true })).toContain("Leave existing_rule empty");
+  });
+
+  it("keeps only names that are saved, spelled as saved, and never the existing rule among the related", () => {
+    const read = readReply(wrap({ existing_rule: "the DATIVE case", related_rules: ["Word order", "Invented rule", "The dative case", "word order"] }), saved);
+    expect(read?.existingRule).toBe("The dative case");
+    expect(read?.relatedRules).toEqual(["Word order"]);
+  });
+
+  it("reads none when the reply leaves them empty, names an unsaved rule, or has no such fields", () => {
+    expect(readReply(wrap({ existing_rule: "", related_rules: [] }), saved)).toMatchObject({ existingRule: null, relatedRules: [] });
+    expect(readReply(wrap({ existing_rule: "Nope" }), saved)?.existingRule).toBeNull();
+    expect(readReply(wrap({}), saved)).toMatchObject({ existingRule: null, relatedRules: [] });
+  });
+
+  it("suggests at most three related rules", () => {
+    const many = ["A", "B", "C", "D"];
+    expect(readReply(wrap({ related_rules: many }), many)?.relatedRules).toEqual(["A", "B", "C"]);
+  });
+});
+
 describe("saving answers from one conversation", () => {
   it("keeps a free title, and numbers one that is taken", () => {
     const taken = new Set(["the dative case", "the dative case (2)"]);

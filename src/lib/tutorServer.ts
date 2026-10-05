@@ -70,6 +70,23 @@ export function tutorModel(): string {
   return process.env.OPENROUTER_MODEL?.trim() || DEFAULT_TUTOR_MODEL;
 }
 
+/**
+ * The titles of the account's grammar rules, most recently edited first, for
+ * the tutor to point to or suggest linking to. Read here rather than taken
+ * from the request, like everything else the route acts on.
+ */
+// ponytail: the newest 300 only; a learner with more would need a search instead of the whole list in the prompt.
+export async function loadRuleTitles(supabase: SupabaseClient): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("items")
+    .select("title")
+    .eq("item_type", "grammar")
+    .order("updated_at", { ascending: false })
+    .limit(300);
+  if (error) throw new Error("rule titles unavailable");
+  return (data as { title: string }[]).map((row) => row.title);
+}
+
 /** Checked before a reservation, so a missing key does not spend a message. */
 export function openRouterConfigured(): boolean {
   return Boolean(process.env.OPENROUTER_API_KEY);
