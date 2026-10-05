@@ -20,7 +20,7 @@ owner.
 | UI | React 19.2.8, TypeScript 5, Tailwind CSS 4 |
 | Data and auth | Supabase: Postgres with row level security, and Supabase Auth |
 | Captcha | Cloudflare Turnstile, verified by Supabase Auth |
-| Tutor | OpenRouter, called with `fetch` from `POST /api/tutor` and `POST /api/conversation`; `OPENROUTER_MODEL` picks the model, default `openai/gpt-5-mini` |
+| Tutor | OpenRouter, called with `fetch` from `POST /api/tutor` and `POST /api/conversation`; `OPENROUTER_MODEL` picks the model, default `anthropic/claude-sonnet-5.5` |
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 3, in the node environment; `npx vitest run` |
