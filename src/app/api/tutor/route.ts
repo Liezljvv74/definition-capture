@@ -12,7 +12,7 @@ import { languageName } from "@/lib/languages";
 import { reserveMessage } from "@/lib/reserveMessage";
 import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
 import { allowance, buildRequest, QUESTION_MAX, readHistory, readReply, REFERENCE_DOMAINS, tutorInstructions } from "@/lib/tutor";
-import { askOpenRouter, loadTutorState, openRouterConfigured, tutorModel } from "@/lib/tutorServer";
+import { askOpenRouter, loadRuleTitles, loadTutorState, openRouterConfigured, tutorModel } from "@/lib/tutorServer";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -70,18 +70,27 @@ export async function POST(request: Request) {
   // A typed language has no code, so no reference sites and no search.
   const domains = REFERENCE_DOMAINS[settings.language] ?? [];
 
+  // Without them the tutor still answers; it only cannot point to a saved rule or suggest one.
+  let rules: string[] = [];
+  try {
+    rules = await loadRuleTitles(supabase);
+  } catch {
+    console.error("tutor: could not read the rule titles");
+  }
+
   let reply;
   try {
     reply = readReply(
       await askOpenRouter(
         buildRequest({
           model: tutorModel(),
-          instructions: tutorInstructions({ studied, answerIn: answerName, level: settings.level, grounded: domains.length > 0 }),
+          instructions: tutorInstructions({ studied, answerIn: answerName, level: settings.level, grounded: domains.length > 0, rules }),
           history,
           question,
           domains,
         }),
       ),
+      rules,
     );
   } catch (error) {
     console.error(`tutor: ${error instanceof Error ? error.message : "the OpenRouter call threw"}`);
