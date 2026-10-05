@@ -96,14 +96,36 @@ describe("readReply clean-up", () => {
       { kind: "example", sentence: "Ich gebe {dem} Mann das Buch.", translation: "I give the man the book." },
     ]));
     const [text, table, example] = read!.blocks as [TextBlock, TableBlock, ExampleBlock];
-    expect(text.text).toBe("Use der Hund. Quelle: duden.de and");
+    expect(text.text).toBe("Use der Hund.");
     expect(table.cells[1][0]).toBe("dem link");
     expect(example.sentence).toBe("Ich gebe {dem} Mann das Buch.");
+  });
+
+  it("removes a source named in the explanation, and leaves ordinary colons and brackets alone", () => {
+    // The answer of 5 October 2026 that started this.
+    const read = readReply(wrap([
+      { kind: "text", text: "German has two of them. Source: duden.de and dwds.de." },
+      { kind: "text", text: "Use the dative (see duden.de). Quellen: DWDS. Then the rest." },
+      { kind: "text", text: "(Source: Larousse) Note: this is the plural (die Hunde)." },
+      { kind: "text", text: "Eine Ressource: das Buch." },
+    ]));
+    expect((read!.blocks as TextBlock[]).map((b) => b.text)).toEqual([
+      "German has two of them.",
+      "Use the dative. Then the rest.",
+      "Note: this is the plural (die Hunde).",
+      "Eine Ressource: das Buch.",
+    ]);
   });
 
   it("turns an em dash into a comma", () => {
     const read = readReply(wrap([{ kind: "text", text: "Good — we keep it simple." }]));
     expect((read!.blocks[0] as TextBlock).text).toBe("Good, we keep it simple.");
+  });
+});
+
+describe("tutorInstructions sources", () => {
+  it("forbids naming a source in the explanation", () => {
+    expect(tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true })).toMatch(/Never name, quote or cite a source/);
   });
 });
 
@@ -124,6 +146,8 @@ describe("buildRequest", () => {
     expect(body.plugins[0].id).toBe("web");
     expect(body.plugins[0].engine).toBe("exa");
     expect(body.plugins[0].include_domains).toEqual(REFERENCE_DOMAINS.de);
+    // Replaces the plugin's default prompt, which asks for a Markdown link per citation.
+    expect((body.plugins[0] as unknown as { search_prompt: string }).search_prompt).toMatch(/do not cite, link, quote or name them/);
   });
   it("leaves room for reasoning tokens", () => {
     const body = buildRequest(base) as { max_tokens: number; reasoning: unknown };
