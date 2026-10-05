@@ -21,7 +21,12 @@ export async function reserveMessage(
   plan: Plan,
 ): Promise<{ left: number; reason: ReturnType<typeof allowance>["reason"] }> {
   await recordQuestion(supabase, userId);
-  const usage = await countUsage(supabase);
+  // The row is already spent and cannot be taken back, so a failed re-count
+  // is tried once more before the request gives up with the message gone.
+  // Counting inside the insert's own transaction would remove that edge, but
+  // parallel requests would then not see each other's rows, and the limit
+  // could be passed.
+  const usage = await countUsage(supabase).catch(() => countUsage(supabase));
   // The counts include the row just inserted, and `allowance` wants what was
   // used before this request.
   const { remaining, reason } = allowance({ plan, usedTotal: usage.usedTotal - 1, usedToday: usage.usedToday - 1 });

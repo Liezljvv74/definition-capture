@@ -1,25 +1,33 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { HISTORY_LIMIT, QUESTION_MAX, type Plan, type TutorTurn } from "@/lib/tutor";
+import { QUESTION_MAX, type Plan, type TutorTurn } from "@/lib/tutor";
 
 type Reason = "ok" | "trialUsed" | "dailyLimit";
 
 const NOTICE = "card p-5 text-sm [overflow-wrap:anywhere]";
 
 /**
- * Free talk with the model. The server saves each answered exchange and the
- * page hands the saved ones back on a reload, so they start this state; what
- * the model is sent is still the turns held here, the last ten before each
- * message, which is what lets a follow-up refer back.
+ * A conversation with the model about the grammar of the studied language.
+ * The server saves each answered exchange and reads the last ten back as the
+ * context for the next message, which is what lets a follow-up refer back;
+ * the page hands the saved ones back on a reload, so they start this state.
  */
-export function ConversationChat(props: { remaining: number; reason: Reason; plan: Plan; initialTurns: TutorTurn[] }) {
+export function ConversationChat(props: {
+  remaining: number;
+  reason: Reason;
+  plan: Plan;
+  initialTurns: TutorTurn[];
+  studiedName: string | null;
+}) {
   const router = useRouter();
   const [remaining, setRemaining] = useState(props.remaining);
   const [reason, setReason] = useState<Reason>(props.reason);
   const [turns, setTurns] = useState<TutorTurn[]>(props.initialTurns);
+  const [studiedName, setStudiedName] = useState(props.studiedName);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -57,7 +65,7 @@ export function ConversationChat(props: { remaining: number; reason: Reason; pla
       const response = await fetch("/api/conversation/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, history: turns.slice(-HISTORY_LIMIT) }),
+        body: JSON.stringify({ message }),
       });
       const body = await response.json().catch(() => ({}));
       if (response.ok && typeof body.reply === "string") {
@@ -67,6 +75,8 @@ export function ConversationChat(props: { remaining: number; reason: Reason; pla
         setText("");
       } else if (response.status === 401) {
         router.push("/");
+      } else if (response.status === 403 && body.error === "noLanguage") {
+        setStudiedName(null);
       } else if (response.status === 403 && (body.error === "trialUsed" || body.error === "dailyLimit")) {
         setReason(body.error);
       } else {
@@ -101,7 +111,11 @@ export function ConversationChat(props: { remaining: number; reason: Reason; pla
         {busy && <li className="text-sm text-ink-soft">Thinking… <span aria-hidden="true" className="hourglass">⏳</span></li>}
       </ol>
 
-      {reason === "trialUsed" ? (
+      {!studiedName ? (
+        <p className={NOTICE}>
+          <Link href="/settings" className="underline">Choose the language you are studying</Link>
+        </p>
+      ) : reason === "trialUsed" ? (
         <p className={NOTICE}>Conversations are part of the paid plan.</p>
       ) : reason === "dailyLimit" ? (
         <p className={NOTICE}>You have used today&apos;s messages. They reset at midnight UTC.</p>

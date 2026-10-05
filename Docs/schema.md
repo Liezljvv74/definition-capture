@@ -197,6 +197,14 @@ and delete on the owner, no update; insert is granted on `user_id`, `role` and
 `(user_id, id)` serves the page's read. The migration checks its policies and
 grants, and `supabase/tests/conversation_messages.sql` rehearses them.
 
+A reply also carries `signature`, the server's HMAC of the account and the
+text (`signTurn` in `src/lib/tutorServer.ts`, keyed from the OpenRouter key).
+The account can insert rows itself with the publishable key, so the column is
+granted, but it cannot write a signature that verifies: the route sends a
+saved reply back to the model only when it does, so a made-up reply never
+reaches it. Rows saved before the column (or before a key rotation) are still
+shown, but their replies are no longer context.
+
 ---
 
 ## Functions

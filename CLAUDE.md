@@ -154,7 +154,9 @@ to need the service role has been deleted.
 **`OPENROUTER_API_KEY` is server-only.** It is read in `src/lib/tutorServer.ts`
 and nowhere else, for both `POST /api/tutor` and `POST /api/conversation`, and
 it never gets a `NEXT_PUBLIC_` name, which would put a paid key in every
-visitor's browser. In Vercel it is a Sensitive variable. `OPENROUTER_MODEL` is
+visitor's browser. It also keys the signatures on the tutor's replies
+(`signTurn`), which keep a made-up "earlier reply" from reaching the model;
+rotating it leaves older replies unverified, so they stop being context. In Vercel it is a Sensitive variable. `OPENROUTER_MODEL` is
 the one setting that switches the model of both, in `.env.local` and in Vercel;
 unset, it is `DEFAULT_TUTOR_MODEL` in `tutor.ts`. An account is marked paid by adding an `account_plans` row with
 `plan = 'paid'` in the Supabase dashboard: no policy lets an account write its

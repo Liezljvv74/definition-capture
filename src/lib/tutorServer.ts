@@ -9,9 +9,11 @@
  * which the browser can read but never write, and never from the request.
  */
 
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
-import { DEFAULT_TUTOR_MODEL, startOfUtcDay, type Plan, type TutorTurn } from "@/lib/tutor";
+import { DEFAULT_TUTOR_MODEL, startOfUtcDay, type Plan, type SignedTurn, type TutorTurn } from "@/lib/tutor";
 
 export type TutorSettings = {
   language: string;
@@ -87,6 +89,38 @@ export async function loadRuleTitles(supabase: SupabaseClient): Promise<string[]
   return (data as { title: string }[]).map((row) => row.title);
 }
 
+/*
+ * Replies the model really gave. Earlier turns reach the model from places a
+ * user can write: the tutor's come from the browser, and Conversations' from
+ * rows the account may insert itself with the publishable key. A made-up
+ * reply agreeing to drop the rules is the usual way to talk a model out of
+ * them. So each reply is signed when the server gets it, and an earlier reply
+ * goes back to the model only if its signature verifies; the user's own turns
+ * need none, being the user's words either way.
+ *
+ * The key is derived from OPENROUTER_API_KEY, the one secret the server
+ * already holds, rather than a second one to keep in Vercel. Rotating that
+ * key leaves older replies unverified: still shown, but no longer context.
+ */
+function signingKey(): Buffer {
+  return createHmac("sha256", process.env.OPENROUTER_API_KEY ?? "").update("captured: reply signature v1").digest();
+}
+
+/** The signature of a reply to `userId`, so one account's signed reply is no use in another's history. */
+export function signTurn(userId: string, content: string): string {
+  return createHmac("sha256", signingKey()).update(`${userId}\n${content}`).digest("hex");
+}
+
+/** The turns with every reply whose signature does not verify left out, and the signatures dropped. */
+export function verifiedTurns(userId: string, turns: SignedTurn[]): TutorTurn[] {
+  return turns.flatMap(({ role, content, signature }): TutorTurn[] => {
+    if (role === "user") return [{ role, content }];
+    const expected = Buffer.from(signTurn(userId, content), "hex");
+    const given = Buffer.from(typeof signature === "string" ? signature : "", "hex");
+    return given.length === expected.length && timingSafeEqual(given, expected) ? [{ role, content }] : [];
+  });
+}
+
 /** Checked before a reservation, so a missing key does not spend a message. */
 export function openRouterConfigured(): boolean {
   return Boolean(process.env.OPENROUTER_API_KEY);
@@ -122,17 +156,18 @@ export async function askOpenRouter(body: Record<string, unknown>): Promise<unkn
 export const SAVED_MESSAGE_MAX = 32000;
 
 // ponytail: reads the whole conversation; page it if one grows to thousands of messages.
-export async function loadConversation(supabase: SupabaseClient): Promise<TutorTurn[]> {
-  const { data, error } = await supabase.from("conversation_messages").select("role, content").order("id");
+export async function loadConversation(supabase: SupabaseClient): Promise<SignedTurn[]> {
+  const { data, error } = await supabase.from("conversation_messages").select("role, content, signature").order("id");
   if (error) throw new Error("conversation unavailable");
-  return data as TutorTurn[];
+  return data as SignedTurn[];
 }
 
 /** A question and its reply, in one insert so that one is never saved without the other. */
 export async function saveExchange(supabase: SupabaseClient, userId: string, message: string, reply: string): Promise<void> {
+  const content = reply.slice(0, SAVED_MESSAGE_MAX);
   const { error } = await supabase.from("conversation_messages").insert([
     { user_id: userId, role: "user", content: message },
-    { user_id: userId, role: "assistant", content: reply.slice(0, SAVED_MESSAGE_MAX) },
+    { user_id: userId, role: "assistant", content, signature: signTurn(userId, content) },
   ]);
   if (error) throw new Error("conversation not saved");
 }
