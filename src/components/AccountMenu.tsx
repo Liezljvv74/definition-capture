@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { MENU_ITEM, MENU_ITEM_CURRENT, NavMenu } from "@/components/NavMenu";
+import { signOut } from "@/lib/session";
 import { SETTINGS_SECTIONS, readSectionKey } from "@/lib/settingsSections";
 import { useSession } from "@/lib/useSession";
 import { useSettings } from "@/lib/useSettings";
@@ -13,9 +14,11 @@ import { useSettings } from "@/lib/useSettings";
  * words are on screen; with two accounts and one browser, that matters more
  * than the space it costs.
  *
- * Signing out lives in Settings rather than here. It is a rare, destructive-
- * feeling action, and one click from a nav bar is closer than it wants to be;
- * the gear is the way to it.
+ * Signing out is the last item under the gear, set apart by a rule. It used
+ * to live only in Settings, kept a page away as a rare, destructive-feeling
+ * action; the owner asked on 5 October 2026 for it one step from anywhere.
+ * It is behind the gear rather than on the bar, so it is still never a stray
+ * click, and Settings keeps its own button too.
  *
  * Renders nothing while the session is still loading or when nobody is signed
  * in. The second case is close to unreachable: this sits in `MainNav`, which
@@ -58,6 +61,7 @@ export function AccountMenu() {
  */
 function SettingsMenu() {
   const pathname = usePathname();
+  const router = useRouter();
   const current = readSectionKey(useSearchParams().get("section"));
   const onSettings = pathname.startsWith("/settings");
 
@@ -71,26 +75,43 @@ function SettingsMenu() {
       element="div"
       active={onSettings}
     >
-      {(close) =>
-        SETTINGS_SECTIONS.map((section) => {
-          const here = onSettings && current === section.key;
-          return (
-            <li key={section.key} role="none">
-              <Link
-                role="menuitem"
-                href={`/settings?section=${section.key}`}
-                aria-current={here ? "page" : undefined}
-                // Closed here rather than by watching the path: a second click
-                // on the group you are already in should still put it away.
-                onClick={close}
-                className={here ? MENU_ITEM_CURRENT : MENU_ITEM}
-              >
-                {section.label}
-              </Link>
-            </li>
-          );
-        })
-      }
+      {(close) => (
+        <>
+          {SETTINGS_SECTIONS.map((section) => {
+            const here = onSettings && current === section.key;
+            return (
+              <li key={section.key} role="none">
+                <Link
+                  role="menuitem"
+                  href={`/settings?section=${section.key}`}
+                  aria-current={here ? "page" : undefined}
+                  // Closed here rather than by watching the path: a second click
+                  // on the group you are already in should still put it away.
+                  onClick={close}
+                  className={here ? MENU_ITEM_CURRENT : MENU_ITEM}
+                >
+                  {section.label}
+                </Link>
+              </li>
+            );
+          })}
+          <li role="separator" className="my-1 border-t-[1.5px] border-dashed border-rule" />
+          <li role="none">
+            {/* The same call and landing page as Settings' own Sign out button. */}
+            <button
+              type="button"
+              role="menuitem"
+              className={MENU_ITEM}
+              onClick={() => {
+                close();
+                void signOut().then(() => router.replace("/"));
+              }}
+            >
+              Sign out
+            </button>
+          </li>
+        </>
+      )}
     </NavMenu>
   );
 }
