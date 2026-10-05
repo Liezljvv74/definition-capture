@@ -449,6 +449,21 @@
   80% { transform: rotate(var(--wobble-r, 0deg)) translateX(3px); }
 }
 
+/*
+ * The hourglass after "Thinking…": it rests, then turns over, the way a real
+ * one is turned, so a slow answer still shows that something is happening.
+ * Reduced motion stops it below, leaving it still.
+ */
+.hourglass {
+  display: inline-block;
+  animation: notebook-hourglass 2s ease-in-out infinite;
+}
+
+@keyframes notebook-hourglass {
+  0%, 60% { transform: rotate(0deg); }
+  100% { transform: rotate(180deg); }
+}
+
 @keyframes notebook-draw {
   to {
     stroke-dashoffset: 0;

@@ -169,7 +169,7 @@ export function TutorChat(props: {
             </div>
           </section>
         ))}
-        {busy && <p className="text-sm text-ink-soft">Thinking…</p>}
+        {busy && <p className="text-sm text-ink-soft">Thinking… <span aria-hidden="true" className="hourglass">⏳</span></p>}
       </div>
 
       {!studiedName ? (
