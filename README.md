@@ -499,7 +499,8 @@ notice.
 ### Settings
 
 Reached from the gear at the right of the nav, which opens a menu of four groups
-rather than going straight to one page:
+rather than going straight to one page, with **Sign out** at the end of the
+menu, below a rule, so signing out is two clicks from anywhere:
 
 - **Profile**: the address you signed in with, an optional display name shown in
   the nav in its place, **Native language and level** (what the tutor answers

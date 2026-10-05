@@ -18,6 +18,7 @@ import { AccountMenu } from "@/components/AccountMenu";
  */
 vi.mock("next/navigation", () => ({
   usePathname: () => "/settings",
+  useRouter: () => ({ replace: () => {} }),
   useSearchParams: () => new URLSearchParams("section=glossary"),
 }));
 vi.mock("@/lib/useSession", () => ({
@@ -36,6 +37,12 @@ describe("AccountMenu", () => {
     const beforeTheMenu = markup.slice(0, markup.indexOf("<ul"));
     expect(beforeTheMenu).toContain('<div class="relative shrink-0">');
     expect(beforeTheMenu.match(/<li/g)).toHaveLength(1);
+  });
+
+  it("offers Sign out at the end of the gear's menu, set apart from the settings groups", () => {
+    const menu = markup.slice(markup.indexOf('role="menu"'));
+    expect(menu).toMatch(/role="separator"[\s\S]*<button[^>]*role="menuitem"[^>]*>Sign out<\/button>/);
+    expect(menu.indexOf("Sign out")).toBeGreaterThan(menu.indexOf("section=flashcards"));
   });
 
   it("offers every settings group", () => {
