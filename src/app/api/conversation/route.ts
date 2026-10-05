@@ -3,22 +3,25 @@
  *
  * Built like `/api/tutor` and spending the same allowance, since every call
  * costs the same: the session says who is asking, the database what they have
- * used, and the key stays in `tutorServer.ts`. The client sends the earlier
- * turns, which is how a follow-up knows what "that" was; `readHistory` keeps
- * only user and assistant turns, so a forged system turn is dropped. Logs carry
+ * used, and the key stays in `tutorServer.ts`. The earlier turns, which are
+ * how a follow-up knows what "that" was, are the saved conversation read back
+ * from the database, not the request. The account can write rows there itself
+ * with the publishable key, so a saved reply goes back to the model only when
+ * the server's signature on it verifies (`verifiedTurns`): a made-up reply
+ * agreeing to talk about anything never reaches it. The conversation is
+ * limited to the grammar of the studied language (`scopeRule`). Logs carry
  * status codes and short reasons only, never the text.
  *
  * Each answered exchange is also saved, so the page can show it after a
- * reload; DELETE clears it for a new conversation. What the model is sent
- * still comes from the client's turns, not from the saved ones.
+ * reload; DELETE clears it for a new conversation.
  */
 
 import { NextResponse } from "next/server";
-import { languageName } from "@/lib/languages";
+import { shownLanguage } from "@/lib/languages";
 import { reserveMessage } from "@/lib/reserveMessage";
 import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
-import { allowance, buildChatRequest, QUESTION_MAX, readChatReply, readHistory } from "@/lib/tutor";
-import { askOpenRouter, clearConversation, loadTutorState, openRouterConfigured, saveExchange, tutorModel } from "@/lib/tutorServer";
+import { allowance, buildChatRequest, HISTORY_LIMIT, QUESTION_MAX, readChatReply } from "@/lib/tutor";
+import { askOpenRouter, clearConversation, loadConversation, loadTutorState, openRouterConfigured, saveExchange, tutorModel, verifiedTurns } from "@/lib/tutorServer";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
   const supabase = userId ? await createSupabaseServerClient() : null;
   if (!userId || !supabase) return fail(401, "signed_out");
 
-  let body: { message?: unknown; history?: unknown };
+  let body: { message?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -45,13 +48,17 @@ export async function POST(request: Request) {
     return fail(502, "chat_failed");
   }
 
-  let state;
+  let state, earlier;
   try {
-    state = await loadTutorState(supabase);
+    [state, earlier] = await Promise.all([loadTutorState(supabase), loadConversation(supabase)]);
   } catch {
-    console.error("conversation: could not read the account's state");
+    console.error("conversation: could not read the account's state or conversation");
     return fail(502, "chat_failed");
   }
+  const { settings } = state;
+  // Both refusals come before the reservation, so a refusal never spends a message.
+  const studied = shownLanguage(settings.language, settings.languageOther);
+  if (!studied) return fail(403, "noLanguage");
   const before = allowance(state);
   if (before.reason !== "ok") return fail(403, before.reason);
 
@@ -65,13 +72,12 @@ export async function POST(request: Request) {
   if (reason !== "ok") return fail(403, reason, left);
 
   // The native language from Settings, as the tutor reads it; none set leaves the model to follow the person.
-  const { nativeLanguage, nativeLanguageOther } = state.settings;
-  const answerIn = (nativeLanguage ? languageName(nativeLanguage) : nativeLanguageOther.trim()) || null;
+  const answerIn = shownLanguage(settings.nativeLanguage, settings.nativeLanguageOther);
 
   let reply;
   try {
     reply = readChatReply(
-      await askOpenRouter(buildChatRequest({ model: tutorModel(), answerIn, history: readHistory(body.history), message })),
+      await askOpenRouter(buildChatRequest({ model: tutorModel(), studied, answerIn, history: verifiedTurns(userId, earlier.slice(-HISTORY_LIMIT)), message })),
     );
   } catch (error) {
     console.error(`conversation: ${error instanceof Error ? error.message : "the OpenRouter call threw"}`);

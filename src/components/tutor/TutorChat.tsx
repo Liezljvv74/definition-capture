@@ -6,25 +6,13 @@ import { useState, type CSSProperties } from "react";
 
 import { BlockView } from "@/components/grammar/BlockView";
 import { SaveAsRuleDialog } from "@/components/tutor/SaveAsRuleDialog";
-import { plainText } from "@/lib/blockText";
 import { findByTitle } from "@/lib/rules";
-import { HISTORY_LIMIT, QUESTION_MAX, type Plan, type TutorReply, type TutorTurn } from "@/lib/tutor";
-import type { Block } from "@/lib/types";
+import { answerText, HISTORY_LIMIT, QUESTION_MAX, type Plan, type SignedTurn, type TutorReply } from "@/lib/tutor";
 import { useRules } from "@/lib/useRules";
 
 type Reason = "ok" | "trialUsed" | "dailyLimit";
-type Exchange = { question: string; reply: TutorReply };
-
-/** An answer as the plain text a follow-up is given for context, so the JSON is not sent back. */
-function answerText(reply: TutorReply): string {
-  const body = (block: Block) =>
-    block.kind === "text" ? plainText(block.text)
-    : block.kind === "table" ? block.cells.map((row) => row.map(plainText).join(" | ")).join("\n")
-    : `${plainText(block.sentence)} (${plainText(block.translation)})`;
-  // Named, so a follow-up is answered in full rather than pointed to the rule again.
-  const pointed = reply.existingRule ? [`(Pointed the learner to their saved rule "${reply.existingRule}".)`] : [];
-  return [reply.title, ...reply.blocks.map(body), ...pointed].join("\n");
-}
+/** `signature` is the server's, sent back with the answer so the server can tell it gave it. */
+type Exchange = { question: string; reply: TutorReply; signature: string };
 
 /** The source's title, or its host when it has none. */
 function sourceLabel(source: { url: string; title: string }): string {
@@ -75,10 +63,10 @@ export function TutorChat(props: {
   async function ask() {
     const question = text.trim();
     if (!question || busy) return;
-    const history: TutorTurn[] = exchanges
-      .flatMap((e): TutorTurn[] => [
+    const history: SignedTurn[] = exchanges
+      .flatMap((e): SignedTurn[] => [
         { role: "user", content: e.question },
-        { role: "assistant", content: answerText(e.reply) },
+        { role: "assistant", content: answerText(e.reply), signature: e.signature },
       ])
       .slice(-HISTORY_LIMIT);
     setBusy(true);
@@ -91,7 +79,7 @@ export function TutorChat(props: {
       });
       const body = await response.json().catch(() => ({}));
       if (response.ok && body.reply) {
-        setExchanges((all) => [...all, { question, reply: body.reply }]);
+        setExchanges((all) => [...all, { question, reply: body.reply, signature: String(body.signature ?? "") }]);
         setRemaining(body.remaining);
         setText("");
       } else if (response.status === 401) {

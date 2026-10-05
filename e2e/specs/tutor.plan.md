@@ -6,7 +6,7 @@ The grammar tutor at /tutor, behind sign-in. It asks for a studied language, the
 
 ## Test Scenarios
 
-Precondition: a fresh local test account, with no `tutor_usage` rows and no paid plan, so the allowance reads "5 trial messages left".
+Precondition: a local test account with messages left: a fresh free one reads "5 trial messages left", and one marked paid for the Conversations tests reads "N left today".
 
 ### 1. Tutor
 
@@ -22,5 +22,5 @@ Precondition: a fresh local test account, with no `tutor_usage` rows and no paid
     - expect: there is no question box
   2. Choose German under "Language you are learning" in Settings, then open /tutor
     - expect: the question box is visible
-    - expect: "5 trial messages left" is visible
+    - expect: the allowance left is visible, "N trial messages left" or "N left today"
   3. After the test, the language is set back to "Not chosen"

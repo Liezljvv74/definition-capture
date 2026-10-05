@@ -11,8 +11,8 @@ import { NextResponse } from "next/server";
 import { languageName } from "@/lib/languages";
 import { reserveMessage } from "@/lib/reserveMessage";
 import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
-import { allowance, buildRequest, QUESTION_MAX, readHistory, readReply, REFERENCE_DOMAINS, tutorInstructions } from "@/lib/tutor";
-import { askOpenRouter, loadRuleTitles, loadTutorState, openRouterConfigured, tutorModel } from "@/lib/tutorServer";
+import { allowance, answerText, buildRequest, QUESTION_MAX, readHistory, readReply, REFERENCE_DOMAINS, tutorInstructions } from "@/lib/tutor";
+import { askOpenRouter, loadRuleTitles, loadTutorState, openRouterConfigured, signTurn, tutorModel, verifiedTurns } from "@/lib/tutorServer";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
   }
   const question = typeof body?.question === "string" ? body.question.trim() : "";
   if (question.length < 1 || question.length > QUESTION_MAX) return fail(400, "bad_request");
-  const history = readHistory(body.history);
+  // Earlier replies are sent back by the browser, so only those the server signed are kept.
+  const history = verifiedTurns(userId, readHistory(body.history));
   const answerIn = body.answerIn === "native" ? "native" : "studied";
 
   if (!openRouterConfigured()) {
@@ -105,5 +106,5 @@ export async function POST(request: Request) {
   // exceeded. Failed answers count, by the owner's decision (2 October 2026).
   // Midnight UTC edge: a question reserved just before midnight and re-counted
   // just after can give a paid account one extra question that day.
-  return NextResponse.json({ reply, remaining: left });
+  return NextResponse.json({ reply, remaining: left, signature: signTurn(userId, answerText(reply)) });
 }

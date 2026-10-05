@@ -32,8 +32,9 @@ or device. It is live at <https://definition-capture.vercel.app>.
 - **Tutor**: ask a grammar question and get an explanation at your level, built
   from reference sites for the language you are studying, which you can save as a
   grammar rule.
-- **Conversations**: a plain chat with the same model, under the Tutor tab,
-  that remembers the earlier messages so a follow-up can refer back.
+- **Conversations**: a chat about the grammar of the language you are
+  studying, under the Tutor tab, that remembers the earlier messages so a
+  follow-up can refer back.
 - **Read aloud**: a speaker beside every word and phrase, in the lists and on
   their own pages, and beside a phrase's usage example; one in each verb tense
   heading that reads the tense down the table; and a floating one on a rule page
@@ -573,13 +574,24 @@ The design is in [`Docs/tutor.md`](Docs/tutor.md).
 ### Conversations
 
 The Tutor tab is a menu of two pages: **Grammar tutor** (`/tutor`) and
-**Conversations** (`/conversations`), a plain chat about anything. Your messages
+**Conversations** (`/conversations`), a chat about the grammar of the language
+you are studying, which needs that language chosen in Settings. Your messages
 and the replies are listed above a box at the bottom; Ctrl or Cmd with Enter
 sends. The conversation is saved as it goes, so a reload shows it again;
 **New conversation** deletes it and starts a fresh one. Replies come in your
 native language from Settings (with none set, in the language you write in).
-Each message goes with the last ten before it, so "what did you mean by that?"
-is understood. It goes through `POST /api/conversation`, uses the same
+Each message goes with the last ten saved before it, read back on the server
+rather than sent by the browser, so "what did you mean by that?" is understood.
+The server signs every reply it gives, in Conversations and in the tutor, and
+an earlier reply is sent back to the model only when its signature verifies,
+so a reply written in by hand can never talk it out of its rules.
+
+Both the tutor and Conversations keep to the grammar of the studied language
+and how its words and sentences are used. Anything else, including requests to
+ignore their instructions, take on a role or discuss another language or
+subject, gets one polite sentence saying what they can help with. The rule is
+one function, `scopeRule` in `src/lib/tutor.ts`, shared by both. A refusal is
+still an answer and spends a message. It goes through `POST /api/conversation`, uses the same
 model (`OPENROUTER_MODEL`) and spends the same allowance as the tutor.
 
 ### Choosing a password
@@ -742,6 +754,10 @@ against the local Supabase copy (`npx supabase start`), with a temporary
 `.env.development.local` pointing the app at it and the Turnstile site key empty,
 `npm run dev` restarted, and `E2E_BASE_URL=http://localhost:3000`. CLAUDE.md has
 the full procedure. Plans for each spec live in `e2e/specs/`.
+The two Conversations tests send real messages (about two cents a run) and
+spend four of the allowance the tutor shares, so the local test account is
+marked paid first, in the local database only: insert an `account_plans` row
+with `plan = 'paid'` for it as `postgres`.
 
 ### The Supabase CLI
 

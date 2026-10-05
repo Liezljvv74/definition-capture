@@ -147,6 +147,11 @@ export function presetFor(code: string): LanguagePreset | undefined {
 let names: Intl.DisplayNames | null | undefined;
 
 /** "French" for `fr`, or the code itself where the browser has no name for it. */
+/** A language as shown: the browser's name for the code, else the name typed in Settings, else nothing. */
+export function shownLanguage(code: string, other: string): string | null {
+  return code ? languageName(code) : other.trim() || null;
+}
+
 export function languageName(code: string): string {
   if (names === undefined) {
     try {
