@@ -60,13 +60,14 @@ function Inline({ tokens, linkIndex }: { tokens: InlineToken[]; linkIndex: LinkI
             const shown = !href ? (
               <span
                 data-at={token.at}
+                data-link=""
                 title="Nothing with this name is saved yet"
                 className="text-ink-soft underline decoration-dotted underline-offset-2"
               >
                 {words}
               </span>
             ) : (
-              <Link href={href} data-at={token.at} className={linkClass}>
+              <Link href={href} data-at={token.at} data-link="" className={linkClass}>
                 {words}
               </Link>
             );
