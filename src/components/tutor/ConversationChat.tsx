@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { QUESTION_MAX, type Plan, type TutorTurn } from "@/lib/tutor";
 
 type Reason = "ok" | "trialUsed" | "dailyLimit";
@@ -92,7 +93,19 @@ export function ConversationChat(props: {
 
   return (
     <main className="notebook-page mx-auto w-full max-w-3xl flex-1 space-y-5 py-6 sm:py-8">
-      <h1 className="hand-title text-2xl sm:text-3xl"><span className="marker">Conversations</span></h1>
+      {/* The title and New conversation stick under the nav, so a new
+          conversation is one press away however far down a long one goes. */}
+      <div className={`${STICKY_FILTERS} flex flex-wrap items-center justify-between gap-2`}>
+        <h1 className="hand-title text-2xl sm:text-3xl"><span className="marker">Conversations</span></h1>
+        <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => void startNew()}>
+          New conversation
+        </button>
+        {clearFailed && (
+          <p role="alert" className="w-full text-sm text-red-600 dark:text-red-400">
+            The conversation could not be cleared. Try again.
+          </p>
+        )}
+      </div>
 
       <ol aria-live="polite" className="space-y-3">
         {turns.map((turn, i) => (
@@ -146,14 +159,6 @@ export function ConversationChat(props: {
           />
           <div className="flex flex-wrap items-center gap-2">
             <button type="submit" className="btn btn-primary" disabled={busy || !text.trim()}>Send</button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={busy}
-              onClick={() => void startNew()}
-            >
-              New conversation
-            </button>
             <p className="text-xs text-ink-soft">
               {props.plan === "paid" ? `${remaining} left today` : `${remaining} trial message${remaining === 1 ? "" : "s"} left`}
             </p>
@@ -165,11 +170,6 @@ export function ConversationChat(props: {
             {unsaved && (
               <p role="alert" className="text-sm text-red-600 dark:text-red-400">
                 That reply was not saved, so it will be gone after a reload.
-              </p>
-            )}
-            {clearFailed && (
-              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-                The conversation could not be cleared. Try again.
               </p>
             )}
           </div>
