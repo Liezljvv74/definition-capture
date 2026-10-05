@@ -8,7 +8,12 @@ export const FREE_TRIAL_MESSAGES = 5;
 export const PAID_DAILY_MESSAGES = 30;
 export const HISTORY_LIMIT = 10;
 export const QUESTION_MAX = 1000;
-export const DEFAULT_TUTOR_MODEL = "openai/gpt-5-mini";
+// Switched from openai/gpt-5-mini on 5 October 2026 by the owner's choice; it
+// costs about eight times as much per input token and five times per output.
+// Check a new choice with a real call first: the OpenRouter account's data
+// policy blocks every endpoint of some models (Gemini 3.x Flash and Flash-Lite
+// that day), and those fail with a 404 rather than at build time.
+export const DEFAULT_TUTOR_MODEL = "anthropic/claude-sonnet-5.5";
 
 /**
  * Where the tutor may search, by language code. A domain is listed when it
@@ -139,7 +144,7 @@ export function buildRequest(input: {
       { role: "user", content: input.question },
     ],
     response_format: { type: "json_schema", json_schema: { name: "grammar_answer", strict: true, schema: REPLY_SCHEMA } },
-    // gpt-5-mini spends hidden reasoning tokens from this same budget, and
+    // A reasoning model spends hidden reasoning tokens from this same budget, and
     // search results fill the context too; 2000 truncated answers into invalid
     // JSON. Low effort keeps the reasoning share small. Confirmed by a real call.
     max_tokens: 6000,

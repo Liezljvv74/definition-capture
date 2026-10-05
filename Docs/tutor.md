@@ -47,7 +47,7 @@ trade buys identical rendering, no new rendering library, and lossless saving.
 - `OPENROUTER_API_KEY` is read only in server code and never has a
   `NEXT_PUBLIC_` name. In Vercel it is a Sensitive environment variable.
 - `OPENROUTER_MODEL` chooses the model; when unset the default is
-  `openai/gpt-5-mini`. Switching models is changing that one value in
+  `anthropic/claude-sonnet-5.5`. Switching models is changing that one value in
   `.env.local` and in Vercel. The default lives in one constant beside the
   reader of the variable.
 - The reply format is enforced with a JSON schema in the request

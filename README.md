@@ -99,7 +99,7 @@ The last two are for the tutor and are read only on the server. The key comes
 from your OpenRouter account and is a secret: it never has a `NEXT_PUBLIC_`
 name and must not be committed. Without it the app runs and the tutor says it
 cannot answer. `OPENROUTER_MODEL` is optional and names the model; unset, it is
-`openai/gpt-5-mini`.
+`anthropic/claude-sonnet-5.5`.
 
 The port is fixed at 3000 on purpose: a sign-in link only returns to a URL
 Supabase has been told to accept, and `http://localhost:3000/auth/callback` is
