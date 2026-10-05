@@ -98,7 +98,7 @@ export function ConversationChat(props: { remaining: number; reason: Reason; pla
             {turn.content}
           </li>
         ))}
-        {busy && <li className="text-sm text-ink-soft">Thinking…</li>}
+        {busy && <li className="text-sm text-ink-soft">Thinking… <span aria-hidden="true" className="hourglass">⏳</span></li>}
       </ol>
 
       {reason === "trialUsed" ? (
