@@ -418,57 +418,6 @@ export function withSeeAlso(blocks: Block[], titles: string[]): Block[] {
 }
 
 /*
- * Conversations: free talk with the same model, in plain text rather than
- * the tutor's JSON, with the same history rules and the same allowance.
- */
-
-/**
- * `studied` is the language from Settings, which the conversation is limited
- * to. `answerIn` is the native language; with none set, the reply follows the
- * person's own language.
- */
-export function chatInstructions(input: { studied: string; answerIn: string | null }): string {
-  const { studied, answerIn } = input;
-  return [
-    `You are a friendly conversation partner for someone learning ${studied}. Reply in plain text without Markdown, in short paragraphs. ` +
-      "Use the earlier turns to understand follow-up questions.",
-    scopeRule(studied, answerIn ?? "the language the person last wrote in"),
-    // Last, so it weighs most, as in the tutor's instructions.
-    answerIn
-      ? `Always reply in ${answerIn}, even when the person writes in another language. Example sentences being discussed may be in ${studied}.`
-      : "Reply in the language the person last wrote in.",
-  ].join("\n\n");
-}
-
-export function buildChatRequest(input: {
-  model: string;
-  studied: string;
-  answerIn: string | null;
-  history: TutorTurn[];
-  message: string;
-}): Record<string, unknown> {
-  return {
-    model: input.model,
-    messages: [
-      { role: "system", content: chatInstructions({ studied: input.studied, answerIn: input.answerIn }) },
-      ...input.history,
-      { role: "user", content: input.message },
-    ],
-    // The same budget as the tutor, for the same reason: reasoning tokens come out of it.
-    max_tokens: 6000,
-    reasoning: { effort: "low" },
-  };
-}
-
-/** The reply's text, or null when there is none. An em dash becomes a comma, the owner's rule. */
-export function readChatReply(json: unknown): string | null {
-  const content = (json as { choices?: { message?: { content?: unknown } }[] } | null)?.choices?.[0]?.message?.content;
-  if (typeof content !== "string") return null;
-  const text = content.replace(/\s*—\s*/g, ", ").trim();
-  return text || null;
-}
-
-/*
  * Saved conversations (Docs/tutor-conversations.md). An exchange is a
  * question and its answer, or a rule merged from several answers, saved as
  * one row of tutor_exchanges.
