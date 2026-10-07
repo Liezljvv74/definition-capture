@@ -8,6 +8,11 @@
  * signature verifies are merged, so a row the account wrote itself never
  * reaches the model as one it gave. It keeps to the same 55-second budget as
  * a question (see /api/tutor).
+ *
+ * The rule is returned as a draft and not saved in the conversation (the
+ * owner's decision, 7 October 2026): it becomes a grammar rule only when the
+ * learner saves it, and otherwise goes away. Kept in the conversation, it
+ * could be saved twice, and it filled the conversation with copies.
  */
 
 import { NextResponse } from "next/server";
@@ -16,12 +21,8 @@ import { reserveMessage } from "@/lib/reserveMessage";
 import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
 import {
   allowance,
-  answerText,
   buildRequest,
-  EMBED_TEXT_MAX,
-  EXCHANGE_LIMIT,
   MERGE_MIN,
-  mergeLabel,
   mergeQuestion,
   mergeSources,
   readConversationId,
@@ -29,17 +30,13 @@ import {
   readReply,
   REFERENCE_DOMAINS,
   tutorInstructions,
-  type TutorExchange,
 } from "@/lib/tutor";
 import {
   askOpenRouter,
-  countHeld,
-  embedOrNull,
   loadConversationMeta,
   loadExchangesById,
   loadRuleTitles,
   loadTutorState,
-  saveTutorExchange,
   trustedExchanges,
   tutorConfigured,
   tutorModel,
@@ -49,8 +46,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const BUDGET_MS = 55_000;
-const SAVE_MS = 6_000;
-const EMBED_MIN_MS = 3_000;
+/** Kept back from the model to send the reply. */
+const REPLY_MS = 2_000;
 
 const fail = (status: number, error: string, remaining?: number) =>
   NextResponse.json(remaining === undefined ? { error } : { error, remaining }, { status });
@@ -84,13 +81,12 @@ export async function POST(request: Request) {
     return [] as string[];
   });
 
-  let meta, state, answers, held;
+  let meta, state, answers;
   try {
-    [meta, state, answers, held] = await Promise.all([
+    [meta, state, answers] = await Promise.all([
       loadConversationMeta(supabase, conversationId),
       loadTutorState(supabase),
       loadExchangesById(supabase, conversationId, ids),
-      countHeld(supabase),
     ]);
   } catch {
     console.error("merge: could not read the account's state or answers");
@@ -108,7 +104,6 @@ export async function POST(request: Request) {
   if (!studied) return fail(403, "noLanguage");
   const before = allowance(state);
   if (before.reason !== "ok") return fail(403, before.reason);
-  if (held.exchanges >= EXCHANGE_LIMIT) return fail(403, "storageFull");
 
   let left, reason;
   try {
@@ -136,7 +131,7 @@ export async function POST(request: Request) {
           question: mergeQuestion(trusted),
           domains,
         }),
-        Math.max(timeLeft() - SAVE_MS, 5_000),
+        Math.max(timeLeft() - REPLY_MS, 5_000),
       ),
       rules,
     );
@@ -151,17 +146,5 @@ export async function POST(request: Request) {
   // The fresh citations first, then the merged answers' own, each once.
   reply = { ...reply, existingRule: null, sources: mergeSources([reply.sources, ...trusted.map((a) => a.reply.sources)]) };
 
-  const question = mergeLabel(trusted.length);
-  let exchange: TutorExchange = { id: null, kind: "merge", question, reply, mergeable: false };
-  let saved = false;
-  try {
-    const time = timeLeft() - EMBED_MIN_MS;
-    const embedding =
-      time >= EMBED_MIN_MS ? await embedOrNull(`${question}\n${answerText(reply)}`.slice(0, EMBED_TEXT_MAX), Math.min(5_000, time)) : null;
-    exchange = await saveTutorExchange(supabase, { userId, conversationId, kind: "merge", question, reply, embedding });
-    saved = true;
-  } catch {
-    console.error("merge: could not save the rule");
-  }
-  return NextResponse.json({ conversationId, exchange, remaining: left, saved });
+  return NextResponse.json({ reply, remaining: left });
 }

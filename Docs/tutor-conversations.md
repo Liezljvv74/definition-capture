@@ -275,9 +275,10 @@ Body `{ conversationId, exchangeIds, answerIn }`, 2 to 10 ids.
    and `readReply`.
 4. Sources are the fresh citations and the ticked answers' sources, without
    repeats.
-5. Save it as a `kind = 'merge'` exchange labelled "Rule from N answers", so
-   it shows in the conversation, can be saved, and can be ticked again.
-6. Return as `POST /api/tutor`.
+5. Return it as a draft, `{ reply, remaining }`, without saving it anywhere.
+   The owner's decision (7 October 2026): a merged rule is kept only as a
+   grammar rule, when the learner saves it; one that is not saved goes away.
+   Kept in the conversation, as first built, it could be saved twice.
 
 ### `POST /api/tutor/search`
 
@@ -339,7 +340,10 @@ cursor in the search box.
 2. The conversation: each question, and each answer rendered as rule blocks
    with its sources (or "Not checked against a reference"), **Save as rule**,
    and, on an answer that can be merged, a tick box, "Include in a rule". A
-   merged rule shows the same way, headed with its label.
+   merged rule shows the same way at the end, headed "Rule from N answers",
+   with **Save as rule** and **Discard**. It is a draft held by the page
+   only: saving it makes it a grammar rule and removes it, **Discard** removes
+   it, and leaving or reloading the page drops it.
 3. With two or more ticked, a bar above the question box: **Make one rule
    from N answers** and **Clear**. While the tutor works, "Thinking…" with the
    hourglass, as today.

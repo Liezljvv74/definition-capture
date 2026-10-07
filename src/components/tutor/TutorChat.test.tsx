@@ -117,3 +117,23 @@ describe("TutorChat", () => {
     expect(newAddress(null, undefined, "native")).toBeNull();
   });
 });
+
+describe("AnswerCard for a merged rule's draft", () => {
+  const draft = {
+    id: null, kind: "merge" as const, question: "Rule from 2 answers", mergeable: false,
+    reply: { title: "Dative", topic: "Cases", blocks: [{ id: "b", kind: "text" as const, text: "body" }], sources: [], existingRule: null, relatedRules: [] },
+  };
+  const html = (onDiscard?: () => void) =>
+    renderToStaticMarkup(<AnswerCard exchange={draft} index={0} ticked={null} onTick={() => {}} onSave={() => {}} onDiscard={onDiscard} />);
+
+  it("offers Save as rule and Discard, and no tick box", () => {
+    const out = html(() => {});
+    expect(out).toContain("Save as rule");
+    expect(out).toContain("Discard");
+    expect(out).not.toContain("Include in a rule");
+  });
+
+  it("offers no Discard on an ordinary answer", () => {
+    expect(html()).not.toContain("Discard");
+  });
+});

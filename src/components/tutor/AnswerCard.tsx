@@ -40,6 +40,7 @@ export function AnswerCard({
   tickDisabled = false,
   onTick,
   onSave,
+  onDiscard,
 }: {
   exchange: TutorExchange;
   index: number;
@@ -48,6 +49,8 @@ export function AnswerCard({
   tickDisabled?: boolean;
   onTick: (on: boolean) => void;
   onSave: () => void;
+  /** Only for a merged rule's draft, which is never saved in the conversation and can be thrown away. */
+  onDiscard?: () => void;
 }) {
   return (
     <section id={id === null ? undefined : `e-${id}`} className="scroll-mt-24 space-y-2">
@@ -89,6 +92,11 @@ export function AnswerCard({
             ) : (
               <button type="button" className="btn btn-secondary" onClick={onSave}>
                 Save as rule
+              </button>
+            )}
+            {onDiscard && (
+              <button type="button" className="btn btn-secondary" onClick={onDiscard}>
+                Discard
               </button>
             )}
           </div>

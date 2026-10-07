@@ -9,7 +9,6 @@ const loadConversationMeta = vi.fn();
 const loadExchangesById = vi.fn();
 const saveTutorExchange = vi.fn();
 const embedOrNull = vi.fn();
-const countHeld = vi.fn();
 vi.mock("@/lib/supabaseServer", () => ({
   createSupabaseServerClient: async () => ({}),
   serverUserId: () => userId(),
@@ -24,7 +23,6 @@ vi.mock("@/lib/tutorServer", async (orig) => ({
   loadExchangesById: (...a: unknown[]) => loadExchangesById(...a),
   saveTutorExchange: (...a: unknown[]) => saveTutorExchange(...a),
   embedOrNull: (...a: unknown[]) => embedOrNull(...a),
-  countHeld: (...a: unknown[]) => countHeld(...a),
 }));
 
 import { signTurn } from "@/lib/tutorServer";
@@ -49,14 +47,12 @@ beforeEach(() => {
   vi.stubEnv("OPENROUTER_API_KEY", "sk-test");
   vi.stubEnv("OPENROUTER_MODEL", "");
   vi.stubEnv("TUTOR_SIGNING_SECRET", "test-secret");
-  countHeld.mockResolvedValue({ exchanges: 0, conversations: 0 });
   userId.mockResolvedValue("u1");
   loadTutorState.mockResolvedValue({ plan: "paid", usedTotal: 0, usedToday: 0, settings });
   countUsage.mockResolvedValue({ usedTotal: 1, usedToday: 1 });
   loadRuleTitles.mockResolvedValue([]);
   loadConversationMeta.mockResolvedValue({ id: CONV, name: "Dative" });
   loadExchangesById.mockImplementation(async (_s: unknown, _c: unknown, ids: number[]) => ids.map((id) => ({ 1: stored(1, "first", "https://www.duden.de/a"), 2: stored(2, "second", "https://www.dwds.de/b") })[id]).filter(Boolean));
-  saveTutorExchange.mockImplementation(async (_s: unknown, input: object) => ({ id: 9, ...input, mergeable: true }));
   embedOrNull.mockResolvedValue(null);
   fetchMock.mockResolvedValue(ok(JSON.stringify(merged), [{ type: "url_citation", url_citation: { url: "https://www.duden.de/a", title: "Duden" } }]));
 });
@@ -96,15 +92,7 @@ describe("POST /api/tutor/merge", () => {
     expect(recordQuestion).not.toHaveBeenCalled();
   });
 
-  it("403 storageFull at the account's limit, spending nothing", async () => {
-    countHeld.mockResolvedValue({ exchanges: 2000, conversations: 3 });
-    const res = await post({ conversationId: CONV, exchangeIds: [1, 2] });
-    expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: "storageFull" });
-    expect(recordQuestion).not.toHaveBeenCalled();
-  });
-
-  it("spends one message, merges with the reference search on, and saves the rule in the conversation", async () => {
+  it("spends one message, merges with the reference search on, and returns the rule as a draft without saving it", async () => {
     const res = await post({ conversationId: CONV, exchangeIds: [2, 1], answerIn: "native" });
     const body = await res.json();
     expect(res.status).toBe(200);
@@ -114,9 +102,11 @@ describe("POST /api/tutor/merge", () => {
     expect(request.messages[0].content).toContain("Combine them into one rule");
     expect(request.messages.at(-1).content).toBe("Answer 1:\nsecond\n\nAnswer 2:\nfirst");
     expect(request.plugins[0].include_domains).toEqual(["duden.de", "dwds.de"]);
-    expect(saveTutorExchange.mock.calls[0][1]).toMatchObject({ conversationId: CONV, kind: "merge", question: "Rule from 2 answers" });
-    expect(body.exchange.reply.sources.map((s: { url: string }) => s.url)).toEqual(["https://www.duden.de/a", "https://www.dwds.de/b"]);
-    expect(body.exchange.reply.existingRule).toBeNull();
+    // The owner's decision (7 October 2026): a merged rule is a draft, saved only as a grammar rule, never in the conversation.
+    expect(saveTutorExchange).not.toHaveBeenCalled();
+    expect(body.reply.sources.map((s: { url: string }) => s.url)).toEqual(["https://www.duden.de/a", "https://www.dwds.de/b"]);
+    expect(body.reply.existingRule).toBeNull();
+    expect(body.remaining).toBeTypeOf("number");
   });
 
   it("writes the rule in the studied language when the switch says so", async () => {

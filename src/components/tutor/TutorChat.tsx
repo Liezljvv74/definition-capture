@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { AnswerCard } from "@/components/tutor/AnswerCard";
 import { SaveAsRuleDialog } from "@/components/tutor/SaveAsRuleDialog";
-import { MERGE_MAX, QUESTION_MAX, type Plan, type TutorExchange, type TutorReply } from "@/lib/tutor";
+import { MERGE_MAX, mergeLabel, QUESTION_MAX, type Plan, type TutorExchange, type TutorReply } from "@/lib/tutor";
 import { recordSavedRule } from "@/lib/tutorConversations";
 import { useRules } from "@/lib/useRules";
 
@@ -55,12 +55,20 @@ export function TutorChat(props: {
   const [failed, setFailed] = useState(false);
   const [unsaved, setUnsaved] = useState(false);
   const [saving, setSaving] = useState<TutorReply | null>(null);
+  // A merged rule waiting to be saved or discarded. It lives only here, never
+  // in the conversation (the owner's decision, 7 October 2026), so leaving or
+  // reloading the page throws it away, and once saved it goes, so it cannot be
+  // saved twice.
+  const [draft, setDraft] = useState<{ reply: TutorReply; count: number } | null>(null);
   const [linkedRuleIds, setLinkedRuleIds] = useState(props.linkedRuleIds);
   // Loads the rules, so an answer that points to a saved one can link to it.
   useRules();
 
-  /** Sends a question or a merge; both answer with an exchange in the same shape. */
-  async function send(url: string, payload: object): Promise<boolean> {
+  /**
+   * Sends a question or a merge and handles the failures they share. `take`
+   * reads a successful reply and says whether it was the shape expected.
+   */
+  async function send(url: string, payload: object, take: (body: Record<string, unknown>) => boolean): Promise<boolean> {
     setBusy(true);
     setFailed(false);
     setUnsaved(false);
@@ -70,26 +78,14 @@ export function TutorChat(props: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const body = await response.json().catch(() => ({}));
-      if (response.ok && body.exchange) {
-        setExchanges((all) => [...all, body.exchange]);
-        setRemaining(body.remaining);
-        setUnsaved(!body.saved);
-        setConversationId(body.conversationId ?? conversationId);
-        // Only a saved answer touches the address or the server's copy. A new
-        // conversation gets its address once its first answer is saved,
-        // carrying the answer language across; a later one refreshes the
-        // sidebar's order. An unsaved answer leaves both alone: a refresh
-        // would replace the chat with what the server has, which lacks it
-        // (and, if another tab deleted the conversation, everything).
-        const address = body.saved ? newAddress(props.conversationId, body.conversationId, answerIn) : null;
-        if (address) router.replace(address);
-        else if (body.saved) router.refresh();
+      const body = (await response.json().catch(() => ({}))) as Record<string, unknown> & { remaining?: unknown; error?: string };
+      if (response.ok && take(body)) {
+        if (typeof body.remaining === "number") setRemaining(body.remaining);
         return true;
       }
       if (response.status === 401) router.push("/");
       else if (response.status === 403 && body.error === "noLanguage") setStudiedName(null);
-      else if (response.status === 403 && ["trialUsed", "dailyLimit", "storageFull"].includes(body.error)) setReason(body.error);
+      else if (response.status === 403 && (body.error === "trialUsed" || body.error === "dailyLimit" || body.error === "storageFull")) setReason(body.error);
       else {
         // A failure after the reservation says what is left; any other leaves the count as it was.
         if (typeof body.remaining === "number") setRemaining(body.remaining);
@@ -106,13 +102,36 @@ export function TutorChat(props: {
   async function ask() {
     const question = text.trim();
     if (!question || busy) return;
-    if (await send("/api/tutor/", { question, answerIn, conversationId })) setText("");
+    const sent = await send("/api/tutor/", { question, answerIn, conversationId }, (body) => {
+      if (!body.exchange) return false;
+      setExchanges((all) => [...all, body.exchange as TutorExchange]);
+      setUnsaved(!body.saved);
+      const id = typeof body.conversationId === "string" ? body.conversationId : undefined;
+      setConversationId(id ?? conversationId);
+      // Only a saved answer touches the address or the server's copy. A new
+      // conversation gets its address once its first answer is saved,
+      // carrying the answer language across; a later one refreshes the
+      // sidebar's order. An unsaved answer leaves both alone: a refresh
+      // would replace the chat with what the server has, which lacks it
+      // (and, if another tab deleted the conversation, everything).
+      const address = body.saved ? newAddress(props.conversationId, id, answerIn) : null;
+      if (address) router.replace(address);
+      else if (body.saved) router.refresh();
+      return true;
+    });
+    if (sent) setText("");
   }
 
   async function merge() {
     if (busy || ticked.length < 2) return;
     // The ticked answers stay ticked when the merge fails, so it can be tried again.
-    if (await send("/api/tutor/merge/", { conversationId, exchangeIds: ticked, answerIn })) setTicked([]);
+    const count = ticked.length;
+    const sent = await send("/api/tutor/merge/", { conversationId, exchangeIds: ticked, answerIn }, (body) => {
+      if (!body.reply) return false;
+      setDraft({ reply: body.reply as TutorReply, count });
+      return true;
+    });
+    if (sent) setTicked([]);
   }
 
   const languages = [
@@ -166,6 +185,16 @@ export function TutorChat(props: {
             onSave={() => setSaving(exchange.reply)}
           />
         ))}
+        {draft && (
+          <AnswerCard
+            exchange={{ id: null, kind: "merge", question: mergeLabel(draft.count), reply: draft.reply, mergeable: false }}
+            index={exchanges.length}
+            ticked={null}
+            onTick={() => {}}
+            onSave={() => setSaving(draft.reply)}
+            onDiscard={() => setDraft(null)}
+          />
+        )}
         {busy && <p className="text-sm text-ink-soft">Thinking… <span aria-hidden="true" className="hourglass">⏳</span></p>}
         {unsaved && <p role="alert" className={ERROR}>This answer was not saved.</p>}
       </div>
@@ -236,6 +265,8 @@ export function TutorChat(props: {
           linkedRuleIds={linkedRuleIds}
           onSaved={(rule) => {
             setLinkedRuleIds((all) => [...all, rule.id]);
+            // A saved draft has done its job; it goes, so it cannot be saved again.
+            if (draft && saving === draft.reply) setDraft(null);
             // Recorded only for a saved conversation; an answer that was not
             // saved has nowhere to record it.
             if (conversationId) void recordSavedRule(conversationId, rule.id);

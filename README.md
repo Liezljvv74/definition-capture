@@ -604,7 +604,10 @@ made-up one can never talk it out of its rules.
 Tick **Include in a rule** on two or more answers and press **Make one rule from
 N answers**: the tutor merges them into one answer that says each thing once,
 checked against the reference sites without adding topics, and in the language
-the Answer in switch shows. It is saved through the same dialog as any answer.
+the Answer in switch shows. It appears at the end as a draft with **Save as
+rule** and **Discard**: saved, it becomes a grammar rule and leaves the
+conversation; otherwise it goes away, and it is never stored with the
+conversation.
 That dialog links a saved rule to the ones already saved from the same
 conversation, to the tutor's suggestions, and to any other grammar rule you
 find with **Link another rule**.
