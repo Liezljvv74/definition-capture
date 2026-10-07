@@ -1439,7 +1439,7 @@ git commit -m "Answer tutor questions inside saved conversations, with memory"
 
 **Interfaces:**
 - Consumes: Task 2 (`readConversationId`, `readExchangeIds`, `mergeLabel`, `mergeQuestion`, `mergeSources`, `tutorInstructions` with `merge`), Task 3 (`loadConversationMeta`, `loadExchangesById`, `trustedExchanges`, `saveTutorExchange`, `embedOrNull`).
-- Produces: request `{ conversationId: string; exchangeIds: number[] }`; response 200 `{ conversationId: string; exchange: TutorExchange; remaining: number; saved: boolean }`; errors as Task 4 plus 400 when an id is not in the conversation or fewer than 2 signed answers remain.
+- Produces: request `{ conversationId: string; exchangeIds: number[]; answerIn: "native" | "studied" }` (the Answer in switch, as on a question; the owner's decision, 7 October 2026); response 200 `{ conversationId: string; exchange: TutorExchange; remaining: number; saved: boolean }`; errors as Task 4 plus 400 when an id is not in the conversation or fewer than 2 signed answers remain.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1541,9 +1541,10 @@ describe("POST /api/tutor/merge", () => {
   });
 
   it("spends one message, merges with the reference search on, and saves the rule in the conversation", async () => {
-    const res = await post({ conversationId: CONV, exchangeIds: [2, 1] });
+    const res = await post({ conversationId: CONV, exchangeIds: [2, 1], answerIn: "native" });
     const body = await res.json();
     expect(res.status).toBe(200);
+    expect(sent().messages[0].content).toContain("Write the title, the topic and every explanation, table heading and translation in English");
     expect(recordQuestion).toHaveBeenCalledTimes(1);
     const request = sent();
     expect(request.messages[0].content).toContain("Combine them into one rule");
@@ -1552,6 +1553,11 @@ describe("POST /api/tutor/merge", () => {
     expect(saveTutorExchange.mock.calls[0][1]).toMatchObject({ conversationId: CONV, kind: "merge", question: "Rule from 2 answers" });
     expect(body.exchange.reply.sources.map((s: { url: string }) => s.url)).toEqual(["https://www.duden.de/a", "https://www.dwds.de/b"]);
     expect(body.exchange.reply.existingRule).toBeNull();
+  });
+
+  it("writes the rule in the studied language when the switch says so", async () => {
+    await post({ conversationId: CONV, exchangeIds: [1, 2], answerIn: "studied" });
+    expect(sent().messages[0].content).toContain("table heading and translation in German");
   });
 
   it("502 with the message spent when the model fails", async () => {
@@ -1628,7 +1634,7 @@ export async function POST(request: Request) {
   const supabase = userId ? await createSupabaseServerClient() : null;
   if (!userId || !supabase) return fail(401, "signed_out");
 
-  let body: { conversationId?: unknown; exchangeIds?: unknown };
+  let body: { conversationId?: unknown; exchangeIds?: unknown; answerIn?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -1637,6 +1643,7 @@ export async function POST(request: Request) {
   const conversationId = readConversationId(body?.conversationId);
   const ids = readExchangeIds(body?.exchangeIds);
   if (!conversationId || !ids) return fail(400, "bad_request");
+  const answerIn = body.answerIn === "native" ? "native" : "studied";
 
   if (!openRouterConfigured()) {
     console.error("merge: OPENROUTER_API_KEY is not configured");
@@ -1672,8 +1679,8 @@ export async function POST(request: Request) {
   }
   if (reason !== "ok") return fail(403, reason, left);
 
-  // The rule is written in the language the answers were, which is the
-  // native one when set, as on the tutor page by default.
+  // The rule follows the Answer in switch, as a question does (the owner's
+  // decision, 7 October 2026); native with none set falls back to the studied language.
   const native = settings.nativeLanguage ? languageName(settings.nativeLanguage) : settings.nativeLanguageOther.trim();
   const domains = REFERENCE_DOMAINS[settings.language] ?? [];
   let rules: string[] = [];
@@ -1689,7 +1696,7 @@ export async function POST(request: Request) {
       await askOpenRouter(
         buildRequest({
           model: tutorModel(),
-          instructions: tutorInstructions({ studied, answerIn: native || studied, level: settings.level, grounded: domains.length > 0, rules, merge: true }),
+          instructions: tutorInstructions({ studied, answerIn: answerIn === "native" && native ? native : studied, level: settings.level, grounded: domains.length > 0, rules, merge: true }),
           history: [],
           question: mergeQuestion(trusted),
           domains,
@@ -1722,7 +1729,6 @@ export async function POST(request: Request) {
 }
 ```
 
-Note on the answer language: the merge request carries no `answerIn`, and the native language is used when set. If the owner wants the switch to apply to merges too, add `answerIn` to the body exactly as in Task 4; this is a review question, not a blocker.
 
 - [ ] **Step 4: Run the tests**
 
@@ -2517,7 +2523,7 @@ export function TutorChat(props: {
   async function merge() {
     if (busy || ticked.length < 2) return;
     // The ticked answers stay ticked when the merge fails, so it can be tried again.
-    if (await send("/api/tutor/merge/", { conversationId, exchangeIds: ticked })) setTicked([]);
+    if (await send("/api/tutor/merge/", { conversationId, exchangeIds: ticked, answerIn })) setTicked([]);
   }
 ```
 
