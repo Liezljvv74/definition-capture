@@ -2,12 +2,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { TutorChat } from "@/components/tutor/TutorChat";
+import type { TutorExchange } from "@/lib/tutor";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
 
-const base = { remaining: 26, reason: "ok", plan: "paid", studiedName: "German", nativeName: "English" } as const;
+const base = { remaining: 26, reason: "ok", plan: "paid", studiedName: "German", nativeName: "English",
+  initialAnswerIn: null, conversationId: null, notFound: false,
+} as const;
+const more = { initialExchanges: [] as TutorExchange[], linkedRuleIds: [] as string[] };
 const html = (props: Partial<Parameters<typeof TutorChat>[0]> = {}) =>
-  renderToStaticMarkup(<TutorChat {...base} {...props} />);
+  renderToStaticMarkup(<TutorChat {...base} {...more} {...props} />);
 
 describe("TutorChat", () => {
   it("asks for a studied language, with a link to Settings and no question box", () => {
@@ -57,5 +61,43 @@ describe("TutorChat", () => {
     }
     // The free plan's allowance line must not use the word either.
     expect(html({ plan: "free", remaining: 3 }).replace("trial messages left", "")).not.toMatch(/free/i);
+  });
+
+  const exchange = (id: number | null, title: string, mergeable = id !== null) => ({
+    id, kind: "answer" as const, question: `q ${title}`, mergeable,
+    reply: { title, topic: "", blocks: [{ id: `b${id}`, kind: "text" as const, text: "body" }], sources: [{ url: "https://www.duden.de/x", title: "Duden" }], existingRule: null, relatedRules: [] },
+  });
+
+  it("shows a saved conversation's answers with their sources and a tick box each", () => {
+    const out = html({ conversationId: "c1", initialExchanges: [exchange(1, "Dative"), exchange(2, "Accusative")] });
+    expect(out).toContain("Dative");
+    expect(out).toContain("Accusative");
+    expect(out).toContain('href="https://www.duden.de/x"');
+    expect(out.match(/Include in a rule/g)).toHaveLength(2);
+    expect(out).toContain('id="e-1"');
+  });
+
+  it("offers no tick box on an answer that was not saved", () => {
+    expect(html({ initialExchanges: [exchange(null, "Dative")] })).not.toContain("Include in a rule");
+  });
+
+  it("offers no tick box on an answer whose signature did not verify", () => {
+    expect(html({ conversationId: "c1", initialExchanges: [exchange(3, "Dative", false)] })).not.toContain("Include in a rule");
+  });
+
+  it("replaces the question box when the account is full", () => {
+    const out = html({ reason: "storageFull" });
+    expect(out).toContain("You have reached the most conversations and answers an account can keep. Delete a conversation to ask more.");
+    expect(out).not.toContain("<textarea");
+  });
+
+  it("starts with the answer language carried in the address", () => {
+    // The radios carry no value; the checked one is the input just before its language's name.
+    expect(html({ initialAnswerIn: "studied" })).toMatch(/checked=""\/>German/);
+    expect(html()).toMatch(/checked=""\/>English/);
+  });
+
+  it("says when the conversation in the address was not found", () => {
+    expect(html({ notFound: true })).toContain("That conversation was not found.");
   });
 });
