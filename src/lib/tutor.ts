@@ -8,7 +8,8 @@ import { readString, type Block } from "@/lib/types";
 
 export const FREE_TRIAL_MESSAGES = 5;
 export const PAID_DAILY_MESSAGES = 30;
-export const HISTORY_LIMIT = 10;
+/** How many of the open conversation's latest exchanges the tutor is sent: the same ten messages as before. */
+export const HISTORY_LIMIT = 5;
 export const QUESTION_MAX = 1000;
 // Switched from openai/gpt-5-mini on 5 October 2026 by the owner's choice; it
 // costs about eight times as much per input token and five times per output.
@@ -16,6 +17,39 @@ export const QUESTION_MAX = 1000;
 // policy blocks every endpoint of some models (Gemini 3.x Flash and Flash-Lite
 // that day), and those fail with a 404 rather than at build time.
 export const DEFAULT_TUTOR_MODEL = "anthropic/claude-sonnet-5.5";
+
+/**
+ * OpenRouter's multilingual embedding model, for search and memory. The
+ * column in tutor_exchanges is fixed to its dimension. Changing the model, even
+ * to one of the same size, needs a migration that sets every stored embedding
+ * to null (`update public.tutor_exchanges set embedding = null`), since two
+ * models' vectors cannot be compared; those exchanges are then found by
+ * keyword only, as nothing can embed them again (there is no update grant).
+ */
+export const EMBEDDING_MODEL = "baai/bge-m3";
+export const EMBEDDING_DIMENSIONS = 1024;
+/** Characters embedded at most; bge-m3 reads about 8000 tokens, and an answer's start says what it is about. */
+export const EMBED_TEXT_MAX = 8000;
+/** Earlier exchanges, from any conversation, given to the tutor with a question. */
+export const MEMORY_LIMIT = 5;
+export const MERGE_MIN = 2;
+export const MERGE_MAX = 10;
+export const SEARCH_MIN = 2;
+export const SEARCH_MAX = 200;
+export const CONVERSATION_NAME_MAX = 120;
+/** Characters of memory, questions and answers together, sent with a question at most; memory is paid model input. */
+export const MEMORY_CHARS = 12000;
+/**
+ * Per account, and checked by the database as well (enforce_row_limit): the
+ * free plan's 500 MB is shared by every account (the owner's decision,
+ * 7 October 2026). The same numbers are in the migration's triggers.
+ */
+export const EXCHANGE_LIMIT = 2000;
+export const CONVERSATION_LIMIT = 500;
+/** Sidebar searches per account per hour; each one embeds its query with the shared key. */
+export const SEARCHES_PER_HOUR = 100;
+/** The latest exchanges a conversation opens with; older ones are still found by search. */
+export const CONVERSATION_PAGE = 500;
 
 /**
  * Where the tutor may search, by language code. A domain is listed when it
@@ -119,6 +153,7 @@ export function tutorInstructions(input: {
   grounded: boolean;
   /** The titles of the learner's saved grammar rules. */
   rules?: string[];
+  merge?: boolean;
 }): string {
   const { studied, answerIn } = input;
   const rules = input.rules ?? [];
@@ -155,6 +190,16 @@ export function tutorInstructions(input: {
         "and asking what exactly the learner would like clarified about it. Otherwise leave existing_rule empty and answer in full. " +
         `In related_rules, list the exact titles of up to ${RELATED_MAX} saved rules closely related to your answer, other than existing_rule, or none.`
       : "Leave existing_rule empty and related_rules empty.",
+    // A rule merged from several answers (Docs/tutor-conversations.md): the
+    // owner wants what was ticked, cleaned up, and the search only as a check.
+    ...(input.merge
+      ? [
+          "The learner has chosen earlier answers to keep as one grammar rule; they are given in the last message. " +
+            "Combine them into one rule: say each thing once, keep every point and example that is not a repeat, " +
+            "and order it from the plain meaning to the details. Use the search results only to check and correct what the answers say, " +
+            "never to add a topic the answers do not cover. Leave existing_rule empty.",
+        ]
+      : []),
     // Last, so it weighs most: on 3 October 2026 a question written in English
     // with German terms in it, answered from German reference pages, came back
     // entirely in German although English was chosen.
@@ -421,4 +466,155 @@ export function readChatReply(json: unknown): string | null {
   if (typeof content !== "string") return null;
   const text = content.replace(/\s*—\s*/g, ", ").trim();
   return text || null;
+}
+
+/*
+ * Saved conversations (Docs/tutor-conversations.md). An exchange is a
+ * question and its answer, or a rule merged from several answers, saved as
+ * one row of tutor_exchanges.
+ */
+
+/**
+ * An exchange as the page shows it. `id` is null only for an answer that
+ * could not be saved. `mergeable` is true for a saved answer whose signature
+ * the server verified: only those can go back to the model in a merge, so
+ * only those get a tick box.
+ */
+export type TutorExchange = { id: number | null; kind: "answer" | "merge"; question: string; reply: TutorReply; mergeable: boolean };
+
+/** An exchange as the server reads it back, with the text the model is sent and its signature. */
+export type StoredExchange = Omit<TutorExchange, "id" | "mergeable"> & { id: number; conversationId: string; answerText: string; signature: string };
+
+/** A search_tutor row as the server reads it: no reply, which neither the sidebar nor memory uses. */
+export type SearchRow = {
+  id: number;
+  conversationId: string;
+  conversationName: string;
+  kind: "answer" | "merge";
+  question: string;
+  answerText: string;
+  signature: string;
+};
+
+export type SearchResult = { conversationId: string; name: string; exchangeId: number; snippet: string };
+
+/**
+ * A saved reply is untrusted: the account can insert rows of its own with the
+ * publishable key. It must have the shape and a block, and a source that is
+ * not an http link is dropped, so a `javascript:` address never becomes an href.
+ */
+export function readStoredReply(value: unknown): TutorReply | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const r = value as Record<string, unknown>;
+  if (typeof r.title !== "string" || typeof r.topic !== "string") return null;
+  const blocks = readBlocks(r.blocks);
+  if (blocks.length === 0) return null;
+  const sources = (Array.isArray(r.sources) ? r.sources : []).flatMap((s) => {
+    const url = readString((s as { url?: unknown } | null)?.url);
+    return /^https?:\/\//i.test(url) ? [{ url, title: readString((s as { title?: unknown }).title) }] : [];
+  });
+  const names = Array.isArray(r.relatedRules) ? r.relatedRules.filter((n): n is string => typeof n === "string") : [];
+  return {
+    title: r.title,
+    topic: r.topic,
+    blocks,
+    sources,
+    existingRule: typeof r.existingRule === "string" ? r.existingRule : null,
+    relatedRules: names.slice(0, RELATED_MAX),
+  };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A conversation id from a request or the address bar; anything else would be a database error, not a 404. */
+export function readConversationId(value: unknown): string | null {
+  return typeof value === "string" && UUID.test(value) ? value.toLowerCase() : null;
+}
+
+/** The answers ticked for a merge: 2 to 10 distinct exchange ids, or null. */
+export function readExchangeIds(value: unknown): number[] | null {
+  if (!Array.isArray(value) || value.length < MERGE_MIN || value.length > MERGE_MAX) return null;
+  if (!value.every((id) => Number.isSafeInteger(id) && id > 0)) return null;
+  return new Set(value).size === value.length ? (value as number[]) : null;
+}
+
+/** Exchanges as the turns the model is sent: the question, then the answer's text. */
+export function exchangeTurns(exchanges: { question: string; answerText: string }[]): TutorTurn[] {
+  return exchanges.flatMap((e): TutorTurn[] => [
+    { role: "user", content: e.question },
+    { role: "assistant", content: e.answerText },
+  ]);
+}
+
+/**
+ * The best matches not already in the history (which the model is sent
+ * anyway), at most `limit` of them and `maxChars` of text, since every
+ * character is paid model input on every question.
+ */
+export function pickMemory<T extends { id: number; question: string; answerText: string }>(
+  found: T[],
+  recentIds: ReadonlySet<number>,
+  limit = MEMORY_LIMIT,
+  maxChars = MEMORY_CHARS,
+): T[] {
+  const picked: T[] = [];
+  let chars = 0;
+  for (const e of found) {
+    if (recentIds.has(e.id)) continue;
+    chars += e.question.length + e.answerText.length;
+    if (picked.length === limit || chars > maxChars) break;
+    picked.push(e);
+  }
+  return picked;
+}
+
+/** A new conversation is named after its first answer, which costs nothing; the question if the title is blank. */
+export function conversationName(reply: TutorReply, question: string): string {
+  return (reply.title.trim() || question.trim()).slice(0, CONVERSATION_NAME_MAX).trim();
+}
+
+export function mergeLabel(count: number): string {
+  return `Rule from ${count} answers`;
+}
+
+/** The ticked answers as the one message the merge sends. */
+export function mergeQuestion(answers: { answerText: string }[]): string {
+  return answers.map((a, i) => `Answer ${i + 1}:\n${a.answerText}`).join("\n\n");
+}
+
+/** Every list's sources, each address once, the first title kept. */
+export function mergeSources(lists: { url: string; title: string }[][]): { url: string; title: string }[] {
+  const byUrl = new Map<string, string>();
+  for (const source of lists.flat()) if (!byUrl.has(source.url)) byUrl.set(source.url, source.title);
+  return [...byUrl].map(([url, title]) => ({ url, title }));
+}
+
+/** Characters of a search snippet either side of the word found. */
+const SNIPPET_CONTEXT = 40;
+
+/**
+ * Search rows, best first, as one result per conversation (its best
+ * exchange), with a snippet around the first searched word found. A row found
+ * by meaning alone may contain none of the words; its snippet starts at the
+ * beginning.
+ */
+export function searchResults(
+  rows: { exchangeId: number; conversationId: string; name: string; question: string; answerText: string }[],
+  query: string,
+): SearchResult[] {
+  const words = foldName(query).split(/[\s,.;:!?()"]+/).filter((w) => w.length >= 2);
+  const seen = new Set<string>();
+  const results: SearchResult[] = [];
+  for (const row of rows) {
+    if (seen.has(row.conversationId)) continue;
+    seen.add(row.conversationId);
+    const text = `${row.question} ${row.answerText}`.replace(/\s+/g, " ").trim();
+    const folded = foldName(text);
+    const at = words.map((w) => folded.indexOf(w)).filter((i) => i >= 0).sort((a, b) => a - b)[0] ?? 0;
+    const start = Math.max(0, at - SNIPPET_CONTEXT);
+    const end = Math.min(text.length, start + SNIPPET_CONTEXT * 2);
+    const snippet = `${start > 0 ? "…" : ""}${text.slice(start, end).trim()}${end < text.length ? "…" : ""}`;
+    results.push({ conversationId: row.conversationId, name: row.name, exchangeId: row.exchangeId, snippet });
+  }
+  return results;
 }

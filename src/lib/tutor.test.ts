@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { ExampleBlock, TableBlock, TextBlock } from "@/lib/types";
 
 import {
-  allowance, buildRequest, DEFAULT_TUTOR_MODEL, FREE_TRIAL_MESSAGES, HISTORY_LIMIT,
-  freeTitle, PAID_DAILY_MESSAGES, readHistory, readReply, REFERENCE_DOMAINS, startOfUtcDay, tutorInstructions,
-  withSeeAlso,
+  allowance, buildRequest, conversationName, DEFAULT_TUTOR_MODEL, exchangeTurns, FREE_TRIAL_MESSAGES, freeTitle,
+  HISTORY_LIMIT, mergeLabel, mergeQuestion, mergeSources, PAID_DAILY_MESSAGES, pickMemory, readConversationId,
+  readExchangeIds, readHistory, readReply, readStoredReply, REFERENCE_DOMAINS, searchResults, startOfUtcDay,
+  tutorInstructions, withSeeAlso,
 } from "@/lib/tutor";
 
 describe("allowance", () => {
@@ -280,5 +281,122 @@ describe("saving answers from one conversation", () => {
     expect(linked[0]).toBe(blocks[0]);
     expect(linked[1]).toMatchObject({ kind: "text", text: "See also [[The dative case]], [[Word order]]." });
     expect(linked[1].id).not.toBe("a");
+  });
+});
+
+describe("readStoredReply", () => {
+  const good = {
+    title: "Dative", topic: "Cases",
+    blocks: [{ kind: "text", text: "After mit." }],
+    sources: [{ url: "https://www.duden.de/x", title: "Duden" }],
+    existingRule: null, relatedRules: ["Cases"],
+  };
+
+  it("reads a reply as it was saved", () => {
+    const out = readStoredReply(good)!;
+    expect(out.title).toBe("Dative");
+    expect(out.blocks).toHaveLength(1);
+    expect(out.sources).toEqual([{ url: "https://www.duden.de/x", title: "Duden" }]);
+    expect(out.relatedRules).toEqual(["Cases"]);
+  });
+
+  it("drops a source that is not an http link", () => {
+    const out = readStoredReply({ ...good, sources: [{ url: "javascript:alert(1)", title: "x" }, { url: "data:text/html,x", title: "y" }] })!;
+    expect(out.sources).toEqual([]);
+  });
+
+  it.each([null, "x", [], {}, { ...good, title: 3 }, { ...good, blocks: [] }, { ...good, blocks: "no" }])(
+    "refuses a malformed reply %#",
+    (value) => expect(readStoredReply(value)).toBeNull(),
+  );
+});
+
+describe("readConversationId", () => {
+  it("accepts a uuid, in any case", () => {
+    expect(readConversationId("0F8FAD5B-D9CB-469F-A165-70867728950E")).toBe("0f8fad5b-d9cb-469f-a165-70867728950e");
+  });
+  it.each(["", "x", "1", 1, null, undefined, "0f8fad5b-d9cb-469f-a165-70867728950e'; drop table"])("refuses %s", (value) => {
+    expect(readConversationId(value)).toBeNull();
+  });
+});
+
+describe("readExchangeIds", () => {
+  it("accepts 2 to 10 distinct positive integers", () => {
+    expect(readExchangeIds([3, 1])).toEqual([3, 1]);
+    expect(readExchangeIds(Array.from({ length: 10 }, (_, i) => i + 1))).toHaveLength(10);
+  });
+  it.each([[[1]], [Array.from({ length: 11 }, (_, i) => i + 1)], [[1, 1]], [[1, 2.5]], [[1, -2]], [[1, "2"]], ["1,2"], [null]])(
+    "refuses %j",
+    (value) => expect(readExchangeIds(value)).toBeNull(),
+  );
+});
+
+describe("pickMemory", () => {
+  const found = [1, 2, 3, 4, 5, 6, 7, 8].map((id) => ({ id, question: "q", answerText: "a" }));
+
+  it("leaves out exchanges already in the recent history, and keeps the best few", () => {
+    expect(pickMemory(found, new Set([2, 3])).map((e) => e.id)).toEqual([1, 4, 5, 6, 7]);
+  });
+
+  it("stops before the memories pass the character cap", () => {
+    const long = found.map((e) => ({ ...e, answerText: "x".repeat(4999) }));
+    expect(pickMemory(long, new Set(), 5, 12000).map((e) => e.id)).toEqual([1, 2]);
+  });
+});
+
+describe("exchangeTurns", () => {
+  it("makes a question and an answer of each exchange", () => {
+    expect(exchangeTurns([{ question: "q", answerText: "a" }])).toEqual([
+      { role: "user", content: "q" },
+      { role: "assistant", content: "a" },
+    ]);
+  });
+});
+
+describe("conversation names and merges", () => {
+  const reply = { title: "  Dative  ", topic: "", blocks: [], sources: [], existingRule: null, relatedRules: [] };
+  it("names a conversation after its first answer, else its question", () => {
+    expect(conversationName(reply, "q")).toBe("Dative");
+    expect(conversationName({ ...reply, title: " " }, "  When is it used?  ")).toBe("When is it used?");
+    expect(conversationName({ ...reply, title: "x".repeat(200) }, "q")).toHaveLength(120);
+  });
+  it("labels a merge", () => expect(mergeLabel(3)).toBe("Rule from 3 answers"));
+  it("numbers the answers to merge", () => {
+    expect(mergeQuestion([{ answerText: "one" }, { answerText: "two" }])).toBe("Answer 1:\none\n\nAnswer 2:\ntwo");
+  });
+  it("joins sources without repeats, first title kept", () => {
+    expect(mergeSources([[{ url: "u1", title: "A" }], [{ url: "u1", title: "B" }, { url: "u2", title: "C" }]])).toEqual([
+      { url: "u1", title: "A" },
+      { url: "u2", title: "C" },
+    ]);
+  });
+  it("tells the tutor to merge, and keeps the answer language last", () => {
+    const text = tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true, merge: true });
+    expect(text).toContain("Combine them into one rule");
+    expect(text).toContain("only to check and correct");
+    expect(text.split("\n\n").at(-1)).toMatch(/^Write the title, the topic/);
+    expect(tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true })).not.toContain("Combine them");
+  });
+});
+
+describe("searchResults", () => {
+  const row = (exchangeId: number, conversationId: string, answerText: string) =>
+    ({ exchangeId, conversationId, name: `C${conversationId}`, question: "q", answerText });
+
+  it("keeps the best exchange of each conversation, in order", () => {
+    const out = searchResults([row(5, "1", "mit"), row(6, "2", "nach"), row(7, "1", "other")], "mit");
+    expect(out.map((r) => [r.conversationId, r.exchangeId])).toEqual([["1", 5], ["2", 6]]);
+  });
+
+  it("cuts a snippet around the first word found, ignoring capitals", () => {
+    const text = `${"a ".repeat(100)}Dativ ${"b ".repeat(100)}`;
+    const { snippet } = searchResults([row(1, "1", text)], "dativ")[0];
+    expect(snippet).toContain("Dativ");
+    expect(snippet.startsWith("…")).toBe(true);
+    expect(snippet.length).toBeLessThanOrEqual(82);
+  });
+
+  it("starts at the beginning, question first, when no word is found (a meaning match)", () => {
+    expect(searchResults([row(1, "1", "Short answer")], "zzz")[0].snippet).toBe("q Short answer");
   });
 });
