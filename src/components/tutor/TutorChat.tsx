@@ -36,6 +36,8 @@ export function TutorChat(props: {
   conversationId: string | null;
   initialExchanges: TutorExchange[];
   linkedRuleIds: string[];
+  /** Answer id to the rule it was saved as. */
+  savedRules: Record<number, string>;
   notFound: boolean;
 }) {
   const router = useRouter();
@@ -54,7 +56,9 @@ export function TutorChat(props: {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [unsaved, setUnsaved] = useState(false);
-  const [saving, setSaving] = useState<TutorReply | null>(null);
+  // The reply being saved, and the answer it is (null for a merged draft).
+  const [saving, setSaving] = useState<{ reply: TutorReply; exchangeId: number | null } | null>(null);
+  const [savedRules, setSavedRules] = useState(props.savedRules);
   // A merged rule waiting to be saved or discarded. It lives only here, never
   // in the conversation (the owner's decision, 7 October 2026), so leaving or
   // reloading the page throws it away, and once saved it goes, so it cannot be
@@ -182,7 +186,8 @@ export function TutorChat(props: {
             onTick={(on) =>
               setTicked((all) => (on ? [...all, exchange.id!] : all.filter((id) => id !== exchange.id)))
             }
-            onSave={() => setSaving(exchange.reply)}
+            onSave={() => setSaving({ reply: exchange.reply, exchangeId: exchange.id })}
+            savedRuleId={exchange.id === null ? undefined : savedRules[exchange.id]}
           />
         ))}
         {draft && (
@@ -191,7 +196,7 @@ export function TutorChat(props: {
             index={exchanges.length}
             ticked={null}
             onTick={() => {}}
-            onSave={() => setSaving(draft.reply)}
+            onSave={() => setSaving({ reply: draft.reply, exchangeId: null })}
             onDiscard={() => setDraft(null)}
           />
         )}
@@ -261,15 +266,18 @@ export function TutorChat(props: {
 
       {saving && (
         <SaveAsRuleDialog
-          reply={saving}
+          reply={saving.reply}
           linkedRuleIds={linkedRuleIds}
           onSaved={(rule) => {
             setLinkedRuleIds((all) => [...all, rule.id]);
             // A saved draft has done its job; it goes, so it cannot be saved again.
-            if (draft && saving === draft.reply) setDraft(null);
+            if (draft && saving.reply === draft.reply) setDraft(null);
+            // A saved answer offers its rule from now on instead of a second save.
+            const from = saving.exchangeId;
+            if (from !== null) setSavedRules((all) => ({ ...all, [from]: rule.id }));
             // Recorded only for a saved conversation; an answer that was not
             // saved has nowhere to record it.
-            if (conversationId) void recordSavedRule(conversationId, rule.id);
+            if (conversationId) void recordSavedRule(conversationId, rule.id, saving.exchangeId);
           }}
           onClose={() => setSaving(null)}
         />

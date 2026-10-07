@@ -34,12 +34,15 @@ export async function deleteConversation(id: string): Promise<boolean> {
  * failed, the rule has no row and the database refuses the link (23503), so
  * nothing is recorded, as the spec wants; a link already there (23505) is
  * fine. Nothing here is worth an error on screen: the rule itself is what the
- * learner saved.
+ * learner saved. `exchangeId` is the answer it was saved from, so the page
+ * can offer Open rather than a second save (null for a merged rule).
  */
-export async function recordSavedRule(conversationId: string, itemId: string): Promise<void> {
+export async function recordSavedRule(conversationId: string, itemId: string, exchangeId: number | null): Promise<void> {
   await settled();
   const supabase = getSupabase();
   if (!supabase) return;
-  const { error } = await supabase.from("tutor_conversation_rules").insert({ conversation_id: conversationId, item_id: itemId });
+  const { error } = await supabase
+    .from("tutor_conversation_rules")
+    .insert({ conversation_id: conversationId, item_id: itemId, exchange_id: exchangeId });
   if (error && error.code !== "23503" && error.code !== "23505") console.error("tutor: could not record the saved rule");
 }

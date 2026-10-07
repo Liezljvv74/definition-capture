@@ -36,9 +36,15 @@ test("rules saved from a conversation link to each other across visits, and to a
   // The link is recorded after the rule's own save; let both finish before leaving.
   await page.waitForLoadState("networkidle");
 
-  // 2. Come back later: the next rule from A links to the first automatically.
+  // 2. The saved answer now offers its rule, not a second save, and still
+  // does when the conversation is opened again; the only Save as rule left is
+  // the second answer's.
+  await expect(page.getByRole("link", { name: `Open “${RULES[0]}”` })).toBeVisible();
   await page.reload();
-  await saveAs(page, 1, RULES[1]);
+  await expect(page.getByRole("link", { name: `Open “${RULES[0]}”` })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save as rule" })).toHaveCount(1);
+  // The next rule from A links to the first automatically.
+  await saveAs(page, 0, RULES[1]);
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText(`Saved, linked to “${RULES[0]}”.`)).toBeVisible();
   await page.getByRole("button", { name: "Close" }).last().click();

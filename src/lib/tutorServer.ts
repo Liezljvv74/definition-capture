@@ -288,10 +288,20 @@ export async function loadExchangesById(supabase: SupabaseClient, conversationId
   return ids.flatMap((id) => byId.get(id) ?? []);
 }
 
-export async function loadLinkedRuleIds(supabase: SupabaseClient, conversationId: string): Promise<string[]> {
-  const { data, error } = await supabase.from("tutor_conversation_rules").select("item_id").eq("conversation_id", conversationId);
+/** The rules saved from a conversation, each with the answer it was saved from (null for a merged rule). */
+export async function loadLinkedRules(
+  supabase: SupabaseClient,
+  conversationId: string,
+): Promise<{ itemId: string; exchangeId: number | null }[]> {
+  const { data, error } = await supabase
+    .from("tutor_conversation_rules")
+    .select("item_id, exchange_id")
+    .eq("conversation_id", conversationId);
   if (error) throw new Error("linked rules unavailable");
-  return (data as { item_id: string }[]).map((row) => row.item_id);
+  return (data as { item_id: string; exchange_id: number | null }[]).map((row) => ({
+    itemId: row.item_id,
+    exchangeId: row.exchange_id === null ? null : Number(row.exchange_id),
+  }));
 }
 
 export async function createConversation(supabase: SupabaseClient, userId: string, name: string): Promise<string> {

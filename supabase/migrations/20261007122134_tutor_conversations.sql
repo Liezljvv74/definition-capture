@@ -92,7 +92,9 @@ create table public.tutor_exchanges (
   -- ran out of time: the exchange is still found by keyword.
   embedding extensions.halfvec(1024),
   created_at timestamptz not null default now(),
-  foreign key (conversation_id, user_id) references public.tutor_conversations (id, user_id) on delete cascade
+  foreign key (conversation_id, user_id) references public.tutor_conversations (id, user_id) on delete cascade,
+  -- What a saved rule's link points its composite key at.
+  unique (id, user_id)
 );
 -- A halfvec(1024) is just over the 2 KB at which Postgres moves a value out
 -- of the row; kept in the row, an exact scan reads the table, not a second one.
@@ -130,11 +132,17 @@ create table public.tutor_conversation_rules (
   -- No reference to auth.users of its own: both composite keys below cascade
   -- when the account goes, through its conversations and its items.
   user_id uuid not null default auth.uid(),
+  -- The answer the rule was saved from; null for a rule merged from several
+  -- answers, which is a draft and never an exchange. Unique, as an answer is
+  -- saved as a rule once (the owner's rule, 7 October 2026): the page offers
+  -- Open instead of Save as rule for it, and this refuses a second link.
+  exchange_id bigint unique,
   created_at timestamptz not null default now(),
   primary key (conversation_id, item_id),
   foreign key (conversation_id, user_id) references public.tutor_conversations (id, user_id) on delete cascade,
   -- A rule that failed to save has no row here to point at, so its link is refused.
-  foreign key (item_id, user_id) references public.items (id, user_id) on delete cascade
+  foreign key (item_id, user_id) references public.items (id, user_id) on delete cascade,
+  foreign key (exchange_id, user_id) references public.tutor_exchanges (id, user_id) on delete cascade
 );
 -- Serves the cascade when a rule is deleted.
 create index tutor_conversation_rules_item_idx on public.tutor_conversation_rules (item_id, user_id);
@@ -147,7 +155,7 @@ create policy tutor_conversation_rules_insert on public.tutor_conversation_rules
 create policy tutor_conversation_rules_delete on public.tutor_conversation_rules
   for delete to authenticated using ((select auth.uid()) = user_id);
 revoke all on public.tutor_conversation_rules from public, anon, authenticated;
-grant select, delete, insert (conversation_id, item_id, user_id) on public.tutor_conversation_rules to authenticated;
+grant select, delete, insert (conversation_id, item_id, user_id, exchange_id) on public.tutor_conversation_rules to authenticated;
 
 -- One row per sidebar search, so an account's searches in the last hour can
 -- be counted (100 an hour, the owner's decision, 7 October 2026), the way

@@ -12,6 +12,7 @@ insert into auth.users (id, email) values
 -- A rule each, made as an administrator, as save_items would; a grammar item must have blocks.
 insert into public.items (id, user_id, item_type, title, blocks) values
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000000a', 'grammar', 'Dative', '[]'),
+  ('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-00000000000a', 'grammar', 'Dative again', '[]'),
   ('00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-00000000000b', 'grammar', 'Genitive', '[]');
 
 set local role authenticated;
@@ -80,7 +81,15 @@ begin
   end;
 
   -- A link to A's own rule is kept; one to B's rule, or to a rule never saved, is refused.
-  insert into public.tutor_conversation_rules (conversation_id, item_id) values (conv, '00000000-0000-0000-0000-0000000000a1');
+  insert into public.tutor_conversation_rules (conversation_id, item_id, exchange_id)
+    values (conv, '00000000-0000-0000-0000-0000000000a1', (select min(id) from public.tutor_exchanges));
+  -- An answer is saved as a rule once: a second rule from the same answer is refused.
+  begin
+    insert into public.tutor_conversation_rules (conversation_id, item_id, exchange_id)
+      values (conv, '00000000-0000-0000-0000-0000000000a2', (select min(id) from public.tutor_exchanges));
+    raise exception 'A saved the same answer as a second rule';
+  exception when unique_violation then null;
+  end;
   begin
     insert into public.tutor_conversation_rules (conversation_id, item_id) values (conv, '00000000-0000-0000-0000-0000000000b1');
     raise exception 'A linked B''s rule';

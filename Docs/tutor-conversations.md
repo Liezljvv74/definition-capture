@@ -158,6 +158,7 @@ is saved from it.
 | `conversation_id`, `user_id` | foreign key to `tutor_conversations (id, user_id)`, cascade |
 | `item_id` | foreign key `(item_id, user_id)` to `items (id, user_id)`, cascade |
 | `user_id` | default `auth.uid()`, so the browser records a link without looking up its id; no reference of its own, as both keys cascade when the account goes |
+| `exchange_id` | bigint, unique, nullable: the answer the rule was saved from, keyed by `(exchange_id, user_id)` to `tutor_exchanges (id, user_id)`, cascade; null for a merged rule |
 | `created_at` | timestamptz, default now() |
 
 Primary key `(conversation_id, item_id)`; index on `(item_id, user_id)` for
@@ -378,6 +379,13 @@ line. What it links to:
 `createRule` saves optimistically, so the `tutor_conversation_rules` row is
 written once the rule's own save has gone through; a rule that fails to save
 records nothing.
+
+A rule is saved once (the owner's rule, 7 October 2026). An answer already
+saved as a rule shows **Open "<rule>"** instead of **Save as rule**, in the
+same visit and on every later one (the link row records the answer), and the
+database refuses a second link for the same answer. A merged draft leaves the
+page once it is saved. Deleting the rule on the Grammar page removes its link,
+and the answer can be saved again.
 
 ## Removed
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 
 import { BlockView } from "@/components/grammar/BlockView";
-import { findByTitle } from "@/lib/rules";
+import { findByTitle, getRules } from "@/lib/rules";
 import type { TutorExchange } from "@/lib/tutor";
 
 /** The source's title, or its host when it has none. */
@@ -28,6 +28,17 @@ function SavedRuleLink({ title }: { title: string }) {
   );
 }
 
+/** A link to the rule an answer was saved as; nothing while the rules load or if it has since gone. */
+function OpenRuleLink({ id }: { id: string }) {
+  const rule = getRules().find((r) => r.id === id);
+  if (!rule) return null;
+  return (
+    <Link href={`/rule/?id=${rule.id}`} className="btn btn-secondary">
+      Open “{rule.title}”
+    </Link>
+  );
+}
+
 /**
  * One exchange: the question, and the answer as rule blocks with its sources
  * and Save as rule. `ticked` is null for an answer that was not saved, which
@@ -41,6 +52,7 @@ export function AnswerCard({
   onTick,
   onSave,
   onDiscard,
+  savedRuleId,
 }: {
   exchange: TutorExchange;
   index: number;
@@ -51,6 +63,8 @@ export function AnswerCard({
   onSave: () => void;
   /** Only for a merged rule's draft, which is never saved in the conversation and can be thrown away. */
   onDiscard?: () => void;
+  /** The rule this answer was already saved as: it offers that rule, never a second save (the owner's rule, 7 October 2026). */
+  savedRuleId?: string;
 }) {
   return (
     <section id={id === null ? undefined : `e-${id}`} className="scroll-mt-24 space-y-2">
@@ -86,7 +100,9 @@ export function AnswerCard({
                 Include in a rule
               </label>
             )}
-            {reply.existingRule ? (
+            {savedRuleId ? (
+              <OpenRuleLink id={savedRuleId} />
+            ) : reply.existingRule ? (
               // The rule is already saved, so the answer offers it rather than a second copy.
               <SavedRuleLink title={reply.existingRule} />
             ) : (

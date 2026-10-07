@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: 
 const base = { remaining: 26, reason: "ok", plan: "paid", studiedName: "German", nativeName: "English",
   initialAnswerIn: null, conversationId: null, notFound: false,
 } as const;
-const more = { initialExchanges: [] as TutorExchange[], linkedRuleIds: [] as string[] };
+const more = { initialExchanges: [] as TutorExchange[], linkedRuleIds: [] as string[], savedRules: {} as Record<number, string> };
 const html = (props: Partial<Parameters<typeof TutorChat>[0]> = {}) =>
   renderToStaticMarkup(<TutorChat {...base} {...more} {...props} />);
 
@@ -135,5 +135,18 @@ describe("AnswerCard for a merged rule's draft", () => {
 
   it("offers no Discard on an ordinary answer", () => {
     expect(html()).not.toContain("Discard");
+  });
+});
+
+describe("AnswerCard for an answer already saved as a rule", () => {
+  it("offers no second save", () => {
+    const exchange = {
+      id: 5, kind: "answer" as const, question: "q", mergeable: true,
+      reply: { title: "Dative", topic: "Cases", blocks: [{ id: "b", kind: "text" as const, text: "body" }], sources: [], existingRule: null, relatedRules: [] },
+    };
+    const out = renderToStaticMarkup(<AnswerCard exchange={exchange} index={0} ticked={false} onTick={() => {}} onSave={() => {}} savedRuleId="r1" />);
+    expect(out).not.toContain("Save as rule");
+    // It can still be ticked for a merge.
+    expect(out).toContain("Include in a rule");
   });
 });

@@ -17,7 +17,7 @@ import {
   loadConversationList,
   loadConversationMeta,
   loadExchanges,
-  loadLinkedRuleIds,
+  loadLinkedRules,
   loadTutorState,
   signatureValid,
 } from "@/lib/tutorServer";
@@ -46,13 +46,13 @@ export default async function TutorPage({ searchParams }: { searchParams: Promis
   const answerIn = first(params.in);
 
   const none = Promise.resolve(null);
-  const [{ plan, usedTotal, usedToday, settings }, conversations, held, meta, exchanges, linkedRuleIds] = await Promise.all([
+  const [{ plan, usedTotal, usedToday, settings }, conversations, held, meta, exchanges, linked] = await Promise.all([
     loadTutorState(supabase),
     loadConversationList(supabase),
     countHeld(supabase),
     id ? loadConversationMeta(supabase, id) : none,
     id ? loadExchanges(supabase, id, CONVERSATION_PAGE) : Promise.resolve([]),
-    id ? loadLinkedRuleIds(supabase, id) : Promise.resolve([]),
+    id ? loadLinkedRules(supabase, id) : Promise.resolve([]),
   ]);
 
   const allowed = allowance({ plan, usedTotal, usedToday });
@@ -86,7 +86,9 @@ export default async function TutorPage({ searchParams }: { searchParams: Promis
               }))
             : []
         }
-        linkedRuleIds={meta ? linkedRuleIds : []}
+        linkedRuleIds={meta ? linked.map((link) => link.itemId) : []}
+        // Which answers are already saved as rules, so they offer Open instead of a second save.
+        savedRules={meta ? Object.fromEntries(linked.flatMap((link) => (link.exchangeId === null ? [] : [[link.exchangeId, link.itemId]]))) : {}}
         notFound={given !== undefined && !meta}
       />
     </div>

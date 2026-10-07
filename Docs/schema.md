@@ -230,7 +230,11 @@ history, memory or mergeable.
 primary key `(conversation_id, item_id)`, with composite keys to both
 `tutor_conversations` and `items`, cascading from either. It stores the rule's
 id, not its title, so a renamed rule stays linked. `user_id` defaults to
-`auth.uid()`. Select, insert and delete on the owner.
+`auth.uid()`. `exchange_id` is the answer the rule was saved from (null for a
+rule merged from several answers), unique and keyed by `(exchange_id,
+user_id)` to `tutor_exchanges`, which gains `unique (id, user_id)` for it: an
+answer is saved as a rule once, so the page offers that rule instead of a
+second save. Select, insert and delete on the owner.
 
 ### `tutor_searches`
 
