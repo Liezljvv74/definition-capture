@@ -9,10 +9,11 @@ const html = (props: Partial<Parameters<typeof TutorSidebar>[0]> = {}) =>
   renderToStaticMarkup(<TutorSidebar conversations={[]} activeId={null} {...props} />);
 
 describe("TutorSidebar", () => {
-  it("has the search box, New conversation, and says when there are none", () => {
+  it("has the search box, no New conversation button, and says when there are none", () => {
     const out = html();
     expect(out).toContain("Search conversations");
-    expect(out).toContain("New conversation");
+    // The owner's decision (7 October 2026): a conversation is started from the box under Tutor, not the sidebar.
+    expect(out).not.toContain("New conversation");
     expect(out).toContain("No conversations yet.");
   });
 

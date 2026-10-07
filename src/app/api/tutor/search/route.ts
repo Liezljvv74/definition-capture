@@ -9,7 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
-import { SEARCH_MAX, SEARCH_MIN, searchResults } from "@/lib/tutor";
+import { asQuery, SEARCH_MAX, SEARCH_MIN, searchResults } from "@/lib/tutor";
 import { embedOrNull, reserveSearch, searchExchanges } from "@/lib/tutorServer";
 
 export const runtime = "nodejs";
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   try {
     if (!(await reserveSearch(supabase, userId))) return fail(429, "search_limit");
     // A failed embedding gives null, and the search is then by keyword only.
-    const rows = await searchExchanges(supabase, query, await embedOrNull(query), SEARCH_ROWS);
+    const rows = await searchExchanges(supabase, query, await embedOrNull(asQuery(query)), SEARCH_ROWS);
     return NextResponse.json({
       results: searchResults(
         rows.map((r) => ({ exchangeId: r.id, conversationId: r.conversationId, name: r.conversationName, question: r.question, answerText: r.answerText })),

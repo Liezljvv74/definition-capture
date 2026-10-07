@@ -30,6 +30,8 @@ export function TutorSidebar({ conversations, activeId }: { conversations: Conve
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<Conversation | null>(null);
+  // Set by Escape just before the box loses focus, so leaving it that way cancels instead of saving.
+  const cancelRename = useRef(false);
   const [deleting, setDeleting] = useState<Conversation | null>(null);
   const [writeFailed, setWriteFailed] = useState(false);
 
@@ -130,7 +132,6 @@ export function TutorSidebar({ conversations, activeId }: { conversations: Conve
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
-          <Link href="/tutor" className="btn btn-primary block text-center" onClick={close}>New conversation</Link>
           {searching && searchError && <p role="alert" className={ERROR}>{searchError}</p>}
           {writeFailed && <p role="alert" className={ERROR}>{SAVE_FAILED}</p>}
 
@@ -162,11 +163,24 @@ export function TutorSidebar({ conversations, activeId }: { conversations: Conve
                       defaultValue={conversation.name}
                       maxLength={120}
                       autoFocus
-                      // Enter saves; leaving the box cancels, so a rename is never saved twice.
-                      onBlur={() => setRenaming(null)}
+                      // Leaving the box saves, as clicking away is how people finish
+                      // typing (the owner found Enter-only lost a rename, 7 October
+                      // 2026). Enter saves by leaving the box, so the save happens
+                      // once, in onBlur; Escape cancels.
+                      onBlur={(event) => {
+                        if (cancelRename.current) {
+                          cancelRename.current = false;
+                          setRenaming(null);
+                        } else void rename(conversation, event.currentTarget.value);
+                      }}
                       onKeyDown={(event) => {
-                        if (event.key === "Enter") void rename(conversation, event.currentTarget.value);
-                        if (event.key === "Escape") setRenaming(null);
+                        if (event.key === "Enter") event.currentTarget.blur();
+                        if (event.key === "Escape") {
+                          // Only the rename is cancelled, not the phone panel around it.
+                          event.stopPropagation();
+                          cancelRename.current = true;
+                          event.currentTarget.blur();
+                        }
                       }}
                     />
                   ) : (

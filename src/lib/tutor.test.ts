@@ -5,7 +5,7 @@ import type { ExampleBlock, TableBlock, TextBlock } from "@/lib/types";
 import {
   allowance, buildRequest, conversationName, DEFAULT_TUTOR_MODEL, exchangeTurns, FREE_TRIAL_MESSAGES, freeTitle,
   mergeLabel, mergeQuestion, mergeSources, PAID_DAILY_MESSAGES, pickMemory, readConversationId,
-  readExchangeIds, readReply, readStoredReply, REFERENCE_DOMAINS, searchResults, startOfUtcDay,
+  asQuery, readExchangeIds, readReply, readStoredReply, REFERENCE_DOMAINS, searchResults, startOfUtcDay,
   tutorInstructions, withSeeAlso,
 } from "@/lib/tutor";
 
@@ -366,5 +366,17 @@ describe("searchResults", () => {
 
   it("starts at the beginning, question first, when no word is found (a meaning match)", () => {
     expect(searchResults([row(1, "1", "Short answer")], "zzz")[0].snippet).toBe("q Short answer");
+  });
+});
+
+describe("search and topic limits", () => {
+  it("puts Qwen3's task line in front of a search query, and nothing else", () => {
+    expect(asQuery("dative")).toMatch(/^Instruct: .+\nQuery: dative$/);
+  });
+
+  it("cuts a reply's topic to the 60 characters a tag may hold", () => {
+    const topic = "x".repeat(59) + " and then a whole sentence more";
+    const read = readReply({ choices: [{ message: { content: JSON.stringify({ title: "t", topic, blocks: [{ kind: "text", text: "a" }] }) } }] });
+    expect(read!.topic.length).toBeLessThanOrEqual(60);
   });
 });

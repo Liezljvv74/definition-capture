@@ -583,8 +583,9 @@ The design is in [`Docs/tutor.md`](Docs/tutor.md).
 
 Every question and answer is saved in a conversation, and the conversations are
 listed down the left of `/tutor`, newest first, one line each. `/tutor?c=<id>`
-opens one, so a reload or a bookmark stays on it. **New conversation** starts a
-fresh one, and the menu on each line renames or deletes it. On a phone the list
+opens one, so a reload or a bookmark stays on it. The Tutor tab opens an empty
+question box, which starts a fresh one, and the menu on each line renames or
+deletes it. On a phone the list
 opens from a **Conversations** button. An account keeps up to 500 conversations
 and 2,000 answers; when it is full, the question box says so, and everything
 else still works.

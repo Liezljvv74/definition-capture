@@ -283,7 +283,9 @@ Body `{ conversationId, exchangeIds, answerIn }`, 2 to 10 ids.
 
 Body `{ query }`, 2 to 200 characters. Record the search in `tutor_searches`
 and count the account's searches in the last hour; over 100 is 429. Then
-embed the query and call `search_tutor` with `match_count` 30; on an
+embed the query (with Qwen3's one-line task in front, `asQuery`, as the model
+expects for a search; saved answers are embedded as they are) and call
+`search_tutor` with `match_count` 30; on an
 embedding failure call it with a null embedding (keyword only). Group by
 conversation, best first, each with its name and a snippet of about 80
 characters around the best match. It does not spend the allowance.
@@ -310,12 +312,15 @@ keep the Answer in choice.
 ### Sidebar (left, about 16rem, sticky under the top bar, scrolling on its own)
 
 1. A search box labelled "Search conversations".
-2. **New conversation**, which opens `/tutor`.
-3. The conversations, newest activity first, one line per name, cut with an
+2. The conversations, newest activity first, one line per name, cut with an
    ellipsis (full name on hover), the open one highlighted. Each line has a
-   ⋯ menu with **Rename** (edited in place; Enter saves, leaving the box or
+   ⋯ menu with **Rename** (edited in place; Enter or leaving the box saves,
    Escape cancels) and **Delete** (confirmed in a dialog). With none saved:
    "No conversations yet."
+
+There is no New conversation button (the owner's decision, 7 October 2026): a
+conversation is started from the question box under Tutor, on `/tutor`, which
+the Tutor tab opens.
 
 While the search box has text, results replace the list: each conversation's
 name and, under it in small text, one line of the matching snippet. Choosing

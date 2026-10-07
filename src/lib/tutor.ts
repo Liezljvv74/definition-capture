@@ -1,5 +1,6 @@
 import { plainText } from "@/lib/blockText";
 import { newTextBlock, readBlocks } from "@/lib/blocks";
+import { MAX_NAME } from "@/lib/constants";
 import { foldName } from "@/lib/foldName";
 import { readString, type Block } from "@/lib/types";
 
@@ -33,6 +34,17 @@ export const DEFAULT_TUTOR_MODEL = "anthropic/claude-sonnet-5.5";
  */
 export const EMBEDDING_MODEL = "qwen/qwen3-embedding-8b";
 export const EMBEDDING_DIMENSIONS = 1024;
+
+/**
+ * A search query as Qwen3 wants it: with a one-line task in front, while the
+ * saved answers are embedded as they are. Measured on 7 October 2026: without
+ * it, "where does the verb go" sat at 0.47 from an unrelated answer about
+ * two-way prepositions, inside the 0.5 cut-off; with it, 0.53, outside, while
+ * the related answers came closer.
+ */
+export function asQuery(text: string): string {
+  return `Instruct: Given a question about grammar, retrieve earlier tutor answers that explain the same grammar point\nQuery: ${text}`;
+}
 /** Characters embedded at most; the model reads far more, and an answer's start says what it is about. */
 export const EMBED_TEXT_MAX = 8000;
 /** Earlier exchanges, from any conversation, given to the tutor with a question. */
@@ -154,7 +166,7 @@ export function tutorInstructions(input: {
       ? "Base the explanation on the search results from the reference sites you are given."
       : "No reference search is available for this language, so say plainly where you are unsure.",
     scopeRule(studied, answerIn) + " A refusal is still a valid reply: a short title and that one sentence as a text block.",
-    "Reply as JSON with a short title, a topic, and blocks. A text block may use **bold** for emphasis; in an example sentence, wrap the word or words being taught in {curly braces}; use braces nowhere else. Put no links or web addresses in the text: the sources are shown separately.",
+    "Reply as JSON with a short title, a topic of one to four words, and blocks. A text block may use **bold** for emphasis; in an example sentence, wrap the word or words being taught in {curly braces}; use braces nowhere else. Put no links or web addresses in the text: the sources are shown separately.",
     // The owner's rule (5 October 2026): an answer came back ending a paragraph
     // with "Source: duden.de and dwds.de." The references belong only in the
     // list under the answer; cleanText removes any that still slip in.
@@ -367,7 +379,8 @@ export function readReply(json: unknown, ruleTitles: string[] = []): TutorReply 
   const existingRule = savedTitles(parsed.existing_rule, ruleTitles)[0] ?? null;
   return {
     title: parsed.title.slice(0, 120),
-    topic: parsed.topic.slice(0, 120),
+    // A topic is stored as a tag of at most 60 characters.
+    topic: parsed.topic.slice(0, MAX_NAME).trim(),
     blocks,
     sources: [...sources].map(([url, title]) => ({ url, title })),
     existingRule,

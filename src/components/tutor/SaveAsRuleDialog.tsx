@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useId, useState } from "react";
 
 import { Modal } from "@/components/Modal";
+import { MAX_NAME } from "@/lib/constants";
 import { searchRules } from "@/lib/ruleSearch";
 import { createRule, findByTitle, titleProblem } from "@/lib/rules";
 import { freeTitle, withSeeAlso, type TutorReply } from "@/lib/tutor";
@@ -35,7 +36,8 @@ export function SaveAsRuleDialog({
   // may still be loading when the dialog opens.
   const [typed, setTyped] = useState<string | null>(null);
   const title = typed ?? freeTitle(reply.title, (candidate) => findByTitle(candidate) !== undefined);
-  const [topic, setTopic] = useState(reply.topic);
+  // Cut to what a topic may hold, in case the reply came from before the cap.
+  const [topic, setTopic] = useState(reply.topic.slice(0, MAX_NAME).trim());
   // The saved rule and what it was linked to, kept from the moment of saving:
   // `linkedRuleIds` grows to include the rule itself once the chat hears about it.
   const [saved, setSaved] = useState<{ id: string; links: string[] } | null>(null);
@@ -86,7 +88,7 @@ export function SaveAsRuleDialog({
           </div>
           <div>
             <label htmlFor={`${inputId}-topic`} className="mb-1 block text-sm font-medium">Topic</label>
-            <input id={`${inputId}-topic`} className="field" value={topic} maxLength={200} onChange={(event) => setTopic(event.target.value)} />
+            <input id={`${inputId}-topic`} className="field" value={topic} maxLength={MAX_NAME} onChange={(event) => setTopic(event.target.value)} />
           </div>
           {linkTo.length + related.length > 0 && (
             <fieldset>

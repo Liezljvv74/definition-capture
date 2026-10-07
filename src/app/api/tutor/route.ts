@@ -25,6 +25,7 @@ import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
 import {
   allowance,
   answerText,
+  asQuery,
   buildRequest,
   CONVERSATION_LIMIT,
   conversationName,
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
     console.error("tutor: could not read the rule titles");
     return [] as string[];
   });
-  const memorySearch = embedOrNull(question)
+  const memorySearch = embedOrNull(asQuery(question))
     .then((vector) => searchExchanges(supabase, question, vector, MEMORY_LIMIT + HISTORY_LIMIT))
     .catch(() => {
       console.error("tutor: the memory search failed");
