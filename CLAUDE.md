@@ -228,7 +228,7 @@ points at. A collection or source still in use cannot be deleted; the database
 refuses it and Settings switches the bin off.
 
 **`Docs/schema.md` is the design of record, and it is read before a table is
-added.** Sixteen tables, no views, and twelve functions, none of them `security
+added.** Sixteen tables (once the follow-up migration has dropped `conversation_messages`), no views, and twelve functions, none of them `security
 definer`: `items` holds every word, phrase, verb table and grammar rule, with a check per type
 on its detail columns; `tags`, `item_tags` and `sources` label them; `decks`,
 `deck_cards`, `progress` and an append-only `reviews` carry the flashcards, and

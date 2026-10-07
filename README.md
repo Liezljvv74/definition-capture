@@ -83,6 +83,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key_here
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 OPENROUTER_API_KEY=
+TUTOR_SIGNING_SECRET=
 OPENROUTER_MODEL=
 ```
 
@@ -94,11 +95,14 @@ so the site key is needed locally too (localhost is a listed hostname on the
 widget); with it empty every sign-in is refused. It is left empty only against a
 local Supabase copy, where captcha is off.
 
-The last two are for the tutor and are read only on the server. The key comes
+The last three are for the tutor and are read only on the server. The key comes
 from your OpenRouter account and is a secret: it never has a `NEXT_PUBLIC_`
 name and must not be committed. Without it the app runs and the tutor says it
-cannot answer. `OPENROUTER_MODEL` is optional and names the model; unset, it is
-`anthropic/claude-sonnet-5.5`.
+cannot answer. `TUTOR_SIGNING_SECRET` is a second secret, made by you, that signs
+the tutor's answers; generate one with
+`node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
+Without it the tutor refuses every question. `OPENROUTER_MODEL` is optional and
+names the model; unset, it is `anthropic/claude-sonnet-5.5`.
 
 The port is fixed at 3000 on purpose: a sign-in link only returns to a URL
 Supabase has been told to accept, and `http://localhost:3000/auth/callback` is
@@ -220,12 +224,16 @@ anything in its own voice.
 The only keys in the browser bundle are public ones. `NEXT_PUBLIC_*` holds the
 project URL, the publishable key and the Turnstile site key. The project holds no
 service-role key at all, and the Turnstile secret lives only in the Supabase
-dashboard. The one other secret is `OPENROUTER_API_KEY`, which is read only in
-server code.
+dashboard. The other secrets are `OPENROUTER_API_KEY` and `TUTOR_SIGNING_SECRET`, both
+read only in server code and never given a `NEXT_PUBLIC_` name. The signing
+secret keys the signatures on the tutor's answers, so that a made-up earlier
+answer cannot reach the model; changing it leaves older answers shown and
+searchable but no longer history, memory or mergeable.
 
 ## Where the data lives
 
-Every list is in Supabase, in thirteen tables with no views and ten functions,
+Every list is in Supabase, in sixteen tables with no views and twelve functions (sixteen once
+`conversation_messages` is dropped by the follow-up migration),
 none of them `security definer`. The design, and why it is shaped that way, is in
 [`Docs/schema.md`](Docs/schema.md); how it got there is in
 [`Docs/db-refactor-plan.md`](Docs/db-refactor-plan.md).
@@ -565,8 +573,10 @@ rule linked to nothing.
 A free account gets 5 tutor messages in total. A paid account gets 30 a day,
 counted from midnight UTC. Failed answers count, and a refused question is not
 recorded. With no studied language chosen, the page links to Settings instead of
-offering the question box. The OpenRouter key is read only by the server route
-`POST /api/tutor`, which checks the session and the allowance before calling out.
+offering the question box. The OpenRouter key is read only in `src/lib/tutorServer.ts`, for
+`POST /api/tutor`, `/api/tutor/merge` and `/api/tutor/search`, which check the
+session and the allowance before calling out; the signatures use their own
+secret, `TUTOR_SIGNING_SECRET`.
 The design is in [`Docs/tutor.md`](Docs/tutor.md).
 
 #### Saved conversations
@@ -801,8 +811,10 @@ deploys every push to `main` on its own, so pushing to `main` is releasing.
 - **The build reads its environment from Vercel**, not from `.env.local`:
   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and
   `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, all public.
-- **`OPENROUTER_API_KEY` is the one secret in Vercel.** Add it to Production as a
-  Sensitive variable, and `OPENROUTER_MODEL` too if the default model is not the
+- **`OPENROUTER_API_KEY` and `TUTOR_SIGNING_SECRET` are the secrets in Vercel.**
+  Add both to Production and Preview as Sensitive variables, the signing secret
+  before the code reaches `main` (without it the tutor refuses every question),
+  and `OPENROUTER_MODEL` too if the default model is not the
   one wanted. The tutor's migration has to be pushed before the code reaches
   `main`.
 - **Emailed links need the production origin registered**, as described under

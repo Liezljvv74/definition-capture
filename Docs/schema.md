@@ -20,7 +20,8 @@ those migrations and in the git log; none of it is live.
 
 ## The shape
 
-Sixteen tables, no views, twelve functions, none of them `security definer`.
+Sixteen tables (once the follow-up migration has dropped `conversation_messages`, which
+still exists until then), no views, twelve functions, none of them `security definer`.
 
 | Table | Holds | Written by |
 | --- | --- | --- |
