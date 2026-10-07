@@ -24,6 +24,8 @@ import {
   buildRequest,
   MERGE_MIN,
   mergeQuestion,
+  mergeSearch,
+  onReferenceSite,
   mergeSources,
   readConversationId,
   readExchangeIds,
@@ -126,14 +128,15 @@ export async function POST(request: Request) {
       await askOpenRouter(
         buildRequest({
           model: tutorModel(),
-          instructions: tutorInstructions({ studied, answerIn: answerName, level: settings.level, grounded: domains.length > 0, rules, merge: true }),
+          instructions: tutorInstructions({ studied, answerIn: answerName, level: settings.level, grounded: domains.length > 0, rules, merge: mergeQuestion(trusted) }),
           history: [],
-          question: mergeQuestion(trusted),
+          question: mergeSearch(trusted),
           domains,
         }),
         Math.max(timeLeft() - REPLY_MS, 5_000),
       ),
       rules,
+      domains,
     );
   } catch (error) {
     console.error(`merge: ${error instanceof Error ? error.message : "the OpenRouter call threw"}`);
@@ -144,7 +147,9 @@ export async function POST(request: Request) {
     return fail(502, "tutor_failed", left);
   }
   // The fresh citations first, then the merged answers' own, each once.
-  reply = { ...reply, existingRule: null, sources: mergeSources([reply.sources, ...trusted.map((a) => a.reply.sources)]) };
+  // Answers saved before the reference-site filter may carry shop pages, so the merged list is filtered too.
+  const sources = mergeSources([reply.sources, ...trusted.map((a) => a.reply.sources)]).filter((s) => onReferenceSite(s.url, domains));
+  reply = { ...reply, existingRule: null, sources };
 
   return NextResponse.json({ reply, remaining: left });
 }

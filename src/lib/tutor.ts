@@ -147,7 +147,8 @@ export function tutorInstructions(input: {
   grounded: boolean;
   /** The titles of the learner's saved grammar rules. */
   rules?: string[];
-  merge?: boolean;
+  /** For a rule merged from ticked answers: those answers, as `mergeQuestion` writes them. */
+  merge?: string;
 }): string {
   const { studied, answerIn } = input;
   const rules = input.rules ?? [];
@@ -156,8 +157,11 @@ export function tutorInstructions(input: {
     // The owner's rule (2 October 2026): the answers were accurate but hard
     // going, so the explanation is always plain, and the level only sets how
     // hard the examples are.
-    "Always explain as if to a ten-year-old, whatever the learner's level: short sentences, everyday words, one idea at a time. " +
-      "If you need a grammar term, first say in plain words what it means. Prefer a few clear points over a complete list.",
+    "Always explain as if to a ten-year-old, whatever the learner's level: short sentences, everyday words, one point at a time. " +
+      "If you need a grammar term, first say in plain words what it means. Prefer a few clear points over a complete list. " +
+      // The owner's rule (7 October 2026): answers came back with "Idea 3:" before
+      // each paragraph, taken from "one idea at a time" above.
+      'Do not start a paragraph with a label such as "Idea 3:" or "Step 2:"; where numbering helps, write just the number, such as "3.".',
     `The learner's level (${input.level || "B1"} on the CEFR scale) only sets how hard the example sentences are, never how hard the explanation is.`,
     "Give practical example sentences" +
       (studied === answerIn ? "." : `, each with a translation into ${answerIn}.`) +
@@ -188,7 +192,10 @@ export function tutorInstructions(input: {
     // owner wants what was ticked, cleaned up, and the search only as a check.
     ...(input.merge
       ? [
-          "The learner has chosen earlier answers to keep as one grammar rule; they are given in the last message. " +
+          // The answers are here rather than in the last message, because the
+          // web search takes the last message as its query, and the whole text
+          // of several answers found pages such as "Kubikkilometer" (7 October 2026).
+          `The learner has chosen earlier answers to keep as one grammar rule; they are between the lines below.\n---\n${input.merge}\n---\n` +
             "Combine them into one rule: say each thing once, keep every point and example that is not a repeat, " +
             "and order it from the plain meaning to the details. Use the search results only to check and correct what the answers say, " +
             "never to add a topic the answers do not cover. Leave existing_rule empty.",
@@ -329,6 +336,8 @@ const SITE_BRACKET = new RegExp(`\\s*\\([^()]*(?:${SITE_NAMES.join("|")})[^()]*\
  */
 function cleanText(text: string): string {
   return text
+    // "Idea 3:" before a paragraph becomes "3." (the owner's rule, 7 October 2026), in the answer languages it is seen in.
+    .replace(/^(\*\*)?(?:Idea|Idee|Idée|Point|Punkt|Step|Schritt)\s+(\d+)\s*:/gim, "$1$2.")
     .replace(/\[([^\]]*)\]\((?:https?:\/\/|www\.)[^)\s]*\)/g, "$1")
     .replace(/(?:https?:\/\/|www\.)[^\s)]+/g, "")
     // After the links, so a linked note is removed whole rather than left as its words.
@@ -349,7 +358,27 @@ function cleanBlock(block: Block): Block {
 }
 
 /** `ruleTitles` are the learner's saved rules, which the reply's rule names are checked against. */
-export function readReply(json: unknown, ruleTitles: string[] = []): TutorReply | null {
+/**
+ * Whether a source is on one of the reference sites itself, the site or its
+ * www. The search also returns pages from their other hosts, such as
+ * shop.duden.de and cdn.duden.de, whose exercise books came back as "sources"
+ * (7 October 2026); those are not references. With no list, any http page.
+ */
+export function onReferenceSite(url: string, domains: string[]): boolean {
+  if (domains.length === 0) return true;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return domains.some((d) => {
+      const site = d.replace(/^www\./, "");
+      return host === site || host === `www.${site}`;
+    });
+  } catch {
+    return false;
+  }
+}
+
+/** `domains` are the reference sites searched; a citation from anywhere else is left out. */
+export function readReply(json: unknown, ruleTitles: string[] = [], domains: string[] = []): TutorReply | null {
   const message = (json as { choices?: { message?: { content?: unknown; annotations?: unknown } }[] } | null)?.choices?.[0]?.message;
   if (typeof message?.content !== "string") return null;
   let parsed: { title?: unknown; topic?: unknown; blocks?: unknown; existing_rule?: unknown; related_rules?: unknown };
@@ -374,7 +403,7 @@ export function readReply(json: unknown, ruleTitles: string[] = []): TutorReply 
     } catch {
       continue;
     }
-    if (!sources.has(url)) sources.set(url, readString(cite.title));
+    if (!sources.has(url) && onReferenceSite(url, domains)) sources.set(url, readString(cite.title));
   }
   const existingRule = savedTitles(parsed.existing_rule, ruleTitles)[0] ?? null;
   return {
@@ -561,4 +590,20 @@ export function searchResults(
     results.push({ conversationId: row.conversationId, name: row.name, exchangeId: row.exchangeId, snippet });
   }
   return results;
+}
+
+/**
+ * The message the model is sent for a question. The web search takes the last
+ * message as its query, so a follow-up such as "give me 10 exercises" searched
+ * for exactly that and found shop pages (7 October 2026). Naming the topic the
+ * conversation is on keeps the search on the grammar point. The learner's own
+ * words are what is saved and shown.
+ */
+export function followUp(question: string, previousTitle: string | undefined): string {
+  return previousTitle ? `About "${previousTitle}": ${question}` : question;
+}
+
+/** The short last message of a merge, which the web search uses as its query. */
+export function mergeSearch(answers: { reply: { title: string } }[]): string {
+  return `Make one rule about: ${[...new Set(answers.map((a) => a.reply.title))].join("; ")}`;
 }

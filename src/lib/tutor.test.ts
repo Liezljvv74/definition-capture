@@ -5,7 +5,7 @@ import type { ExampleBlock, TableBlock, TextBlock } from "@/lib/types";
 import {
   allowance, buildRequest, conversationName, DEFAULT_TUTOR_MODEL, exchangeTurns, FREE_TRIAL_MESSAGES, freeTitle,
   mergeLabel, mergeQuestion, mergeSources, PAID_DAILY_MESSAGES, pickMemory, readConversationId,
-  asQuery, readExchangeIds, readReply, readStoredReply, REFERENCE_DOMAINS, searchResults, startOfUtcDay,
+  asQuery, followUp, mergeSearch, onReferenceSite, readExchangeIds, readReply, readStoredReply, REFERENCE_DOMAINS, searchResults, startOfUtcDay,
   tutorInstructions, withSeeAlso,
 } from "@/lib/tutor";
 
@@ -339,7 +339,7 @@ describe("conversation names and merges", () => {
     ]);
   });
   it("tells the tutor to merge, and keeps the answer language last", () => {
-    const text = tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true, merge: true });
+    const text = tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true, merge: "Answer 1:\none" });
     expect(text).toContain("Combine them into one rule");
     expect(text).toContain("only to check and correct");
     expect(text.split("\n\n").at(-1)).toMatch(/^Write the title, the topic/);
@@ -378,5 +378,48 @@ describe("search and topic limits", () => {
     const topic = "x".repeat(59) + " and then a whole sentence more";
     const read = readReply({ choices: [{ message: { content: JSON.stringify({ title: "t", topic, blocks: [{ kind: "text", text: "a" }] }) } }] });
     expect(read!.topic.length).toBeLessThanOrEqual(60);
+  });
+});
+
+describe("what the web search is given", () => {
+  it("names the conversation's topic in front of a follow-up", () => {
+    expect(followUp("give me 10 exercises", "Konjunktiv II")).toBe('About "Konjunktiv II": give me 10 exercises');
+    expect(followUp("What is the Konjunktiv II?", undefined)).toBe("What is the Konjunktiv II?");
+  });
+
+  it("gives a merge a short query of the answers' topics, each once", () => {
+    const a = (title: string) => ({ reply: { title } });
+    expect(mergeSearch([a("Konjunktiv II"), a("The würde form"), a("Konjunktiv II")])).toBe("Make one rule about: Konjunktiv II; The würde form");
+  });
+
+  it("turns an \"Idea 3:\" label into the number alone", () => {
+    const content = JSON.stringify({ title: "t", topic: "c", blocks: [
+      { kind: "text", text: "**Idea 3: Regular verbs.** They look like the past." },
+      { kind: "text", text: "Idee 4: Die würde-Form." },
+    ] });
+    const read = readReply({ choices: [{ message: { content } }] })!;
+    expect(read.blocks.map((b) => (b.kind === "text" ? b.text : ""))).toEqual(["**3. Regular verbs.** They look like the past.", "4. Die würde-Form."]);
+  });
+});
+
+describe("sources from the reference sites only", () => {
+  const de = ["duden.de", "dwds.de"];
+  it("keeps the sites and their www, and leaves out their shop and download hosts", () => {
+    expect(onReferenceSite("https://www.duden.de/rechtschreibung/Konjunktiv", de)).toBe(true);
+    expect(onReferenceSite("https://dwds.de/wb/Konjunktiv", de)).toBe(true);
+    expect(onReferenceSite("https://shop.duden.de/Duden-UEbungsbuch", de)).toBe(false);
+    expect(onReferenceSite("https://cdn.duden.de/public_files/x.pdf", de)).toBe(false);
+    expect(onReferenceSite("https://notduden.de/x", de)).toBe(false);
+  });
+
+  it("drops a citation from elsewhere when the reply is read", () => {
+    const json = { choices: [{ message: {
+      content: JSON.stringify({ title: "t", topic: "c", blocks: [{ kind: "text", text: "a" }] }),
+      annotations: [
+        { type: "url_citation", url_citation: { url: "https://www.duden.de/a", title: "Duden" } },
+        { type: "url_citation", url_citation: { url: "https://shop.duden.de/b", title: "Shop" } },
+      ],
+    } }] };
+    expect(readReply(json, [], de)!.sources.map((s) => s.url)).toEqual(["https://www.duden.de/a"]);
   });
 });

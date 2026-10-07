@@ -32,6 +32,7 @@ import {
   EMBED_TEXT_MAX,
   EXCHANGE_LIMIT,
   exchangeTurns,
+  followUp,
   HISTORY_LIMIT,
   MEMORY_LIMIT,
   pickMemory,
@@ -170,12 +171,13 @@ export async function POST(request: Request) {
           model: tutorModel(),
           instructions: tutorInstructions({ studied, answerIn: answerName, level: settings.level, grounded: domains.length > 0, rules }),
           history: [...exchangeTurns(memory), ...exchangeTurns(history)],
-          question,
+          question: followUp(question, history.at(-1)?.reply.title),
           domains,
         }),
         Math.max(timeLeft() - SAVE_MS, 5_000),
       ),
       rules,
+      domains,
     );
   } catch (error) {
     console.error(`tutor: ${error instanceof Error ? error.message : "the OpenRouter call threw"}`);

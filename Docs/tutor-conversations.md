@@ -249,7 +249,10 @@ Body `{ conversationId?, question, answerIn }`.
    before the history. A failed embedding still leaves keyword matches; a
    failed search leaves none, not the answer.
 6. Ask the model and read the reply as today (`buildRequest`, `readReply`,
-   reference sites, rule titles), within the time left.
+   reference sites, rule titles), within the time left. A follow-up is sent
+   with the conversation's topic in front (`followUp`), as the web search
+   takes the last message as its query; sources are kept only from the
+   reference sites themselves (`onReferenceSite`).
 7. Save: a first question creates the conversation, named with the reply's
    title, while the answer is embedded; then insert the exchange and set the
    conversation's `updated_at`. A save that fails still returns the answer,

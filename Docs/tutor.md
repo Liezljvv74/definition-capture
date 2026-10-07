@@ -81,7 +81,13 @@ during implementation; a domain that is not is dropped, not replaced by guess):
 | Chinese (`zh`) | resources.allsetlearning.com |
 
 The source links come back as `url_citation` annotations and are shown under
-the answer. When the studied language has no list (a language typed in as
+the answer, but only those on a reference site itself or its www
+(`onReferenceSite`): the search also returns other hosts of the same sites,
+such as shop.duden.de, whose exercise books were once listed as sources
+(7 October 2026). The search takes the last message as its query, so a
+follow-up is sent as `About "<the previous answer's title>": <question>`
+(`followUp`) and a merge as a short list of the answers' topics
+(`mergeSearch`), with the answers themselves in the instructions. When the studied language has no list (a language typed in as
 "Other"), the request goes out without web search, and the answer carries the
 note "Not checked against a reference". The same note shows when a search
 returned no citations.
