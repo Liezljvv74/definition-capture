@@ -4,8 +4,8 @@ import type { ExampleBlock, TableBlock, TextBlock } from "@/lib/types";
 
 import {
   allowance, buildRequest, conversationName, DEFAULT_TUTOR_MODEL, exchangeTurns, FREE_TRIAL_MESSAGES, freeTitle,
-  mergeLabel, mergeQuestion, mergeSources, PAID_DAILY_MESSAGES, pickMemory, readConversationId,
-  asQuery, followUp, mergeSearch, onReferenceSite, readExchangeIds, readReply, readStoredReply, REFERENCE_DOMAINS, searchResults, startOfUtcDay,
+  mergeLabel, mergeQuestion, PAID_DAILY_MESSAGES, pickMemory, readConversationId,
+  asQuery, followUp, mergeSearch, onReferenceSite, SOURCES_MAX, readExchangeIds, readReply, readStoredReply, REFERENCE_DOMAINS, searchResults, startOfUtcDay,
   tutorInstructions, withSeeAlso,
 } from "@/lib/tutor";
 
@@ -332,12 +332,6 @@ describe("conversation names and merges", () => {
   it("numbers the answers to merge", () => {
     expect(mergeQuestion([{ answerText: "one" }, { answerText: "two" }])).toBe("Answer 1:\none\n\nAnswer 2:\ntwo");
   });
-  it("joins sources without repeats, first title kept", () => {
-    expect(mergeSources([[{ url: "u1", title: "A" }], [{ url: "u1", title: "B" }, { url: "u2", title: "C" }]])).toEqual([
-      { url: "u1", title: "A" },
-      { url: "u2", title: "C" },
-    ]);
-  });
   it("tells the tutor to merge, and keeps the answer language last", () => {
     const text = tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true, merge: "Answer 1:\none" });
     expect(text).toContain("Combine them into one rule");
@@ -421,5 +415,22 @@ describe("sources from the reference sites only", () => {
       ],
     } }] };
     expect(readReply(json, [], de)!.sources.map((s) => s.url)).toEqual(["https://www.duden.de/a"]);
+  });
+});
+
+describe("at most three sources", () => {
+  const cite = (n: number) => ({ type: "url_citation", url_citation: { url: `https://www.duden.de/${n}`, title: `D${n}` } });
+  it("keeps the search's first three on a new answer", () => {
+    const json = { choices: [{ message: {
+      content: JSON.stringify({ title: "t", topic: "c", blocks: [{ kind: "text", text: "a" }] }),
+      annotations: [1, 2, 3, 4, 5].map(cite),
+    } }] };
+    expect(readReply(json, [], ["duden.de"])!.sources.map((s) => s.title)).toEqual(["D1", "D2", "D3"]);
+    expect(SOURCES_MAX).toBe(3);
+  });
+  it("shows only the first three of an answer saved before the limit", () => {
+    const saved = { title: "t", topic: "c", blocks: [{ kind: "text", text: "a" }],
+      sources: [1, 2, 3, 4, 5].map((n) => ({ url: `https://www.duden.de/${n}`, title: `D${n}` })) };
+    expect(readStoredReply(saved)!.sources).toHaveLength(3);
   });
 });

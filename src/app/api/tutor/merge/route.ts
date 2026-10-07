@@ -25,8 +25,6 @@ import {
   MERGE_MIN,
   mergeQuestion,
   mergeSearch,
-  onReferenceSite,
-  mergeSources,
   readConversationId,
   readExchangeIds,
   readReply,
@@ -146,10 +144,11 @@ export async function POST(request: Request) {
     console.error("merge: the reply was unreadable");
     return fail(502, "tutor_failed", left);
   }
-  // The fresh citations first, then the merged answers' own, each once.
-  // Answers saved before the reference-site filter may carry shop pages, so the merged list is filtered too.
-  const sources = mergeSources([reply.sources, ...trusted.map((a) => a.reply.sources)]).filter((s) => onReferenceSite(s.url, domains));
-  reply = { ...reply, existingRule: null, sources };
+  // Only the merge's own citations, from its search on the rule's topics. The
+  // ticked answers' sources are not carried over: a follow-up's search was on
+  // its own words, and a merged rule listed pages for "erklären" that way
+  // (7 October 2026).
+  reply = { ...reply, existingRule: null };
 
   return NextResponse.json({ reply, remaining: left });
 }

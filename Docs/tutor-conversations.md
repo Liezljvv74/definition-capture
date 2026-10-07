@@ -277,8 +277,10 @@ Body `{ conversationId, exchangeIds, answerIn }`, 2 to 10 ids.
    on, with the same reference sites as a question; an unlisted language goes
    without and shows "Not checked against a reference". Same `REPLY_SCHEMA`
    and `readReply`.
-4. Sources are the fresh citations and the ticked answers' sources, without
-   repeats.
+4. Sources are the merge's own citations only, at most three
+   (`SOURCES_MAX`); the ticked answers' sources are not carried over, as a
+   follow-up's search had been on its own words (the owner's rule,
+   7 October 2026).
 5. Return it as a draft, `{ reply, remaining }`, without saving it anywhere.
    The owner's decision (7 October 2026): a merged rule is kept only as a
    grammar rule, when the learner saves it; one that is not saved goes away.

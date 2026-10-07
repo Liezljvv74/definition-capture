@@ -137,6 +137,13 @@ export function scopeRule(studied: string, answerIn: string): string {
   );
 }
 
+/**
+ * Sources listed under an answer or a merged rule, at most (the owner's rule,
+ * 7 October 2026). The search gives its best matches first, and past the
+ * first few they were often pages that only shared a word with the question.
+ */
+export const SOURCES_MAX = 3;
+
 /** How many related rules an answer may suggest linking to. */
 export const RELATED_MAX = 3;
 
@@ -411,7 +418,7 @@ export function readReply(json: unknown, ruleTitles: string[] = [], domains: str
     // A topic is stored as a tag of at most 60 characters.
     topic: parsed.topic.slice(0, MAX_NAME).trim(),
     blocks,
-    sources: [...sources].map(([url, title]) => ({ url, title })),
+    sources: [...sources].slice(0, SOURCES_MAX).map(([url, title]) => ({ url, title })),
     existingRule,
     relatedRules: savedTitles(parsed.related_rules, ruleTitles).filter((t) => t !== existingRule).slice(0, RELATED_MAX),
   };
@@ -491,7 +498,8 @@ export function readStoredReply(value: unknown): TutorReply | null {
     title: r.title,
     topic: r.topic,
     blocks,
-    sources,
+    // Answers saved before the limit may hold more; the first ones are the search's best.
+    sources: sources.slice(0, SOURCES_MAX),
     existingRule: typeof r.existingRule === "string" ? r.existingRule : null,
     relatedRules: names.slice(0, RELATED_MAX),
   };
@@ -555,12 +563,6 @@ export function mergeQuestion(answers: { answerText: string }[]): string {
   return answers.map((a, i) => `Answer ${i + 1}:\n${a.answerText}`).join("\n\n");
 }
 
-/** Every list's sources, each address once, the first title kept. */
-export function mergeSources(lists: { url: string; title: string }[][]): { url: string; title: string }[] {
-  const byUrl = new Map<string, string>();
-  for (const source of lists.flat()) if (!byUrl.has(source.url)) byUrl.set(source.url, source.title);
-  return [...byUrl].map(([url, title]) => ({ url, title }));
-}
 
 /** Characters of a search snippet either side of the word found. */
 const SNIPPET_CONTEXT = 40;

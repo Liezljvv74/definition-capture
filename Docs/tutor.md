@@ -81,7 +81,8 @@ during implementation; a domain that is not is dropped, not replaced by guess):
 | Chinese (`zh`) | resources.allsetlearning.com |
 
 The source links come back as `url_citation` annotations and are shown under
-the answer, but only those on a reference site itself or its www
+the answer, at most three, the search's best (`SOURCES_MAX`, the owner's rule,
+7 October 2026), and only those on a reference site itself or its www
 (`onReferenceSite`): the search also returns other hosts of the same sites,
 such as shop.duden.de, whose exercise books were once listed as sources
 (7 October 2026). The search takes the last message as its query, so a

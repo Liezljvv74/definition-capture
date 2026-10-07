@@ -106,7 +106,8 @@ describe("POST /api/tutor/merge", () => {
     expect(request.plugins[0].include_domains).toEqual(["duden.de", "dwds.de"]);
     // The owner's decision (7 October 2026): a merged rule is a draft, saved only as a grammar rule, never in the conversation.
     expect(saveTutorExchange).not.toHaveBeenCalled();
-    expect(body.reply.sources.map((s: { url: string }) => s.url)).toEqual(["https://www.duden.de/a", "https://www.dwds.de/b"]);
+    // Only the merge's own citation; the ticked answers' sources (duden.de/a, dwds.de/b) are not carried over.
+    expect(body.reply.sources.map((s: { url: string }) => s.url)).toEqual(["https://www.duden.de/a"]);
     expect(body.reply.existingRule).toBeNull();
     expect(body.remaining).toBeTypeOf("number");
   });
