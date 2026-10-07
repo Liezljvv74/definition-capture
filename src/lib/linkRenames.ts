@@ -33,7 +33,8 @@ import { getRules, updateRules } from "@/lib/rules";
 import { getEntries, updateEntries } from "@/lib/storage";
 import { getVerbTables, updateVerbTables } from "@/lib/verbTables";
 
-export function rewriteLinks(kind: LinkKind, id: string, from: string, to: string): void {
+/** `to` null: the item was deleted, and links to it lose their link (`planLinkRewrites`). */
+export function rewriteLinks(kind: LinkKind, id: string, from: string, to: string | null): void {
   const plan = planLinkRewrites(
     { entries: getEntries(), phrases: getPhrases(), tables: getVerbTables(), rules: getRules() },
     kind,

@@ -9,6 +9,10 @@
  * which the browser can read but never write, and never from the request.
  */
 
+// A build error, not a leak, if a browser component ever imports this module:
+// it reads OPENROUTER_API_KEY and TUTOR_SIGNING_SECRET.
+import "server-only";
+
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";

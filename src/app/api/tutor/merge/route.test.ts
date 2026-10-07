@@ -102,7 +102,8 @@ describe("POST /api/tutor/merge", () => {
     expect(request.messages[0].content).toContain("Combine them into one rule");
     // The answers travel in the instructions; the last message, which the web search uses, names only their topics.
     expect(request.messages[0].content).toContain("Answer 1:\nsecond\n\nAnswer 2:\nfirst");
-    expect(request.messages.at(-1).content).toBe("Make one rule about: t");
+    // Titles come from the signed answer text's first line, in the order ticked.
+    expect(request.messages.at(-1).content).toBe("Make one rule about: second; first");
     expect(request.plugins[0].include_domains).toEqual(["duden.de", "dwds.de"]);
     // The owner's decision (7 October 2026): a merged rule is a draft, saved only as a grammar rule, never in the conversation.
     expect(saveTutorExchange).not.toHaveBeenCalled();

@@ -382,7 +382,7 @@ describe("what the web search is given", () => {
   });
 
   it("gives a merge a short query of the answers' topics, each once", () => {
-    const a = (title: string) => ({ reply: { title } });
+    const a = (title: string) => ({ answerText: `${title}\nThe explanation.` });
     expect(mergeSearch([a("Konjunktiv II"), a("The würde form"), a("Konjunktiv II")])).toBe("Make one rule about: Konjunktiv II; The würde form");
   });
 

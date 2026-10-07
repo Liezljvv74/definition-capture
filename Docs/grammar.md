@@ -147,8 +147,12 @@ What changes:
   rewrites nothing, since names are matched with `foldName` and already
   resolve, and a name a higher-precedence item already owns is left alone.
 - **Deleting a rule that is linked to** warns first ("3 rules and 2 words link
-  to Dative. Their links will stop working.") and then leaves those links
-  dotted. A new rule of the same name brings them back.
+  to Dative. Those links will be removed.") and then removes them: each
+  `[[Dative]]` becomes the plain words it showed, and a "See also" line loses
+  the name (and goes, if it named nothing else). The same happens for a
+  deleted word, phrase or verb table. Links stay when another item still has
+  the name, as they then lead there. (Until 7 October 2026 they were left
+  dotted; the owner asked that a deleted rule leave no link behind.)
 - **Linked from.** Rule, word, phrase and verb pages list the items that link
   to them. It is computed from text already written, so there is nothing extra
   to keep in step.

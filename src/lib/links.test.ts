@@ -9,6 +9,7 @@ import {
   linkWarning,
   planLinkRewrites,
   renameLinksIn,
+  unlinkIn,
 } from "@/lib/links";
 import type { Entry, Phrase, Rule, VerbTable } from "@/lib/types";
 
@@ -97,6 +98,48 @@ describe("planLinkRewrites", () => {
   });
 });
 
+describe("links to a deleted item (the owner's rule, 7 October 2026)", () => {
+  it("unlinkIn keeps the words and drops the link, for that name only", () => {
+    expect(unlinkIn("see [[Dativ]], [[dativ|dem]] and [[Akkusativ]]", "Dativ")).toBe("see Dativ, dem and [[Akkusativ]]");
+  });
+
+  // The deleted rule is no longer in the lists, as deleteRules removes it first.
+  const lists = {
+    entries: [word("w1", "geben", "uses [[Dativ]]")],
+    phrases: [phrase("p1", "zum Beispiel", "[[Dativ|dem]] case")],
+    tables: [table("t1", "helfen", "takes the [[Dativ]]")],
+    rules: [
+      rule("r2", "Präpositionen", "after mit comes the [[Dativ]]", [["mit", "[[Dativ]]"]]),
+      { ...rule("r3", "Akkusativ"), blocks: [
+        { id: "a", kind: "text" as const, text: "Body." },
+        { id: "b", kind: "text" as const, text: "See also [[Dativ]], [[Genitiv]]." },
+      ] },
+      { ...rule("r4", "Wechselpräpositionen"), blocks: [
+        { id: "c", kind: "text" as const, text: "Body." },
+        { id: "d", kind: "text" as const, text: "See also [[Dativ]]." },
+      ] },
+    ],
+  };
+
+  it("unlinks every list's links, takes the name out of a See also line, and drops a line left empty", () => {
+    const plan = planLinkRewrites(lists, "rule", "r1", "Dativ", null);
+    expect(plan.entries.map((e) => e.ref)).toEqual(["uses Dativ"]);
+    expect(plan.phrases.map((p) => p.ref)).toEqual(["dem case"]);
+    expect(plan.tables.map((t) => t.ref)).toEqual(["takes the Dativ"]);
+    const byId = Object.fromEntries(plan.rules.map((r) => [r.id, r.blocks]));
+    expect(byId.r2[0]).toMatchObject({ text: "after mit comes the Dativ" });
+    expect(byId.r2[1]).toMatchObject({ cells: [["mit", "Dativ"]] });
+    expect(byId.r3.map((b) => ("text" in b ? b.text : ""))).toEqual(["Body.", "See also [[Genitiv]]."]);
+    expect(byId.r4.map((b) => ("text" in b ? b.text : ""))).toEqual(["Body."]);
+  });
+
+  it("leaves the links when another item still has the name", () => {
+    const shared = { ...lists, entries: [...lists.entries, word("w9", "Dativ")] };
+    const plan = planLinkRewrites(shared, "rule", "r1", "Dativ", null);
+    expect([plan.entries, plan.phrases, plan.tables, plan.rules].flat()).toEqual([]);
+  });
+});
+
 describe("linkedFrom and linkWarning", () => {
   const targets = linkTargets(
     [word("w1", "geben", "[[Dativ]]"), word("w2", "helfen", "[[Dativ]]")],
@@ -113,13 +156,13 @@ describe("linkedFrom and linkWarning", () => {
 
   it("counts surviving linkers by kind for the delete warning", () => {
     expect(linkWarning(targets, index, [byId("r1")])).toBe(
-      "1 rule and 2 words link to Dativ. Their links will stop working.",
+      "1 rule and 2 words link to Dativ. Those links will be removed.",
     );
   });
 
   it("ignores links between the items being deleted", () => {
     expect(linkWarning(targets, index, [byId("r1"), byId("r2")])).toBe(
-      "2 words link to these rules. Their links will stop working.",
+      "2 words link to these rules. Those links will be removed.",
     );
     expect(linkWarning(targets, index, [byId("w1")])).toBeNull();
   });
@@ -148,7 +191,7 @@ describe("labelled links", () => {
     const index = buildLinkIndex(targets);
     expect(linkedFrom(targets, index, "/rule?id=r1").map((t) => t.id)).toEqual(["w1"]);
     expect(linkWarning(targets, index, targets.filter((t) => t.id === "r1"))).toBe(
-      "1 word links to Dativ. Their links will stop working.",
+      "1 word links to Dativ. Those links will be removed.",
     );
   });
 });

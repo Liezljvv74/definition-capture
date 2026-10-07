@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createRule, findByTitle, fromRuleRow, parseRule, titleProblem, toRulePayload, toWireRule } from "@/lib/rules";
+import { createRule, deleteRules, findByTitle, getRules, fromRuleRow, parseRule, titleProblem, toRulePayload, toWireRule } from "@/lib/rules";
 import type { Rule } from "@/lib/types";
 
 vi.mock("@/lib/supabaseClient", () => ({ getSupabase: () => null }));
@@ -129,5 +129,23 @@ describe("a rule's topic", () => {
     expect(rule.topic.length).toBeLessThanOrEqual(60);
     expect(long.startsWith(rule.topic)).toBe(true);
     expect(rule.topic).toBe(rule.topic.trim());
+  });
+});
+
+describe("deleting a rule", () => {
+  it("leaves no link to it in the rules that linked to it", () => {
+    const gone = createRule({ title: "Zu loeschen", topic: "Test" });
+    const other = createRule({
+      title: "Verweist",
+      topic: "Test",
+      blocks: [
+        { id: "x1", kind: "text", text: "Compare [[Zu loeschen]]." },
+        { id: "x2", kind: "text", text: "See also [[Zu loeschen]]." },
+      ],
+    });
+    deleteRules([gone.id]);
+    const after = getRules().find((r) => r.id === other.id)!;
+    expect(after.blocks.map((b) => ("text" in b ? b.text : ""))).toEqual(["Compare Zu loeschen."]);
+    expect(getRules().some((r) => r.id === gone.id)).toBe(false);
   });
 });

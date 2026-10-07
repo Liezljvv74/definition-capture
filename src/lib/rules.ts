@@ -187,7 +187,18 @@ export function updateRule(id: string, input: RuleInput): Rule | null {
   return updated;
 }
 
-export const deleteRules = store.removeMany;
+/**
+ * Deletes the rules, then takes every link to them out of the text that held
+ * one (the owner's rule, 7 October 2026), so no dotted link to a rule that is
+ * gone is left behind. The rules leave the store first, so the rewrite can
+ * never write one of them back.
+ */
+export function deleteRules(ids: readonly string[]): number {
+  const doomed = store.items().filter((rule) => ids.includes(rule.id));
+  const removed = store.removeMany(ids);
+  for (const rule of doomed) rewriteLinks("rule", rule.id, rule.title, null);
+  return removed;
+}
 
 /* ------------------------------------------------------------------ import */
 

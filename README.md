@@ -56,7 +56,7 @@ or device. It is live at <https://definition-capture.vercel.app>.
 | Captcha | Cloudflare Turnstile, verified by Supabase Auth |
 | Supabase clients | `@supabase/ssr` (browser and server), `@supabase/supabase-js` |
 | Exports | `write-excel-file`, imported on demand |
-| Tests | Vitest 3, in the node environment; Playwright for end-to-end tests |
+| Tests | Vitest 5, in the node environment; Playwright for end-to-end tests |
 | Hosting | Vercel, deployed from GitHub on every push to `main` |
 
 ## Running it
@@ -232,8 +232,7 @@ searchable but no longer history, memory or mergeable.
 
 ## Where the data lives
 
-Every list is in Supabase, in sixteen tables with no views and twelve functions (sixteen once
-`conversation_messages` is dropped by the follow-up migration),
+Every list is in Supabase, in sixteen tables with no views and twelve functions,
 none of them `security definer`. The design, and why it is shaped that way, is in
 [`Docs/schema.md`](Docs/schema.md); how it got there is in
 [`Docs/db-refactor-plan.md`](Docs/db-refactor-plan.md).

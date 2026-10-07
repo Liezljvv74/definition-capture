@@ -178,7 +178,13 @@ export function updatePhrase(id: string, input: PhraseInput): Phrase | null {
   return updated;
 }
 
-export const deletePhrases = store.removeMany;
+/** Links to a deleted phrase lose their link, as for a rule (`deleteRules`). */
+export function deletePhrases(ids: readonly string[]): number {
+  const doomed = store.items().filter((phrase) => ids.includes(phrase.id));
+  const removed = store.removeMany(ids);
+  for (const phrase of doomed) rewriteLinks("phrase", phrase.id, phrase.phrase, null);
+  return removed;
+}
 
 /* ----------------------------------------------------------------- queries */
 

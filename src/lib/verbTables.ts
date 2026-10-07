@@ -11,6 +11,7 @@
  */
 
 import { foldName } from "@/lib/foldName";
+import { rewriteLinks } from "@/lib/linkRenames";
 import { planImport } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
 import {
@@ -113,8 +114,11 @@ export function saveVerbTable(id: string, tenses: string[], rows: VerbRow[], ref
   store.update({ ...existing, tenses, rows, ref: ref.trim() });
 }
 
+/** Links to a deleted verb table lose their link, as for a rule (`deleteRules`). */
 export function deleteVerbTable(id: string): void {
+  const doomed = store.items().find((table) => table.id === id);
   store.remove([id]);
+  if (doomed) rewriteLinks("verb_table", doomed.id, doomed.verb, null);
 }
 
 /* ------------------------------------------------------------------ import */
