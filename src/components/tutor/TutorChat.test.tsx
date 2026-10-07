@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { TutorChat } from "@/components/tutor/TutorChat";
+import { newAddress, TutorChat } from "@/components/tutor/TutorChat";
 import type { TutorExchange } from "@/lib/tutor";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
@@ -99,5 +99,11 @@ describe("TutorChat", () => {
 
   it("says when the conversation in the address was not found", () => {
     expect(html({ notFound: true })).toContain("That conversation was not found.");
+  });
+
+  it("gives a conversation opened at /tutor its address, even after an unsaved first answer set the state id", () => {
+    expect(newAddress(null, "c1", "studied")).toBe("/tutor?c=c1&in=studied");
+    expect(newAddress("c1", "c1", "studied")).toBeNull();
+    expect(newAddress(null, undefined, "native")).toBeNull();
   });
 });

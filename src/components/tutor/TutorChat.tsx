@@ -15,6 +15,17 @@ type Reason = "ok" | "trialUsed" | "dailyLimit" | "storageFull";
 const NOTICE = "card p-5 text-sm [overflow-wrap:anywhere]";
 const ERROR = "text-sm text-red-600 dark:text-red-400";
 
+/**
+ * The address a conversation gets once its first answer is saved, or null when
+ * the page was opened on a saved conversation already. It goes by the address
+ * the page was opened with, not the state's copy of the id: a first answer
+ * that failed to save still sets the state, and the next, saved, answer must
+ * then give the address all the same, or a reload would lose the chat.
+ */
+export function newAddress(openedWith: string | null, id: string | undefined, answerIn: string): string | null {
+  return !openedWith && id ? `/tutor?c=${id}&in=${answerIn}` : null;
+}
+
 export function TutorChat(props: {
   remaining: number;
   reason: Reason;
@@ -64,7 +75,6 @@ export function TutorChat(props: {
         setExchanges((all) => [...all, body.exchange]);
         setRemaining(body.remaining);
         setUnsaved(!body.saved);
-        const isNew = !conversationId && body.conversationId;
         setConversationId(body.conversationId ?? conversationId);
         // Only a saved answer touches the address or the server's copy. A new
         // conversation gets its address once its first answer is saved,
@@ -72,7 +82,8 @@ export function TutorChat(props: {
         // sidebar's order. An unsaved answer leaves both alone: a refresh
         // would replace the chat with what the server has, which lacks it
         // (and, if another tab deleted the conversation, everything).
-        if (body.saved && isNew) router.replace(`/tutor?c=${body.conversationId}&in=${answerIn}`);
+        const address = body.saved ? newAddress(props.conversationId, body.conversationId, answerIn) : null;
+        if (address) router.replace(address);
         else if (body.saved) router.refresh();
         return true;
       }
