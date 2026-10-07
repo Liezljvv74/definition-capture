@@ -179,6 +179,13 @@ describe("the paths these pages used to live at", () => {
     expect(locationOf(response)).toContain("id=abc123");
   });
 
+  it("sends the old /conversations page to the tutor, where conversations live now", async () => {
+    signedIn = true;
+    const response = await ask("/conversations/");
+    expect(response.status).toBe(307);
+    expect(redirectPath(response)).toBe("/tutor");
+  });
+
   it("leaves the pages that did not move alone", async () => {
     signedIn = true;
     for (const path of ["/vocabulary/", "/word/", "/phrases/", "/verbs/"]) {

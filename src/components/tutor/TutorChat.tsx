@@ -2,39 +2,28 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 
-import { BlockView } from "@/components/grammar/BlockView";
+import { AnswerCard } from "@/components/tutor/AnswerCard";
 import { SaveAsRuleDialog } from "@/components/tutor/SaveAsRuleDialog";
-import { findByTitle } from "@/lib/rules";
-import { answerText, HISTORY_LIMIT, QUESTION_MAX, type Plan, type SignedTurn, type TutorReply } from "@/lib/tutor";
+import { MERGE_MAX, mergeLabel, QUESTION_MAX, type Plan, type TutorExchange, type TutorReply } from "@/lib/tutor";
+import { recordSavedRule } from "@/lib/tutorConversations";
 import { useRules } from "@/lib/useRules";
 
-type Reason = "ok" | "trialUsed" | "dailyLimit";
-/** `signature` is the server's, sent back with the answer so the server can tell it gave it. */
-type Exchange = { question: string; reply: TutorReply; signature: string };
-
-/** The source's title, or its host when it has none. */
-function sourceLabel(source: { url: string; title: string }): string {
-  if (source.title.trim()) return source.title;
-  try {
-    return new URL(source.url).hostname;
-  } catch {
-    return source.url;
-  }
-}
+type Reason = "ok" | "trialUsed" | "dailyLimit" | "storageFull";
 
 const NOTICE = "card p-5 text-sm [overflow-wrap:anywhere]";
+const ERROR = "text-sm text-red-600 dark:text-red-400";
 
-/** A link to the saved rule an answer points to; nothing while the rules load or if it has since gone. */
-function SavedRuleLink({ title }: { title: string }) {
-  const rule = findByTitle(title);
-  if (!rule) return null;
-  return (
-    <Link href={`/rule/?id=${rule.id}`} className="btn btn-secondary">
-      Open “{rule.title}”
-    </Link>
-  );
+/**
+ * The address a conversation gets once its first answer is saved, or null when
+ * the page was opened on a saved conversation already. It goes by the address
+ * the page was opened with, not the state's copy of the id: a first answer
+ * that failed to save still sets the state, and the next, saved, answer must
+ * then give the address all the same, or a reload would lose the chat.
+ */
+export function newAddress(openedWith: string | null, id: string | undefined, answerIn: string): string | null {
+  return !openedWith && id ? `/tutor?c=${id}&in=${answerIn}` : null;
 }
 
 export function TutorChat(props: {
@@ -43,52 +32,65 @@ export function TutorChat(props: {
   plan: Plan;
   studiedName: string | null;
   nativeName: string | null;
+  initialAnswerIn: "native" | "studied" | null;
+  conversationId: string | null;
+  initialExchanges: TutorExchange[];
+  linkedRuleIds: string[];
+  /** Answer id to the rule it was saved as. */
+  savedRules: Record<number, string>;
+  notFound: boolean;
 }) {
   const router = useRouter();
   const [remaining, setRemaining] = useState(props.remaining);
   const [reason, setReason] = useState<Reason>(props.reason);
   const [studiedName, setStudiedName] = useState(props.studiedName);
-  const [answerIn, setAnswerIn] = useState<"native" | "studied">(props.nativeName ? "native" : "studied");
-  const [exchanges, setExchanges] = useState<Exchange[]>([]);
+  const [answerIn, setAnswerIn] = useState<"native" | "studied">(
+    props.initialAnswerIn ?? (props.nativeName ? "native" : "studied"),
+  );
+  // Kept here as well as in the address: a conversation made for a first
+  // answer that then failed to save is reused by the next question.
+  const [conversationId, setConversationId] = useState(props.conversationId);
+  const [exchanges, setExchanges] = useState<TutorExchange[]>(props.initialExchanges);
+  const [ticked, setTicked] = useState<number[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [saving, setSaving] = useState<TutorReply | null>(null);
-  // Titles of the rules saved from this conversation, in order, so the next
-  // one saved can link to them.
-  const [savedTitles, setSavedTitles] = useState<string[]>([]);
+  const [unsaved, setUnsaved] = useState(false);
+  // The reply being saved, and the answer it is (null for a merged draft).
+  const [saving, setSaving] = useState<{ reply: TutorReply; exchangeId: number | null } | null>(null);
+  const [savedRules, setSavedRules] = useState(props.savedRules);
+  // A merged rule waiting to be saved or discarded. It lives only here, never
+  // in the conversation (the owner's decision, 7 October 2026), so leaving or
+  // reloading the page throws it away, and once saved it goes, so it cannot be
+  // saved twice.
+  const [draft, setDraft] = useState<{ reply: TutorReply; count: number } | null>(null);
+  const [linkedRuleIds, setLinkedRuleIds] = useState(props.linkedRuleIds);
   // Loads the rules, so an answer that points to a saved one can link to it.
   useRules();
 
-  async function ask() {
-    const question = text.trim();
-    if (!question || busy) return;
-    const history: SignedTurn[] = exchanges
-      .flatMap((e): SignedTurn[] => [
-        { role: "user", content: e.question },
-        { role: "assistant", content: answerText(e.reply), signature: e.signature },
-      ])
-      .slice(-HISTORY_LIMIT);
+  /**
+   * Sends a question or a merge and handles the failures they share. `take`
+   * reads a successful reply and says whether it was the shape expected.
+   */
+  async function send(url: string, payload: object, take: (body: Record<string, unknown>) => boolean): Promise<boolean> {
     setBusy(true);
     setFailed(false);
+    setUnsaved(false);
     try {
-      const response = await fetch("/api/tutor/", {
+      const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, history, answerIn }),
+        body: JSON.stringify(payload),
       });
-      const body = await response.json().catch(() => ({}));
-      if (response.ok && body.reply) {
-        setExchanges((all) => [...all, { question, reply: body.reply, signature: String(body.signature ?? "") }]);
-        setRemaining(body.remaining);
-        setText("");
-      } else if (response.status === 401) {
-        router.push("/");
-      } else if (response.status === 403 && body.error === "noLanguage") {
-        setStudiedName(null);
-      } else if (response.status === 403 && (body.error === "trialUsed" || body.error === "dailyLimit")) {
-        setReason(body.error);
-      } else {
+      const body = (await response.json().catch(() => ({}))) as Record<string, unknown> & { remaining?: unknown; error?: string };
+      if (response.ok && take(body)) {
+        if (typeof body.remaining === "number") setRemaining(body.remaining);
+        return true;
+      }
+      if (response.status === 401) router.push("/");
+      else if (response.status === 403 && body.error === "noLanguage") setStudiedName(null);
+      else if (response.status === 403 && (body.error === "trialUsed" || body.error === "dailyLimit" || body.error === "storageFull")) setReason(body.error);
+      else {
         // A failure after the reservation says what is left; any other leaves the count as it was.
         if (typeof body.remaining === "number") setRemaining(body.remaining);
         setFailed(true);
@@ -98,6 +100,42 @@ export function TutorChat(props: {
     } finally {
       setBusy(false);
     }
+    return false;
+  }
+
+  async function ask() {
+    const question = text.trim();
+    if (!question || busy) return;
+    const sent = await send("/api/tutor/", { question, answerIn, conversationId }, (body) => {
+      if (!body.exchange) return false;
+      setExchanges((all) => [...all, body.exchange as TutorExchange]);
+      setUnsaved(!body.saved);
+      const id = typeof body.conversationId === "string" ? body.conversationId : undefined;
+      setConversationId(id ?? conversationId);
+      // Only a saved answer touches the address or the server's copy. A new
+      // conversation gets its address once its first answer is saved,
+      // carrying the answer language across; a later one refreshes the
+      // sidebar's order. An unsaved answer leaves both alone: a refresh
+      // would replace the chat with what the server has, which lacks it
+      // (and, if another tab deleted the conversation, everything).
+      const address = body.saved ? newAddress(props.conversationId, id, answerIn) : null;
+      if (address) router.replace(address);
+      else if (body.saved) router.refresh();
+      return true;
+    });
+    if (sent) setText("");
+  }
+
+  async function merge() {
+    if (busy || ticked.length < 2) return;
+    // The ticked answers stay ticked when the merge fails, so it can be tried again.
+    const count = ticked.length;
+    const sent = await send("/api/tutor/merge/", { conversationId, exchangeIds: ticked, answerIn }, (body) => {
+      if (!body.reply) return false;
+      setDraft({ reply: body.reply as TutorReply, count });
+      return true;
+    });
+    if (sent) setTicked([]);
   }
 
   const languages = [
@@ -106,8 +144,10 @@ export function TutorChat(props: {
   ];
 
   return (
-    <main className="notebook-page mx-auto w-full max-w-3xl flex-1 space-y-5 py-6 sm:py-8">
+    <main className="notebook-page mx-auto w-full max-w-3xl min-w-0 flex-1 space-y-5 py-6 sm:py-8">
       <h1 className="hand-title text-2xl sm:text-3xl"><span className="marker">Tutor</span></h1>
+
+      {props.notFound && <p className={NOTICE}>That conversation was not found.</p>}
 
       {studiedName && (
         // The legend is visible: a lone radio button reading "German" said
@@ -135,57 +175,52 @@ export function TutorChat(props: {
       )}
 
       <div aria-live="polite" className="space-y-4">
-        {exchanges.map(({ question, reply }, i) => (
-          <section key={i} className="space-y-2">
-            <p
-              className="paste ml-auto max-w-[85%] rounded-[3px_10px_4px_8px] border-[1.5px] border-ink bg-tile-sky px-3 py-2 text-sm whitespace-pre-wrap shadow-[2px_3px_0_var(--color-shadow)] [overflow-wrap:anywhere]"
-              style={{ "--r": `${i % 2 ? -0.8 : 0.8}deg` } as CSSProperties}
-            >
-              {question}
-            </p>
-            <div className="card space-y-3 p-4 [overflow-wrap:anywhere]">
-              <h2 className="hand-title text-lg">{reply.title}</h2>
-              {reply.blocks.map((block) => (
-                <BlockView key={block.id} block={block} linkIndex={new Map()} />
-              ))}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t-[1.5px] border-dashed border-rule pt-2 text-xs">
-                {reply.sources.length > 0 ? (
-                  <ul className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
-                    {reply.sources.map((source) => (
-                      <li key={source.url} className="min-w-0">
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block max-w-[16rem] truncate underline"
-                        >
-                          {sourceLabel(source)}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-ink-soft">Not checked against a reference</p>
-                )}
-                {reply.existingRule ? (
-                  // The rule is already saved, so the answer offers it rather than a second copy.
-                  <SavedRuleLink title={reply.existingRule} />
-                ) : (
-                  <button type="button" className="btn btn-secondary" onClick={() => setSaving(reply)}>
-                    Save as rule
-                  </button>
-                )}
-              </div>
-            </div>
-          </section>
+        {exchanges.map((exchange, i) => (
+          <AnswerCard
+            key={exchange.id ?? `unsaved-${i}`}
+            exchange={exchange}
+            index={i}
+            ticked={!exchange.mergeable || exchange.id === null || exchange.reply.existingRule ? null : ticked.includes(exchange.id)}
+            // The merge route refuses more than MERGE_MAX, so the rest wait until one is unticked.
+            tickDisabled={ticked.length >= MERGE_MAX && !ticked.includes(exchange.id!)}
+            onTick={(on) =>
+              setTicked((all) => (on ? [...all, exchange.id!] : all.filter((id) => id !== exchange.id)))
+            }
+            onSave={() => setSaving({ reply: exchange.reply, exchangeId: exchange.id })}
+            savedRuleId={exchange.id === null ? undefined : savedRules[exchange.id]}
+          />
         ))}
+        {draft && (
+          <AnswerCard
+            exchange={{ id: null, kind: "merge", question: mergeLabel(draft.count), reply: draft.reply, mergeable: false }}
+            index={exchanges.length}
+            ticked={null}
+            onTick={() => {}}
+            onSave={() => setSaving({ reply: draft.reply, exchangeId: null })}
+            onDiscard={() => setDraft(null)}
+          />
+        )}
         {busy && <p className="text-sm text-ink-soft">Thinking… <span aria-hidden="true" className="hourglass">⏳</span></p>}
+        {unsaved && <p role="alert" className={ERROR}>This answer was not saved.</p>}
       </div>
+
+      {ticked.length >= 2 && reason === "ok" && studiedName && (
+        <div className="sticky bottom-2 z-10 flex flex-wrap items-center gap-2 rounded-md border-[1.5px] border-ink bg-paper p-2 shadow-[2px_3px_0_var(--color-shadow)]">
+          <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void merge()}>
+            Make one rule from {ticked.length} answers
+          </button>
+          <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setTicked([])}>
+            Clear
+          </button>
+        </div>
+      )}
 
       {!studiedName ? (
         <p className={NOTICE}>
           <Link href="/settings" className="underline">Choose the language you are studying</Link>
         </p>
+      ) : reason === "storageFull" ? (
+        <p className={NOTICE}>You have reached the most conversations and answers an account can keep. Delete a conversation to ask more.</p>
       ) : reason === "trialUsed" ? (
         <p className={NOTICE}>The tutor is part of the paid plan.</p>
       ) : reason === "dailyLimit" ? (
@@ -217,18 +252,6 @@ export function TutorChat(props: {
           />
           <div className="flex flex-wrap items-center gap-2">
             <button type="submit" className="btn btn-primary" disabled={busy || !text.trim()}>Ask</button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={busy}
-              onClick={() => {
-                setExchanges([]);
-                setSavedTitles([]);
-                setFailed(false);
-              }}
-            >
-              New conversation
-            </button>
             <p className="text-xs text-ink-soft">
               {props.plan === "paid" ? `${remaining} left today` : `${remaining} trial message${remaining === 1 ? "" : "s"} left`}
             </p>
@@ -243,9 +266,19 @@ export function TutorChat(props: {
 
       {saving && (
         <SaveAsRuleDialog
-          reply={saving}
-          linkTo={savedTitles}
-          onSaved={(title) => setSavedTitles((all) => [...all, title])}
+          reply={saving.reply}
+          linkedRuleIds={linkedRuleIds}
+          onSaved={(rule) => {
+            setLinkedRuleIds((all) => [...all, rule.id]);
+            // A saved draft has done its job; it goes, so it cannot be saved again.
+            if (draft && saving.reply === draft.reply) setDraft(null);
+            // A saved answer offers its rule from now on instead of a second save.
+            const from = saving.exchangeId;
+            if (from !== null) setSavedRules((all) => ({ ...all, [from]: rule.id }));
+            // Recorded only for a saved conversation; an answer that was not
+            // saved has nowhere to record it.
+            if (conversationId) void recordSavedRule(conversationId, rule.id, saving.exchangeId);
+          }}
           onClose={() => setSaving(null)}
         />
       )}

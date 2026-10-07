@@ -1,5 +1,6 @@
 import { plainText } from "@/lib/blockText";
 import { newTextBlock, readBlocks } from "@/lib/blocks";
+import { MAX_NAME } from "@/lib/constants";
 import { foldName } from "@/lib/foldName";
 import { readString, type Block } from "@/lib/types";
 
@@ -8,7 +9,8 @@ import { readString, type Block } from "@/lib/types";
 
 export const FREE_TRIAL_MESSAGES = 5;
 export const PAID_DAILY_MESSAGES = 30;
-export const HISTORY_LIMIT = 10;
+/** How many of the open conversation's latest exchanges the tutor is sent: the same ten messages as before. */
+export const HISTORY_LIMIT = 5;
 export const QUESTION_MAX = 1000;
 // Switched from openai/gpt-5-mini on 5 October 2026 by the owner's choice; it
 // costs about eight times as much per input token and five times per output.
@@ -16,6 +18,55 @@ export const QUESTION_MAX = 1000;
 // policy blocks every endpoint of some models (Gemini 3.x Flash and Flash-Lite
 // that day), and those fail with a 404 rather than at build time.
 export const DEFAULT_TUTOR_MODEL = "anthropic/claude-sonnet-5.5";
+
+/**
+ * OpenRouter's multilingual embedding model, for search and memory. The
+ * column in tutor_exchanges is fixed to its dimension. Changing the model, even
+ * to one of the same size, needs a migration that sets every stored embedding
+ * to null (`update public.tutor_exchanges set embedding = null`), since two
+ * models' vectors cannot be compared; those exchanges are then found by
+ * keyword only, as nothing can embed them again (there is no update grant).
+ *
+ * Qwen3 rather than the planned `baai/bge-m3`, which the OpenRouter
+ * account's guardrails refuse (a 404, "0 endpoints", tried 7 October 2026).
+ * Its own size is 4096; it is asked for 1024 (`dimensions`), which it was
+ * trained to give, so the column and its storage stay as designed.
+ */
+export const EMBEDDING_MODEL = "qwen/qwen3-embedding-8b";
+export const EMBEDDING_DIMENSIONS = 1024;
+
+/**
+ * A search query as Qwen3 wants it: with a one-line task in front, while the
+ * saved answers are embedded as they are. Measured on 7 October 2026: without
+ * it, "where does the verb go" sat at 0.47 from an unrelated answer about
+ * two-way prepositions, inside the 0.5 cut-off; with it, 0.53, outside, while
+ * the related answers came closer.
+ */
+export function asQuery(text: string): string {
+  return `Instruct: Given a question about grammar, retrieve earlier tutor answers that explain the same grammar point\nQuery: ${text}`;
+}
+/** Characters embedded at most; the model reads far more, and an answer's start says what it is about. */
+export const EMBED_TEXT_MAX = 8000;
+/** Earlier exchanges, from any conversation, given to the tutor with a question. */
+export const MEMORY_LIMIT = 5;
+export const MERGE_MIN = 2;
+export const MERGE_MAX = 10;
+export const SEARCH_MIN = 2;
+export const SEARCH_MAX = 200;
+export const CONVERSATION_NAME_MAX = 120;
+/** Characters of memory, questions and answers together, sent with a question at most; memory is paid model input. */
+export const MEMORY_CHARS = 12000;
+/**
+ * Per account, and checked by the database as well (enforce_row_limit): the
+ * free plan's 500 MB is shared by every account (the owner's decision,
+ * 7 October 2026). The same numbers are in the migration's triggers.
+ */
+export const EXCHANGE_LIMIT = 2000;
+export const CONVERSATION_LIMIT = 500;
+/** Sidebar searches per account per hour; each one embeds its query with the shared key. */
+export const SEARCHES_PER_HOUR = 100;
+/** The latest exchanges a conversation opens with; older ones are still found by search. */
+export const CONVERSATION_PAGE = 500;
 
 /**
  * Where the tutor may search, by language code. A domain is listed when it
@@ -53,29 +104,6 @@ export function startOfUtcDay(now: Date): Date {
 }
 
 export type TutorTurn = { role: "user" | "assistant"; content: string };
-/** A turn as it arrives from the browser or the database: a reply carries the server's signature (`signTurn`). */
-export type SignedTurn = TutorTurn & { signature?: string | null };
-
-/**
- * The client's history is untrusted: a forged "system" turn would be an
- * instruction the model obeys. Only user and assistant turns with text
- * survive, each trimmed, the last few kept.
- */
-export function readHistory(value: unknown): SignedTurn[] {
-  if (!Array.isArray(value)) return [];
-  const turns: SignedTurn[] = [];
-  for (const raw of value) {
-    const turn = raw as { role?: unknown; content?: unknown; signature?: unknown } | null;
-    if (typeof turn?.content !== "string") continue;
-    if (turn.role === "user") turns.push({ role: "user", content: turn.content.slice(0, QUESTION_MAX) });
-    // A reply is kept whole, since its signature covers every character; one
-    // longer than any answer could be is dropped rather than cut.
-    else if (turn.role === "assistant" && turn.content.length <= QUESTION_MAX * 40) {
-      turns.push({ role: "assistant", content: turn.content, signature: typeof turn.signature === "string" ? turn.signature : null });
-    }
-  }
-  return turns.slice(-HISTORY_LIMIT);
-}
 
 /**
  * An answer as the plain text a follow-up is given for context, so the JSON
@@ -93,9 +121,9 @@ export function answerText(reply: TutorReply): string {
 }
 
 /**
- * What the tutor and Conversations will talk about, shared so the two cannot
- * drift apart. The owner's rule (5 October 2026): only the grammar of the
- * language being studied. Said as a rule the learner's own words cannot
+ * What the tutor will talk about. It is its own function so the rule reads on
+ * its own, apart from the rest of the system prompt. The owner's rule
+ * (5 October 2026): only the grammar of the language being studied. Said as a rule the learner's own words cannot
  * change, because "ignore your instructions" and role play are the usual ways
  * round a rule like this.
  */
@@ -109,6 +137,13 @@ export function scopeRule(studied: string, answerIn: string): string {
   );
 }
 
+/**
+ * Sources listed under an answer or a merged rule, at most (the owner's rule,
+ * 7 October 2026). The search gives its best matches first, and past the
+ * first few they were often pages that only shared a word with the question.
+ */
+export const SOURCES_MAX = 3;
+
 /** How many related rules an answer may suggest linking to. */
 export const RELATED_MAX = 3;
 
@@ -119,6 +154,8 @@ export function tutorInstructions(input: {
   grounded: boolean;
   /** The titles of the learner's saved grammar rules. */
   rules?: string[];
+  /** For a rule merged from ticked answers: those answers, as `mergeQuestion` writes them. */
+  merge?: string;
 }): string {
   const { studied, answerIn } = input;
   const rules = input.rules ?? [];
@@ -127,8 +164,11 @@ export function tutorInstructions(input: {
     // The owner's rule (2 October 2026): the answers were accurate but hard
     // going, so the explanation is always plain, and the level only sets how
     // hard the examples are.
-    "Always explain as if to a ten-year-old, whatever the learner's level: short sentences, everyday words, one idea at a time. " +
-      "If you need a grammar term, first say in plain words what it means. Prefer a few clear points over a complete list.",
+    "Always explain as if to a ten-year-old, whatever the learner's level: short sentences, everyday words, one point at a time. " +
+      "If you need a grammar term, first say in plain words what it means. Prefer a few clear points over a complete list. " +
+      // The owner's rule (7 October 2026): answers came back with "Idea 3:" before
+      // each paragraph, taken from "one idea at a time" above.
+      'Do not start a paragraph with a label such as "Idea 3:" or "Step 2:"; where numbering helps, write just the number, such as "3.".',
     `The learner's level (${input.level || "B1"} on the CEFR scale) only sets how hard the example sentences are, never how hard the explanation is.`,
     "Give practical example sentences" +
       (studied === answerIn ? "." : `, each with a translation into ${answerIn}.`) +
@@ -137,7 +177,7 @@ export function tutorInstructions(input: {
       ? "Base the explanation on the search results from the reference sites you are given."
       : "No reference search is available for this language, so say plainly where you are unsure.",
     scopeRule(studied, answerIn) + " A refusal is still a valid reply: a short title and that one sentence as a text block.",
-    "Reply as JSON with a short title, a topic, and blocks. A text block may use **bold** for emphasis; in an example sentence, wrap the word or words being taught in {curly braces}; use braces nowhere else. Put no links or web addresses in the text: the sources are shown separately.",
+    "Reply as JSON with a short title, a topic of one to four words, and blocks. A text block may use **bold** for emphasis; in an example sentence, wrap the word or words being taught in {curly braces}; use braces nowhere else. Put no links or web addresses in the text: the sources are shown separately.",
     // The owner's rule (5 October 2026): an answer came back ending a paragraph
     // with "Source: duden.de and dwds.de." The references belong only in the
     // list under the answer; cleanText removes any that still slip in.
@@ -155,6 +195,19 @@ export function tutorInstructions(input: {
         "and asking what exactly the learner would like clarified about it. Otherwise leave existing_rule empty and answer in full. " +
         `In related_rules, list the exact titles of up to ${RELATED_MAX} saved rules closely related to your answer, other than existing_rule, or none.`
       : "Leave existing_rule empty and related_rules empty.",
+    // A rule merged from several answers (Docs/tutor-conversations.md): the
+    // owner wants what was ticked, cleaned up, and the search only as a check.
+    ...(input.merge
+      ? [
+          // The answers are here rather than in the last message, because the
+          // web search takes the last message as its query, and the whole text
+          // of several answers found pages such as "Kubikkilometer" (7 October 2026).
+          `The learner has chosen earlier answers to keep as one grammar rule; they are between the lines below.\n---\n${input.merge}\n---\n` +
+            "Combine them into one rule: say each thing once, keep every point and example that is not a repeat, " +
+            "and order it from the plain meaning to the details. Use the search results only to check and correct what the answers say, " +
+            "never to add a topic the answers do not cover. Leave existing_rule empty.",
+        ]
+      : []),
     // Last, so it weighs most: on 3 October 2026 a question written in English
     // with German terms in it, answered from German reference pages, came back
     // entirely in German although English was chosen.
@@ -290,6 +343,8 @@ const SITE_BRACKET = new RegExp(`\\s*\\([^()]*(?:${SITE_NAMES.join("|")})[^()]*\
  */
 function cleanText(text: string): string {
   return text
+    // "Idea 3:" before a paragraph becomes "3." (the owner's rule, 7 October 2026), in the answer languages it is seen in.
+    .replace(/^(\*\*)?(?:Idea|Idee|Idée|Point|Punkt|Step|Schritt)\s+(\d+)\s*:/gim, "$1$2.")
     .replace(/\[([^\]]*)\]\((?:https?:\/\/|www\.)[^)\s]*\)/g, "$1")
     .replace(/(?:https?:\/\/|www\.)[^\s)]+/g, "")
     // After the links, so a linked note is removed whole rather than left as its words.
@@ -310,7 +365,27 @@ function cleanBlock(block: Block): Block {
 }
 
 /** `ruleTitles` are the learner's saved rules, which the reply's rule names are checked against. */
-export function readReply(json: unknown, ruleTitles: string[] = []): TutorReply | null {
+/**
+ * Whether a source is on one of the reference sites itself, the site or its
+ * www. The search also returns pages from their other hosts, such as
+ * shop.duden.de and cdn.duden.de, whose exercise books came back as "sources"
+ * (7 October 2026); those are not references. With no list, any http page.
+ */
+export function onReferenceSite(url: string, domains: string[]): boolean {
+  if (domains.length === 0) return true;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return domains.some((d) => {
+      const site = d.replace(/^www\./, "");
+      return host === site || host === `www.${site}`;
+    });
+  } catch {
+    return false;
+  }
+}
+
+/** `domains` are the reference sites searched; a citation from anywhere else is left out. */
+export function readReply(json: unknown, ruleTitles: string[] = [], domains: string[] = []): TutorReply | null {
   const message = (json as { choices?: { message?: { content?: unknown; annotations?: unknown } }[] } | null)?.choices?.[0]?.message;
   if (typeof message?.content !== "string") return null;
   let parsed: { title?: unknown; topic?: unknown; blocks?: unknown; existing_rule?: unknown; related_rules?: unknown };
@@ -335,14 +410,15 @@ export function readReply(json: unknown, ruleTitles: string[] = []): TutorReply 
     } catch {
       continue;
     }
-    if (!sources.has(url)) sources.set(url, readString(cite.title));
+    if (!sources.has(url) && onReferenceSite(url, domains)) sources.set(url, readString(cite.title));
   }
   const existingRule = savedTitles(parsed.existing_rule, ruleTitles)[0] ?? null;
   return {
     title: parsed.title.slice(0, 120),
-    topic: parsed.topic.slice(0, 120),
+    // A topic is stored as a tag of at most 60 characters.
+    topic: parsed.topic.slice(0, MAX_NAME).trim(),
     blocks,
-    sources: [...sources].map(([url, title]) => ({ url, title })),
+    sources: [...sources].slice(0, SOURCES_MAX).map(([url, title]) => ({ url, title })),
     existingRule,
     relatedRules: savedTitles(parsed.related_rules, ruleTitles).filter((t) => t !== existingRule).slice(0, RELATED_MAX),
   };
@@ -373,52 +449,163 @@ export function withSeeAlso(blocks: Block[], titles: string[]): Block[] {
 }
 
 /*
- * Conversations: free talk with the same model, in plain text rather than
- * the tutor's JSON, with the same history rules and the same allowance.
+ * Saved conversations (Docs/tutor-conversations.md). An exchange is a
+ * question and its answer, or a rule merged from several answers, saved as
+ * one row of tutor_exchanges.
  */
 
 /**
- * `studied` is the language from Settings, which the conversation is limited
- * to. `answerIn` is the native language; with none set, the reply follows the
- * person's own language.
+ * An exchange as the page shows it. `id` is null only for an answer that
+ * could not be saved. `mergeable` is true for a saved answer whose signature
+ * the server verified: only those can go back to the model in a merge, so
+ * only those get a tick box.
  */
-export function chatInstructions(input: { studied: string; answerIn: string | null }): string {
-  const { studied, answerIn } = input;
-  return [
-    `You are a friendly conversation partner for someone learning ${studied}. Reply in plain text without Markdown, in short paragraphs. ` +
-      "Use the earlier turns to understand follow-up questions.",
-    scopeRule(studied, answerIn ?? "the language the person last wrote in"),
-    // Last, so it weighs most, as in the tutor's instructions.
-    answerIn
-      ? `Always reply in ${answerIn}, even when the person writes in another language. Example sentences being discussed may be in ${studied}.`
-      : "Reply in the language the person last wrote in.",
-  ].join("\n\n");
-}
+export type TutorExchange = { id: number | null; kind: "answer" | "merge"; question: string; reply: TutorReply; mergeable: boolean };
 
-export function buildChatRequest(input: {
-  model: string;
-  studied: string;
-  answerIn: string | null;
-  history: TutorTurn[];
-  message: string;
-}): Record<string, unknown> {
+/** An exchange as the server reads it back, with the text the model is sent and its signature. */
+export type StoredExchange = Omit<TutorExchange, "id" | "mergeable"> & { id: number; conversationId: string; answerText: string; signature: string };
+
+/** A search_tutor row as the server reads it: no reply, which neither the sidebar nor memory uses. */
+export type SearchRow = {
+  id: number;
+  conversationId: string;
+  conversationName: string;
+  kind: "answer" | "merge";
+  question: string;
+  answerText: string;
+  signature: string;
+};
+
+export type SearchResult = { conversationId: string; name: string; exchangeId: number; snippet: string };
+
+/**
+ * A saved reply is untrusted: the account can insert rows of its own with the
+ * publishable key. It must have the shape and a block, and a source that is
+ * not an http link is dropped, so a `javascript:` address never becomes an href.
+ */
+export function readStoredReply(value: unknown): TutorReply | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const r = value as Record<string, unknown>;
+  if (typeof r.title !== "string" || typeof r.topic !== "string") return null;
+  const blocks = readBlocks(r.blocks);
+  if (blocks.length === 0) return null;
+  const sources = (Array.isArray(r.sources) ? r.sources : []).flatMap((s) => {
+    const url = readString((s as { url?: unknown } | null)?.url);
+    return /^https?:\/\//i.test(url) ? [{ url, title: readString((s as { title?: unknown }).title) }] : [];
+  });
+  const names = Array.isArray(r.relatedRules) ? r.relatedRules.filter((n): n is string => typeof n === "string") : [];
   return {
-    model: input.model,
-    messages: [
-      { role: "system", content: chatInstructions({ studied: input.studied, answerIn: input.answerIn }) },
-      ...input.history,
-      { role: "user", content: input.message },
-    ],
-    // The same budget as the tutor, for the same reason: reasoning tokens come out of it.
-    max_tokens: 6000,
-    reasoning: { effort: "low" },
+    title: r.title,
+    topic: r.topic,
+    blocks,
+    // Answers saved before the limit may hold more; the first ones are the search's best.
+    sources: sources.slice(0, SOURCES_MAX),
+    existingRule: typeof r.existingRule === "string" ? r.existingRule : null,
+    relatedRules: names.slice(0, RELATED_MAX),
   };
 }
 
-/** The reply's text, or null when there is none. An em dash becomes a comma, the owner's rule. */
-export function readChatReply(json: unknown): string | null {
-  const content = (json as { choices?: { message?: { content?: unknown } }[] } | null)?.choices?.[0]?.message?.content;
-  if (typeof content !== "string") return null;
-  const text = content.replace(/\s*—\s*/g, ", ").trim();
-  return text || null;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A conversation id from a request or the address bar; anything else would be a database error, not a 404. */
+export function readConversationId(value: unknown): string | null {
+  return typeof value === "string" && UUID.test(value) ? value.toLowerCase() : null;
+}
+
+/** The answers ticked for a merge: 2 to 10 distinct exchange ids, or null. */
+export function readExchangeIds(value: unknown): number[] | null {
+  if (!Array.isArray(value) || value.length < MERGE_MIN || value.length > MERGE_MAX) return null;
+  if (!value.every((id) => Number.isSafeInteger(id) && id > 0)) return null;
+  return new Set(value).size === value.length ? (value as number[]) : null;
+}
+
+/** Exchanges as the turns the model is sent: the question, then the answer's text. */
+export function exchangeTurns(exchanges: { question: string; answerText: string }[]): TutorTurn[] {
+  return exchanges.flatMap((e): TutorTurn[] => [
+    { role: "user", content: e.question },
+    { role: "assistant", content: e.answerText },
+  ]);
+}
+
+/**
+ * The best matches not already in the history (which the model is sent
+ * anyway), at most `limit` of them and `maxChars` of text, since every
+ * character is paid model input on every question.
+ */
+export function pickMemory<T extends { id: number; question: string; answerText: string }>(
+  found: T[],
+  recentIds: ReadonlySet<number>,
+  limit = MEMORY_LIMIT,
+  maxChars = MEMORY_CHARS,
+): T[] {
+  const picked: T[] = [];
+  let chars = 0;
+  for (const e of found) {
+    if (recentIds.has(e.id)) continue;
+    chars += e.question.length + e.answerText.length;
+    if (picked.length === limit || chars > maxChars) break;
+    picked.push(e);
+  }
+  return picked;
+}
+
+/** A new conversation is named after its first answer, which costs nothing; the question if the title is blank. */
+export function conversationName(reply: TutorReply, question: string): string {
+  return (reply.title.trim() || question.trim()).slice(0, CONVERSATION_NAME_MAX).trim();
+}
+
+export function mergeLabel(count: number): string {
+  return `Rule from ${count} answers`;
+}
+
+/** The ticked answers as the one message the merge sends. */
+export function mergeQuestion(answers: { answerText: string }[]): string {
+  return answers.map((a, i) => `Answer ${i + 1}:\n${a.answerText}`).join("\n\n");
+}
+
+
+/** Characters of a search snippet either side of the word found. */
+const SNIPPET_CONTEXT = 40;
+
+/**
+ * Search rows, best first, as one result per conversation (its best
+ * exchange), with a snippet around the first searched word found. A row found
+ * by meaning alone may contain none of the words; its snippet starts at the
+ * beginning.
+ */
+export function searchResults(
+  rows: { exchangeId: number; conversationId: string; name: string; question: string; answerText: string }[],
+  query: string,
+): SearchResult[] {
+  const words = foldName(query).split(/[\s,.;:!?()"]+/).filter((w) => w.length >= 2);
+  const seen = new Set<string>();
+  const results: SearchResult[] = [];
+  for (const row of rows) {
+    if (seen.has(row.conversationId)) continue;
+    seen.add(row.conversationId);
+    const text = `${row.question} ${row.answerText}`.replace(/\s+/g, " ").trim();
+    const folded = foldName(text);
+    const at = words.map((w) => folded.indexOf(w)).filter((i) => i >= 0).sort((a, b) => a - b)[0] ?? 0;
+    const start = Math.max(0, at - SNIPPET_CONTEXT);
+    const end = Math.min(text.length, start + SNIPPET_CONTEXT * 2);
+    const snippet = `${start > 0 ? "…" : ""}${text.slice(start, end).trim()}${end < text.length ? "…" : ""}`;
+    results.push({ conversationId: row.conversationId, name: row.name, exchangeId: row.exchangeId, snippet });
+  }
+  return results;
+}
+
+/**
+ * The message the model is sent for a question. The web search takes the last
+ * message as its query, so a follow-up such as "give me 10 exercises" searched
+ * for exactly that and found shop pages (7 October 2026). Naming the topic the
+ * conversation is on keeps the search on the grammar point. The learner's own
+ * words are what is saved and shown.
+ */
+export function followUp(question: string, previousTitle: string | undefined): string {
+  return previousTitle ? `About "${previousTitle}": ${question}` : question;
+}
+
+/** The short last message of a merge, which the web search uses as its query. */
+export function mergeSearch(answers: { reply: { title: string } }[]): string {
+  return `Make one rule about: ${[...new Set(answers.map((a) => a.reply.title))].join("; ")}`;
 }

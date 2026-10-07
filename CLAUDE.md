@@ -20,7 +20,7 @@ owner.
 | UI | React 19.2.8, TypeScript 5, Tailwind CSS 4 |
 | Data and auth | Supabase: Postgres with row level security, and Supabase Auth |
 | Captcha | Cloudflare Turnstile, verified by Supabase Auth |
-| Tutor | OpenRouter, called with `fetch` from `POST /api/tutor` and `POST /api/conversation`; `OPENROUTER_MODEL` picks the model, default `anthropic/claude-sonnet-5.5` |
+| Tutor | OpenRouter, called with `fetch` from `POST /api/tutor`, `/api/tutor/merge` and `/api/tutor/search`; `OPENROUTER_MODEL` picks the model, default `anthropic/claude-sonnet-5.5`; embeddings `qwen/qwen3-embedding-8b` (1024 dimensions) through OpenRouter, in pgvector |
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 3, in the node environment; `npx vitest run` |
@@ -152,11 +152,10 @@ all: legacy JWT-based API keys are disabled, and the one Edge Function that used
 to need the service role has been deleted.
 
 **`OPENROUTER_API_KEY` is server-only.** It is read in `src/lib/tutorServer.ts`
-and nowhere else, for both `POST /api/tutor` and `POST /api/conversation`, and
+and nowhere else, for `POST /api/tutor`, `/api/tutor/merge` and `/api/tutor/search`, and
 it never gets a `NEXT_PUBLIC_` name, which would put a paid key in every
-visitor's browser. It also keys the signatures on the tutor's replies
-(`signTurn`), which keep a made-up "earlier reply" from reaching the model;
-rotating it leaves older replies unverified, so they stop being context. In Vercel it is a Sensitive variable. `OPENROUTER_MODEL` is
+visitor's browser. It also embeds for search and memory. In Vercel it is a Sensitive variable.
+`TUTOR_SIGNING_SECRET`, also server-only and Sensitive in Vercel, keys the signatures on the tutor's answers (`signTurn`), which keep a made-up earlier answer from reaching the model; changing it leaves older answers shown and searchable but no longer history, memory or mergeable. `OPENROUTER_MODEL` is
 the one setting that switches the model of both, in `.env.local` and in Vercel;
 unset, it is `DEFAULT_TUTOR_MODEL` in `tutor.ts`. An account is marked paid by adding an `account_plans` row with
 `plan = 'paid'` in the Supabase dashboard: no policy lets an account write its
@@ -176,6 +175,8 @@ writes a note anywhere else. The one module that ever read from browser storage,
 `legacyLocal.ts`, is gone along with the prompt that offered its contents to an
 account: it existed to carry data across from before this app had accounts, and
 that crossing is long finished.
+
+**An account holds at most 2,000 tutor exchanges and 500 conversations**, enforced by `enforce_row_limit` triggers, and may search 100 times an hour (`tutor_searches`, capped at 3,000 rows and cleared nightly by the pg_cron job `tutor-searches-cleanup`). The free plan's 500 MB is the reason; watch Dashboard, Usage, and move to Pro before about 350 MB.
 
 **Row level security is load-bearing.** List queries run in the browser under the
 publishable key, so RLS is what separates one account's rows from another's. Every
@@ -227,12 +228,12 @@ points at. A collection or source still in use cannot be deleted; the database
 refuses it and Settings switches the bin off.
 
 **`Docs/schema.md` is the design of record, and it is read before a table is
-added.** Thirteen tables, no views, and ten functions, none of them `security
+added.** Sixteen tables (once the follow-up migration has dropped `conversation_messages`), no views, and twelve functions, none of them `security
 definer`: `items` holds every word, phrase, verb table and grammar rule, with a check per type
 on its detail columns; `tags`, `item_tags` and `sources` label them; `decks`,
 `deck_cards`, `progress` and an append-only `reviews` carry the flashcards, and
 `verb_tense_progress` the per-tense schedule of verb practice; and
-`user_settings` is one row of preferences; `account_plans` and `tutor_usage` carry the grammar tutor's plan and use, and `conversation_messages` the Conversations page's one open conversation. Every owned row carries `user_id`, and
+`user_settings` is one row of preferences; `account_plans` and `tutor_usage` carry the grammar tutor's plan and use, and `tutor_conversations`, `tutor_exchanges`, `tutor_conversation_rules` and `tutor_searches` the tutor's saved conversations, searchable through `search_tutor`. Every owned row carries `user_id`, and
 composite foreign keys `(x_id, user_id)` make a link between two accounts' rows
 impossible. `Docs/db-refactor-plan.md` records how the schema got here and why.
 

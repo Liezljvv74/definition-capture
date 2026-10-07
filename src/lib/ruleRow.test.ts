@@ -121,3 +121,13 @@ describe("findByTitle", () => {
     expect(findByTitle("Genitive")).toBeUndefined();
   });
 });
+
+describe("a rule's topic", () => {
+  it("is cut to the 60 characters a tag may hold, so the save cannot fail on it", () => {
+    const long = "Which case German prepositions need: always dative, or dative or accusative depending on where or where to";
+    const rule = createRule({ title: "Prepositions and cases", topic: long });
+    expect(rule.topic.length).toBeLessThanOrEqual(60);
+    expect(long.startsWith(rule.topic)).toBe(true);
+    expect(rule.topic).toBe(rule.topic.trim());
+  });
+});

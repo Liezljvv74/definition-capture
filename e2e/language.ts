@@ -2,8 +2,8 @@ import type { Page } from "@playwright/test";
 import { expect } from "./fixtures";
 
 /**
- * The studied language under Settings, which the tutor and Conversations both
- * need. Shared by their tests, so each can set it and put it back to "Not
+ * The studied language under Settings, which the tutor needs.
+ * Shared by its tests, so each can set it and put it back to "Not
  * chosen" afterwards, and every run starts from the same place.
  */
 export const language = (page: Page) => page.getByLabel("Language you are learning");

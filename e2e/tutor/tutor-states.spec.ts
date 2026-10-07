@@ -24,8 +24,7 @@ test.describe("Tutor", () => {
     await choose(page, "German");
 
     // 3. The tutor now offers the question box and the allowance left. Either
-    // plan's wording: the Conversations tests mark the local account paid, and
-    // spend messages from the allowance the tutor shares.
+    // plan's wording, since the local account may be on either.
     await page.goto("/tutor");
     await expect(page.getByLabel("Your question")).toBeVisible();
     await expect(page.getByText(/^\d+ (trial messages? left|left today)$/)).toBeVisible();

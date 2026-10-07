@@ -4,9 +4,16 @@ import { defineConfig, devices } from "@playwright/test";
 // values, so nothing secret is committed. Node's own loader rather than
 // dotenv: one call, no new dependency. A missing file is fine, because CI
 // would set the variables directly.
-try {
-  process.loadEnvFile(".env.local");
-} catch {}
+//
+// The temporary `.env.development.local` (CLAUDE.md) points the app at the
+// local Supabase copy, and the seed helper needs the same values, so it is
+// read first; Node keeps a value already set, so `.env.local` then only
+// fills in what is missing (the E2E account).
+for (const file of [".env.development.local", ".env.local"]) {
+  try {
+    process.loadEnvFile(file);
+  } catch {}
+}
 
 /**
  * End-to-end tests, kept in `e2e/` so Vitest (which only reads `src/`) and
