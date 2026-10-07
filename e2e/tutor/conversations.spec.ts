@@ -40,8 +40,11 @@ test.describe("Tutor conversations", () => {
 
     // 3. Search finds it by a word in an answer, and leads to it.
     await page.getByRole("searchbox", { name: "Search conversations" }).fill("nach");
-    await expect(sidebar.getByText("E2E dative")).toBeVisible();
+    // The name alone is in the plain list too, so what proves the search ran
+    // is the snippet line only results show, which holds the matched word.
+    await expect(sidebar.getByText(/nach/)).toBeVisible();
     await page.getByRole("searchbox", { name: "Search conversations" }).fill("");
+    await expect(sidebar.getByText(/nach/)).toHaveCount(0);
 
     // 4. Rename from its menu.
     await sidebar.getByLabel("Actions for E2E dative").click();
