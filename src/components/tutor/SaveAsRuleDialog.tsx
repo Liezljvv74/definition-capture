@@ -4,27 +4,29 @@ import Link from "next/link";
 import { useId, useState } from "react";
 
 import { Modal } from "@/components/Modal";
+import { searchRules } from "@/lib/ruleSearch";
 import { createRule, findByTitle, titleProblem } from "@/lib/rules";
 import { freeTitle, withSeeAlso, type TutorReply } from "@/lib/tutor";
+import type { Rule } from "@/lib/types";
 import { useRules } from "@/lib/useRules";
 
 /**
  * The answer's title and topic, editable, saved as a grammar rule with the
- * answer's blocks. `linkTo` names the rules already saved from this
- * conversation; the new rule ends with a line linking to them. The tutor's
- * related rules are offered as boxes to tick, none ticked, so saving without
- * touching them links the rule to nothing new; each one ticked joins the
- * same line.
+ * answer's blocks. It links, on one See also line, to every rule saved from
+ * this conversation (`linkedRuleIds`, kept in the database, so a rule saved
+ * weeks later still links to the earlier ones), to the tutor's related rules
+ * the learner ticks, and to any other rule found with Link another rule.
+ * Suggestions start unticked; a find is ticked when chosen.
  */
 export function SaveAsRuleDialog({
   reply,
-  linkTo,
+  linkedRuleIds,
   onSaved,
   onClose,
 }: {
   reply: TutorReply;
-  linkTo: string[];
-  onSaved: (title: string) => void;
+  linkedRuleIds: string[];
+  onSaved: (rule: Rule) => void;
   onClose: () => void;
 }) {
   const inputId = useId();
@@ -35,13 +37,18 @@ export function SaveAsRuleDialog({
   const title = typed ?? freeTitle(reply.title, (candidate) => findByTitle(candidate) !== undefined);
   const [topic, setTopic] = useState(reply.topic);
   // The saved rule and what it was linked to, kept from the moment of saving:
-  // `linkTo` grows to include the rule itself once the chat hears about it.
+  // `linkedRuleIds` grows to include the rule itself once the chat hears about it.
   const [saved, setSaved] = useState<{ id: string; links: string[] } | null>(null);
   const [ticked, setTicked] = useState<string[]>([]);
   // Read through the hook so the store is loaded before the duplicate check relies on it.
-  const { loaded } = useRules();
-  // Only rules still saved, and not already on the line through `linkTo`.
-  const related = reply.relatedRules.filter((name) => findByTitle(name) !== undefined && !linkTo.includes(name));
+  const { rules, loaded } = useRules();
+  // Titles as they are now, so a rule renamed since it was saved links by its new name; a deleted one drops out.
+  const linkTo = linkedRuleIds.flatMap((id) => rules.find((rule) => rule.id === id)?.title ?? []);
+  const [found, setFound] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  // Only rules still saved, not already on the line, each once.
+  const related = [...new Set([...reply.relatedRules, ...found])].filter((name) => findByTitle(name) !== undefined && !linkTo.includes(name));
+  const matches = search.trim() ? searchRules(rules, search, title).filter((m) => !linkTo.includes(m.title) && !related.includes(m.title)) : [];
 
   const clash = findByTitle(title);
   const problem =
@@ -70,7 +77,7 @@ export function SaveAsRuleDialog({
             const links = [...linkTo, ...related.filter((name) => ticked.includes(name))];
             const rule = createRule({ title, topic, blocks: withSeeAlso(reply.blocks, links) });
             setSaved({ id: rule.id, links });
-            onSaved(rule.title);
+            onSaved(rule);
           }}
         >
           <div>
@@ -81,10 +88,17 @@ export function SaveAsRuleDialog({
             <label htmlFor={`${inputId}-topic`} className="mb-1 block text-sm font-medium">Topic</label>
             <input id={`${inputId}-topic`} className="field" value={topic} maxLength={200} onChange={(event) => setTopic(event.target.value)} />
           </div>
-          {related.length > 0 && (
+          {linkTo.length + related.length > 0 && (
             <fieldset>
               <legend className="mb-1 text-sm font-medium">Link to related rules</legend>
               <div className="space-y-1">
+                {/* Always linked, so shown ticked and fixed: the learner sees what the line will hold. */}
+                {linkTo.map((name) => (
+                  <label key={name} className="flex items-center gap-2 text-sm [overflow-wrap:anywhere]">
+                    <input type="checkbox" checked disabled />
+                    {name}
+                  </label>
+                ))}
                 {related.map((name) => (
                   <label key={name} className="flex items-center gap-2 text-sm [overflow-wrap:anywhere]">
                     <input
@@ -100,6 +114,36 @@ export function SaveAsRuleDialog({
               </div>
             </fieldset>
           )}
+          <div>
+            <label htmlFor={`${inputId}-find`} className="mb-1 block text-sm font-medium">Link another rule</label>
+            <input
+              id={`${inputId}-find`}
+              className="field"
+              value={search}
+              maxLength={100}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            {matches.length > 0 && (
+              <ul className="mt-1 space-y-1">
+                {matches.map((match) => (
+                  <li key={match.title}>
+                    <button
+                      type="button"
+                      className="w-full text-left text-sm underline-offset-2 hover:underline [overflow-wrap:anywhere]"
+                      onClick={() => {
+                        setFound((all) => [...all, match.title]);
+                        setTicked((all) => [...all, match.title]);
+                        setSearch("");
+                      }}
+                    >
+                      {match.title}
+                      <span className="block text-xs text-ink-soft">{match.snippet}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           {problem && title.trim() !== "" && (
             <p role="alert" className="text-sm text-red-600 dark:text-red-400">{problem}</p>
           )}
