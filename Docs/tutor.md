@@ -22,7 +22,8 @@ confusing, through OpenRouter, as a paid feature with a one-conversation trial.
 
 Out of scope, each its own later piece of work if wanted: payments, checkout and
 a pricing page (pricing is undecided, so nothing on screen mentions a price);
-stored conversation history; reading answers aloud.
+reading answers aloud. Saved conversations, memory and merged rules:
+`Docs/tutor-conversations.md`.
 
 ## Answers as rule blocks
 
@@ -145,13 +146,13 @@ in the phone menu. Top to bottom:
    topic, editable, and saves through one `createRule` call (given the
    reply's blocks) in `src/lib/rules.ts`, so there is a single save. A title the rules refuse (duplicate, forbidden
    characters) is reported in the dialog, as Grammar does.
-3. The question box (up to 1,000 characters) with **Ask**, **New conversation**,
+3. The question box (up to 1,000 characters) with **Ask**,
    and a small allowance line ("26 left today", "3 trial messages left"). No
    other explanatory copy.
 
-The conversation lives only in the page's memory: leaving or reloading clears
-it. Each request sends the last 10 messages for context; the server enforces
-the same cap and the length limit.
+Conversations are saved, searchable and remembered across the account; how the
+page keeps them, and what each request sends for context, is in
+`Docs/tutor-conversations.md`.
 
 States that replace the question box:
 

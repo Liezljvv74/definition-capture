@@ -20,7 +20,7 @@ those migrations and in the git log; none of it is live.
 
 ## The shape
 
-Thirteen tables, no views, ten functions, none of them `security definer`.
+Sixteen tables, no views, twelve functions, none of them `security definer`.
 
 | Table | Holds | Written by |
 | --- | --- | --- |
@@ -36,7 +36,10 @@ Thirteen tables, no views, ten functions, none of them `security definer`.
 | `user_settings` | one row of preferences per account | Settings |
 | `account_plans` | `free` or `paid`, for the grammar tutor; no row means free | an administrator only |
 | `tutor_usage` | one row per tutor question, append-only | the tutor route |
-| `conversation_messages` | the messages of an account's one open conversation | the conversation route |
+| `tutor_conversations` | an account's saved conversations with the tutor | the tutor page |
+| `tutor_exchanges` | one question and its answer (or one merged rule) in a conversation, written once | the tutor page |
+| `tutor_conversation_rules` | which rules were saved from which conversation | the tutor page |
+| `tutor_searches` | one row per sidebar search, append-only, for the hourly limit | the tutor search route |
 
 ### Principles
 
@@ -184,26 +187,57 @@ and insert only, with the insert policy checking `user_id`, so a count can grow
 but never be wound back. The migration ends with a check that raises if either
 grant set drifts. `supabase/tests/tutor.sql` rehearses all of it.
 
-### `conversation_messages`
+### `tutor_conversations`, `tutor_exchanges` and `tutor_conversation_rules`
 
-The Conversations page's messages, saved so a reload shows them. An account
-has one conversation or none: "New conversation" deletes every row, so there
-is no conversation id and nothing is kept that no page shows. The id is an
-identity rather than a uuid because it is also the order: the route inserts a
-question and its reply in one statement, which gives both the same
-`created_at`. `role` is `user` or `assistant`, never `system`. Select, insert
-and delete on the owner, no update; insert is granted on `user_id`, `role` and
-`content` only, so the order and the time stay the database's. Index
-`(user_id, id)` serves the page's read. The migration checks its policies and
-grants, and `supabase/tests/conversation_messages.sql` rehearses them.
+Together with `tutor_searches` below, these hold the tutor's saved
+conversations; `Docs/tutor-conversations.md` is the design. They replace the
+old `conversation_messages` table, whose rows the migration deleted and which a
+later migration drops once no deployed code reads it.
 
-A reply also carries `signature`, the server's HMAC of the account and the
-text (`signTurn` in `src/lib/tutorServer.ts`, keyed from the OpenRouter key).
-The account can insert rows itself with the publishable key, so the column is
-granted, but it cannot write a signature that verifies: the route sends a
-saved reply back to the model only when it does, so a made-up reply never
-reaches it. Rows saved before the column (or before a key rotation) are still
-shown, but their replies are no longer context.
+`tutor_conversations` has `id` (uuid), `user_id`, `name` (1 to 120 characters,
+trimmed), `created_at` and `updated_at`, which orders the sidebar. It carries
+`unique (id, user_id)` so the tables below can reference it with a composite
+key. The account may select and delete, insert `user_id` and `name`, and update
+`name` and `updated_at`.
+
+`tutor_exchanges` is one row per question and its answer, or per merged rule
+(`kind` is `answer` or `merge`). It holds the `reply` as jsonb (at most 64 KB),
+`answer_text` (what is signed and what the model is sent back), `signature`
+(`signTurn` of the account and `answer_text`) and a nullable `embedding`
+(`extensions.halfvec(1024)`, null when embedding failed or timed out). The id is
+an identity because it is also the order. A pair per row means ticking,
+signing and embedding all work on one row, and a failed answer saves nothing.
+An exchange is written once: select and insert only, with insert granted on
+named columns so the order and time stay the database's, and the cascade from
+its conversation is the only delete. The composite key
+`(conversation_id, user_id)` makes a link to another account's conversation
+impossible. Keyword search uses a GIN index on
+`to_tsvector('simple', question || ' ' || answer_text)` as an expression, so no
+second copy of the text is stored; `simple` does no stemming but works the same
+in every language, and the vector half covers what stemming would. There is no
+vector index: at the 2,000 exchanges an account may hold, an exact scan of that
+account's rows is fast, and an HNSW index is worth adding only if the limit is
+raised well past that.
+
+The account can insert a made-up reply or vector with the publishable key. That
+only touches its own rows within its limits, and a made-up reply never reaches
+the model, because its signature will not verify. Changing
+`TUTOR_SIGNING_SECRET` leaves older answers shown and searchable but no longer
+history, memory or mergeable.
+
+`tutor_conversation_rules` links a conversation to the rules saved from it,
+primary key `(conversation_id, item_id)`, with composite keys to both
+`tutor_conversations` and `items`, cascading from either. It stores the rule's
+id, not its title, so a renamed rule stays linked. `user_id` defaults to
+`auth.uid()`. Select, insert and delete on the owner.
+
+### `tutor_searches`
+
+One row per sidebar search (`id`, `user_id`, `created_at`), so an account's
+searches in the last hour can be counted, as `tutor_usage` counts questions
+(100 an hour). Select, and insert of `user_id` only, with no delete, so an
+account cannot reset its own count. The pg_cron job `tutor-searches-cleanup`
+deletes rows older than a day each night.
 
 ---
 
@@ -222,6 +256,8 @@ All `security invoker`, all with `search_path = ''`, execute granted to
 | `home_summary()` | one row for the dashboard: `words`, `words_without_definition`, `phrases`, `verb_tables`, `grammar_rules`, `due`, `new_items`, `learning`, `learned`, `next_due_at`, `last_saved_at`, `remember_id`: a random difficult word or phrase (see Docs/homepage.md), else null; then `verb_tenses_due`, `verb_tenses_new`, `verbs_new`, `verbs_learning`, `verbs_learned`. The flashcard counts (`due` to `next_due_at`) are words and phrases only; verbs are counted by their tenses. Security invoker, so row level security applies |
 | `rename_tag(context, from, to)` | renames a tag, or merges it into one that already has the new name |
 | `rename_item_source(from, to)` | the same for a source |
+| `search_tutor(query, query_embedding, match_count)` | the sidebar's search and the tutor's memory: ranks the account's exchanges by keyword (`ts_rank_cd`) and by meaning (cosine distance, closer than 0.5 only) and fuses the two orders by reciprocal rank. A null embedding gives keyword results only. Security invoker, and filtered on `user_id` as well as by the policy |
+| `enforce_row_limit()` | `before insert` trigger on `tutor_conversations` (500 per account) and `tutor_exchanges` (2,000), refusing the row with `program_limit_exceeded`; storage is the reason, so two racing inserts may end a row over |
 | `items_guard()`, `set_updated_at()` | triggers on `items` (and `user_settings` for the second) |
 
 ---

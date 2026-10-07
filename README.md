@@ -31,10 +31,8 @@ or device. It is live at <https://definition-capture.vercel.app>.
   marked and the schedule updated from what happened.
 - **Tutor**: ask a grammar question and get an explanation at your level, built
   from reference sites for the language you are studying, which you can save as a
-  grammar rule.
-- **Conversations**: a chat about the grammar of the language you are
-  studying, under the Tutor tab, that remembers the earlier messages so a
-  follow-up can refer back.
+  grammar rule. Conversations are saved and listed beside the chat, searchable by
+  keyword and by meaning, and several answers can be made into one rule.
 - **Read aloud**: a speaker beside every word and phrase, in the lists and on
   their own pages, and beside a phrase's usage example; one in each verb tense
   heading that reads the tense down the table; and a floating one on a rule page
@@ -276,8 +274,9 @@ Two more tables belong to the tutor. `account_plans` holds an account's plan,
 `free` or `paid`, and an account can read its own row but never write it; no row
 means free. `tutor_usage` has one row per question asked, which an account can
 add and read but not change or delete, so the count only grows.
-`conversation_messages` holds the Conversations page's messages, which an
-account can add, read and delete but not change.
+Four more hold the saved conversations: `tutor_conversations`, `tutor_exchanges`
+(a question and its answer, written once and never changed), `tutor_conversation_rules`
+and `tutor_searches`, which counts the sidebar's searches.
 
 To mark an account paid, add a row to `account_plans` in the Supabase
 dashboard's Table Editor with that account's `user_id` and `plan` set to `paid`.
@@ -541,9 +540,7 @@ rule is made of. The explanation is always plain, as if for a ten-year-old,
 whatever your level; the Level under Settings (about B1 when it is not set) only
 sets how hard the example sentences are.
 A switch chooses whether it answers in your native language or the language you
-are learning; follow-up questions are fine, and the last ten messages are sent
-for context. The conversation lives only in the page: leaving or reloading clears
-it.
+are learning; follow-up questions are fine.
 
 Answers are grounded in a fixed list of reference sites for the studied language
 and link to the pages they used, listed under the answer and never named in
@@ -572,29 +569,45 @@ offering the question box. The OpenRouter key is read only by the server route
 `POST /api/tutor`, which checks the session and the allowance before calling out.
 The design is in [`Docs/tutor.md`](Docs/tutor.md).
 
-### Conversations
+#### Saved conversations
 
-The Tutor tab is a menu of two pages: **Grammar tutor** (`/tutor`) and
-**Conversations** (`/conversations`), a chat about the grammar of the language
-you are studying, which needs that language chosen in Settings. Your messages
-and the replies are listed above a box at the bottom; Ctrl or Cmd with Enter
-sends. The conversation is saved as it goes, so a reload shows it again;
-**New conversation**, at the top and staying in view under the nav as the
-conversation scrolls, deletes it and starts a fresh one. Replies come in your
-native language from Settings (with none set, in the language you write in).
-Each message goes with the last ten saved before it, read back on the server
-rather than sent by the browser, so "what did you mean by that?" is understood.
-The server signs every reply it gives, in Conversations and in the tutor, and
-an earlier reply is sent back to the model only when its signature verifies,
-so a reply written in by hand can never talk it out of its rules.
+Every question and answer is saved in a conversation, and the conversations are
+listed down the left of `/tutor`, newest first, one line each. `/tutor?c=<id>`
+opens one, so a reload or a bookmark stays on it. **New conversation** starts a
+fresh one, and the menu on each line renames or deletes it. On a phone the list
+opens from a **Conversations** button. An account keeps up to 500 conversations
+and 2,000 answers; when it is full, the question box says so, and everything
+else still works.
 
-Both the tutor and Conversations keep to the grammar of the studied language
-and how its words and sentences are used. Anything else, including requests to
-ignore their instructions, take on a role or discuss another language or
-subject, gets one polite sentence saying what they can help with. The rule is
-one function, `scopeRule` in `src/lib/tutor.ts`, shared by both. A refusal is
-still an answer and spends a message. It goes through `POST /api/conversation`, uses the same
-model (`OPENROUTER_MODEL`) and spends the same allowance as the tutor.
+The box above the list searches conversations only, by the words you type and
+by meaning, so a related word finds a conversation that never used it. Each
+result shows a line of the matching text and opens the conversation at that
+answer. An account can search 100 times an hour.
+
+The tutor remembers: a question is sent with the open conversation's earlier
+answers and with the most relevant ones from your other conversations. Both are
+read back from the database on the server, and the server signs every answer it
+gives, so only an answer it signed is ever sent to the model as history, and a
+made-up one can never talk it out of its rules.
+
+Tick **Include in a rule** on two or more answers and press **Make one rule from
+N answers**: the tutor merges them into one answer that says each thing once,
+checked against the reference sites without adding topics, and in the language
+the Answer in switch shows. It is saved through the same dialog as any answer.
+That dialog links a saved rule to the ones already saved from the same
+conversation, to the tutor's suggestions, and to any other grammar rule you
+find with **Link another rule**.
+
+The tutor keeps to the grammar of the studied language and how its words and
+sentences are used. Anything else, including requests to ignore its
+instructions, take on a role or discuss another language or subject, gets one
+polite sentence saying what it can help with, which is still an answer and
+spends a message. The rule is one function, `scopeRule` in `src/lib/tutor.ts`.
+Questions, merges and search go through `POST /api/tutor`, `/api/tutor/merge`
+and `/api/tutor/search`, and use the same model (`OPENROUTER_MODEL`) and
+allowance; search and memory embed text with `baai/bge-m3` through OpenRouter,
+stored in pgvector. The design is in
+[`Docs/tutor-conversations.md`](Docs/tutor-conversations.md).
 
 ### Choosing a password
 
@@ -744,8 +757,8 @@ purpose once to confirm it notices. `supabase/tests/home_summary.sql` rehearses
 transaction that is rolled back, and `supabase/tests/verb_practice.sql` does the
 same for verb practice: the shared schedule, `record_tense_review` and what it
 refuses, row level security, and the verb counts on the dashboard.
-`supabase/tests/conversation_messages.sql` rehearses the conversation table's
-row level security and grants the same way.
+`supabase/tests/tutor_conversations.sql` rehearses the saved conversations' row
+level security, grants, limits and `search_tutor` the same way.
 
 The end-to-end tests in `e2e/` sign in through the real form as a dedicated test
 account (`E2E_EMAIL` and `E2E_PASSWORD` in `.env.local`) and add and delete rows.
@@ -756,10 +769,8 @@ against the local Supabase copy (`npx supabase start`), with a temporary
 `.env.development.local` pointing the app at it and the Turnstile site key empty,
 `npm run dev` restarted, and `E2E_BASE_URL=http://localhost:3000`. CLAUDE.md has
 the full procedure. Plans for each spec live in `e2e/specs/`.
-The two Conversations tests send real messages (about two cents a run) and
-spend four of the allowance the tutor shares, so the local test account is
-marked paid first, in the local database only: insert an `account_plans` row
-with `plan = 'paid'` for it as `postgres`.
+The tutor tests use ready-made conversations written straight into the local
+database, so they call no model and cost nothing.
 
 ### The Supabase CLI
 
@@ -816,14 +827,14 @@ src/
     sign-in/, sign-up/    the two ways in
     auth/callback/        trades a sign-in link's ?code= for a session
     auth/reset/           the same for a reset link, then on to /choose-password
-    api/tutor/            the grammar tutor's route
-    api/conversation/     the Conversations route; both call OpenRouter
-                          through src/lib/tutorServer.ts, which holds the key
+    api/tutor/            the grammar tutor's route, with merge/ and search/;
+                          all call OpenRouter through src/lib/tutorServer.ts,
+                          which holds the key
     (workspace)/          everything behind a sign-in. The brackets keep the
                           group out of the URL; its layout.tsx re-checks the
                           session on the server and sets noindex
       home/  vocabulary/  phrases/  word/  phrase/  verbs/  grammar/  rule/
-      flashcards/  settings/  choose-password/  tutor/  conversations/
+      flashcards/  settings/  choose-password/  tutor/
   components/             the UI, with folders for home/, flashcards/, grammar/,
                           tutor/, backup/, verbs/ (the practice dialog and the
                           tense marks) and notebook/ (the paper, doodles and the
