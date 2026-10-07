@@ -772,6 +772,9 @@ same for verb practice: the shared schedule, `record_tense_review` and what it
 refuses, row level security, and the verb counts on the dashboard.
 `supabase/tests/tutor_conversations.sql` rehearses the saved conversations' row
 level security, grants, limits and `search_tutor` the same way.
+`supabase/tests/multiuser/` holds the multi-user test: three accounts on the
+local copy each try to read, change and link the others' data, through the
+database and through the app; its README says how to run it.
 
 The end-to-end tests in `e2e/` sign in through the real form as a dedicated test
 account (`E2E_EMAIL` and `E2E_PASSWORD` in `.env.local`) and add and delete rows.
