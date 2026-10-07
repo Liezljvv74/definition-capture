@@ -176,7 +176,7 @@ writes a note anywhere else. The one module that ever read from browser storage,
 account: it existed to carry data across from before this app had accounts, and
 that crossing is long finished.
 
-**An account holds at most 2,000 tutor exchanges and 500 conversations**, enforced by `enforce_row_limit` triggers, and may search 100 times an hour (`tutor_searches`, cleared nightly by the pg_cron job `tutor-searches-cleanup`). The free plan's 500 MB is the reason; watch Dashboard, Usage, and move to Pro before about 350 MB.
+**An account holds at most 2,000 tutor exchanges and 500 conversations**, enforced by `enforce_row_limit` triggers, and may search 100 times an hour (`tutor_searches`, capped at 3,000 rows and cleared nightly by the pg_cron job `tutor-searches-cleanup`). The free plan's 500 MB is the reason; watch Dashboard, Usage, and move to Pro before about 350 MB.
 
 **Row level security is load-bearing.** List queries run in the browser under the
 publishable key, so RLS is what separates one account's rows from another's. Every

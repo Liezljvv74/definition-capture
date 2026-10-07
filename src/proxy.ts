@@ -46,6 +46,7 @@ const SIGNED_OUT_ONLY = ["/sign-in", "/sign-up"];
 const MOVED: Record<string, string> = {
   "/terms": "/vocabulary",
   "/term": "/word",
+  "/conversations": "/tutor",
 };
 
 /** `trailingSlash: true` means paths arrive as `/sign-in/`; compare without it. */

@@ -37,12 +37,15 @@ export function AnswerCard({
   exchange: { id, question, reply },
   index,
   ticked,
+  tickDisabled = false,
   onTick,
   onSave,
 }: {
   exchange: TutorExchange;
   index: number;
   ticked: boolean | null;
+  /** True once the most a merge accepts are ticked, for the boxes still unticked. */
+  tickDisabled?: boolean;
   onTick: (on: boolean) => void;
   onSave: () => void;
 }) {
@@ -76,7 +79,7 @@ export function AnswerCard({
           <div className="flex flex-wrap items-center gap-3">
             {ticked !== null && (
               <label className="flex items-center gap-1.5 text-sm">
-                <input type="checkbox" checked={ticked} onChange={(event) => onTick(event.target.checked)} />
+                <input type="checkbox" checked={ticked} disabled={tickDisabled} onChange={(event) => onTick(event.target.checked)} />
                 Include in a rule
               </label>
             )}

@@ -170,7 +170,9 @@ Index on `(user_id, created_at)`. RLS and grants: select, and insert of
 `user_id` only, so a row cannot be backdated; no delete, since an account that
 could delete its rows could reset its own count. The pg_cron job
 `tutor-searches-cleanup` deletes rows older than a day each night, so the
-table stays small.
+table stays small. An `enforce_row_limit` trigger caps an account at 3,000 rows
+between clean-ups, above a day of honest use at 100 an hour, so direct inserts
+with the publishable key cannot grow it without end.
 
 ### `enforce_row_limit()`
 
@@ -178,7 +180,7 @@ A `before insert` trigger function, `security invoker`, `set search_path =
 ''`. It counts the inserting account's rows in the table it fires on (under
 row level security, so exactly that account's) and refuses the row with
 `program_limit_exceeded` at the number given as its trigger argument: 500 on
-`tutor_conversations`, 2,000 on `tutor_exchanges`. Two inserts racing can both
+`tutor_conversations`, 2,000 on `tutor_exchanges`, 3,000 on `tutor_searches`. Two inserts racing can both
 pass, so an account can end one or two over; the limit is about storage.
 
 ### `search_tutor(query text, query_embedding extensions.halfvec(1024), match_count int)`
@@ -315,10 +317,12 @@ While the search box has text, results replace the list: each conversation's
 name and, under it in small text, one line of the matching snippet. Choosing
 one opens it at the matching exchange. Clearing the box brings the list back.
 A failed search shows "Search is not available right now."; over the hourly
-limit, "Too many searches in the last hour. Try again later."
+limit, "Too many searches in the last hour. Try again later." A search with no
+matches shows "No conversations match." in plain text.
 
 On phones the sidebar is a **Conversations** button at the top of the page,
-opening it as a panel over the page; choosing a conversation closes it.
+opening it as a panel over the page; choosing a conversation closes it, and so does Escape. Opening it puts the
+cursor in the search box.
 
 ### Main area, top to bottom
 

@@ -238,7 +238,8 @@ One row per sidebar search (`id`, `user_id`, `created_at`), so an account's
 searches in the last hour can be counted, as `tutor_usage` counts questions
 (100 an hour). Select, and insert of `user_id` only, with no delete, so an
 account cannot reset its own count. The pg_cron job `tutor-searches-cleanup`
-deletes rows older than a day each night.
+deletes rows older than a day each night, and a `before insert` trigger
+refuses an account's 3,001st row in between.
 
 ---
 
@@ -258,7 +259,7 @@ All `security invoker`, all with `search_path = ''`, execute granted to
 | `rename_tag(context, from, to)` | renames a tag, or merges it into one that already has the new name |
 | `rename_item_source(from, to)` | the same for a source |
 | `search_tutor(query, query_embedding, match_count)` | the sidebar's search and the tutor's memory: ranks the account's exchanges by keyword (`ts_rank_cd`) and by meaning (cosine distance, closer than 0.5 only) and fuses the two orders by reciprocal rank. A null embedding gives keyword results only. Security invoker, and filtered on `user_id` as well as by the policy |
-| `enforce_row_limit()` | `before insert` trigger on `tutor_conversations` (500 per account) and `tutor_exchanges` (2,000), refusing the row with `program_limit_exceeded`; storage is the reason, so two racing inserts may end a row over |
+| `enforce_row_limit()` | `before insert` trigger on `tutor_conversations` (500 per account) and `tutor_exchanges` (2,000) and `tutor_searches` (3,000), refusing the row with `program_limit_exceeded`; storage is the reason, so two racing inserts may end a row over |
 | `items_guard()`, `set_updated_at()` | triggers on `items` (and `user_settings` for the second) |
 
 ---

@@ -104,9 +104,9 @@ export function answerText(reply: TutorReply): string {
 }
 
 /**
- * What the tutor and Conversations will talk about, shared so the two cannot
- * drift apart. The owner's rule (5 October 2026): only the grammar of the
- * language being studied. Said as a rule the learner's own words cannot
+ * What the tutor will talk about. It is its own function so the rule reads on
+ * its own, apart from the rest of the system prompt. The owner's rule
+ * (5 October 2026): only the grammar of the language being studied. Said as a rule the learner's own words cannot
  * change, because "ignore your instructions" and role play are the usual ways
  * round a rule like this.
  */

@@ -127,6 +127,8 @@ export function signTurn(userId: string, content: string): string {
 
 /** Whether `signature` is this server's for `content`, given to `userId`. */
 export function signatureValid(userId: string, content: string, signature: string | null | undefined): boolean {
+  // An unset secret would sign with an empty key, which anyone could reproduce, so nothing verifies.
+  if (!process.env.TUTOR_SIGNING_SECRET) return false;
   const expected = Buffer.from(signTurn(userId, content), "hex");
   const given = Buffer.from(typeof signature === "string" ? signature : "", "hex");
   return given.length === expected.length && timingSafeEqual(given, expected);

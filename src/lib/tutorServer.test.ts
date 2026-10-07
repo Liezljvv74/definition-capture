@@ -25,6 +25,12 @@ describe("reply signatures", () => {
     expect(signatureValid("u1", "the real reply", signature)).toBe(false);
   });
 
+  it("fails closed when the secret is unset, even for a signature made with the empty key", () => {
+    vi.stubEnv("TUTOR_SIGNING_SECRET", "");
+    const forged = signTurn("u1", "x");
+    expect(signatureValid("u1", "x", forged)).toBe(false);
+  });
+
   it("is unaffected by replacing the OpenRouter key", () => {
     const signature = signTurn("u1", "x");
     vi.stubEnv("OPENROUTER_API_KEY", "sk-new");

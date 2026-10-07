@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Modal } from "@/components/Modal";
 import { SEARCH_MIN, type SearchResult } from "@/lib/tutor";
@@ -59,7 +59,9 @@ export function TutorSidebar({ conversations, activeId }: { conversations: Conve
         setSearchError(response.ok ? null : response.status === 429 ? SEARCH_LIMITED : SEARCH_FAILED);
         setResults(response.ok ? body.results ?? [] : null);
       } catch {
-        if (current) setSearchError(SEARCH_FAILED);
+        if (!current) return;
+        setSearchError(SEARCH_FAILED);
+        setResults(null);
       }
     }, 300);
     return () => {
@@ -86,6 +88,12 @@ export function TutorSidebar({ conversations, activeId }: { conversations: Conve
     else router.refresh();
   }
 
+  // The panel is always in the page, so autoFocus would only fire on first render; focus when it opens instead.
+  const searchBox = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (open) searchBox.current?.focus();
+  }, [open]);
+
   const close = () => setOpen(false);
   // Results and their error are kept only while the query is long enough to search.
   const searching = query.trim().length >= SEARCH_MIN;
@@ -94,11 +102,15 @@ export function TutorSidebar({ conversations, activeId }: { conversations: Conve
   return (
     <>
       {/* The margins line the button up with the chat, whose notebook-page padding is wider than the page's own. */}
-      <button type="button" className="btn btn-secondary mt-4 ml-12 self-start md:ml-[104px] lg:hidden" aria-expanded={open} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary mt-4 ml-12 self-start md:ml-[104px] lg:hidden" aria-expanded={open} aria-controls="tutor-conversations" onClick={() => setOpen(true)}>
         Conversations
       </button>
       <aside
+        id="tutor-conversations"
         aria-label="Conversations"
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && open) close();
+        }}
         className={`${open ? "fixed inset-0 z-40 block overflow-y-auto bg-[var(--color-paper)] p-4" : "hidden"} lg:sticky lg:top-[var(--nav-height)] lg:block lg:max-h-[calc(100vh-var(--nav-height))] lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:py-8`}
       >
         <div className="space-y-3">
@@ -108,6 +120,7 @@ export function TutorSidebar({ conversations, activeId }: { conversations: Conve
           <div>
             <label htmlFor="tutor-search" className="sr-only">Search conversations</label>
             <input
+              ref={searchBox}
               id="tutor-search"
               type="search"
               className="field"
@@ -122,16 +135,20 @@ export function TutorSidebar({ conversations, activeId }: { conversations: Conve
           {writeFailed && <p role="alert" className={ERROR}>{SAVE_FAILED}</p>}
 
           {shownResults ? (
-            <ul className="space-y-2">
-              {shownResults.map((result) => (
-                <li key={result.conversationId}>
-                  <Link href={`/tutor?c=${result.conversationId}#e-${result.exchangeId}`} className="block rounded px-2 py-1 hover:bg-[var(--color-tile-sky)]" onClick={close}>
-                    <span className="block truncate text-sm font-medium">{result.name}</span>
-                    <span className="block truncate text-xs text-ink-soft">{result.snippet}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            shownResults.length === 0 ? (
+              <p className="text-sm text-ink-soft">No conversations match.</p>
+            ) : (
+              <ul className="space-y-2">
+                {shownResults.map((result) => (
+                  <li key={result.conversationId}>
+                    <Link href={`/tutor?c=${result.conversationId}#e-${result.exchangeId}`} className="block rounded px-2 py-1 hover:bg-[var(--color-tile-sky)]" onClick={close}>
+                      <span className="block truncate text-sm font-medium">{result.name}</span>
+                      <span className="block truncate text-xs text-ink-soft">{result.snippet}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )
           ) : list.length === 0 ? (
             <p className="text-sm text-ink-soft">No conversations yet.</p>
           ) : (

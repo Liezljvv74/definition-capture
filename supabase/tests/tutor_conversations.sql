@@ -112,6 +112,9 @@ begin
      or exists (select 1 from public.tutor_conversation_rules) or exists (select 1 from public.tutor_searches) then
     raise exception 'B sees A''s rows';
   end if;
+  if not exists (select 1 from pg_trigger where tgname = 'tutor_searches_limit') then
+    raise exception 'tutor_searches has no row limit';
+  end if;
   if exists (select 1 from public.search_tutor('mit', null, 10)) then
     raise exception 'B''s search found A''s exchange';
   end if;

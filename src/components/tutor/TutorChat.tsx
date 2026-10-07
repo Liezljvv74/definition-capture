@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { AnswerCard } from "@/components/tutor/AnswerCard";
 import { SaveAsRuleDialog } from "@/components/tutor/SaveAsRuleDialog";
-import { QUESTION_MAX, type Plan, type TutorExchange, type TutorReply } from "@/lib/tutor";
+import { MERGE_MAX, QUESTION_MAX, type Plan, type TutorExchange, type TutorReply } from "@/lib/tutor";
 import { recordSavedRule } from "@/lib/tutorConversations";
 import { useRules } from "@/lib/useRules";
 
@@ -158,6 +158,8 @@ export function TutorChat(props: {
             exchange={exchange}
             index={i}
             ticked={!exchange.mergeable || exchange.id === null || exchange.reply.existingRule ? null : ticked.includes(exchange.id)}
+            // The merge route refuses more than MERGE_MAX, so the rest wait until one is unticked.
+            tickDisabled={ticked.length >= MERGE_MAX && !ticked.includes(exchange.id!)}
             onTick={(on) =>
               setTicked((all) => (on ? [...all, exchange.id!] : all.filter((id) => id !== exchange.id)))
             }

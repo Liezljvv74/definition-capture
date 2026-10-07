@@ -10,7 +10,7 @@
 -- half precision and kept in the row, the keyword index is on an expression
 -- rather than a stored column, a reply is capped at 64 KB, and an account
 -- holds at most 2,000 exchanges and 500 conversations (the owner's decision,
--- 7 October 2026). The caps are checked by the database, so a row an account
+-- 7 October 2026) and has at most 3,000 search rows between clean-ups. The caps are checked by the database, so a row an account
 -- inserts directly with the publishable key is held to them too.
 
 -- pgvector, in `extensions` as Supabase recommends; everything below names it
@@ -163,6 +163,11 @@ create table public.tutor_searches (
 );
 -- Serves the hourly count.
 create index tutor_searches_user_created_idx on public.tutor_searches (user_id, created_at);
+-- A direct insert with the publishable key is allowed, so between nightly
+-- clean-ups an account could otherwise pile up rows without end. 3,000 is
+-- above a day of honest use at 100 searches an hour.
+create trigger tutor_searches_limit before insert on public.tutor_searches
+  for each row execute function public.enforce_row_limit('3000');
 
 alter table public.tutor_searches enable row level security;
 create policy tutor_searches_select on public.tutor_searches

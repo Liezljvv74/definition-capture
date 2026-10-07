@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { AnswerCard } from "@/components/tutor/AnswerCard";
 import { newAddress, TutorChat } from "@/components/tutor/TutorChat";
 import type { TutorExchange } from "@/lib/tutor";
 
@@ -75,6 +76,15 @@ describe("TutorChat", () => {
     expect(out).toContain('href="https://www.duden.de/x"');
     expect(out.match(/Include in a rule/g)).toHaveLength(2);
     expect(out).toContain('id="e-1"');
+  });
+
+  it("disables an unticked box once the most a merge takes are ticked, and only then", () => {
+    const card = (tickDisabled: boolean, ticked = false) =>
+      renderToStaticMarkup(
+        <AnswerCard exchange={exchange(1, "Dative")} index={0} ticked={ticked} tickDisabled={tickDisabled} onTick={() => {}} onSave={() => {}} />,
+      );
+    expect(card(true)).toMatch(/<input type="checkbox"[^>]*disabled=""/);
+    expect(card(false)).not.toContain("disabled");
   });
 
   it("offers no tick box on an answer that was not saved", () => {
