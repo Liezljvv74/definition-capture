@@ -214,7 +214,13 @@ export function updateEntry(id: string, input: EntryInput): Entry | null {
  * single round trip and a single re-render, not one per row. Returns how many
  * were actually removed; ids that are not in the word list are ignored.
  */
-export const deleteEntries = store.removeMany;
+export function deleteEntries(ids: readonly string[]): number {
+  const doomed = store.items().filter((entry) => ids.includes(entry.id));
+  const removed = store.removeMany(ids);
+  // Links to a deleted word lose their link, as for a rule (`deleteRules`).
+  for (const entry of doomed) rewriteLinks("word", entry.id, entry.word, null);
+  return removed;
+}
 
 /* ----------------------------------------------------------------- queries */
 

@@ -119,14 +119,42 @@ export function renameLinksIn(text: string, from: string, to: string): string {
   });
 }
 
-function renameInBlocks(blocks: Block[], from: string, to: string): Block[] {
-  return blocks.map((block) =>
-    block.kind === "text"
-      ? { ...block, text: renameLinksIn(block.text, from, to) }
-      : block.kind === "table"
-        ? { ...block, cells: block.cells.map((row) => row.map((cell) => renameLinksIn(cell, from, to))) }
-        : block,
-  );
+/** `[[Name]]` and `[[Name|words]]` for a deleted `name` become plain text: the shown words, else the name. */
+export function unlinkIn(text: string, name: string): string {
+  const gone = foldName(name);
+  return text.replace(LINK, (whole, inner: string) => {
+    const { name: linked, label } = linkParts(inner);
+    return foldName(linked) === gone ? label || linked : whole;
+  });
+}
+
+/** A line made only of links after "See also", as the tutor's save writes one (`withSeeAlso`). */
+const SEE_ALSO = /^See also ((?:\[\[[^[\]\n]+\]\](?:, )?)+)\.$/;
+
+/**
+ * A text without the links to a deleted `name`. On a "See also" line the
+ * name is taken out of the list rather than left as plain words, as the line
+ * would otherwise name a rule that is gone; null when nothing is left of it.
+ */
+function withoutLink(text: string, name: string): string | null {
+  const seeAlso = SEE_ALSO.exec(text.trim());
+  if (!seeAlso) return unlinkIn(text, name);
+  const gone = foldName(name);
+  const kept = [...seeAlso[1].matchAll(LINK)].filter((m) => foldName(linkParts(m[1]).name) !== gone).map((m) => m[0]);
+  return kept.length ? `See also ${kept.join(", ")}.` : null;
+}
+
+/** `to` null: `from` was deleted, so its links lose their link (`withoutLink`). */
+function renameInBlocks(blocks: Block[], from: string, to: string | null): Block[] {
+  const fix = (text: string) => (to === null ? unlinkIn(text, from) : renameLinksIn(text, from, to));
+  return blocks.flatMap((block): Block[] => {
+    if (block.kind === "text") {
+      const text = to === null ? withoutLink(block.text, from) : renameLinksIn(block.text, from, to);
+      return text === null ? [] : [{ ...block, text }];
+    }
+    if (block.kind === "table") return [{ ...block, cells: block.cells.map((row) => row.map(fix)) }];
+    return [block];
+  });
 }
 
 /**
@@ -135,25 +163,34 @@ function renameInBlocks(blocks: Block[], from: string, to: string): Block[] {
  * `updateMany`. Nothing when the names fold the same, since every link
  * already resolves, and nothing when a higher-precedence item of another kind
  * owns `from`, since those links pointed there all along.
+ *
+ * `to` null means the item was deleted (the owner's rule, 7 October 2026: a
+ * deleted rule must leave no link behind). Its links lose their link, unless
+ * another item still has the name, in which case they lead there. Pass lists
+ * that no longer hold the deleted item, so it is never written back.
  */
 export function planLinkRewrites(
   lists: { entries: readonly Entry[]; phrases: readonly Phrase[]; tables: readonly VerbTable[]; rules: readonly Rule[] },
   kind: LinkKind,
   id: string,
   from: string,
-  to: string,
+  to: string | null,
 ) {
   const none = { entries: [] as Entry[], phrases: [] as Phrase[], tables: [] as VerbTable[], rules: [] as Rule[] };
-  if (foldName(from) === foldName(to)) return none;
+  if (to !== null && foldName(from) === foldName(to)) return none;
   const rank = LINK_ORDER.indexOf(kind);
   const outranked = linkTargets(lists.entries, lists.phrases, lists.tables, lists.rules).some(
-    (t) => t.id !== id && foldName(t.name) === foldName(from) && LINK_ORDER.indexOf(t.kind) < rank,
+    (t) =>
+      t.id !== id &&
+      foldName(t.name) === foldName(from) &&
+      // A deleted name still in use anywhere keeps its links; a renamed one only for a higher kind.
+      (to === null || LINK_ORDER.indexOf(t.kind) < rank),
   );
   if (outranked) return none;
 
   const changedRef = <T extends { ref: string }>(items: readonly T[]) =>
     items.flatMap((item) => {
-      const ref = renameLinksIn(item.ref, from, to);
+      const ref = to === null ? unlinkIn(item.ref, from) : renameLinksIn(item.ref, from, to);
       return ref === item.ref ? [] : [{ ...item, ref }];
     });
   return {
@@ -175,7 +212,7 @@ export function linkedFrom(targets: readonly LinkTarget[], index: LinkIndex, hre
 }
 
 /**
- * "3 rules and 2 words link to Dativ. Their links will stop working.", or
+ * "3 rules and 2 words link to Dativ. Those links will be removed.", or
  * null when nothing that survives the delete links to what is going.
  */
 export function linkWarning(targets: readonly LinkTarget[], index: LinkIndex, doomed: readonly LinkTarget[]): string | null {
@@ -194,5 +231,5 @@ export function linkWarning(targets: readonly LinkTarget[], index: LinkIndex, do
   const list = counts.length === 1 ? counts[0] : `${counts.slice(0, -1).join(", ")} and ${counts[counts.length - 1]}`;
   const verb = linkers.size === 1 ? "links" : "link";
   const what = doomed.length === 1 ? doomed[0].name : `these ${PLURAL[doomed[0].kind][1]}`;
-  return `${list} ${verb} to ${what}. Their links will stop working.`;
+  return `${list} ${verb} to ${what}. Those links will be removed.`;
 }
