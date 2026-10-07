@@ -186,7 +186,7 @@ export async function embed(texts: string[], timeoutMs = 5_000): Promise<number[
     // Short, as it runs inside the tutor's 55-second budget beside the model call.
     signal: AbortSignal.timeout(timeoutMs),
     headers: openRouterHeaders(),
-    body: JSON.stringify({ model: EMBEDDING_MODEL, input: texts }),
+    body: JSON.stringify({ model: EMBEDDING_MODEL, input: texts, dimensions: EMBEDDING_DIMENSIONS }),
   });
   if (!res.ok) throw new Error(`OpenRouter embeddings answered ${res.status}`);
   const json = (await res.json()) as { data?: { index?: number; embedding?: unknown }[] } | null;

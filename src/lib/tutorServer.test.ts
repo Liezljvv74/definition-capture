@@ -49,7 +49,7 @@ describe("embed", () => {
     vi.stubGlobal("fetch", fetchMock);
     const out = await embed(["a", "b"]);
     expect(fetchMock.mock.calls[0][0]).toBe("https://openrouter.ai/api/v1/embeddings");
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ model: "baai/bge-m3", input: ["a", "b"] });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ model: "qwen/qwen3-embedding-8b", input: ["a", "b"], dimensions: 1024 });
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe("Bearer sk-test");
     expect(out.map((v) => v[0])).toEqual([1, 2]);
   });

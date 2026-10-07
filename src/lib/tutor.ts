@@ -25,10 +25,15 @@ export const DEFAULT_TUTOR_MODEL = "anthropic/claude-sonnet-5.5";
  * to null (`update public.tutor_exchanges set embedding = null`), since two
  * models' vectors cannot be compared; those exchanges are then found by
  * keyword only, as nothing can embed them again (there is no update grant).
+ *
+ * Qwen3 rather than the planned `baai/bge-m3`, which the OpenRouter
+ * account's guardrails refuse (a 404, "0 endpoints", tried 7 October 2026).
+ * Its own size is 4096; it is asked for 1024 (`dimensions`), which it was
+ * trained to give, so the column and its storage stay as designed.
  */
-export const EMBEDDING_MODEL = "baai/bge-m3";
+export const EMBEDDING_MODEL = "qwen/qwen3-embedding-8b";
 export const EMBEDDING_DIMENSIONS = 1024;
-/** Characters embedded at most; bge-m3 reads about 8000 tokens, and an answer's start says what it is about. */
+/** Characters embedded at most; the model reads far more, and an answer's start says what it is about. */
 export const EMBED_TEXT_MAX = 8000;
 /** Earlier exchanges, from any conversation, given to the tutor with a question. */
 export const MEMORY_LIMIT = 5;

@@ -49,11 +49,15 @@ this spec includes what came of it.
 
 Embeddings are made in the tutor's own server routes, through OpenRouter's
 `POST https://openrouter.ai/api/v1/embeddings`, with the same key and the same
-`fetch` as the tutor's call. The model is `baai/bge-m3` (1024 dimensions,
-multilingual, about $0.01 per million tokens), in one constant
+`fetch` as the tutor's call. The model is `qwen/qwen3-embedding-8b`, asked for 1024 dimensions
+(multilingual, about $0.01 per million tokens), in one constant
 `EMBEDDING_MODEL` beside `DEFAULT_TUTOR_MODEL`. Vectors are stored at half
 precision (`halfvec`), which halves their space and the reading of a scan for
 a loss in search quality too small to notice.
+
+`baai/bge-m3`, first chosen, is refused by the OpenRouter account's guardrails
+(checked 7 October 2026); Qwen3 is allowed and gives 1024-dimension vectors when
+asked, so the column is unchanged.
 
 Rejected:
 

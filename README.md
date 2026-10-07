@@ -615,7 +615,7 @@ polite sentence saying what it can help with, which is still an answer and
 spends a message. The rule is one function, `scopeRule` in `src/lib/tutor.ts`.
 Questions, merges and search go through `POST /api/tutor`, `/api/tutor/merge`
 and `/api/tutor/search`, and use the same model (`OPENROUTER_MODEL`) and
-allowance; search and memory embed text with `baai/bge-m3` through OpenRouter,
+allowance; search and memory embed text with `qwen/qwen3-embedding-8b` (1024 dimensions) through OpenRouter,
 stored in pgvector. The design is in
 [`Docs/tutor-conversations.md`](Docs/tutor-conversations.md).
 
