@@ -87,6 +87,8 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           // A term id in a URL should not travel to another site as a referer.
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Nothing in the app uses these; turned off so an injected script could not ask for them.
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "X-Content-Type-Options", value: "nosniff" },
         ],
       },

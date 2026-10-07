@@ -605,7 +605,12 @@ export function followUp(question: string, previousTitle: string | undefined): s
   return previousTitle ? `About "${previousTitle}": ${question}` : question;
 }
 
-/** The short last message of a merge, which the web search uses as its query. */
-export function mergeSearch(answers: { reply: { title: string } }[]): string {
-  return `Make one rule about: ${[...new Set(answers.map((a) => a.reply.title))].join("; ")}`;
+/**
+ * The short last message of a merge, which the web search uses as its query:
+ * the answers' titles, read from the first line of the signed answer text
+ * (`answerText` starts with the title) rather than the stored reply JSON,
+ * which the signature does not cover.
+ */
+export function mergeSearch(answers: { answerText: string }[]): string {
+  return `Make one rule about: ${[...new Set(answers.map((a) => a.answerText.split("\n")[0].trim()))].join("; ")}`;
 }

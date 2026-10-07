@@ -207,8 +207,9 @@ uses.
 
 ### `conversation_messages`
 
-Its rows are deleted in the same migration. The table is dropped by a second
-migration once no deployed code reads it.
+Its rows are deleted in the same migration. The table was dropped by
+`20261007195955_drop_conversation_messages.sql` once the release was live
+(7 October 2026).
 
 `Docs/schema.md` is updated: sixteen tables (four added, one dropped) and
 twelve functions.

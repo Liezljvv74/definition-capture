@@ -23,7 +23,7 @@ owner.
 | Tutor | OpenRouter, called with `fetch` from `POST /api/tutor`, `/api/tutor/merge` and `/api/tutor/search`; `OPENROUTER_MODEL` picks the model, default `anthropic/claude-sonnet-5.5`; embeddings `qwen/qwen3-embedding-8b` (1024 dimensions) through OpenRouter, in pgvector |
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
-| Tests | Vitest 3, in the node environment; `npx vitest run` |
+| Tests | Vitest 5, in the node environment; `npx vitest run` |
 | End-to-end tests | Playwright Test 1.63, in `e2e/`; `npm run e2e`, on localhost for signed-in tests |
 | Tooling | Supabase CLI 2.118, ESLint 9 |
 | Hosting | Vercel, deployed from GitHub on every push to `main` |
@@ -228,7 +228,7 @@ points at. A collection or source still in use cannot be deleted; the database
 refuses it and Settings switches the bin off.
 
 **`Docs/schema.md` is the design of record, and it is read before a table is
-added.** Sixteen tables (once the follow-up migration has dropped `conversation_messages`), no views, and twelve functions, none of them `security
+added.** Sixteen tables, no views, and twelve functions, none of them `security
 definer`: `items` holds every word, phrase, verb table and grammar rule, with a check per type
 on its detail columns; `tags`, `item_tags` and `sources` label them; `decks`,
 `deck_cards`, `progress` and an append-only `reviews` carry the flashcards, and

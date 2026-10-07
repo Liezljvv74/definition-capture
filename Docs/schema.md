@@ -20,8 +20,7 @@ those migrations and in the git log; none of it is live.
 
 ## The shape
 
-Sixteen tables (once the follow-up migration has dropped `conversation_messages`, which
-still exists until then), no views, twelve functions, none of them `security definer`.
+Sixteen tables, no views, twelve functions, none of them `security definer`.
 
 | Table | Holds | Written by |
 | --- | --- | --- |
@@ -192,8 +191,9 @@ grant set drifts. `supabase/tests/tutor.sql` rehearses all of it.
 
 Together with `tutor_searches` below, these hold the tutor's saved
 conversations; `Docs/tutor-conversations.md` is the design. They replace the
-old `conversation_messages` table, whose rows the migration deleted and which a
-later migration drops once no deployed code reads it.
+old `conversation_messages` table, whose rows the migration deleted and which
+`20261007195955_drop_conversation_messages.sql` dropped once the release was
+live (7 October 2026).
 
 `tutor_conversations` has `id` (uuid), `user_id`, `name` (1 to 120 characters,
 trimmed), `created_at` and `updated_at`, which orders the sidebar. It carries

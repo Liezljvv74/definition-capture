@@ -14,6 +14,9 @@
  * before it says who anybody is.
  */
 
+// A build error if a browser component ever imports the server session code.
+import "server-only";
+
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
