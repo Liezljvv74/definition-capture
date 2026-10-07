@@ -87,29 +87,6 @@ export function startOfUtcDay(now: Date): Date {
 }
 
 export type TutorTurn = { role: "user" | "assistant"; content: string };
-/** A turn as it arrives from the browser or the database: a reply carries the server's signature (`signTurn`). */
-export type SignedTurn = TutorTurn & { signature?: string | null };
-
-/**
- * The client's history is untrusted: a forged "system" turn would be an
- * instruction the model obeys. Only user and assistant turns with text
- * survive, each trimmed, the last few kept.
- */
-export function readHistory(value: unknown): SignedTurn[] {
-  if (!Array.isArray(value)) return [];
-  const turns: SignedTurn[] = [];
-  for (const raw of value) {
-    const turn = raw as { role?: unknown; content?: unknown; signature?: unknown } | null;
-    if (typeof turn?.content !== "string") continue;
-    if (turn.role === "user") turns.push({ role: "user", content: turn.content.slice(0, QUESTION_MAX) });
-    // A reply is kept whole, since its signature covers every character; one
-    // longer than any answer could be is dropped rather than cut.
-    else if (turn.role === "assistant" && turn.content.length <= QUESTION_MAX * 40) {
-      turns.push({ role: "assistant", content: turn.content, signature: typeof turn.signature === "string" ? turn.signature : null });
-    }
-  }
-  return turns.slice(-HISTORY_LIMIT);
-}
 
 /**
  * An answer as the plain text a follow-up is given for context, so the JSON
