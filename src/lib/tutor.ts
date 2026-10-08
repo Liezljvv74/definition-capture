@@ -20,6 +20,43 @@ export const QUESTION_MAX = 1000;
 export const DEFAULT_TUTOR_MODEL = "anthropic/claude-sonnet-5.5";
 
 /**
+ * Spellings that capitalising the slug gets wrong, for a maker or a word of a
+ * model's name alike ("deepseek-chat" is DeepSeek's). Anything not listed is
+ * only given a capital, so a new maker reads plainly rather than wrongly.
+ */
+const SPELLINGS: Record<string, string> = {
+  openai: "OpenAI",
+  "meta-llama": "Meta",
+  mistralai: "Mistral AI",
+  "x-ai": "xAI",
+  "z-ai": "Z.ai",
+  moonshotai: "Moonshot AI",
+  deepseek: "DeepSeek",
+  openrouter: "OpenRouter",
+  gpt: "GPT",
+  glm: "GLM",
+  oss: "OSS",
+};
+
+// OpenAI's reasoning models are written in lower case, "o3" and "o4".
+const word = (part: string) =>
+  SPELLINGS[part] ?? (/^o\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1));
+
+/**
+ * An OpenRouter slug as a reader would say it, for the Tutor page to name the
+ * model answering: `anthropic/claude-sonnet-5.5` is "Claude Sonnet 5.5 by
+ * Anthropic". A variant after `:` (`:free`, `:nitro`) is how OpenRouter routes
+ * it, not part of the name, so it is dropped. A slug that is not maker/name
+ * comes back as it is, since a guess would name the wrong model.
+ */
+export function modelLabel(slug: string): string {
+  const [maker, name] = slug.trim().split(":")[0].split("/");
+  if (!maker || !name) return slug.trim();
+  const model = name.split("-").filter(Boolean).map(word).join(" ");
+  return `${model} by ${SPELLINGS[maker] ?? maker.split("-").map(word).join(" ")}`;
+}
+
+/**
  * OpenRouter's multilingual embedding model, for search and memory. The
  * column in tutor_exchanges is fixed to its dimension. Changing the model, even
  * to one of the same size, needs a migration that sets every stored embedding

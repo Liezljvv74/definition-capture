@@ -4,10 +4,32 @@ import type { ExampleBlock, TableBlock, TextBlock } from "@/lib/types";
 
 import {
   allowance, buildRequest, conversationName, DEFAULT_TUTOR_MODEL, exchangeTurns, FREE_TRIAL_MESSAGES, freeTitle,
-  mergeLabel, mergeQuestion, PAID_DAILY_MESSAGES, pickMemory, readConversationId,
+  mergeLabel, mergeQuestion, modelLabel, PAID_DAILY_MESSAGES, pickMemory, readConversationId,
   asQuery, followUp, mergeSearch, onReferenceSite, SOURCES_MAX, readExchangeIds, readReply, readStoredReply, REFERENCE_DOMAINS, searchResults, startOfUtcDay,
   tutorInstructions, withSeeAlso,
 } from "@/lib/tutor";
+
+describe("modelLabel", () => {
+  it("names the model and its maker as a reader would say them", () => {
+    expect(modelLabel(DEFAULT_TUTOR_MODEL)).toBe("Claude Sonnet 5.5 by Anthropic");
+    expect(modelLabel("openai/gpt-5-mini")).toBe("GPT 5 Mini by OpenAI");
+    expect(modelLabel("meta-llama/llama-4-maverick")).toBe("Llama 4 Maverick by Meta");
+    expect(modelLabel("google/gemini-3-pro-preview")).toBe("Gemini 3 Pro Preview by Google");
+    expect(modelLabel("z-ai/glm-4.6")).toBe("GLM 4.6 by Z.ai");
+    expect(modelLabel("moonshotai/kimi-k2")).toBe("Kimi K2 by Moonshot AI");
+    expect(modelLabel("openai/o3-mini")).toBe("o3 Mini by OpenAI");
+    expect(modelLabel("some-lab/new-model")).toBe("New Model by Some Lab");
+  });
+
+  it("drops OpenRouter's routing variant", () => {
+    expect(modelLabel("deepseek/deepseek-chat:free")).toBe("DeepSeek Chat by DeepSeek");
+  });
+
+  it("returns a slug that is not maker/name unchanged, but trimmed", () => {
+    expect(modelLabel("  some-model  ")).toBe("some-model");
+    expect(modelLabel("")).toBe("");
+  });
+});
 
 describe("allowance", () => {
   it("gives a free account five messages for its whole life", () => {

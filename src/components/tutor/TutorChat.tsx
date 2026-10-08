@@ -39,6 +39,8 @@ export function TutorChat(props: {
   /** Answer id to the rule it was saved as. */
   savedRules: Record<number, string>;
   notFound: boolean;
+  /** The model answering, as `modelLabel` names it, and the slug behind it. */
+  model: { label: string; slug: string };
 }) {
   const router = useRouter();
   const [remaining, setRemaining] = useState(props.remaining);
@@ -145,7 +147,14 @@ export function TutorChat(props: {
 
   return (
     <main className="notebook-page mx-auto w-full max-w-3xl min-w-0 flex-1 space-y-5 py-6 sm:py-8">
-      <h1 className="hand-title text-2xl sm:text-3xl"><span className="marker">Tutor</span></h1>
+      <div>
+        <h1 className="hand-title text-2xl sm:text-3xl"><span className="marker">Tutor</span></h1>
+        {/* Only where a question can be asked: without a language, or past a
+            limit, no model is going to answer. */}
+        {studiedName && reason === "ok" && (
+          <p className="mt-1 text-xs text-ink-soft" title={props.model.slug}>Model: {props.model.label}</p>
+        )}
+      </div>
 
       {props.notFound && <p className={NOTICE}>That conversation was not found.</p>}
 

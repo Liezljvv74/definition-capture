@@ -7,6 +7,7 @@ import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
 import {
   allowance,
   CONVERSATION_PAGE,
+  modelLabel,
   readConversationId,
   storageFull,
   type TutorExchange,
@@ -19,6 +20,7 @@ import {
   loadLinkedRules,
   loadTutorState,
   signatureValid,
+  tutorModel,
 } from "@/lib/tutorServer";
 
 export const metadata: Metadata = { title: "Tutor" };
@@ -58,6 +60,9 @@ export default async function TutorPage({ searchParams }: { searchParams: Promis
   // Full is checked after the allowance, so a used-up trial still says so.
   const full = storageFull(held, Boolean(meta));
   const reason = allowed.reason === "ok" && full ? "storageFull" : allowed.reason;
+  // Read on the server, where OPENROUTER_MODEL lives; the page is given only
+  // the name, which is no secret, never the key.
+  const slug = tutorModel();
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-x-8 px-4 lg:flex-row">
@@ -89,6 +94,7 @@ export default async function TutorPage({ searchParams }: { searchParams: Promis
         // Which answers are already saved as rules, so they offer Open instead of a second save.
         savedRules={meta ? Object.fromEntries(linked.flatMap((link) => (link.exchangeId === null ? [] : [[link.exchangeId, link.itemId]]))) : {}}
         notFound={given !== undefined && !meta}
+        model={{ label: modelLabel(slug), slug }}
       />
     </div>
   );
