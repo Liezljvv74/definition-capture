@@ -476,6 +476,13 @@ file, or leave them:
 - Long-list virtualisation and leaner list requests were noted during the
   index review as optional improvements for a much larger dataset; the owner
   said to leave optional improvements for later discussion.
+- Tutor, found 8 October 2026 by a scripted check against the real model: in a
+  new conversation, a second question asked before the page has moved to the
+  conversation's own address (about a second after the first answer) is
+  answered and saved, but its answer does not appear until a reload. The
+  `router.replace` remounts `TutorChat` under the conversation's key from the
+  server's copy, which lacks the answer still in flight. Too fast for a person
+  to hit easily; not fixed.
 - Leaked-password protection is a switch in the Supabase dashboard
   (Authentication, Providers); it is the one advisor finding left, and only
   the owner can flip it.
@@ -488,6 +495,12 @@ changed with it, including the local Supabase `project_id`, so the Docker
 containers are now `supabase_*_Captured` and the local database starts empty:
 recreate the E2E account through `/sign-up` before the next end-to-end run.
 The old `supabase_*_Sprint2_Project_Captured` volumes can be deleted.
+After the rename the whole app was checked on the new local stack: every
+migration applied, all 8 end-to-end tests passed, every workspace page loaded
+without errors, and the real tutor answered, merged two answers into a saved
+rule, and found conversations by search. The local E2E account is now
+`e2e@local.test`, marked paid in the local `account_plans`; its password was
+throwaway, so reset it in local Studio (port 54323) before the next run.
 
 The names below still say `definition-capture`. `CLAUDE.md` calls them
 permanent, but the owner has said losing old backup files is acceptable, and
