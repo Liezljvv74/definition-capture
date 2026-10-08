@@ -494,6 +494,55 @@ file, or leave them:
   (Authentication, Providers); it is the one advisor finding left, and only
   the owner can flip it.
 
+## Tutor: point learners to the app's own pages (planned, 8 October 2026)
+
+Not built yet; do it when the owner asks. Found by the owner on 8 October 2026:
+an answer about common spelling mistakes ended "keep a small list of words you
+often misspell... say each word aloud" and "when you make a mistake, write the
+right sentence in a notebook". The app exists to keep exactly those notes in
+one place, so the tutor should send the learner to the app's pages, not to a
+list or a notebook. It does not today because `tutorInstructions` in
+`src/lib/tutor.ts` never mentions the app.
+
+Three options, smallest first. Recommended: 1 and 2 together now, 3 as its own
+feature later.
+
+1. **Tell the tutor about the pages (instructions only).** One more rule in
+   `tutorInstructions`: when it suggests keeping words, sentences or notes, it
+   names the place in the app and never a notebook or separate list. Words to
+   remember or often misspelled go in **Vocabulary**; correct sentences and
+   expressions in **Phrases**; conjugations in **Verbs**; the explanation itself
+   via **Save as rule** (Grammar); reviewing them in **Flashcards**. No screen
+   change. The example would read "Add the words you often misspell to
+   Vocabulary and practise them in Flashcards..." and "...save the right
+   sentence in Phrases". Limit: plain text, so the learner finds the page
+   themselves.
+2. **Make those page names links (moderate).** The tutor writes a page name in
+   a fixed form and the answer shows it as a link to `/vocabulary`, `/phrases`
+   and so on. Rule text already turns `[[Name]]` into links (`RichText`), but
+   `AnswerCard` renders answers with an empty link index, so this needs a small
+   allow-list of page names to hrefs; anything outside it stays plain text, so
+   the tutor can never invent a link. `cleanText` must keep the form intact.
+3. **One-click "Add to Vocabulary / Add to Phrases" from an answer (larger;
+   plan it with the owner before building).** The tutor also returns, as
+   structured data in `REPLY_SCHEMA`, the words and sentences worth keeping (in
+   the owner's example, the five corrected spellings), and the answer shows a
+   button beside each that adds it pre-filled, through the same duplicate check
+   the add forms use. This makes "one central place" happen rather than be
+   suggested, but changes the shape of every answer and adds a save path.
+
+**Open question for the owner: "needs review".** It is not on the Vocabulary
+page today. It is shown and set only in Flashcards, though it is stored on the
+item itself (`items.needs_review`, per `Docs/schema.md`): set when a card is
+answered wrong or ticked by hand on the card, cleared by a right answer, and a
+deck can be built from marked items only (`only_needs_review`). So the honest
+advice is "add it to Vocabulary, then practise in Flashcards, where the ones
+you miss are marked for review". The alternative is a separate small feature:
+a "needs review" mark the learner can set on the Vocabulary page itself; since
+the column is already on `items`, that is a checkbox and a save, with no
+schema change. The
+owner has not chosen yet.
+
 ## Retiring the old name (planned, 8 October 2026)
 
 On 8 October 2026 the owner renamed the project folder from
