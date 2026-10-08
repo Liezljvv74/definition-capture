@@ -532,12 +532,15 @@ feature later.
    suggested, but changes the shape of every answer and adds a save path.
 
 **Open question for the owner: "needs review".** It is not on the Vocabulary
-page today. It is a flashcard mark (`progress.needs_review`): set when a card is
+page today. It is shown and set only in Flashcards, though it is stored on the
+item itself (`items.needs_review`, per `Docs/schema.md`): set when a card is
 answered wrong or ticked by hand on the card, cleared by a right answer, and a
-deck can be built from marked cards only (`needsReviewOnly`). So the honest
+deck can be built from marked items only (`only_needs_review`). So the honest
 advice is "add it to Vocabulary, then practise in Flashcards, where the ones
 you miss are marked for review". The alternative is a separate small feature:
-a "needs review" mark the learner can set on the Vocabulary page itself. The
+a "needs review" mark the learner can set on the Vocabulary page itself; since
+the column is already on `items`, that is a checkbox and a save, with no
+schema change. The
 owner has not chosen yet.
 
 ## Retiring the old name (planned, 8 October 2026)
