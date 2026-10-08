@@ -16,6 +16,7 @@ import {
   clearExportFolder,
   ExportFolderError,
 } from "@/lib/exportFolder";
+import { plural } from "@/lib/home";
 import { useRules } from "@/lib/useRules";
 import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
@@ -187,41 +188,25 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           <fieldset>
             <legend className="mb-1.5 text-sm font-medium">What to export</legend>
             <div className="flex flex-col gap-2">
-              <ScopeChoice
-                label="Everything"
-                detail={`${counts.all} across all lists`}
-                checked={scope === "all"}
-                disabled={busy}
-                onSelect={() => setScope("all")}
-              />
-              <ScopeChoice
-                label="Words"
-                detail={`${counts.words} ${counts.words === 1 ? "word" : "words"}`}
-                checked={scope === "words"}
-                disabled={busy}
-                onSelect={() => setScope("words")}
-              />
-              <ScopeChoice
-                label="Phrases"
-                detail={`${counts.phrases} ${counts.phrases === 1 ? "phrase" : "phrases"}`}
-                checked={scope === "phrases"}
-                disabled={busy}
-                onSelect={() => setScope("phrases")}
-              />
-              <ScopeChoice
-                label="Verb tables"
-                detail={`${counts.verbTables} ${counts.verbTables === 1 ? "table" : "tables"}`}
-                checked={scope === "verbTables"}
-                disabled={busy}
-                onSelect={() => setScope("verbTables")}
-              />
-              <ScopeChoice
-                label="Grammar rules"
-                detail={`${counts.rules} ${counts.rules === 1 ? "rule" : "rules"}`}
-                checked={scope === "rules"}
-                disabled={busy}
-                onSelect={() => setScope("rules")}
-              />
+              {(
+                [
+                  ["all", "Everything", `${counts.all} across all lists`],
+                  ["words", "Words", plural(counts.words, "word", "words")],
+                  ["phrases", "Phrases", plural(counts.phrases, "phrase", "phrases")],
+                  ["verbTables", "Verb tables", plural(counts.verbTables, "table", "tables")],
+                  ["rules", "Grammar rules", plural(counts.rules, "rule", "rules")],
+                ] as const
+              ).map(([value, label, detail]) => (
+                <ScopeChoice
+                  key={value}
+                  name="export-scope"
+                  label={label}
+                  detail={detail}
+                  checked={scope === value}
+                  disabled={busy}
+                  onSelect={() => setScope(value)}
+                />
+              ))}
             </div>
           </fieldset>
 

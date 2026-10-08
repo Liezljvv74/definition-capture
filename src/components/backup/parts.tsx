@@ -45,14 +45,16 @@ export function ReplaceLine({
   );
 }
 
-/** One radio in the "what to export" list. */
+/** One radio with a hint under it: an export's scope, or an import's mode. */
 export function ScopeChoice({
+  name,
   label,
   detail,
   checked,
   disabled,
   onSelect,
 }: {
+  name: string;
   label: string;
   detail: string;
   checked: boolean;
@@ -69,7 +71,7 @@ export function ScopeChoice({
     >
       <input
         type="radio"
-        name="export-scope"
+        name={name}
         className="mt-0.5 size-4 accent-accent"
         checked={checked}
         disabled={disabled}
