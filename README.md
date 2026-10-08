@@ -1,10 +1,28 @@
 # Captured
 
-Captured is a private language-learning workspace. You save the
-words, phrases, verb conjugations and grammar rules you meet, and flashcards built
-from them come back when they are due. Every list is stored in Supabase and
-belongs to the account that saved it, so the same lists are there on any browser
-or device. It is live at <https://definition-capture.vercel.app>.
+Captured is a language learner's notebook built around an AI grammar tutor. You
+ask the tutor about the grammar of the language you are studying, in plain
+words and at your level, follow up in a conversation it remembers and can
+search, and save its answers as grammar rules. Those rules sit in one place with
+the rest of what you are learning, the words, phrases and verb conjugation
+tables you collect, linked to them, and flashcards built from it all come back
+when they are due. Every list is stored in Supabase and belongs to the account
+that saved it, so the same notebook is there on any browser or device.
+
+It is live at <https://definition-capture.vercel.app>.
+
+**Why the AI is the core.** Without the tutor this would be a vocabulary list,
+which any notebook or spreadsheet already is. What makes Captured worth using
+is the grammar discussion a learner otherwise needs a teacher or a forum for: a
+point explained plainly, in your own language or the one you are learning, the
+next question answered with the conversation in mind, and what came of it kept
+as a rule beside your words and phrases instead of being lost in a chat window.
+The tutor is a real model, called through OpenRouter from the server only;
+which one is named on the Tutor page.
+
+![The Tutor page: the saved conversations on the left, "Common B2 Mistakes and How to Fix Them" and "Adjectives in German"; under the Tutor heading "Model: Claude Sonnet 5.5 by Anthropic" and the Answer in choice of English or German; the question "teach me about the adjektive and everything related to it" and the start of the answer "Adjectives in German", in plain sentences with an example, "Das neue Kleid ist sehr schön", and its translation](assets/tutor-answer.png)
+
+The public landing page, for visitors who are not signed in:
 
 ![The public landing page drawn as lined notebook paper: the heading "Your personal repository for learning any language", Create an account and Sign in buttons, a "How you remember it" card with a Try one now flashcard, pasted-on cards for words, phrases, verb tables and grammar rules under Structured Notes, and the questions as dropdowns](assets/landing-page.png)
 
@@ -46,6 +64,46 @@ or device. It is live at <https://definition-capture.vercel.app>.
   Cloudflare Turnstile check, with every protected page checked on the server
   before it renders.
 
+## Optional tasks
+
+Two were chosen.
+
+**1. Cross-user privacy check.** A test confirms that one account's AI context
+cannot be reached by another. It lives in `supabase/tests/multiuser/` (how to
+rerun it is in the README there) and was first run on 7 October 2026: 626 of
+626 checks passed, recorded in `Reports/Multi user test.pdf`. Three accounts
+each get a row in every table, including all of the tutor's: conversations,
+saved answers with their embeddings, rules linked from a conversation, usage
+and the search log. Each account then attacks the other two, first straight
+through the database with its own login token and the public key, then through
+the app in a real browser. For the AI context specifically, it checks that an
+account cannot:
+
+- read, change or delete another account's conversations, saved answers,
+  linked rules or search log, or add its own rows to them;
+- find another account's answers through `search_tutor`, the search behind
+  both the conversation search and the tutor's memory, which runs under the
+  caller's own session;
+- see another account's conversations in the `/tutor` sidebar, or open one by
+  its address (the page says the conversation was not found);
+- ask a question, or merge answers, inside another account's conversation
+  through `POST /api/tutor` or `/api/tutor/merge` (refused with 404, and no
+  message spent).
+
+Every refusal was counted only when it came from access rules, and every
+account's data was fingerprinted before and after, unchanged. As a sanity
+check, switching off row level security on one table locally made 18 checks
+fail; it was then switched back on.
+
+**2. Model display.** The Tutor page names the model answering, from its
+OpenRouter slug made readable: "Model: Claude Sonnet 5.5 by Anthropic", with
+the slug itself (`anthropic/claude-sonnet-5.5`) on hover, visible in the
+screenshot above. The slug is read on the server (`tutorModel()`), and
+`modelLabel` in `src/lib/tutor.ts` formats it; the browser is given only the
+name. It shows only where a question can be asked. The `ai-code-reviewer` run
+on this change, and the fixes it led to, are in
+`Reports/AI-Code_Reviewer Report and fixes.pdf`.
+
 ## Tech stack
 
 | | |
@@ -74,9 +132,18 @@ npm run dev
 
 Then open <http://localhost:3000>.
 
-Either way you need a `.env.local` first. Copy `.env.example` and fill it in. The
-two Supabase values are under Project Settings → API in the dashboard; the
-Turnstile site key is in the Cloudflare dashboard:
+Either way you need a `.env.local` first. Copy `.env.example` and fill it in.
+Where each value comes from:
+
+| Variable | Where to find it |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase dashboard, Project Settings → API: the project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | The same page: the publishable key (`sb_publishable_…`) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare dashboard → Turnstile → the widget → Site Key |
+| `OPENROUTER_API_KEY` | <https://openrouter.ai/settings/keys> → Create Key (set a credit limit on it) |
+| `TUTOR_SIGNING_SECRET` | Made by you: `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` |
+| `OPENROUTER_MODEL` | Optional; an OpenRouter model slug, from <https://openrouter.ai/models> |
+
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
@@ -880,6 +947,9 @@ Docs/
   voice.md                the read aloud design
   verb-practice.md        the verb practice design
   plans/                  implementation plans, kept for the record
+  references/             OpenRouter and Supabase documentation pages the AI
+                          feature relies on, each with its source URL first
+  history/                the course brief and the original prompt
 public/                   the logo images and llms.txt
 assets/                   source art that is not served
 ```

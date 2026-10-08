@@ -40,6 +40,9 @@ questions, connected to the words and phrases they are learning.
   `src/lib/tutor.ts`; `OPENROUTER_MODEL` overrides it). The Tutor page names it
   for the reader, as `modelLabel` formats the slug ("Claude Sonnet 5.5 by
   Anthropic").
+- The OpenRouter pages these rules rest on are saved in `Docs/references/`
+  (`openrouter-authentication.md`, `openrouter-embeddings.md`), each with its
+  source URL on the first line.
 
 ## Embeddings
 
@@ -63,6 +66,9 @@ questions, connected to the words and phrases they are learning.
   vectors when asked, so the designed column and its storage on the free plan
   stayed unchanged. It is not the common `openai/text-embedding-3-small` at
   1536 dimensions for those reasons, and is now fixed.
+- References: `Docs/references/openrouter-embeddings.md` (the endpoint and its
+  `dimensions` field) and `Docs/references/supabase-vector-columns.md` (vector
+  columns and cosine search in Postgres).
 
 ## Stack
 
