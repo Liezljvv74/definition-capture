@@ -1,13 +1,17 @@
-# Handoff: the grammar feature, after stage 1
+# Handoff: continuing the build
 
-Written 26 September 2026 at the end of the session that built and released
-stage 1 of the grammar feature, for the model that continues the build.
-Delete this file once stage 2 has started, as its predecessor was deleted
-when stage 1 started; the design in `Docs/grammar.md` is the document that
-lasts.
+The notes a new model or session reads to carry on building Captured: where
+`main` stands, what was just built or fixed, decisions the owner has made in
+conversation, and what is still to build. Started on 26 September 2026 for the
+grammar feature and kept ever since; the owner asked for it to be brought up
+to date after every commit, and it has been committed with the work since 7
+October 2026. "Where things stand" is newest first. The lasting designs are in
+`Docs/` (`schema.md`, `grammar.md`, `tutor.md` and the rest); this file is the
+running log beside them.
 
 ## Where things stand
 
+- **Tidied (8 October 2026), branch `tidy-files`.** Deleted local leftovers (`.playwright-cli/`, `test-results/`, `.superpowers/`, `.claude/worktrees/`, `tsconfig.tsbuildinfo`, `.next/`), the old `Sprint2_Project_Captured` Docker volumes and the Claude notes folder for the old path, and the committed copy of the Next.js guide `Docs/layouts_and_pages.md` (the same guide ships in `node_modules/next/dist/docs/`). This header rewritten: the file is the running log, not a stage-1 note to delete.
 - **Merged (8 October 2026): branch `tutor-model-label`.** The Tutor page names the model answering ("Model: Claude Sonnet 5.5 by Anthropic", slug on hover, only where a question can be asked), from `modelLabel` in `tutor.ts`. CLAUDE.md now describes the app as built around the grammar tutor and why it needs the AI, with "AI model calls" and "Embeddings" sections (Qwen3 and why). `ai-code-reviewer` was run on the branch before merging: nothing blocking, its findings fixed; report `Reports/AI-Code_Reviewer Report and fixes.pdf`. 851 tests.
 - **Merged (8 October 2026): PR #55, branch `dedupe`. Report and test: `Reports/2026-10-08-dedupe-check/`.** Redundancy and duplication scan, then every finding the owner approved: the four list stores share `importInto` (planImport.ts) and `parseList` (types.ts); word and phrase forms share `ItemFields.tsx`; list pages share `ListPage.tsx`; detail pages `DetailShell.tsx`; tutor routes `tutorRoute.ts`; auth link routes `authLink.ts`; rule checks `ruleProblem`; password checks `passwordProblem`; backup dialogs map over one list; Settings has `ListSetting` and one `LanguagePicker`; `Modal` is a native `<dialog>` (inert page, focus trap); menus share `useDismiss`, deck building `useBuildDeck`; dead code, unused exports, the ANON_KEY fallback and `vite-tsconfig-paths` removed; old docs moved to `Docs/history/`; local edge runtime off. Two bugs fixed on the way: Add Word/Phrase's "already saved, edit it" screen skipped the rename-clash check (now opens the real Edit dialog), and Escape in a Ref field's suggestions closed the whole dialog too (already so on main; Modal now listens on window). Visible changes: the tutor's delete confirmation is the shared one (red Delete, "cannot be undone"), the edit-from-Add title reads "Edit word", the import mode cards use the export cards' spacing, the Settings pencil is the shared glyph. Checked: tsc, eslint, 846 unit tests (3 new for importInto, others for ruleProblem and passwordProblem; 3 removed with verbState), build (same route table), all 8 Playwright tests on the local stack, a one-off browser check of dialogs, lists, edit, import preview, settings and delete, and the real tutor (ask, merge, save, search). The local machine was slow: two Playwright tests needed longer than the 5-second expect limit (search took 4.6 to 4.9 s, mostly the embedding call); with 20 s they pass, as on main.
 - **Merged (8 October 2026): PR #54, branch `rename-folder`.** The project folder is now `Captured` (was `Sprint2_Project_Captured`), and so is the local Supabase `project_id`; see "Retiring the old name" below for what changed, the plan for the remaining `definition-capture` names, and the check run afterwards (all passed, real tutor included). Report and test: `Reports/2026-10-08-rename-check/`. No app code changed.
@@ -238,7 +242,7 @@ and 4 both build on its links.
 **Plan written, 26 September:** `Docs/plans/2026-09-26-grammar-stage-2.md`
 (six tasks, no migration). Approved by the owner; being built
 subagent-driven on branch `grammar-stage-2` (in place). Ledger:
-`.superpowers/sdd/2026-09-26-grammar-stage-2/progress.md` (git-ignored); trust
+`.superpowers/sdd/2026-09-26-grammar-stage-2/progress.md` (git-ignored, deleted 8 October 2026); trust
 it and `git log` for which tasks are done. Task 1 (verb table notes in the
 store and backups) is committed as `efb91a1` and reviewed clean. Task 2 (the link
 model, `src/lib/links.ts`, with precedence taken from `LINK_ORDER`) is
@@ -332,7 +336,7 @@ revoked from `anon` and PUBLIC, one owner check).
 table cells covers the rectangle between its corners). Built subagent-driven
 on branch `grammar-stage-3` (in place, from `main` at `fb18bf4`), committing
 after each task as the owner asked; not pushed. Ledger:
-`.superpowers/sdd/2026-09-28-grammar-stage-3/progress.md` (git-ignored); trust
+`.superpowers/sdd/2026-09-28-grammar-stage-3/progress.md` (git-ignored, deleted 8 October 2026); trust
 it and `git log` for which tasks are done. Owner's rulings for this stage:
 highlight colours yellow, green, blue, purple (no pink: red family is for
 warnings); Edit mode tints highlights with faint visible markers; Link to…

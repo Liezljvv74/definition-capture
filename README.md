@@ -880,7 +880,6 @@ Docs/
   voice.md                the read aloud design
   verb-practice.md        the verb practice design
   plans/                  implementation plans, kept for the record
-  layouts_and_pages.md    notes on Next.js routing, kept for reference
 public/                   the logo images and llms.txt
 assets/                   source art that is not served
 ```
