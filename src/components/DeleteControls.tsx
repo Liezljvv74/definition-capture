@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
 import { Modal } from "@/components/Modal";
+import type { ListSelection } from "@/lib/useListSelection";
 
 /**
  * The delete affordances every list page in this app shares: a per-row
@@ -37,52 +36,39 @@ export function SelectRowCheckbox({
   );
 }
 
-export function SelectAllCheckbox({
-  checked,
-  indeterminate,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  indeterminate: boolean;
-  onChange: () => void;
-  label: string;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-
-  // `indeterminate` is a DOM property with no HTML attribute, so React cannot
-  // set it from JSX; it has to be written on the node after every render.
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = indeterminate;
-  }, [indeterminate]);
-
+export function SelectAllCheckbox({ selection, noun }: { selection: ListSelection; noun: string }) {
+  const indeterminate = selection.partiallySelected;
   return (
     <input
-      ref={ref}
+      // `indeterminate` is a DOM property with no HTML attribute, so React
+      // cannot set it from JSX. A new callback each render is run each
+      // render, which is when the node has to be told.
+      ref={(node) => {
+        if (node) node.indeterminate = indeterminate;
+      }}
       type="checkbox"
       className="size-4 cursor-pointer accent-accent"
-      checked={checked}
-      onChange={onChange}
-      aria-label={label}
+      checked={selection.allSelected}
+      onChange={selection.toggleAll}
+      aria-label={`Select all ${noun}s shown`}
     />
   );
 }
 
 /* ------------------------------------------------------------ selection bar */
 
+/** Nothing until a row is selected. */
 export function SelectionBar({
-  count,
+  selection,
   noun,
-  nounPlural,
   onDelete,
-  onClear,
 }: {
-  count: number;
+  selection: ListSelection;
   noun: string;
-  nounPlural: string;
-  onDelete: () => void;
-  onClear: () => void;
+  onDelete: (ids: string[]) => void;
 }) {
+  const { count } = selection;
+  if (count === 0) return null;
   return (
     <div
       className="mb-3 flex flex-wrap items-center gap-3 rounded-[4px_12px_3px_10px] border-2 border-ink bg-card-open px-3 py-2 shadow-[2px_3px_0_var(--color-shadow)]"
@@ -93,13 +79,13 @@ export function SelectionBar({
         aria-live="polite"
         className="text-sm font-medium text-ink"
       >
-        {count} {count === 1 ? noun : nounPlural} selected
+        {count} {count === 1 ? noun : `${noun}s`} selected
       </p>
       <div className="ml-auto flex flex-wrap gap-2">
-        <button type="button" className="btn btn-secondary !py-1.5" onClick={onClear}>
+        <button type="button" className="btn btn-secondary !py-1.5" onClick={selection.clear}>
           Clear selection
         </button>
-        <button type="button" className="btn btn-danger !py-1.5" onClick={onDelete}>
+        <button type="button" className="btn btn-danger !py-1.5" onClick={() => onDelete(selection.selectedIds)}>
           <TrashIcon />
           Delete selected
         </button>
@@ -113,13 +99,11 @@ export function SelectionBar({
 export function RowDeleteButton({
   label,
   onClick,
-  className = "",
   disabledReason,
 }: {
   /** The item's own name, so the button says what it deletes. */
   label: string;
   onClick: () => void;
-  className?: string;
   /**
    * Why the item cannot be deleted right now, such as the last source a list
    * must keep. Switches the button off and says so on hover.
@@ -133,7 +117,7 @@ export function RowDeleteButton({
       disabled={disabledReason !== undefined}
       aria-label={`Delete ${label}`}
       title={disabledReason ?? `Delete ${label}`}
-      className={`inline-flex cursor-pointer items-center justify-center rounded-md p-1.5 text-ink-soft transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-soft dark:hover:bg-red-500/10 dark:hover:text-red-400 ${className}`}
+      className="inline-flex cursor-pointer items-center justify-center rounded-md p-1.5 text-ink-soft transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-soft dark:hover:bg-red-500/10 dark:hover:text-red-400"
     >
       <TrashIcon />
     </button>
@@ -165,15 +149,14 @@ const NAMES_SHOWN = 6;
 export function ConfirmDeleteDialog({
   names,
   noun,
-  nounPlural,
   warning,
   onConfirm,
   onCancel,
 }: {
   /** The names of everything about to go, in the order shown on screen. */
   names: string[];
+  /** Singular; the plural adds an s, true of every list so far. */
   noun: string;
-  nounPlural: string;
   /**
    * What else will break, such as links from surviving rules that resolve
    * here. Only rules pass this today; the other three lists have nothing
@@ -184,6 +167,7 @@ export function ConfirmDeleteDialog({
   onCancel: () => void;
 }) {
   const many = names.length !== 1;
+  const nounPlural = `${noun}s`;
   const title = many ? `Delete ${names.length} ${nounPlural}?` : `Delete this ${noun}?`;
   const shown = names.slice(0, NAMES_SHOWN);
   const hidden = names.length - shown.length;

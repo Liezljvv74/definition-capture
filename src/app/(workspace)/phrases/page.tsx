@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useMemo, useState, type CSSProperties } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddPhraseDialog } from "@/components/AddPhraseDialog";
 import { CollectionBadge } from "@/components/Badges";
@@ -15,12 +15,22 @@ import {
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { RefText } from "@/components/RefText";
 import { EmptyCell } from "@/components/EmptyCell";
+import {
+  CollectionFilter,
+  EmptyState,
+  ListShell,
+  NoMatches,
+  ROW_CONTROL,
+  ROW_TEXT,
+  SortHeader,
+} from "@/components/ListPage";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { SpeakButton } from "@/components/SpeakButton";
 import { deletePhrases } from "@/lib/phraseStorage";
 import { collectionOptions } from "@/lib/collectionOptions";
 import { foldName } from "@/lib/foldName";
+import { plural } from "@/lib/home";
 import type { LinkIndex } from "@/lib/links";
 import type { Phrase } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
@@ -39,14 +49,6 @@ const nameOfPhrase = (phrase: Phrase) => phrase.phrase;
 type PhraseSortKey = "phrase" | "literalMeaning";
 /** null keeps the order phrases were added in, newest first. */
 type PhraseSort = { key: PhraseSortKey; direction: "asc" | "desc" } | null;
-
-/*
- * A row is one line of the paper's ruling, 32px, as on Vocabulary. Text sits
- * low in it, on the line; checkboxes and buttons are centred. Nothing in a
- * row may be taller, or every row below it slips off its line.
- */
-const ROW_TEXT = "h-8 px-3 pt-1 pb-0 leading-7 align-top";
-const ROW_CONTROL = "h-8 px-2 py-0 align-middle";
 
 const COLUMNS: { key?: PhraseSortKey; label: string; className?: string }[] = [
   // Phrase takes the most now that every row is one line: a phrase cut off is
@@ -132,28 +134,33 @@ export default function PhrasesPage() {
 
   return (
     <>
-      <header className="notebook-page mx-auto w-full max-w-[90rem] pt-6 sm:pt-8">
-        <div>
-          <h1 className="hand-title text-2xl sm:text-3xl">
-            <span className="marker section-green">Idioms, Proverbs and other Phrases</span>
-          </h1>
-          <p className="mt-1 text-sm text-ink-soft">
-              {!loaded
-                ? "Loading your phrases…"
-                : phrases.length === 0
-                  ? "Expressions worth remembering"
-                  : `${phrases.length} ${phrases.length === 1 ? "phrase" : "phrases"}`}
-            </p>
-        </div>
-      </header>
-
-      {/* Wider than the other pages (90rem, not 6xl), so the one-line columns
-          cut off as little as the window allows. */}
-      <main className="notebook-page mx-auto w-full max-w-[90rem] flex-1 py-6">
+      <ListShell
+        title="Idioms, Proverbs and other Phrases"
+        marker="section-green"
+        wide
+        subtitle={
+          !loaded
+            ? "Loading your phrases…"
+            : phrases.length === 0
+              ? "Expressions worth remembering"
+              : plural(phrases.length, "phrase", "phrases")
+        }
+      >
         {!loaded ? (
           <div className="card h-64 animate-pulse" aria-hidden="true" />
         ) : phrases.length === 0 ? (
-          <EmptyPhrases onAdd={() => setIsAdding(true)} />
+          <EmptyState
+            doodle="heart"
+            tilt="0.8deg"
+            icon="💬"
+            title="No phrases yet"
+            action={<><span aria-hidden="true">+</span> Add your first phrase</>}
+            onAction={() => setIsAdding(true)}
+          >
+            Phrases are the multi-word expressions that do not fit a single word: idioms,
+            set phrases, turns of speech. Save the wording now and fill in what it means and how it
+            is used whenever you like.
+          </EmptyState>
         ) : (
           <>
             <div
@@ -172,26 +179,12 @@ export default function PhrasesPage() {
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </div>
-              {collections.length > 0 && (
-                <div className="w-full sm:w-44">
-                  <label htmlFor="phrase-collection" className="sr-only">
-                    Filter by collection
-                  </label>
-                  <select
-                    id="phrase-collection"
-                    className="field"
-                    value={collection}
-                    onChange={(event) => setCollection(event.target.value)}
-                  >
-                    <option value="">All collections</option>
-                    {collections.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <CollectionFilter
+                id="phrase-collection"
+                collections={collections}
+                value={collection}
+                onChange={setCollection}
+              />
 
               <button
                 type="button"
@@ -204,6 +197,8 @@ export default function PhrasesPage() {
 
             {visible.length === 0 ? (
               <NoMatches
+                noun="phrase"
+                hint="Try different wording, or another collection."
                 onClear={() => {
                   setQuery("");
                   setCollection("");
@@ -214,15 +209,7 @@ export default function PhrasesPage() {
                 <p className="sr-only" aria-live="polite">
                   {visible.length} of {phrases.length} phrases shown
                 </p>
-                {selection.count > 0 && (
-                  <SelectionBar
-                    count={selection.count}
-                    noun="phrase"
-                    nounPlural="phrases"
-                    onDelete={() => setPendingDelete(selection.selectedIds)}
-                    onClear={selection.clear}
-                  />
-                )}
+                <SelectionBar selection={selection} noun="phrase" onDelete={setPendingDelete} />
                 {/* See `useWideScreen`: one layout once known, both until. */}
                 {wide !== false && (
                 <PhraseTable
@@ -262,7 +249,7 @@ export default function PhrasesPage() {
             )}
           </>
         )}
-      </main>
+      </ListShell>
 
       {isAdding && <AddPhraseDialog onClose={() => setIsAdding(false)} />}
 
@@ -274,7 +261,6 @@ export default function PhrasesPage() {
         <ConfirmDeleteDialog
           names={pendingNames}
           noun="phrase"
-          nounPlural="phrases"
           onCancel={() => setPendingDelete(null)}
           onConfirm={() => {
             deletePhrases(pendingDelete);
@@ -319,53 +305,25 @@ function PhraseTable({
         <thead className="text-ink">
           <tr>
             <th scope="col" className={`w-10 ${ROW_CONTROL}`}>
-              <SelectAllCheckbox
-                checked={selection.allSelected}
-                indeterminate={selection.partiallySelected}
-                onChange={selection.toggleAll}
-                label="Select all phrases shown"
-              />
+              <SelectAllCheckbox selection={selection} noun="phrase" />
             </th>
-            {COLUMNS.map((column) => {
-              const key = column.key;
-              // Only the column actually being sorted shows a direction; the
-              // others keep their faded arrow and their "Sort A to Z" offer.
+            {COLUMNS.map(({ key, label, className }) => {
               const direction = key && sort?.key === key ? sort.direction : null;
               return (
-                <th
-                  key={column.label}
-                  scope="col"
-                  className={`hand-title ${ROW_TEXT} ${column.className ?? ""}`}
-                  aria-sort={
+                <SortHeader
+                  key={label}
+                  label={label}
+                  className={className}
+                  direction={direction}
+                  onSort={key ? () => onToggleSort(key) : undefined}
+                  title={
                     direction === null
-                      ? "none"
+                      ? "Sort A to Z"
                       : direction === "asc"
-                        ? "ascending"
-                        : "descending"
+                        ? "Sort Z to A"
+                        : "Back to newest first"
                   }
-                >
-                  {key ? (
-                    <button
-                      type="button"
-                      onClick={() => onToggleSort(key)}
-                      title={
-                        direction === null
-                          ? "Sort A to Z"
-                          : direction === "asc"
-                            ? "Sort Z to A"
-                            : "Back to newest first"
-                      }
-                      className="inline-flex cursor-pointer items-center gap-1 hover:underline"
-                    >
-                      {column.label}
-                      <span aria-hidden="true" className={direction ? "" : "opacity-30"}>
-                        {direction === "asc" ? "▲" : "▼"}
-                      </span>
-                    </button>
-                  ) : (
-                    column.label
-                  )}
-                </th>
+                />
               );
             })}
             <th scope="col" className={`w-32 ${ROW_CONTROL}`}>
@@ -479,12 +437,7 @@ function PhraseCards({
     // because Tailwind's size classes bring their own line height.
     <div data-ruled-snap className="leading-8 md:hidden">
       <label className="flex h-8 w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
-        <SelectAllCheckbox
-          checked={selection.allSelected}
-          indeterminate={selection.partiallySelected}
-          onChange={selection.toggleAll}
-          label="Select all phrases shown"
-        />
+        <SelectAllCheckbox selection={selection} noun="phrase" />
         Select all
       </label>
 
@@ -533,48 +486,6 @@ function PhraseCards({
           );
         })}
       </ul>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------- empty states */
-
-function EmptyPhrases({ onAdd }: { onAdd: () => void }) {
-  return (
-    <div
-      data-doodle="heart"
-      className="paste tape tape-centre mx-auto max-w-xl rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-8 text-center shadow-[4px_5px_0_var(--color-shadow)]"
-      style={{ "--r": "0.8deg" } as CSSProperties}
-    >
-      <div aria-hidden="true" className="mb-3 text-4xl">
-        💬
-      </div>
-      <h2 className="hand-title text-xl">No phrases yet</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-        Phrases are the multi-word expressions that do not fit a single word: idioms,
-        set phrases, turns of speech. Save the wording now and fill in what it means and how it
-        is used whenever you like.
-      </p>
-      <button type="button" className="btn btn-primary mt-5" onClick={onAdd}>
-        <span aria-hidden="true">+</span> Add your first phrase
-      </button>
-    </div>
-  );
-}
-
-function NoMatches({ onClear }: { onClear: () => void }) {
-  return (
-    <div className="card p-8 text-center">
-      {/* "Filters" rather than "search": the button clears the collection too,
-          and filtering by collection alone produced copy about a search nobody
-          had typed. The vocabulary page's twin says the same thing. */}
-      <h2 className="hand-title text-lg">No phrases match those filters</h2>
-      <p className="mt-1 text-sm text-ink-soft">
-        Try different wording, or another collection.
-      </p>
-      <button type="button" className="btn btn-secondary mt-4" onClick={onClear}>
-        Clear filters
-      </button>
     </div>
   );
 }
