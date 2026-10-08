@@ -18,35 +18,8 @@
  * is a weaker claim: it might be a screen somebody walked away from.
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { exchangeLink } from "@/lib/authLink";
 
-/** `reason` is a code from the small set `authLinkError.ts` knows. */
-function backToSignIn(origin: string, reason: string): NextResponse {
-  return NextResponse.redirect(
-    `${origin}/sign-in/?error_code=${encodeURIComponent(reason)}`,
-  );
-}
-
-export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-
-  // A refused link arrives looking like an ordinary visit, with the refusal in
-  // the query string. Its code is passed along; its wording is not.
-  const failed = searchParams.has("error") || searchParams.has("error_description");
-  if (failed) {
-    return backToSignIn(origin, searchParams.get("error_code") ?? "refused");
-  }
-
-  const code = searchParams.get("code");
-  if (!code) return backToSignIn(origin, "incomplete");
-
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) return backToSignIn(origin, "unconfigured");
-
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) return backToSignIn(origin, "exchange_failed");
-
-  return NextResponse.redirect(`${origin}/choose-password`);
-}
+export const GET = (request: NextRequest) => exchangeLink(request, "/choose-password");
