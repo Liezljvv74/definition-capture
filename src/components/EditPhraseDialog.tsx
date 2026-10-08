@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { Modal } from "@/components/Modal";
 import { PhraseForm } from "@/components/PhraseForm";
@@ -17,6 +17,7 @@ export function EditPhraseDialog({
   phrase,
   onClose,
   onSaved,
+  note,
 }: {
   phrase: Phrase;
   onClose: () => void;
@@ -26,6 +27,8 @@ export function EditPhraseDialog({
    * list, so saving always lands on the list wherever the form was opened.
    */
   onSaved?: () => void;
+  /** Shown above the form; Add Phrase uses it for what was typed before it found this phrase. */
+  note?: ReactNode;
 }) {
   /** Set when the new wording collides with a *different* saved phrase. */
   const [clash, setClash] = useState<Phrase | null>(null);
@@ -72,6 +75,7 @@ export function EditPhraseDialog({
 
   return (
     <Modal title="Edit phrase" onClose={onClose}>
+      {note}
       <PhraseForm
         initialValue={draft}
         submitLabel="Save changes"

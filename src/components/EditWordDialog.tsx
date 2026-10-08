@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { EntryForm } from "@/components/EntryForm";
 import { Modal } from "@/components/Modal";
@@ -19,6 +19,7 @@ export function EditWordDialog({
   entry,
   onClose,
   onSaved,
+  note,
 }: {
   entry: Entry;
   onClose: () => void;
@@ -28,6 +29,8 @@ export function EditWordDialog({
    * list, so saving always lands on the list wherever the form was opened.
    */
   onSaved?: () => void;
+  /** Shown above the form; Add Word uses it for what was typed before it found this word. */
+  note?: ReactNode;
 }) {
   /** Set when the new wording collides with a *different* saved word. */
   const [clash, setClash] = useState<Entry | null>(null);
@@ -73,6 +76,7 @@ export function EditWordDialog({
 
   return (
     <Modal title="Edit word" onClose={onClose}>
+      {note}
       <EntryForm
         initialValue={draft}
         submitLabel="Save changes"
