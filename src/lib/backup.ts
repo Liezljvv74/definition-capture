@@ -12,7 +12,7 @@
 import {
   getPhrases,
   importPhrases,
-  parsePhraseList,
+  parsePhrase,
   toWirePhrase,
   type WirePhrase,
 } from "@/lib/phraseStorage";
@@ -26,19 +26,20 @@ import {
 import {
   getEntries,
   importEntries,
-  parseEntryList,
+  parseEntry,
   toWireWord,
   type WireWord,
 } from "@/lib/storage";
 import {
   getRules,
   importRules,
-  parseRuleList,
+  parseRule,
   toWireRule,
   type WireRule,
 } from "@/lib/rules";
 import {
   NO_IMPORT,
+  parseList,
   type Entry,
   type ImportCounts,
   type ImportMode,
@@ -49,7 +50,7 @@ import {
 import {
   getVerbTables,
   importVerbTables,
-  parseVerbTableList,
+  parseVerbTable,
   toWireVerbTable,
   type WireVerbTable,
 } from "@/lib/verbTables";
@@ -212,7 +213,7 @@ export function parseBackup(text: string): BackupParse {
   // hand-written file or a very early export looks like.
   const bare = asArray(raw);
   if (bare) {
-    const { entries, unreadable } = parseEntryList(bare);
+    const { items: entries, unreadable } = parseList(bare, parseEntry);
     return entries.length > 0
       ? {
           ok: true,
@@ -255,16 +256,15 @@ export function parseBackup(text: string): BackupParse {
   const verbTableList = asArray(rawVerbTables);
   const ruleList = asArray(rawRules);
 
-  const parsedEntries = entryList
-    ? parseEntryList(entryList)
-    : { entries: [], unreadable: 0 };
-  const parsedPhrases = phraseList
-    ? parsePhraseList(phraseList)
-    : { phrases: [], unreadable: 0 };
-  const parsedVerbTables = verbTableList
-    ? parseVerbTableList(verbTableList)
-    : { tables: [], unreadable: 0 };
-  const parsedRules = ruleList ? parseRuleList(ruleList) : { rules: [], unreadable: 0 };
+  /** A list the file has, read; one it lacks, as empty and not present. */
+  const read = <T,>(list: unknown[] | null, parse: (raw: unknown, allowMissingId: boolean) => T | null) => ({
+    present: list !== null,
+    ...(list ? parseList(list, parse) : { items: [] as T[], unreadable: 0 }),
+  });
+  const words = read(entryList, parseEntry);
+  const phrases = read(phraseList, parsePhrase);
+  const verbTables = read(verbTableList, parseVerbTable);
+  const rules = read(ruleList, parseRule);
 
   /**
    * What each list turned out to be, one row per list.
@@ -273,29 +273,8 @@ export function parseBackup(text: string): BackupParse {
    * three more, so a fourth list would have compiled while being left out of
    * both. Keyed on `BackupList`, leaving one out is a build error.
    */
-  const lists: Record<BackupList, { present: boolean; readable: number; unreadable: number }> =
-    {
-      words: {
-        present: entryList !== null,
-        readable: parsedEntries.entries.length,
-        unreadable: parsedEntries.unreadable,
-      },
-      phrases: {
-        present: phraseList !== null,
-        readable: parsedPhrases.phrases.length,
-        unreadable: parsedPhrases.unreadable,
-      },
-      verbTables: {
-        present: verbTableList !== null,
-        readable: parsedVerbTables.tables.length,
-        unreadable: parsedVerbTables.unreadable,
-      },
-      rules: {
-        present: ruleList !== null,
-        readable: parsedRules.rules.length,
-        unreadable: parsedRules.unreadable,
-      },
-    };
+  const lists: Record<BackupList, { present: boolean; items: readonly unknown[]; unreadable: number }> =
+    { words, phrases, verbTables, rules };
   const found = Object.values(lists);
 
   if (!found.some((list) => list.present)) {
@@ -306,7 +285,7 @@ export function parseBackup(text: string): BackupParse {
     };
   }
 
-  if (!found.some((list) => list.readable > 0)) {
+  if (!found.some((list) => list.items.length > 0)) {
     return {
       ok: false,
       error: "That backup contains nothing readable.",
@@ -315,10 +294,10 @@ export function parseBackup(text: string): BackupParse {
 
   return {
     ok: true,
-    words: parsedEntries.entries,
-    phrases: parsedPhrases.phrases,
-    verbTables: parsedVerbTables.tables,
-    rules: parsedRules.rules,
+    words: words.items,
+    phrases: phrases.items,
+    verbTables: verbTables.items,
+    rules: rules.items,
     settings: parseSettings(rawSettings),
     unreadable: found.reduce((total, list) => total + list.unreadable, 0),
   };

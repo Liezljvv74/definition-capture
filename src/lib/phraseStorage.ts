@@ -10,8 +10,7 @@
  */
 
 import { rewriteLinks } from "@/lib/linkRenames";
-import { foldName } from "@/lib/foldName";
-import { planImport } from "@/lib/planImport";
+import { importInto } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
 import type { Source } from "@/lib/constants";
 import {
@@ -132,15 +131,17 @@ const store = createRemoteStore<Phrase>({
   toPayload: toPhrasePayload,
 });
 
-export const subscribe = store.subscribe;
-export const getSnapshot = store.getSnapshot;
-export const getServerSnapshot = store.getServerSnapshot;
-export const clearError = store.clearError;
-export const subscribeToError = store.subscribeToError;
-export const getError = store.getError;
-export const reload = store.reload;
-export const settled = store.settled;
-export const updatePhrases = store.updateMany;
+export const {
+  subscribe,
+  getSnapshot,
+  getServerSnapshot,
+  clearError,
+  subscribeToError,
+  getError,
+  reload,
+  items: getPhrases,
+  updateMany: updatePhrases,
+} = store;
 
 /* --------------------------------------------------------------- mutations */
 
@@ -188,40 +189,12 @@ export function deletePhrases(ids: readonly string[]): number {
 
 /* ----------------------------------------------------------------- queries */
 
-export function getPhrases(): Phrase[] {
-  return store.items();
-}
-
 /** Case-insensitive lookup, used for the duplicate check before saving. */
 export const findByPhrase = store.findByName;
 
 /* ------------------------------------------------------------------ import */
 
-export function parsePhraseList(list: unknown[]): {
-  phrases: Phrase[];
-  unreadable: number;
-} {
-  const phrases = list
-    .map((item) => parsePhrase(item, true))
-    .filter((phrase): phrase is Phrase => phrase !== null);
-  return { phrases, unreadable: list.length - phrases.length };
-}
-
 /** Matches on the phrase text, mirroring how the word list matches on words. */
 export function importPhrases(incoming: Phrase[], mode: ImportMode): ImportCounts {
-  const plan = planImport(store.items(), incoming, mode, {
-    keyOf: (phrase) => foldName(phrase.phrase),
-    idOf: (phrase) => phrase.id,
-    withId: (phrase, id) => ({ ...phrase, id }),
-    merge: (existing, candidate) => ({ ...candidate, id: existing.id }),
-  });
-
-  if (plan.toReplace) {
-    store.replaceAll(plan.toReplace);
-    return plan.counts;
-  }
-
-  store.updateMany(plan.toUpdate);
-  store.insertMany(plan.toInsert);
-  return plan.counts;
+  return importInto(store, incoming, mode, (existing, candidate) => ({ ...candidate, id: existing.id }));
 }

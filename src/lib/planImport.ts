@@ -1,4 +1,5 @@
-import { usableId } from "@/lib/remoteStore";
+import { foldName } from "@/lib/foldName";
+import { usableId, type RemoteStore } from "@/lib/remoteStore";
 import { NO_IMPORT, type ImportCounts, type ImportMode } from "@/lib/types";
 
 /**
@@ -139,4 +140,37 @@ export function planImport<T>(
   }
 
   return { counts, toUpdate, toInsert, toReplace: null };
+}
+
+/**
+ * Plans an import against a store's list and writes it: Replace in one
+ * `replaceAll`, the merge modes in two writes whatever the import's size, one
+ * for the rows that already existed and one for the rows that did not. Every
+ * list matches by its name, folded the way the add forms fold it, so only
+ * what an overwritten row becomes (`merge`) differs between them.
+ *
+ * `arrange` orders the rows about to be written; the word list puts the newest
+ * first, as a typed word would be.
+ */
+export function importInto<T>(
+  store: RemoteStore<T>,
+  incoming: readonly T[],
+  mode: ImportMode,
+  merge: (existing: T, candidate: T) => T,
+  arrange: (items: T[]) => T[] = (items) => items,
+): ImportCounts {
+  const plan = planImport(store.items(), incoming, mode, {
+    keyOf: (item) => foldName(store.nameOf(item)),
+    idOf: store.idOf,
+    withId: (item, id) => ({ ...item, id }),
+    merge,
+  });
+
+  if (plan.toReplace) {
+    store.replaceAll(arrange(plan.toReplace));
+    return plan.counts;
+  }
+  store.updateMany(plan.toUpdate);
+  store.insertMany(arrange(plan.toInsert));
+  return plan.counts;
 }

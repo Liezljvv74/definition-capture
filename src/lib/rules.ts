@@ -10,8 +10,7 @@
 import { MAX_NAME } from "@/lib/constants";
 import { rewriteLinks } from "@/lib/linkRenames";
 import { readBlocks } from "@/lib/blocks";
-import { foldName } from "@/lib/foldName";
-import { planImport } from "@/lib/planImport";
+import { importInto } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
 import {
   readString,
@@ -111,21 +110,20 @@ const store = createRemoteStore<Rule>({
   toPayload: toRulePayload,
 });
 
-export const subscribe = store.subscribe;
-export const getSnapshot = store.getSnapshot;
-export const getServerSnapshot = store.getServerSnapshot;
-export const clearError = store.clearError;
-export const subscribeToError = store.subscribeToError;
-export const getError = store.getError;
-export const settled = store.settled;
-export const reload = store.reload;
-export const updateRules = store.updateMany;
+export const {
+  subscribe,
+  getSnapshot,
+  getServerSnapshot,
+  clearError,
+  subscribeToError,
+  getError,
+  settled,
+  reload,
+  items: getRules,
+  updateMany: updateRules,
+} = store;
 
 /* ----------------------------------------------------------------- queries */
-
-export function getRules(): Rule[] {
-  return store.items();
-}
 
 /** Case-insensitive, and blind to how an accent is encoded, the way every name in the app is matched. */
 export const findByTitle = store.findByName;
@@ -202,27 +200,7 @@ export function deleteRules(ids: readonly string[]): number {
 
 /* ------------------------------------------------------------------ import */
 
-export function parseRuleList(list: unknown[]): { rules: Rule[]; unreadable: number } {
-  const rules = list
-    .map((item) => parseRule(item, true))
-    .filter((rule): rule is Rule => rule !== null);
-  return { rules, unreadable: list.length - rules.length };
-}
-
 /** Matched by title, the rule the unique index and links already use. */
 export function importRules(incoming: Rule[], mode: ImportMode): ImportCounts {
-  const plan = planImport(store.items(), incoming, mode, {
-    keyOf: (rule) => foldName(rule.title),
-    idOf: (rule) => rule.id,
-    withId: (rule, id) => ({ ...rule, id }),
-    merge: (existing, candidate) => ({ ...candidate, id: existing.id }),
-  });
-
-  if (plan.toReplace) {
-    store.replaceAll(plan.toReplace);
-    return plan.counts;
-  }
-  store.updateMany(plan.toUpdate);
-  store.insertMany(plan.toInsert);
-  return plan.counts;
+  return importInto(store, incoming, mode, (existing, candidate) => ({ ...candidate, id: existing.id }));
 }

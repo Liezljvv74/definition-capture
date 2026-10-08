@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { foldName } from "@/lib/foldName";
-import { planImport, type ImportRules } from "@/lib/planImport";
+import { importInto, planImport, type ImportRules } from "@/lib/planImport";
+import type { RemoteStore } from "@/lib/remoteStore";
 
 type Row = { id: string; name: string; body: string };
 
@@ -217,5 +218,56 @@ describe("planImport: nothing to do", () => {
     const snapshot = structuredClone(mine);
     plan(mine, [row("Tür", "changed"), row("Buch")], "update");
     expect(mine).toEqual(snapshot);
+  });
+});
+
+/**
+ * `importInto` is what every list's import runs, so these hold the writes it
+ * makes against a stand-in store: the plan is tested above, and a write left
+ * out here would be a backup that reports rows it never saved.
+ */
+describe("importInto", () => {
+  const fakeStore = (items: Row[]) =>
+    ({
+      items: () => items,
+      idOf: (item: Row) => item.id,
+      nameOf: (item: Row) => item.name,
+      replaceAll: vi.fn(),
+      updateMany: vi.fn(),
+      insertMany: vi.fn(),
+    }) as unknown as RemoteStore<Row> & Record<"replaceAll" | "updateMany" | "insertMany", ReturnType<typeof vi.fn>>;
+  const merge = (existing: Row, candidate: Row) => ({ ...candidate, id: existing.id });
+
+  it("updates a row matched by its folded name and inserts the rest, in two writes", () => {
+    const tuer = row("Tür", "door");
+    const store = fakeStore([tuer]);
+    const counts = importInto(store, [row("TÜR", "DOOR"), row("Buch", "book")], "update", merge);
+
+    expect(counts).toEqual({ added: 1, updated: 1, skipped: 0 });
+    expect(store.updateMany).toHaveBeenCalledWith([expect.objectContaining({ id: tuer.id, body: "DOOR" })]);
+    expect(store.insertMany).toHaveBeenCalledWith([expect.objectContaining({ name: "Buch" })]);
+    expect(store.replaceAll).not.toHaveBeenCalled();
+  });
+
+  it("replaces the whole list in one write, arranged, and nothing else", () => {
+    const store = fakeStore([row("Tür")]);
+    const reversed = (items: Row[]) => [...items].reverse();
+    importInto(store, [row("Buch"), row("Haus")], "replace", merge, reversed);
+
+    expect(store.replaceAll).toHaveBeenCalledWith([
+      expect.objectContaining({ name: "Haus" }),
+      expect.objectContaining({ name: "Buch" }),
+    ]);
+    expect(store.updateMany).not.toHaveBeenCalled();
+    expect(store.insertMany).not.toHaveBeenCalled();
+  });
+
+  it("arranges the inserted rows", () => {
+    const store = fakeStore([]);
+    importInto(store, [row("Buch"), row("Haus")], "skip", merge, (items) => [...items].reverse());
+    expect(store.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({ name: "Haus" }),
+      expect.objectContaining({ name: "Buch" }),
+    ]);
   });
 });

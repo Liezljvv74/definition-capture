@@ -10,9 +10,8 @@
  * is the same rule `[[Name]]` links already follow.
  */
 
-import { foldName } from "@/lib/foldName";
 import { rewriteLinks } from "@/lib/linkRenames";
-import { planImport } from "@/lib/planImport";
+import { importInto } from "@/lib/planImport";
 import { createId, createRemoteStore } from "@/lib/remoteStore";
 import {
   readString,
@@ -57,20 +56,19 @@ const store = createRemoteStore<VerbTable>({
   }),
 });
 
-export const subscribe = store.subscribe;
-export const getSnapshot = store.getSnapshot;
-export const getServerSnapshot = store.getServerSnapshot;
-export const clearError = store.clearError;
-export const subscribeToError = store.subscribeToError;
-export const getError = store.getError;
-// Task 4's rename rewrite uses this to update many tables at once.
-export const updateVerbTables = store.updateMany;
+export const {
+  subscribe,
+  getSnapshot,
+  getServerSnapshot,
+  clearError,
+  subscribeToError,
+  getError,
+  items: getVerbTables,
+  // The rename rewrite in `linkRenames` updates many tables at once with this.
+  updateMany: updateVerbTables,
+} = store;
 
 /* ----------------------------------------------------------------- queries */
-
-export function getVerbTables(): VerbTable[] {
-  return store.items();
-}
 
 /** The table for a verb, matched the way the word list matches its names. */
 const findVerbTable = store.findByName;
@@ -117,7 +115,7 @@ export function saveVerbTable(id: string, tenses: string[], rows: VerbRow[], ref
 /** Links to a deleted verb table lose their link, as for a rule (`deleteRules`). */
 export function deleteVerbTable(id: string): void {
   const doomed = store.items().find((table) => table.id === id);
-  store.remove([id]);
+  store.removeMany([id]);
   if (doomed) rewriteLinks("verb_table", doomed.id, doomed.verb, null);
 }
 
@@ -200,16 +198,6 @@ export function parseVerbTable(raw: unknown, allowMissingId = false): ParsedVerb
   };
 }
 
-export function parseVerbTableList(list: unknown[]): {
-  tables: ParsedVerbTable[];
-  unreadable: number;
-} {
-  const tables = list
-    .map((item) => parseVerbTable(item, true))
-    .filter((table): table is ParsedVerbTable => table !== null);
-  return { tables, unreadable: list.length - tables.length };
-}
-
 /**
  * What an existing table becomes when Update mode's merge overwrites it with
  * a candidate out of a backup file. Exported for its own test.
@@ -237,29 +225,16 @@ export function mergeVerbTable(existing: VerbTable, candidate: ParsedVerbTable):
  * for the same verb is not a thing that can exist.
  */
 export function importVerbTables(incoming: ParsedVerbTable[], mode: ImportMode): ImportCounts {
-  const plan = planImport(store.items(), incoming, mode, {
-    keyOf: (table) => foldName(table.verb),
-    idOf: (table) => table.id,
-    withId: (table, id) => ({ ...table, id }),
-    // Columns and cells travel together, for the reason `saveVerbTable`
-    // gives: taking one from the backup and leaving the other would put the
-    // headings and the rows out of step.
-    merge: mergeVerbTable,
-  });
-
-  if (plan.toReplace) {
-    // `refKeyMissing` is not consulted here. Replace saves the file over the
-    // list, matched rows included, so every field of a matched row becomes
-    // whatever the file records for it, blank or missing alike, the same as
-    // it always has for every other field on every other list. A restore
-    // is meant to make the file the truth, not a selective patch. That is
-    // what tells it apart from Update's merge above, which is deliberately
-    // selective; Replace never has been.
-    store.replaceAll(plan.toReplace);
-    return plan.counts;
-  }
-
-  store.updateMany(plan.toUpdate);
-  store.insertMany(plan.toInsert);
-  return plan.counts;
+  // Columns and cells travel together, for the reason `saveVerbTable` gives:
+  // taking one from the backup and leaving the other would put the headings
+  // and the rows out of step.
+  //
+  // `refKeyMissing` is not consulted by Replace. Replace saves the file over
+  // the list, matched rows included, so every field of a matched row becomes
+  // whatever the file records for it, blank or missing alike, the same as it
+  // always has for every other field on every other list. A restore is meant
+  // to make the file the truth, not a selective patch. That is what tells it
+  // apart from Update's merge, which is deliberately selective; Replace never
+  // has been.
+  return importInto<ParsedVerbTable>(store, incoming, mode, mergeVerbTable);
 }

@@ -41,8 +41,9 @@ export type RemoteStore<T> = {
   insert: (item: T) => void;
   /** Replace one item in place, matched by id. */
   update: (item: T) => void;
-  /** Remove every listed id in one write. */
-  remove: (ids: readonly string[]) => void;
+  /** The config's own `idOf` and `nameOf`, so an import can match on them. */
+  idOf: (item: T) => string;
+  nameOf: (item: T) => string;
   /**
    * Remove every listed id that is actually present, in one write, and say
    * how many went. Ignores ids the list does not hold, so a stale selection
@@ -85,9 +86,8 @@ export type RemoteStore<T> = {
    * Resolves once every write started so far has been answered.
    *
    * Writes are otherwise fire-and-forget, which is the whole point of an
-   * optimistic store. This is for the one caller that cannot be optimistic:
-   * the legacy import, which is about to delete the only other copy of the
-   * data and so has to know the write really landed.
+   * optimistic store. This is for a caller that cannot be optimistic: saving
+   * a tutor conversation's rule links needs the rule's own row to exist.
    */
   settled: () => Promise<void>;
 };
@@ -608,7 +608,8 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
       );
     },
 
-    remove: removeIds,
+    idOf: config.idOf,
+    nameOf: config.nameOf,
 
     /**
      * A restore: the backup becomes the whole list.

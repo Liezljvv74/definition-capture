@@ -44,22 +44,22 @@ const spies = vi.hoisted(() => {
 
 vi.mock("@/lib/storage", () => ({
   getEntries: () => [],
-  parseEntryList: () => ({ entries: [], unreadable: 0 }),
+  parseEntry: () => null,
   importEntries: spies.importEntries,
 }));
 vi.mock("@/lib/phraseStorage", () => ({
   getPhrases: () => [],
-  parsePhraseList: () => ({ phrases: [], unreadable: 0 }),
+  parsePhrase: () => null,
   importPhrases: spies.importPhrases,
 }));
 vi.mock("@/lib/verbTables", () => ({
   getVerbTables: () => [],
-  parseVerbTableList: () => ({ tables: [], unreadable: 0 }),
+  parseVerbTable: () => null,
   importVerbTables: spies.importVerbTables,
 }));
 vi.mock("@/lib/rules", () => ({
   getRules: () => [],
-  parseRuleList: () => ({ rules: [], unreadable: 0 }),
+  parseRule: () => null,
   importRules: spies.importRules,
 }));
 vi.mock("@/lib/settings", () => ({

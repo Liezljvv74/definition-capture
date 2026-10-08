@@ -243,6 +243,19 @@ export function readString(value: unknown): string {
 }
 
 /**
+ * One of a backup file's lists, read item by item. A missing id is allowed,
+ * since a hand-written or older file may have none yet and the import assigns
+ * one; whatever cannot be read is counted, so the import dialog can say so.
+ */
+export function parseList<T>(
+  list: unknown[],
+  parse: (raw: unknown, allowMissingId: boolean) => T | null,
+): { items: T[]; unreadable: number } {
+  const items = list.map((raw) => parse(raw, true)).filter((item): item is T => item !== null);
+  return { items, unreadable: list.length - items.length };
+}
+
+/**
  * A list of names from anywhere untrusted: a database row, a backup file, a
  * form. Trimmed, blanks dropped, duplicates removed case-insensitively (the
  * first spelling wins), and capped, so the same rules hold whichever door the
