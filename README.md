@@ -1,10 +1,28 @@
 # Captured
 
-Captured is a private language-learning workspace. You save the
-words, phrases, verb conjugations and grammar rules you meet, and flashcards built
-from them come back when they are due. Every list is stored in Supabase and
-belongs to the account that saved it, so the same lists are there on any browser
-or device. It is live at <https://definition-capture.vercel.app>.
+Captured is a language learner's notebook built around an AI grammar tutor. You
+ask the tutor about the grammar of the language you are studying, in plain
+words and at your level, follow up in a conversation it remembers and can
+search, and save its answers as grammar rules. Those rules sit in one place with
+the rest of what you are learning, the words, phrases and verb conjugation
+tables you collect, linked to them, and flashcards built from it all come back
+when they are due. Every list is stored in Supabase and belongs to the account
+that saved it, so the same notebook is there on any browser or device.
+
+It is live at <https://definition-capture.vercel.app>.
+
+**Why the AI is the core.** Without the tutor this would be a vocabulary list,
+which any notebook or spreadsheet already is. What makes Captured worth using
+is the grammar discussion a learner otherwise needs a teacher or a forum for: a
+point explained plainly, in your own language or the one you are learning, the
+next question answered with the conversation in mind, and what came of it kept
+as a rule beside your words and phrases instead of being lost in a chat window.
+The tutor is a real model, called through OpenRouter from the server only;
+which one is named on the Tutor page.
+
+![The Tutor page: the saved conversations on the left; under the Tutor heading "Model: Claude Sonnet 5.5 by Anthropic" and the Answer in choice of English or German; the question "When do I use the dative after a preposition?" and the answer "When a preposition takes the dative", written as plain text, a table of prepositions with meanings and examples, and highlighted example sentences with their translations](assets/tutor-answer.png)
+
+The public landing page, for visitors who are not signed in:
 
 ![The public landing page drawn as lined notebook paper: the heading "Your personal repository for learning any language", Create an account and Sign in buttons, a "How you remember it" card with a Try one now flashcard, pasted-on cards for words, phrases, verb tables and grammar rules under Structured Notes, and the questions as dropdowns](assets/landing-page.png)
 
@@ -74,9 +92,18 @@ npm run dev
 
 Then open <http://localhost:3000>.
 
-Either way you need a `.env.local` first. Copy `.env.example` and fill it in. The
-two Supabase values are under Project Settings → API in the dashboard; the
-Turnstile site key is in the Cloudflare dashboard:
+Either way you need a `.env.local` first. Copy `.env.example` and fill it in.
+Where each value comes from:
+
+| Variable | Where to find it |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase dashboard, Project Settings → API: the project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | The same page: the publishable key (`sb_publishable_…`) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare dashboard → Turnstile → the widget → Site Key |
+| `OPENROUTER_API_KEY` | <https://openrouter.ai/settings/keys> → Create Key (set a credit limit on it) |
+| `TUTOR_SIGNING_SECRET` | Made by you: `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` |
+| `OPENROUTER_MODEL` | Optional; an OpenRouter model slug, from <https://openrouter.ai/models> |
+
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
@@ -880,6 +907,9 @@ Docs/
   voice.md                the read aloud design
   verb-practice.md        the verb practice design
   plans/                  implementation plans, kept for the record
+  references/             OpenRouter and Supabase documentation pages the AI
+                          feature relies on, each with its source URL first
+  history/                the course brief and the original prompt
 public/                   the logo images and llms.txt
 assets/                   source art that is not served
 ```
