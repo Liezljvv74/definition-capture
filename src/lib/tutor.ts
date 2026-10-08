@@ -19,6 +19,33 @@ export const QUESTION_MAX = 1000;
 // that day), and those fail with a 404 rather than at build time.
 export const DEFAULT_TUTOR_MODEL = "anthropic/claude-sonnet-5.5";
 
+/** Makers whose names do not come out right by capitalising the slug. */
+const MAKERS: Record<string, string> = {
+  openai: "OpenAI",
+  "meta-llama": "Meta",
+  mistralai: "Mistral AI",
+  "x-ai": "xAI",
+  deepseek: "DeepSeek",
+};
+/** Model-name words that are acronyms rather than names. */
+const ACRONYMS = new Set(["gpt", "glm", "oss"]);
+
+const capitalise = (word: string) => (ACRONYMS.has(word) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1));
+
+/**
+ * An OpenRouter slug as a reader would say it, for the Tutor page to name the
+ * model answering: `anthropic/claude-sonnet-5.5` is "Claude Sonnet 5.5 by
+ * Anthropic". A variant after `:` (`:free`, `:nitro`) is how OpenRouter routes
+ * it, not part of the name, so it is dropped. A slug that is not maker/name
+ * comes back as it is, since a guess would name the wrong model.
+ */
+export function modelLabel(slug: string): string {
+  const [maker, name] = slug.trim().split(":")[0].split("/");
+  if (!maker || !name) return slug.trim();
+  const model = name.split("-").filter(Boolean).map(capitalise).join(" ");
+  return `${model} by ${MAKERS[maker] ?? maker.split("-").map(capitalise).join(" ")}`;
+}
+
 /**
  * OpenRouter's multilingual embedding model, for search and memory. The
  * column in tutor_exchanges is fixed to its dimension. Changing the model, even

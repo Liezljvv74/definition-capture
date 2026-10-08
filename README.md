@@ -541,7 +541,9 @@ to and survives a reload, and anything unrecognised falls back to Profile.
 ### Tutor
 
 `/tutor` is a grammar tutor for the language set under Settings → Glossary
-settings. Ask about a concept you find confusing and the answer comes back whole,
+settings. Under the heading the page names the model answering, from its
+OpenRouter slug ("Model: Claude Sonnet 5.5 by Anthropic", the slug itself on
+hover). Ask about a concept you find confusing and the answer comes back whole,
 after a short "Thinking…", as the same text, table and example blocks a grammar
 rule is made of. The explanation is always plain, as if for a ten-year-old,
 whatever your level; the Level under Settings (about B1 when it is not set) only

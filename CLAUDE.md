@@ -8,9 +8,60 @@ name, and so do two identifiers that must not change: the backup file's
 `format` (`definition-capture-backup`, which old files carry) and the
 IndexedDB name holding the export folder permission.
 
-A personal glossary: words, phrases, verb conjugation tables and grammar rules, private to
-each signed-in account. Every list is stored in Supabase and scoped to its
-owner.
+A language learner's notebook built around an AI grammar tutor. The tutor
+gives learners a place to have the grammar discussions they would otherwise
+need a teacher or a forum for: they ask about the grammar of the language they
+study, follow up in a saved conversation that the tutor remembers and can
+search, and save the answers as grammar rules. Those rules sit in one central
+place with the rest of their learning material, the words, phrases and verb
+conjugation tables they collect, linked to it, and reviewed with it as
+flashcards. Everything is private to each signed-in account, stored in Supabase
+and scoped to its owner.
+
+**Why the app needs the AI.** Without the tutor this is a vocabulary list, which
+any notebook or spreadsheet already is. What makes it worth using is the
+discussion: a learner gets a grammar point explained at their level, in their
+own or the studied language, asks the next question, and keeps what came of it
+instead of losing it in a chat window. The tutor's answers are what turn
+scattered notes into a grammar reference built from the learner's own
+questions, connected to the words and phrases they are learning.
+
+## AI model calls
+
+- All LLM and embedding calls happen server-side only, in
+  `src/lib/tutorServer.ts`, called from the three tutor routes
+  (`POST /api/tutor`, `/api/tutor/merge`, `/api/tutor/search`). Never call
+  OpenRouter from browser code.
+- `OPENROUTER_API_KEY` lives in `.env.local` (and in Vercel, as a Sensitive
+  variable). It must never have a `NEXT_PUBLIC_` prefix or be passed to a
+  client component. The Tutor page is given only the model's name, which is no
+  secret.
+- Model: `anthropic/claude-sonnet-5.5` (`DEFAULT_TUTOR_MODEL` in
+  `src/lib/tutor.ts`; `OPENROUTER_MODEL` overrides it). The Tutor page names it
+  for the reader, as `modelLabel` formats the slug ("Claude Sonnet 5.5 by
+  Anthropic").
+
+## Embeddings
+
+- Embedding model: `qwen/qwen3-embedding-8b` via OpenRouter (`EMBEDDING_MODEL`
+  in `src/lib/tutor.ts`), asked for 1024 dimensions.
+- The vectors are stored in `tutor_exchanges.embedding` as `halfvec(1024)`:
+  each saved answer is the document searched, so there is no separate documents
+  table. Do not change this dimension.
+- Never change the embedding model after initial setup. Changing it breaks
+  retrieval silently, since vectors from two models cannot be compared; a
+  change needs a migration that sets every stored embedding to null, after
+  which those answers are found by keyword only.
+- **Why Qwen3.** The column was designed at 1024 dimensions for `baai/bge-m3`,
+  but the OpenRouter account's guardrails refuse that model (a 404, "0
+  endpoints", checked 7 October 2026), so search and memory would have fallen
+  back to keywords alone. Qwen3 was chosen in its place because it is
+  multilingual, which the tutor needs, since answers come in the studied
+  language or the learner's own; because the account allows it; because it is
+  cheap (about $0.01 per million tokens); and because it gives 1024-dimension
+  vectors when asked, so the designed column and its storage on the free plan
+  stayed unchanged. It is not the common `openai/text-embedding-3-small` at
+  1536 dimensions for those reasons, and is now fixed.
 
 ## Stack
 

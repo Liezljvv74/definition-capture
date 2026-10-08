@@ -9,12 +9,19 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: 
 
 const base = { remaining: 26, reason: "ok", plan: "paid", studiedName: "German", nativeName: "English",
   initialAnswerIn: null, conversationId: null, notFound: false,
+  model: { label: "Claude Sonnet 5.5 by Anthropic", slug: "anthropic/claude-sonnet-5.5" },
 } as const;
 const more = { initialExchanges: [] as TutorExchange[], linkedRuleIds: [] as string[], savedRules: {} as Record<number, string> };
 const html = (props: Partial<Parameters<typeof TutorChat>[0]> = {}) =>
   renderToStaticMarkup(<TutorChat {...base} {...more} {...props} />);
 
 describe("TutorChat", () => {
+  it("names the model answering, with its slug on hover", () => {
+    const out = html();
+    expect(out).toContain("Model: Claude Sonnet 5.5 by Anthropic");
+    expect(out).toContain('title="anthropic/claude-sonnet-5.5"');
+  });
+
   it("asks for a studied language, with a link to Settings and no question box", () => {
     const out = html({ studiedName: null });
     expect(out).toContain("Choose the language you are studying");
