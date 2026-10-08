@@ -122,7 +122,7 @@ renameTopic(from: string, to: string): Promise<string | null>
 - [ ] **Step 1: Create the file**
 
 ```bash
-cd "C:/Users/Liezl/Documents/Building with AI Course/Sprint2_Project_Captured"
+cd "C:/Users/Liezl/Documents/Building with AI Course/Captured"
 npx supabase migration new grammar_rules
 ```
 
@@ -392,7 +392,7 @@ Expected: the last line names the new migration among those applied, with no err
 
 - [ ] **Step 5: Exercise the behaviour as a signed-in user**
 
-Save as `%TEMP%\grammar-rehearsal.sql` and run with `docker exec -i supabase_db_Sprint2_Project_Captured psql -U postgres -d postgres < "%TEMP%\grammar-rehearsal.sql"` (from Git Bash: `< "$TEMP/grammar-rehearsal.sql"`). It creates a throwaway account first.
+Save as `%TEMP%\grammar-rehearsal.sql` and run with `docker exec -i supabase_db_Captured psql -U postgres -d postgres < "%TEMP%\grammar-rehearsal.sql"` (from Git Bash: `< "$TEMP/grammar-rehearsal.sql"`). It creates a throwaway account first.
 
 ```sql
 \set ON_ERROR_STOP 0

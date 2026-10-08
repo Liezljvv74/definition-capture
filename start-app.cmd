@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Definition Capture
+title Captured
 
 cd /d "%~dp0"
 
@@ -14,7 +14,7 @@ rem Already running? Just open the browser, rather than letting a second
 rem `next dev` fall back to a port the sign-in link cannot return to.
 powershell -NoProfile -Command "try{(New-Object Net.Sockets.TcpClient).Connect('localhost',%PORT%);exit 0}catch{exit 1}" >nul 2>&1
 if not errorlevel 1 (
-  echo Definition Capture is already running.
+  echo Captured is already running.
   start "" "%URL%"
   exit /b 0
 )
@@ -29,7 +29,7 @@ rem so the dev server below keeps this window.
 start "" /min powershell -NoProfile -Command "$n=0; while($n -lt 75){ try{(New-Object Net.Sockets.TcpClient).Connect('localhost',%PORT%); Start-Process '%URL%'; break }catch{ Start-Sleep -Milliseconds 400; $n++ } }"
 
 echo.
-echo    Definition Capture  -^>  %URL%
+echo    Captured  -^>  %URL%
 echo    Keep this window open. Press Ctrl+C or close it to stop the server.
 echo.
 
