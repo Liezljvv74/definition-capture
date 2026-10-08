@@ -64,6 +64,46 @@ The public landing page, for visitors who are not signed in:
   Cloudflare Turnstile check, with every protected page checked on the server
   before it renders.
 
+## Optional tasks
+
+Two were chosen.
+
+**1. Cross-user privacy check.** A test confirms that one account's AI context
+cannot be reached by another. It lives in `supabase/tests/multiuser/` (how to
+rerun it is in the README there) and was first run on 7 October 2026: 626 of
+626 checks passed, recorded in `Reports/Multi user test.pdf`. Three accounts
+each get a row in every table, including all of the tutor's: conversations,
+saved answers with their embeddings, rules linked from a conversation, usage
+and the search log. Each account then attacks the other two, first straight
+through the database with its own login token and the public key, then through
+the app in a real browser. For the AI context specifically, it checks that an
+account cannot:
+
+- read, change or delete another account's conversations, saved answers,
+  linked rules or search log, or add its own rows to them;
+- find another account's answers through `search_tutor`, the search behind
+  both the conversation search and the tutor's memory, which runs under the
+  caller's own session;
+- see another account's conversations in the `/tutor` sidebar, or open one by
+  its address (the page says the conversation was not found);
+- ask a question, or merge answers, inside another account's conversation
+  through `POST /api/tutor` or `/api/tutor/merge` (refused with 404, and no
+  message spent).
+
+Every refusal was counted only when it came from access rules, and every
+account's data was fingerprinted before and after, unchanged. As a sanity
+check, switching off row level security on one table locally made 18 checks
+fail; it was then switched back on.
+
+**2. Model display.** The Tutor page names the model answering, from its
+OpenRouter slug made readable: "Model: Claude Sonnet 5.5 by Anthropic", with
+the slug itself (`anthropic/claude-sonnet-5.5`) on hover, visible in the
+screenshot above. The slug is read on the server (`tutorModel()`), and
+`modelLabel` in `src/lib/tutor.ts` formats it; the browser is given only the
+name. It shows only where a question can be asked. The `ai-code-reviewer` run
+on this change, and the fixes it led to, are in
+`Reports/AI-Code_Reviewer Report and fixes.pdf`.
+
 ## Tech stack
 
 | | |
