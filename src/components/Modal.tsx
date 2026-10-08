@@ -34,16 +34,19 @@ export function Modal({ title, onClose, children }: ModalProps) {
     // event because Chromium makes cancel uncancellable when there has been
     // no click since the last one, and a dialog whose onClose waits out a busy
     // save would then close under React. Cancelling the keydown keeps cancel
-    // from firing at all; RefField stops it first to close only its list.
+    // from firing at all. The listener is on window, not document: React
+    // listens on document itself here, so RefField's stopPropagation, which
+    // closes only its list, cannot stop another listener on document, and on
+    // document one Escape closed the list and the dialog together.
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       onClose();
     };
-    document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown);
     document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = "";
     };
   }, [onClose]);
