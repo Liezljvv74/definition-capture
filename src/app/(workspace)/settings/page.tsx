@@ -26,6 +26,7 @@ import {
 } from "@/lib/exportFolder";
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { MIN_PASSWORD, changePassword, passwordProblem, sendPasswordReset, signOut } from "@/lib/session";
+import { PencilIcon } from "@/components/RowEditButton";
 import { renameCollection, renameInList, renameSource, renameTopic } from "@/lib/renames";
 import { LEVELS, saveSettings, type Level } from "@/lib/settings";
 import { countUses, inUseReason } from "@/lib/inUse";
@@ -773,23 +774,6 @@ function ReadingSpeedSection() {
 }
 
 /* ------------------------------------------------------------ the roll-up */
-
-function PencilIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-4"
-    >
-      <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 1 1-3 7.5-7.5Z" />
-    </svg>
-  );
-}
 
 /** The caret on a setting's phone line, pointing down while it is open. */
 function Caret({ open }: { open: boolean }) {
