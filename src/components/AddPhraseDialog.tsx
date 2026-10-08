@@ -61,7 +61,6 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
             onClose();
           }}
           onCancel={onClose}
-          autoFocus
         />
       </Modal>
     );
@@ -120,7 +119,6 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
         submitLabel="Save phrase"
         onSubmit={handleSubmit}
         onCancel={onClose}
-        autoFocus
       />
     </Modal>
   );

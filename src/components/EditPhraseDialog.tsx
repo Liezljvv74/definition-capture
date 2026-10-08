@@ -77,7 +77,6 @@ export function EditPhraseDialog({
         submitLabel="Save changes"
         onSubmit={handleSubmit}
         onCancel={onClose}
-        autoFocus
       />
     </Modal>
   );

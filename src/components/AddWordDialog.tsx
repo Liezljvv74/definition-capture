@@ -64,7 +64,6 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
             onClose();
           }}
           onCancel={onClose}
-          autoFocus
         />
       </Modal>
     );
@@ -128,7 +127,6 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
         onSubmit={handleSubmit}
         onCancel={onClose}
         autoSplit
-        autoFocus
       />
     </Modal>
   );

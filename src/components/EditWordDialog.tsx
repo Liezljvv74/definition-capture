@@ -79,7 +79,6 @@ export function EditWordDialog({
         verbTableFor={entry.word}
         onSubmit={handleSubmit}
         onCancel={onClose}
-        autoFocus
       />
     </Modal>
   );
