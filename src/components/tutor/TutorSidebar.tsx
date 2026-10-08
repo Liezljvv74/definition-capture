@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { Modal } from "@/components/Modal";
+import { ConfirmDeleteDialog } from "@/components/DeleteControls";
 import { SEARCH_MIN, type SearchResult } from "@/lib/tutor";
 import { deleteConversation, renameConversation } from "@/lib/tutorConversations";
 
@@ -209,13 +209,12 @@ export function TutorSidebar({ conversations, activeId }: { conversations: Conve
       </aside>
 
       {deleting && (
-        <Modal title="Delete conversation" onClose={() => setDeleting(null)}>
-          <p className="[overflow-wrap:anywhere]">Delete “{deleting.name}”?</p>
-          <div className="flex justify-end gap-2 pt-4">
-            <button type="button" className="btn btn-secondary" onClick={() => setDeleting(null)}>Cancel</button>
-            <button type="button" className="btn btn-primary" onClick={() => void remove(deleting)}>Delete</button>
-          </div>
-        </Modal>
+        <ConfirmDeleteDialog
+          names={[deleting.name]}
+          noun="conversation"
+          onConfirm={() => void remove(deleting)}
+          onCancel={() => setDeleting(null)}
+        />
       )}
     </>
   );

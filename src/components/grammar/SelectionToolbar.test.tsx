@@ -6,7 +6,7 @@ import { SelectionToolbar } from "@/components/grammar/SelectionToolbar";
 describe("SelectionToolbar", () => {
   it("offers only what it is given", () => {
     const html = renderToStaticMarkup(
-      <SelectionToolbar top={0} left={0} onHighlight={() => {}} onRemove={null} onLink={null} onNewRule={() => {}} />,
+      <SelectionToolbar top={0} left={0} onHighlight={() => {}} onRemove={null} onLink={null} onNewRule={() => {}} onUnlink={null} />,
     );
     expect(html).toContain('aria-label="Highlight yellow"');
     expect(html).toContain('aria-label="Highlight green"');

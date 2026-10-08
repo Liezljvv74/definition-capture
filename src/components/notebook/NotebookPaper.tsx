@@ -10,9 +10,9 @@ const HOLES = ["11%", "46%", "82%"];
  * because a background cannot draw them at a fixed distance from the edge.
  * All decoration is aria-hidden and takes no clicks.
  */
-export function NotebookPaper({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function NotebookPaper({ children }: { children: ReactNode }) {
   return (
-    <div className={`notebook flex min-h-full flex-1 flex-col ${className}`}>
+    <div className="notebook flex min-h-full flex-1 flex-col">
       <div aria-hidden="true" className="notebook-margin" />
       {HOLES.map((top) => (
         <div key={top} aria-hidden="true" className="notebook-hole" style={{ top }} />

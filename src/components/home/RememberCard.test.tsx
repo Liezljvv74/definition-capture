@@ -15,21 +15,17 @@ const item = {
 };
 
 describe("RememberCard", () => {
-  it("is a collapsed disclosure on the word, whose controlled element exists and is hidden", () => {
+  it("is a closed disclosure whose summary is the word", () => {
     const out = renderToStaticMarkup(<RememberCard item={item} />);
-    expect(out).toMatch(/<button type="button" aria-expanded="false"[^>]*>ephemeral<span class="sr-only"> Show meaning<\/span><\/button>/);
-    const id = out.match(/aria-controls="([^"]+)"/)?.[1];
-    expect(id).toBeTruthy();
-    expect(out).toMatch(new RegExp(`<p id="${id}" hidden=""`));
-    // The only "Show meaning" left is the visually hidden suffix inside the word's button.
-    expect(out.match(/Show meaning/g)).toHaveLength(1);
+    expect(out).toMatch(/<details><summary [^>]*>ephemeral<span class="sr-only"> meaning<\/span><\/summary>/);
+    expect(out).not.toContain("<details open");
     expect(out).toContain("<h2");
   });
 
-  it("shows a phrase's title and its meaning in the hidden element", () => {
+  it("shows a phrase's title and its meaning inside the disclosure", () => {
     const phrase = { ...item, item_type: "phrase", title: "break the ice", definition: null, literal_meaning: "start a conversation", usage_example: "He told a joke." };
     const out = renderToStaticMarkup(<RememberCard item={phrase} />);
     expect(out).toContain("break the ice");
-    expect(out).toMatch(/hidden=""[^>]*>[^<]*start a conversation/);
+    expect(out).toMatch(/<\/summary><p [^>]*>[^<]*start a conversation[\s\S]*<\/details>/);
   });
 });

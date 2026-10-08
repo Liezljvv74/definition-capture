@@ -1,19 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 import { CreateDeckButton } from "@/components/flashcards/CreateDeckButton";
-import { buildDeck, FlashcardError } from "@/lib/flashcards";
 import { plural, type ReviewState } from "@/lib/home";
+import { useBuildDeck } from "@/lib/useBuildDeck";
 
 /**
  * The dashboard's main card: what to do now. It is never hidden; on an empty
  * account it becomes the way in.
  *
  * A client component only for the two buttons, which build a deck and go to
- * it exactly as `CreateDeckDialog` does, including how a failure is reported.
+ * it through `useBuildDeck`, as `CreateDeckDialog` does.
  */
 export function ReviewCard({
   state,
@@ -27,29 +25,9 @@ export function ReviewCard({
   verbs: { due: number; fresh: number };
   className?: string;
 }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function play(dueOnly: boolean) {
-    setBusy(true);
-    setError(null);
-    try {
-      const deckId = await buildDeck({
-        sources: ["all"],
-        collectionIds: [],
-        needsReviewOnly: false,
-        size: null,
-        dueOnly,
-      });
-      router.push(`/flashcards/?deck=${deckId}`);
-    } catch (cause) {
-      setBusy(false);
-      setError(
-        cause instanceof FlashcardError ? cause.message : "The deck could not be built. Please try again.",
-      );
-    }
-  }
+  const { busy, error, build } = useBuildDeck();
+  const play = (dueOnly: boolean) =>
+    build({ sources: ["all"], collectionIds: [], needsReviewOnly: false, size: null, dueOnly });
 
   let heading: string;
   let action: React.ReactNode = null;

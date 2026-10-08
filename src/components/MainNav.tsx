@@ -15,6 +15,7 @@ import {
   TAB_OFF,
   TAB_ON,
 } from "@/components/NavMenu";
+import { useDismiss } from "@/lib/useDismiss";
 
 /**
  * The two views behind the Glossary tab. They are one section with two
@@ -80,25 +81,10 @@ function MobileMenu({ pathname }: { pathname: string }) {
   const [open, setOpen] = useState(false);
   const item = useRef<HTMLLIElement>(null);
 
-  // Listeners exist only while the panel is open. Back and forward close it
-  // here, in a handler, because a pathname effect would call setState in the
-  // effect body, which React 19's lint rule rejects.
-  useEffect(() => {
-    if (!open) return;
-    const close = () => setOpen(false);
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && close();
-    const onPress = (event: PointerEvent) => {
-      if (!item.current?.contains(event.target as Node)) close();
-    };
-    window.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onPress);
-    window.addEventListener("popstate", close);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onPress);
-      window.removeEventListener("popstate", close);
-    };
-  }, [open]);
+  // Back and forward close it too, in the hook's handler, because a pathname
+  // effect would call setState in the effect body, which React 19's lint rule
+  // rejects.
+  useDismiss(item, open, () => setOpen(false));
 
   const destinations = [
     ...GLOSSARY_VIEWS.map((view) => ({ href: view.href, label: view.label, active: inView(view, pathname) })),

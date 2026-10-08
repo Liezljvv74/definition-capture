@@ -17,20 +17,12 @@ function sourceLabel(source: { url: string; title: string }): string {
   }
 }
 
-/** A link to the saved rule an answer points to; nothing while the rules load or if it has since gone. */
-function SavedRuleLink({ title }: { title: string }) {
-  const rule = findByTitle(title);
-  if (!rule) return null;
-  return (
-    <Link href={`/rule/?id=${rule.id}`} className="btn btn-secondary">
-      Open “{rule.title}”
-    </Link>
-  );
-}
-
-/** A link to the rule an answer was saved as; nothing while the rules load or if it has since gone. */
-function OpenRuleLink({ id }: { id: string }) {
-  const rule = getRules().find((r) => r.id === id);
+/**
+ * A link to a saved rule, found by the id an answer was saved as or by the
+ * title an answer points to; nothing while the rules load or if it has since
+ * gone.
+ */
+function RuleLink({ rule }: { rule: { id: string; title: string } | undefined }) {
   if (!rule) return null;
   return (
     <Link href={`/rule/?id=${rule.id}`} className="btn btn-secondary">
@@ -101,10 +93,10 @@ export function AnswerCard({
               </label>
             )}
             {savedRuleId ? (
-              <OpenRuleLink id={savedRuleId} />
+              <RuleLink rule={getRules().find((r) => r.id === savedRuleId)} />
             ) : reply.existingRule ? (
               // The rule is already saved, so the answer offers it rather than a second copy.
-              <SavedRuleLink title={reply.existingRule} />
+              <RuleLink rule={findByTitle(reply.existingRule)} />
             ) : (
               <button type="button" className="btn btn-secondary" onClick={onSave}>
                 Save as rule

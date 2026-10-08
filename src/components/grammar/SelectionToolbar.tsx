@@ -18,7 +18,7 @@ export function SelectionToolbar({
   onRemove,
   onLink,
   onNewRule,
-  onUnlink = null,
+  onUnlink,
 }: {
   top: number;
   left: number;
@@ -26,7 +26,7 @@ export function SelectionToolbar({
   onRemove: (() => void) | null;
   onLink: (() => void) | null;
   onNewRule: (() => void) | null;
-  onUnlink?: (() => void) | null;
+  onUnlink: (() => void) | null;
 }) {
   const keep = (event: MouseEvent) => event.preventDefault();
   const button =
@@ -50,25 +50,20 @@ export function SelectionToolbar({
             className={`size-6 cursor-pointer rounded-full border border-ink-soft ${HIGHLIGHT_CLASS[colour]}`}
           />
         ))}
-      {onRemove && (
-        <button type="button" onMouseDown={keep} onClick={onRemove} className={button}>
-          Remove highlight
-        </button>
-      )}
-      {onUnlink && (
-        <button type="button" onMouseDown={keep} onClick={onUnlink} className={button}>
-          Remove link
-        </button>
-      )}
-      {onLink && (
-        <button type="button" onMouseDown={keep} onClick={onLink} className={button}>
-          Link to…
-        </button>
-      )}
-      {onNewRule && (
-        <button type="button" onMouseDown={keep} onClick={onNewRule} className={button}>
-          New rule from this
-        </button>
+      {(
+        [
+          [onRemove, "Remove highlight"],
+          [onUnlink, "Remove link"],
+          [onLink, "Link to…"],
+          [onNewRule, "New rule from this"],
+        ] as const
+      ).map(
+        ([onClick, label]) =>
+          onClick && (
+            <button key={label} type="button" onMouseDown={keep} onClick={onClick} className={button}>
+              {label}
+            </button>
+          ),
       )}
     </div>
   );

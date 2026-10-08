@@ -15,14 +15,14 @@ import { CreateDeckDialog } from "@/components/flashcards/CreateDeckDialog";
  * `@/lib/flashcards` and nothing else, so it costs a small module rather than
  * the word and phrase stores.
  */
-export function CreateDeckButton({ className = "" }: { className?: string }) {
+export function CreateDeckButton() {
   const [creating, setCreating] = useState(false);
 
   return (
     <>
       <button
         type="button"
-        className={`text-sm font-medium text-link underline underline-offset-2 hover:opacity-80 ${className}`}
+        className="text-sm font-medium text-link underline underline-offset-2 hover:opacity-80"
         onClick={() => setCreating(true)}
       >
         Customise deck

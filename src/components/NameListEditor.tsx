@@ -4,6 +4,7 @@ import { foldName } from "@/lib/foldName";
 import { useId, useState } from "react";
 
 import { RowDeleteButton } from "@/components/DeleteControls";
+import { PencilIcon } from "@/components/RowEditButton";
 import { MAX_LIST_LENGTH } from "@/lib/constants";
 
 /**
@@ -203,7 +204,7 @@ export function NameListEditor({
                 aria-label={`Rename ${name}`}
                 title={`Rename ${name}`}
               >
-                <PencilIcon />
+                <PencilIcon className="size-3.5" />
               </button>
             )}
             {editing !== name && (
@@ -258,22 +259,5 @@ export function NameListEditor({
         </p>
       )}
     </fieldset>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-3.5"
-    >
-      <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 1 1-3 7.5-7.5Z" />
-    </svg>
   );
 }
