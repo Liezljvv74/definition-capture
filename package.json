@@ -31,7 +31,6 @@
     "supabase": "^2.119.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^5.0.3"
   },
   "allowScripts": {

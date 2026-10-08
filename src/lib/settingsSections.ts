@@ -12,7 +12,7 @@
  * by what somebody came to change: who they are, how their glossary is
  * organised, how a grammar rule is filed, or how their answers are marked.
  */
-export type SettingsSectionKey = "profile" | "glossary" | "grammar" | "flashcards";
+type SettingsSectionKey = "profile" | "glossary" | "grammar" | "flashcards";
 
 export const SETTINGS_SECTIONS: {
   key: SettingsSectionKey;

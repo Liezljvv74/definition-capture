@@ -36,15 +36,6 @@ export function tenseMark(record: TenseRecord | undefined): TenseMark {
   return "learning";
 }
 
-/** Learned only when every counted tense is; null for a verb with nothing to ask. */
-export function verbState(table: VerbTable, records: readonly TenseRecord[]): "new" | "learning" | "learned" | null {
-  const marks = countedTenses(table).map((tense) => tenseMark(recordFor(records, table.id, tense)));
-  if (marks.length === 0) return null;
-  if (marks.every((mark) => mark === "learned")) return "learned";
-  if (marks.some((mark) => mark !== "new")) return "learning";
-  return "new";
-}
-
 /** One verb as a session asks it: `cells[k]` is the form for `tenses[k]`, null when there is none to ask. */
 export type PracticeVerb = {
   itemId: string;

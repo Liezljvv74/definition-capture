@@ -8,7 +8,7 @@ import { NO_IMPORT, type ImportCounts, type ImportMode } from "@/lib/types";
  * `toReplace` is set for Replace mode and null otherwise; the other two are
  * the merge modes' halves. Exactly one of the two shapes is populated.
  */
-export type ImportPlan<T> = {
+type ImportPlan<T> = {
   counts: ImportCounts;
   /** Rows that already exist and are being overwritten. */
   toUpdate: T[];

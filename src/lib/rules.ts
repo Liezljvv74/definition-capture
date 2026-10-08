@@ -11,7 +11,7 @@ import { MAX_NAME } from "@/lib/constants";
 import { rewriteLinks } from "@/lib/linkRenames";
 import { readBlocks } from "@/lib/blocks";
 import { importInto } from "@/lib/planImport";
-import { createId, createRemoteStore } from "@/lib/remoteStore";
+import { createRemoteStore } from "@/lib/remoteStore";
 import {
   readString,
   type Block,
@@ -165,7 +165,7 @@ export function ruleProblem(title: string, topic: string, exceptId?: string): st
  * (`tags_name_check`); a longer one, such as a whole sentence the tutor wrote
  * as a topic (7 October 2026), made the save fail after the page had moved on.
  */
-export const cleanNames = (input: { title: string; topic: string }) => ({
+const cleanNames = (input: { title: string; topic: string }) => ({
   title: input.title.trim(),
   topic: input.topic.trim().slice(0, MAX_NAME).trim(),
 });
@@ -173,7 +173,7 @@ export const cleanNames = (input: { title: string; topic: string }) => ({
 /** A new rule, empty unless `blocks` is given; one insert either way, so a caller never needs a second save that could race it. */
 export function createRule(input: { title: string; topic: string; blocks?: Block[] }): Rule {
   const rule: Rule = {
-    id: createId(),
+    id: crypto.randomUUID(),
     ...cleanNames(input),
     blocks: input.blocks ?? [],
     dateAdded: new Date().toISOString(),

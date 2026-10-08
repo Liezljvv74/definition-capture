@@ -55,7 +55,7 @@ export const SEARCH_MIN = 2;
 export const SEARCH_MAX = 200;
 export const CONVERSATION_NAME_MAX = 120;
 /** Characters of memory, questions and answers together, sent with a question at most; memory is paid model input. */
-export const MEMORY_CHARS = 12000;
+const MEMORY_CHARS = 12000;
 /**
  * Per account, and checked by the database as well (enforce_row_limit): the
  * free plan's 500 MB is shared by every account (the owner's decision,
@@ -109,7 +109,7 @@ export function startOfUtcDay(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-export type TutorTurn = { role: "user" | "assistant"; content: string };
+type TutorTurn = { role: "user" | "assistant"; content: string };
 
 /**
  * An answer as the plain text a follow-up is given for context, so the JSON
@@ -133,7 +133,7 @@ export function answerText(reply: TutorReply): string {
  * change, because "ignore your instructions" and role play are the usual ways
  * round a rule like this.
  */
-export function scopeRule(studied: string, answerIn: string): string {
+function scopeRule(studied: string, answerIn: string): string {
   return (
     `You only discuss the grammar of ${studied}, and how its words and sentences are used. ` +
     `If a message asks about anything else, such as another language, another subject, writing or advice unrelated to ${studied} grammar, ` +
@@ -151,7 +151,7 @@ export function scopeRule(studied: string, answerIn: string): string {
 export const SOURCES_MAX = 3;
 
 /** How many related rules an answer may suggest linking to. */
-export const RELATED_MAX = 3;
+const RELATED_MAX = 3;
 
 export function tutorInstructions(input: {
   studied: string;
@@ -222,7 +222,7 @@ export function tutorInstructions(input: {
 }
 
 const str = { type: "string" };
-export const REPLY_SCHEMA = {
+const REPLY_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["title", "topic", "blocks", "existing_rule", "related_rules"],
@@ -511,7 +511,8 @@ export function readStoredReply(value: unknown): TutorReply | null {
   };
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Also checks an imported row's id in `remoteStore`; kept here because this module has no Supabase imports. */
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** A conversation id from a request or the address bar; anything else would be a database error, not a 404. */
 export function readConversationId(value: unknown): string | null {

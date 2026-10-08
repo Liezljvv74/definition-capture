@@ -1,6 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { readTenseRecord, recordTenses } from "@/lib/verbPracticeData";
+
+/*
+ * `recordTenses` calls `recordTense` inside its own module, where a mock of
+ * that module cannot reach, so the client underneath is mocked instead.
+ */
+const sent: string[] = [];
+vi.mock("@/lib/supabaseClient", () => ({
+  getSupabase: () => ({
+    rpc: async (_name: string, args: { target_tense: string }) => {
+      sent.push(args.target_tense);
+      return { error: args.target_tense === "Perfekt" ? { message: "offline" } : null };
+    },
+  }),
+}));
 
 describe("readTenseRecord", () => {
   it("reads a row and refuses one without an item or a tense", () => {
@@ -14,15 +28,10 @@ describe("readTenseRecord", () => {
 
 describe("recordTenses", () => {
   it("sends every tense even when one fails, and names the ones that failed", async () => {
-    const sent: string[] = [];
     const failed = await recordTenses(
       "v1",
       [{ tense: "Präsens", right: true }, { tense: "Perfekt", right: false }, { tense: "Futur", right: true }],
       1200,
-      async (_item, tense) => {
-        sent.push(tense);
-        if (tense === "Perfekt") throw new Error("offline");
-      },
     );
     expect(sent).toEqual(["Präsens", "Perfekt", "Futur"]);
     expect(failed).toEqual([{ tense: "Perfekt", right: false }]);

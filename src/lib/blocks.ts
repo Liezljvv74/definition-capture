@@ -7,25 +7,21 @@ export const MAX_BLOCKS = 200;
 export const MAX_TABLE_ROWS = 30;
 export const MAX_TABLE_COLUMNS = 12;
 
-/**
+/*
  * A block id is only a key: React needs one to keep an editor's state with
- * its block through a reorder, and nothing else reads it. Made here rather
- * than by `createId` in `remoteStore` so this module stays free of the
- * database and its session, which its tests do not need.
+ * its block through a reorder, and nothing else reads it.
  */
-const newId = () => crypto.randomUUID();
-
-export const newTextBlock = (): TextBlock => ({ kind: "text", id: newId(), text: "" });
+export const newTextBlock = (): TextBlock => ({ kind: "text", id: crypto.randomUUID(), text: "" });
 export const newTableBlock = (): TableBlock => ({
   kind: "table",
-  id: newId(),
+  id: crypto.randomUUID(),
   headerRow: true,
   headerColumn: false,
   cells: [[""]],
 });
 export const newExampleBlock = (): ExampleBlock => ({
   kind: "example",
-  id: newId(),
+  id: crypto.randomUUID(),
   sentence: "",
   translation: "",
 });
@@ -49,7 +45,7 @@ function readCells(value: unknown): string[][] {
 function readBlock(raw: unknown): Block | null {
   if (typeof raw !== "object" || raw === null) return null;
   const value = raw as Record<string, unknown>;
-  const id = readString(value.id).trim() || newId();
+  const id = readString(value.id).trim() || crypto.randomUUID();
   switch (value.kind) {
     case "text":
       return { kind: "text", id, text: readString(value.text) };

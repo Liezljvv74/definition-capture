@@ -11,7 +11,9 @@
  *     reading it through `useSyncExternalStore`.
  *  2. Writes look synchronous. A mutation updates the cache and notifies
  *     subscribers immediately, then sends the row to Supabase in the
- *     background. The screen never waits on the network.
+ *     background. The screen never waits on the network. Ids are minted in
+ *     the browser with `crypto.randomUUID()`, so an optimistic insert already
+ *     knows the row's real primary key.
  *
  * The cost of (2) is that a write can fail after the UI has already moved on.
  * When that happens the store reloads from the database, so what is on screen
@@ -20,10 +22,12 @@
  */
 
 import { foldName } from "@/lib/foldName";
+import { collectionNames } from "@/lib/home";
 import { currentUserId, subscribe as subscribeToSession } from "@/lib/session";
 import { getSupabase } from "@/lib/supabaseClient";
+import { UUID } from "@/lib/tutor";
 
-export type StoreSnapshot<T> = {
+type StoreSnapshot<T> = {
   items: T[];
   /** False until the first fetch has come back. */
   loaded: boolean;
@@ -223,7 +227,7 @@ export async function readWithSkewRetry<T extends { error: unknown }>(
 }
 
 /** The kinds of item the `items` table holds, one list store each. */
-export type ItemType = "word" | "phrase" | "verb_table" | "grammar";
+type ItemType = "word" | "phrase" | "verb_table" | "grammar";
 
 /**
  * What a list reads for each item: its own columns, plus the name of its
@@ -241,16 +245,11 @@ const ITEM_SELECT = "*, sources(name), item_tags(position, context, tags(name))"
 export function flattenRow(row: Row): Row {
   const source = row.sources as { name?: unknown } | null;
   const links = Array.isArray(row.item_tags) ? (row.item_tags as Row[]) : [];
-  const nameOf = (link: Row) => {
-    const name = (link.tags as { name?: unknown } | null)?.name;
-    return typeof name === "string" ? name : null;
-  };
-  const collections = links
-    .filter((link) => link.context === "collection")
-    .sort((a, b) => Number(a.position) - Number(b.position))
-    .map(nameOf)
-    .filter((name): name is string => name !== null);
-  const topic = links.filter((link) => link.context === "grammar").map(nameOf).find(Boolean) ?? "";
+  const collections = collectionNames(row);
+  const topic = links
+    .filter((link) => link.context === "grammar")
+    .map((link) => (link.tags as { name?: unknown } | null)?.name)
+    .find((name): name is string => typeof name === "string" && name !== "") ?? "";
   return {
     ...row,
     source: typeof source?.name === "string" ? source.name : "",
@@ -269,7 +268,7 @@ export function flattenRow(row: Row): Row {
  */
 const SAVE_BATCH = 500;
 
-export type RemoteStoreConfig<T> = {
+type RemoteStoreConfig<T> = {
   /** Which kind of item this list holds; every read and delete is limited to it. */
   itemType: ItemType;
   /** Turns an `items` row, embeds flattened, into an app object. */
@@ -707,14 +706,6 @@ export function readError(error: unknown): string {
 }
 
 /**
- * A database-friendly id, generated client-side so an optimistic insert already
- * knows the row's real primary key.
- */
-export function createId(): string {
-  return crypto.randomUUID();
-}
-
-/**
  * The id an imported row should be saved under.
  *
  * Ids in a backup are whatever the exporting version used: the localStorage
@@ -727,6 +718,6 @@ export function createId(): string {
  * the others would silently break importing into whichever list was missed.
  */
 export function usableId(id: string, taken: Set<string>): string {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  return isUuid && !taken.has(id) ? id : createId();
+  const isUuid = UUID.test(id);
+  return isUuid && !taken.has(id) ? id : crypto.randomUUID();
 }

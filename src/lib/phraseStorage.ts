@@ -11,7 +11,7 @@
 
 import { rewriteLinks } from "@/lib/linkRenames";
 import { importInto } from "@/lib/planImport";
-import { createId, createRemoteStore } from "@/lib/remoteStore";
+import { createRemoteStore } from "@/lib/remoteStore";
 import type { Source } from "@/lib/constants";
 import {
   readCollections,
@@ -160,7 +160,7 @@ function clean(input: PhraseInput) {
 
 export function createPhrase(input: PhraseInput): Phrase {
   const phrase: Phrase = {
-    id: createId(),
+    id: crypto.randomUUID(),
     ...clean(input),
     dateAdded: new Date().toISOString(),
   };

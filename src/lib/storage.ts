@@ -12,7 +12,7 @@
 
 import { rewriteLinks } from "@/lib/linkRenames";
 import { importInto } from "@/lib/planImport";
-import { createId, createRemoteStore } from "@/lib/remoteStore";
+import { createRemoteStore } from "@/lib/remoteStore";
 import type { Source } from "@/lib/constants";
 import {
   needsDefinition,
@@ -186,7 +186,7 @@ function clean(input: EntryInput) {
 
 export function createEntry(input: EntryInput): Entry {
   const entry: Entry = {
-    id: createId(),
+    id: crypto.randomUUID(),
     ...clean(input),
     dateAdded: new Date().toISOString(),
     dateUpdated: null,

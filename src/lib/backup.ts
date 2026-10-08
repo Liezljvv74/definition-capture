@@ -195,7 +195,7 @@ export type BackupContents = {
   unreadable: number;
 };
 
-export type BackupParse = ({ ok: true } & BackupContents) | { ok: false; error: string };
+type BackupParse = ({ ok: true } & BackupContents) | { ok: false; error: string };
 
 function asArray(value: unknown): unknown[] | null {
   return Array.isArray(value) ? value : null;

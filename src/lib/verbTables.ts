@@ -12,7 +12,7 @@
 
 import { rewriteLinks } from "@/lib/linkRenames";
 import { importInto } from "@/lib/planImport";
-import { createId, createRemoteStore } from "@/lib/remoteStore";
+import { createRemoteStore } from "@/lib/remoteStore";
 import {
   readString,
   readTenses,
@@ -89,7 +89,7 @@ export function createVerbTable(
   if (existing) return existing;
 
   const table: VerbTable = {
-    id: createId(),
+    id: crypto.randomUUID(),
     verb: verb.trim(),
     tenses: [tense.trim()],
     rows: persons.map((person) => ({ person, conjugations: [""], notes: "" })),

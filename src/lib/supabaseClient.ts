@@ -23,11 +23,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-// `sb_publishable_...` is the current name for what used to be the anon key.
-// The old name is still accepted so an existing key keeps working.
-const publishableKey =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 /** True when the build was given credentials; the sign-in screen checks this. */
 export const isSupabaseConfigured = Boolean(url && publishableKey);

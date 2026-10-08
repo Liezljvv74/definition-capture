@@ -10,7 +10,7 @@
  * list.
  */
 
-export type LanguagePreset = {
+type LanguagePreset = {
   code: string;
   /**
    * Articles, in every form a word can be saved with. Empty for a language

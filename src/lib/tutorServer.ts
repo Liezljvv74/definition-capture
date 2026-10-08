@@ -32,7 +32,7 @@ import {
   type TutorReply,
 } from "@/lib/tutor";
 
-export type TutorSettings = {
+type TutorSettings = {
   language: string;
   languageOther: string;
   nativeLanguage: string;
@@ -217,7 +217,7 @@ export async function embedOrNull(text: string, timeoutMs = 5_000): Promise<numb
  */
 
 /** Answer text past this is cut before it is signed and saved; the table refuses longer. */
-export const SAVED_MESSAGE_MAX = 32000;
+const SAVED_MESSAGE_MAX = 32000;
 
 const EXCHANGE_COLUMNS = "id, conversation_id, kind, question, reply, answer_text, signature";
 

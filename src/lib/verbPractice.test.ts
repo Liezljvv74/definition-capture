@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { VerbTable } from "@/lib/types";
 import {
-  countedTenses, markForm, practiceVerb, sessionPlan, tenseCount, tenseMark, tenseRight, verbState,
+  countedTenses, markForm, practiceVerb, sessionPlan, tenseCount, tenseMark, tenseRight,
   type TenseRecord,
 } from "@/lib/verbPractice";
 
@@ -45,27 +45,6 @@ describe("marks and states", () => {
     expect(tenseMark(rec("Präsens", 0))).toBe("missed");
     expect(tenseMark(rec("Präsens", 1))).toBe("learning");
     expect(tenseMark(rec("Präsens", 2))).toBe("learned");
-  });
-
-  it("learns a verb only when every counted tense is learned", () => {
-    expect(verbState(table(), [])).toBe("new");
-    expect(verbState(table(), [rec("Präsens", 2)])).toBe("learning");
-    expect(verbState(table(), [rec("Präsens", 2), rec("Perfekt", 3)])).toBe("learned");
-    expect(verbState(table({ rows: [] }), [])).toBeNull();
-  });
-
-  it("a newly added tense makes a learned verb learning again", () => {
-    const grown = table({
-      rows: [
-        { person: "ich", conjugations: ["gehe", "bin gegangen", "werde gehen"], notes: "" },
-        { person: "du", conjugations: ["gehst", "", ""], notes: "" },
-      ],
-    });
-    expect(verbState(grown, [rec("Präsens", 2), rec("Perfekt", 2)])).toBe("learning");
-  });
-
-  it("ignores a record for a tense the table no longer has", () => {
-    expect(verbState(table(), [rec("Präsens", 2), rec("Perfekt", 2), rec("Plusquamperfekt", 0)])).toBe("learned");
   });
 });
 

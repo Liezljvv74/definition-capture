@@ -39,7 +39,7 @@ const SCOPE_FILE_WORD: Record<BackupScope, string> = {
 };
 
 /** The file name says what is inside, so scoped exports are told apart later. */
-export function backupFileName(
+function backupFileName(
   format: ExportFormat,
   scope: BackupScope = "all",
   date = new Date(),

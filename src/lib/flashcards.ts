@@ -88,13 +88,19 @@ export type Outcome = "correct" | "again" | "revealed" | "skipped";
 /** Thrown with a sentence already fit to show. */
 export class FlashcardError extends Error {}
 
-function client() {
+/**
+ * The client for code that cannot go on without one, throwing `error` when
+ * there is none. The caller passes the error so its own type and wording reach
+ * the screen; flashcards show theirs only for a `FlashcardError`.
+ */
+export function requireSupabase(error: Error): NonNullable<ReturnType<typeof getSupabase>> {
   const supabase = getSupabase();
-  if (!supabase) {
-    throw new FlashcardError("This build has no database credentials, so flashcards cannot be made.");
-  }
+  if (!supabase) throw error;
   return supabase;
 }
+
+const client = () =>
+  requireSupabase(new FlashcardError("This build has no database credentials, so flashcards cannot be made."));
 
 /** The kinds of item a flashcard is made from; verbs are practised on their own page. */
 const CARD_TYPES = ["word", "phrase"];

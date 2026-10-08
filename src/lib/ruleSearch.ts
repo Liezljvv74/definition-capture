@@ -4,7 +4,7 @@ import { LINK_CHARS } from "@/lib/rules";
 import type { Block, Rule } from "@/lib/types";
 
 /** A rule whose text mentions what was searched for, and where. */
-export type RuleMatch = { title: string; snippet: string; hits: number };
+type RuleMatch = { title: string; snippet: string; hits: number };
 
 /** How many rules the Link to dialog lists under the name matches. */
 const MATCH_LIMIT = 8;
