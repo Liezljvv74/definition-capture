@@ -16,7 +16,7 @@ const { meta } = JSON.parse(fs.readFileSync(path.join(outDir, "db-results.json")
 const LETTERS = ["A", "B", "C"];
 
 const psql = (q) =>
-  execFileSync("docker", ["exec", "-i", "supabase_db_Sprint2_Project_Captured", "psql", "-U", "postgres", "-t", "-A", "-q"], { input: q, encoding: "utf8" }).trim();
+  execFileSync("docker", ["exec", "-i", "supabase_db_Captured", "psql", "-U", "postgres", "-t", "-A", "-q"], { input: q, encoding: "utf8" }).trim();
 const usage = () => psql("select count(*) from public.tutor_usage where user_id in (select id from auth.users where email like '%@multiuser.test')");
 
 const results = [];

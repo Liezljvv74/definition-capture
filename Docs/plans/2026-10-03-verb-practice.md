@@ -22,7 +22,7 @@
 - No em dashes anywhere. No note data in `localStorage` or `sessionStorage`. No new dependencies.
 - Tab moves across and wraps to the next row (DOM order); Enter moves down a column (the global `EnterMovesDown` already does this for inputs).
 - Checks before each commit: `npx tsc --noEmit`, `npx eslint src/ e2e/`, `npx vitest run`.
-- Never stop processes you did not start; stop only your own dev server by the PID on port 3000 whose command line contains `Sprint2_Project_Captured`.
+- Never stop processes you did not start; stop only your own dev server by the PID on port 3000 whose command line contains `Captured`.
 
 ## Review Focus
 
@@ -576,7 +576,7 @@ Note: the third correct answer gives `round(6 * 2.70) = 16` (ease after two corr
 - [ ] **Step 3: Apply locally and rehearse**
 
 Run: `npx supabase start` (if needed), `npx supabase migration up`, then
-`docker exec -i supabase_db_Sprint2_Project_Captured psql -U postgres -v ON_ERROR_STOP=1 < supabase/tests/verb_practice.sql` and the existing `supabase/tests/home_summary.sql` the same way.
+`docker exec -i supabase_db_Captured psql -U postgres -v ON_ERROR_STOP=1 < supabase/tests/verb_practice.sql` and the existing `supabase/tests/home_summary.sql` the same way.
 Expected: both end with `ROLLBACK` and raise nothing. Break `bool_and(ts.answered and ts.streak >= 2)` to `bool_or(...)` once, confirm the rehearsal raises, restore it.
 
 - [ ] **Step 4: Document**

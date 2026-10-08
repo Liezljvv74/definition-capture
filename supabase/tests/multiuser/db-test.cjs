@@ -18,7 +18,7 @@ const PUB = process.env.PUB;
 if (!PUB) throw new Error("Set PUB to the local publishable key (see README.md).");
 
 const psql = (q) =>
-  execFileSync("docker", ["exec", "-i", "supabase_db_Sprint2_Project_Captured", "psql", "-U", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-q"], {
+  execFileSync("docker", ["exec", "-i", "supabase_db_Captured", "psql", "-U", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-q"], {
     input: q,
     encoding: "utf8",
   }).trim();

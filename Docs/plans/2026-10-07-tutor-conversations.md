@@ -553,10 +553,10 @@ rollback;
 
 - [ ] **Step 4: Apply locally and run the rehearsal**
 
-Run: `npx supabase start` (wait until `docker ps` shows `supabase_db_Sprint2_Project_Captured` healthy; the first start after a stop can return early), then `npx supabase db reset`.
+Run: `npx supabase start` (wait until `docker ps` shows `supabase_db_Captured` healthy; the first start after a stop can return early), then `npx supabase db reset`.
 Expected: every migration applies, including the new one, with no exception from its check block.
 
-Run: `docker exec -i supabase_db_Sprint2_Project_Captured psql -U postgres -v ON_ERROR_STOP=1 < supabase/tests/tutor_conversations.sql`
+Run: `docker exec -i supabase_db_Captured psql -U postgres -v ON_ERROR_STOP=1 < supabase/tests/tutor_conversations.sql`
 Expected: ends with `ROLLBACK` and no `ERROR`.
 
 If `delete from public.items` fails under the authenticated role because items has no delete grant, check `supabase/migrations/20260925154728_refactor_build_new_schema.sql` for how items are deleted (the app deletes them from the browser, so the grant exists) and correct the test rather than the grant.

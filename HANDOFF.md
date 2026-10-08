@@ -43,7 +43,7 @@ lasts.
   `npx supabase migration new <name>` and pushed with `npx supabase db push`
   **before** the code that needs it reaches `main`.
 - The local Supabase copy (Docker, `npx supabase start`, project id
-  `Sprint2_Project_Captured` in `supabase/config.toml`) is stopped. Starting it
+  `Captured` in `supabase/config.toml`) is stopped. Starting it
   applies every migration to an empty database. Stage 1 was rehearsed there
   with a copy of the live data and browser checks in Playwright; the temporary
   `.env.development.local` that pointed the dev server at it was deleted
@@ -479,6 +479,113 @@ file, or leave them:
 - Leaked-password protection is a switch in the Supabase dashboard
   (Authentication, Providers); it is the one advisor finding left, and only
   the owner can flip it.
+
+## Retiring the old name (planned, 8 October 2026)
+
+On 8 October 2026 the owner renamed the project folder from
+`Sprint2_Project_Captured` to `Captured`. Every reference to the folder was
+changed with it, including the local Supabase `project_id`, so the Docker
+containers are now `supabase_*_Captured` and the local database starts empty:
+recreate the E2E account through `/sign-up` before the next end-to-end run.
+The old `supabase_*_Sprint2_Project_Captured` volumes can be deleted.
+
+The names below still say `definition-capture`. `CLAUDE.md` calls them
+permanent, but the owner has said losing old backup files is acceptable, and
+none of them is as fixed as that suggests. Not done yet; do them when the owner
+asks, and update `CLAUDE.md` and `README.md` with them.
+
+Safe, in code and one GitHub setting:
+
+- **Backup `format`** (`BACKUP_FORMAT` in `src/lib/backup.ts`). `parseBackup`
+  never reads the tag, so old files still import after a change. Only newly
+  written files carry the new name.
+- **IndexedDB name** (`DB_NAME` in `src/lib/exportFolder.ts`). Each browser
+  forgets the chosen export folder once; the owner picks it again in Settings.
+- **Folder picker `id`** (`definition-capture-exports`, same file). The picker
+  opens at Documents once instead of the last folder.
+- **GitHub repository.** GitHub redirects the old URL; run
+  `git remote set-url origin <new url>`; Vercel's Git link follows the rename.
+  Leave the `sprint2` and `submission` remotes alone.
+- **Vercel project name.** Renaming it changes no domain and no deploy.
+
+The live domain (`definition-capture.vercel.app`) is the one with risk, and
+three of its steps are dashboard work only the owner can do. In this order:
+
+1. Add the new domain in Vercel (`captured.vercel.app` is probably taken), and
+   keep the old one, redirecting to the new, so bookmarks and sent emails work.
+2. Supabase, Authentication, URL Configuration: add the new origin's
+   `/auth/callback` and `/auth/reset` to Redirect URLs and make it the Site URL.
+   Without this, reset and email sign-in links fail.
+3. Cloudflare Turnstile: add the new hostname to the widget. Without this,
+   nobody can sign in on the live site.
+4. Then the code: `SITE_URL` in `src/lib/site.ts`, `public/llms.txt`, the
+   `baseURL` in `playwright.config.ts`, and the domain throughout `CLAUDE.md`,
+   `README.md` and this file.
+
+## When more people use the app (thinking, 7 October 2026)
+
+Nothing here is built or decided; it is a list for the owner to choose from
+when the app grows past a handful of accounts. What protects each account's
+data from the others already scales: row level security and the composite
+keys do not care how many accounts exist, and the multi-user test
+(`supabase/tests/multiuser/`) proved it on 7 October. What does not scale is
+mostly money, storage, email and the way the app is run. Roughly in the order
+it would bite:
+
+1. **One Supabase project is both development and production.** Local
+   development, `db push` and the owner's own experiments all touch the live
+   data. With other people's notes in it, a bad migration or a test run is
+   their loss. Recommended first step: a second free project (the free plan
+   allows two) as staging, migrations pushed there first, and a backup
+   (`supabase db dump`, as in `db-backups/`) before every live push. The free
+   plan has no daily backups or point-in-time recovery; Pro has them.
+2. **Sign-up emails.** Supabase's built-in email sender is for trying things
+   out: it is rate-limited to a few emails an hour and, on current plans, only
+   delivers to the project team's own addresses. Confirmation, magic-link and
+   reset emails to strangers need custom SMTP (Authentication, Emails, SMTP
+   Settings; Resend, Postmark and the like have free tiers). Check what the
+   live project does today; it is on the saved-for-later dashboard list.
+3. **The tutor's bill.** Each question is a paid OpenRouter call (model plus
+   web search plus an embedding). Limits per account exist (5 free messages
+   ever, 30 a day for paid, 100 searches an hour, `src/lib/tutor.ts`), but
+   nothing caps the total: 100 free accounts is 500 questions, and a paid
+   account can ask 900 a month. Set a credit limit on the OpenRouter key
+   itself, so a surprise is capped at a known amount, and watch the spend
+   page. Captcha makes mass sign-ups for free messages harder, not
+   impossible; requiring email confirmation is the next step if it happens.
+4. **Marking accounts paid by hand.** `account_plans` is written in the
+   dashboard. Real payments (Stripe or similar) need a webhook that writes
+   the plan, and that is the first thing that would want a service-role key
+   on the server. It must stay server-only (never `NEXT_PUBLIC_`), in one
+   route that checks the webhook signature; the rule in CLAUDE.md would be
+   rewritten from "no service-role key" to "one, in that route". Charging
+   money also ends Vercel's Hobby plan, which is for non-commercial use;
+   Pro is about 20 USD a month.
+5. **Database size.** The free plan holds 500 MB. Tutor answers with their
+   1024-dimension embeddings are the big rows (the caps of 2,000 answers and
+   500 conversations per account exist for this). Watch Dashboard, Usage;
+   move to Pro (8 GB) before about 350 MB. A free project also pauses after a
+   week with no activity, which real users would meet as a broken site.
+6. **Leaving.** There is no way for a user to delete their account or all
+   their data; today the owner would do it in the dashboard. Strangers will
+   ask, and privacy law (GDPR, POPIA) expects it, along with a privacy page
+   saying what is stored and that tutor questions go to OpenRouter and the
+   model provider. Deleting an auth user needs the admin API, so it belongs
+   in the same server-only route design as the payment webhook; the data
+   itself already cascades from `auth.users`.
+7. **Knowing something broke.** Errors reach Vercel's logs and nothing else;
+   the owner learns about a failure when trying the site. With users, add
+   error reporting (Sentry has a free tier and a Next.js setup) or at least
+   Vercel's log alerts, and Supabase's advisors after each migration.
+8. **Support and changes people did not ask for.** The owner tests on the
+   live site; with users, a half-finished change is something they see.
+   Preview deployments (already built per PR, behind Vercel's login) are the
+   place to try things instead, pointed at the staging project from item 1.
+
+Not worth changing yet: the search (`search_tutor` only ever scans one
+account's rows, at most 2,000, about 40 ms measured), the per-route time
+budget (55 seconds, inside Vercel's 60), and Supabase's 50,000 monthly active
+users on the free plan. Each of those is far away.
 
 ## Checks and commands
 

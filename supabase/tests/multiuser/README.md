@@ -48,7 +48,7 @@ From the project folder, with Docker running.
 4. Same protections as live? Compare the fingerprints:
 
    ```bash
-   docker exec -i supabase_db_Sprint2_Project_Captured psql -U postgres -t -A < supabase/tests/multiuser/parity.sql
+   docker exec -i supabase_db_Captured psql -U postgres -t -A < supabase/tests/multiuser/parity.sql
    npx supabase db query --linked "$(cat supabase/tests/multiuser/parity.sql)"
    ```
 
@@ -56,7 +56,7 @@ From the project folder, with Docker running.
    test accounts, and stop the local copy:
 
    ```bash
-   docker exec -i supabase_db_Sprint2_Project_Captured psql -U postgres -c "delete from auth.users where email like '%@multiuser.test'"
+   docker exec -i supabase_db_Captured psql -U postgres -c "delete from auth.users where email like '%@multiuser.test'"
    npx supabase stop
    ```
 
@@ -78,9 +78,9 @@ Switch one table's protection off on the local copy, rerun step 2, and expect
 failures; then switch it back on:
 
 ```bash
-docker exec -i supabase_db_Sprint2_Project_Captured psql -U postgres -c "alter table public.tags disable row level security"
+docker exec -i supabase_db_Captured psql -U postgres -c "alter table public.tags disable row level security"
 node supabase/tests/multiuser/db-test.cjs     # expect failures on tags
-docker exec -i supabase_db_Sprint2_Project_Captured psql -U postgres -c "alter table public.tags enable row level security"
+docker exec -i supabase_db_Captured psql -U postgres -c "alter table public.tags enable row level security"
 ```
 
 ## When the schema changes
