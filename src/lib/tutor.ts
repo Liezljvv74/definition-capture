@@ -19,18 +19,28 @@ export const QUESTION_MAX = 1000;
 // that day), and those fail with a 404 rather than at build time.
 export const DEFAULT_TUTOR_MODEL = "anthropic/claude-sonnet-5.5";
 
-/** Makers whose names do not come out right by capitalising the slug. */
-const MAKERS: Record<string, string> = {
+/**
+ * Spellings that capitalising the slug gets wrong, for a maker or a word of a
+ * model's name alike ("deepseek-chat" is DeepSeek's). Anything not listed is
+ * only given a capital, so a new maker reads plainly rather than wrongly.
+ */
+const SPELLINGS: Record<string, string> = {
   openai: "OpenAI",
   "meta-llama": "Meta",
   mistralai: "Mistral AI",
   "x-ai": "xAI",
+  "z-ai": "Z.ai",
+  moonshotai: "Moonshot AI",
   deepseek: "DeepSeek",
+  openrouter: "OpenRouter",
+  gpt: "GPT",
+  glm: "GLM",
+  oss: "OSS",
 };
-/** Model-name words that are acronyms rather than names. */
-const ACRONYMS = new Set(["gpt", "glm", "oss"]);
 
-const capitalise = (word: string) => (ACRONYMS.has(word) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1));
+// OpenAI's reasoning models are written in lower case, "o3" and "o4".
+const word = (part: string) =>
+  SPELLINGS[part] ?? (/^o\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1));
 
 /**
  * An OpenRouter slug as a reader would say it, for the Tutor page to name the
@@ -42,8 +52,8 @@ const capitalise = (word: string) => (ACRONYMS.has(word) ? word.toUpperCase() : 
 export function modelLabel(slug: string): string {
   const [maker, name] = slug.trim().split(":")[0].split("/");
   if (!maker || !name) return slug.trim();
-  const model = name.split("-").filter(Boolean).map(capitalise).join(" ");
-  return `${model} by ${MAKERS[maker] ?? maker.split("-").map(capitalise).join(" ")}`;
+  const model = name.split("-").filter(Boolean).map(word).join(" ");
+  return `${model} by ${SPELLINGS[maker] ?? maker.split("-").map(word).join(" ")}`;
 }
 
 /**

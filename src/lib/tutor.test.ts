@@ -15,13 +15,17 @@ describe("modelLabel", () => {
     expect(modelLabel("openai/gpt-5-mini")).toBe("GPT 5 Mini by OpenAI");
     expect(modelLabel("meta-llama/llama-4-maverick")).toBe("Llama 4 Maverick by Meta");
     expect(modelLabel("google/gemini-3-pro-preview")).toBe("Gemini 3 Pro Preview by Google");
+    expect(modelLabel("z-ai/glm-4.6")).toBe("GLM 4.6 by Z.ai");
+    expect(modelLabel("moonshotai/kimi-k2")).toBe("Kimi K2 by Moonshot AI");
+    expect(modelLabel("openai/o3-mini")).toBe("o3 Mini by OpenAI");
+    expect(modelLabel("some-lab/new-model")).toBe("New Model by Some Lab");
   });
 
   it("drops OpenRouter's routing variant", () => {
-    expect(modelLabel("deepseek/deepseek-chat:free")).toBe("Deepseek Chat by DeepSeek");
+    expect(modelLabel("deepseek/deepseek-chat:free")).toBe("DeepSeek Chat by DeepSeek");
   });
 
-  it("returns a slug it cannot read as it is", () => {
+  it("returns a slug that is not maker/name unchanged, but trimmed", () => {
     expect(modelLabel("  some-model  ")).toBe("some-model");
     expect(modelLabel("")).toBe("");
   });

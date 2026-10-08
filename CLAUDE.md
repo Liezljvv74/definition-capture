@@ -49,9 +49,10 @@ questions, connected to the words and phrases they are learning.
   each saved answer is the document searched, so there is no separate documents
   table. Do not change this dimension.
 - Never change the embedding model after initial setup. Changing it breaks
-  retrieval silently, since vectors from two models cannot be compared; a
-  change needs a migration that sets every stored embedding to null, after
-  which those answers are found by keyword only.
+  retrieval silently, since vectors from two models cannot be compared. If it
+  ever must change, it cannot be done without a migration that sets every
+  stored embedding to null, after which those answers are found by keyword
+  only.
 - **Why Qwen3.** The column was designed at 1024 dimensions for `baai/bge-m3`,
   but the OpenRouter account's guardrails refuse that model (a 404, "0
   endpoints", checked 7 October 2026), so search and memory would have fallen
@@ -71,7 +72,7 @@ questions, connected to the words and phrases they are learning.
 | UI | React 19.2.8, TypeScript 5, Tailwind CSS 4 |
 | Data and auth | Supabase: Postgres with row level security, and Supabase Auth |
 | Captcha | Cloudflare Turnstile, verified by Supabase Auth |
-| Tutor | OpenRouter, called with `fetch` from `POST /api/tutor`, `/api/tutor/merge` and `/api/tutor/search`; `OPENROUTER_MODEL` picks the model, default `anthropic/claude-sonnet-5.5`; embeddings `qwen/qwen3-embedding-8b` (1024 dimensions) through OpenRouter, in pgvector |
+| Tutor | OpenRouter, called with `fetch` from the three tutor routes, embeddings in pgvector; the models and the rules for them are under AI model calls and Embeddings above |
 | Supabase clients | `@supabase/ssr` 0.12 (browser and server), `@supabase/supabase-js` 2.116 |
 | Exports | `write-excel-file` for the .xlsx backup, imported on demand |
 | Tests | Vitest 5, in the node environment; `npx vitest run` |

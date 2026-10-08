@@ -22,6 +22,11 @@ describe("TutorChat", () => {
     expect(out).toContain('title="anthropic/claude-sonnet-5.5"');
   });
 
+  it("does not name a model where no question can be asked", () => {
+    expect(html({ studiedName: null })).not.toContain("Model:");
+    expect(html({ reason: "dailyLimit" })).not.toContain("Model:");
+  });
+
   it("asks for a studied language, with a link to Settings and no question box", () => {
     const out = html({ studiedName: null });
     expect(out).toContain("Choose the language you are studying");
