@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 
 import { TopicBadge } from "@/components/Badges";
+import { DateAdded, DETAIL_LABEL, DetailFrame, DetailSuspense } from "@/components/DetailShell";
 import { LinkedFrom } from "@/components/LinkedFrom";
 import { BlockView } from "@/components/grammar/BlockView";
 import { ReadingTools } from "@/components/grammar/ReadingTools";
 import { RuleEditor } from "@/components/grammar/RuleEditor";
 import { RuleReader } from "@/components/grammar/RuleReader";
-import { formatDate, formatDateTime } from "@/lib/format";
 import type { LinkIndex } from "@/lib/links";
 import { updateRule } from "@/lib/rules";
 import type { Rule } from "@/lib/types";
@@ -26,17 +26,9 @@ import { useSettings } from "@/lib/useSettings";
  */
 export default function RulePage() {
   return (
-    <Suspense fallback={<Skeleton />}>
+    <DetailSuspense wide>
       <RuleDetail />
-    </Suspense>
-  );
-}
-
-function Skeleton() {
-  return (
-    <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
-      <div className="card h-56 animate-pulse" aria-hidden="true" />
-    </main>
+    </DetailSuspense>
   );
 }
 
@@ -48,22 +40,9 @@ function RuleDetail() {
   const { linkIndex } = useLinkTargets();
 
   return (
-    <>
-      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
-        <Link href="/grammar" className="text-sm font-medium text-link hover:underline">
-          ← Back to Grammar
-        </Link>
-      </header>
-      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
-        {!loaded ? (
-          <div className="card h-56 animate-pulse" aria-hidden="true" />
-        ) : rule ? (
-          <RuleBody key={rule.id} rule={rule} linkIndex={linkIndex} startEditing={params.get("edit") === "1"} />
-        ) : (
-          <NotFound />
-        )}
-      </main>
-    </>
+    <DetailFrame wide backHref="/grammar" backLabel="Grammar" loaded={loaded} notFound={<NotFound />}>
+      {rule && <RuleBody key={rule.id} rule={rule} linkIndex={linkIndex} startEditing={params.get("edit") === "1"} />}
+    </DetailFrame>
   );
 }
 
@@ -126,14 +105,9 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
 
       <dl className="mt-6 grid gap-4 border-t border-rule pt-5 sm:grid-cols-2">
         <div>
-          <dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">Date added</dt>
+          <dt className={DETAIL_LABEL}>Date added</dt>
           <dd className="mt-1.5 text-sm text-ink">
-            <span title={formatDateTime(rule.dateAdded)}>{formatDate(rule.dateAdded)}</span>
-            {rule.dateUpdated && (
-              <span className="block text-xs text-ink-soft" title={formatDateTime(rule.dateUpdated)}>
-                Edited {formatDate(rule.dateUpdated)}
-              </span>
-            )}
+            <DateAdded added={rule.dateAdded} updated={rule.dateUpdated} />
           </dd>
         </div>
       </dl>

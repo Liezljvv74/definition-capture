@@ -1,15 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, type CSSProperties } from "react";
+import { useState } from "react";
 
 import { CollectionBadge, NeedsDefinitionBadge, SourceBadge } from "@/components/Badges";
+import { DateAdded, DETAIL_LABEL as LABEL, DetailFrame, DetailSuspense, NotFoundCard } from "@/components/DetailShell";
 import { EditWordDialog } from "@/components/EditWordDialog";
 import { LinkedFrom } from "@/components/LinkedFrom";
 import { SpeakButton } from "@/components/SpeakButton";
 import { RefText } from "@/components/RefText";
-import { formatDate, formatDateTime } from "@/lib/format";
 import type { LinkIndex } from "@/lib/links";
 import type { Entry } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
@@ -31,19 +30,10 @@ import { studiedParts } from "@/lib/speech";
  * on the word list.
  */
 export default function WordPage() {
-  // `useSearchParams` needs a boundary to suspend against during prerender.
   return (
-    <Suspense fallback={<DetailSkeleton />}>
+    <DetailSuspense>
       <WordDetail />
-    </Suspense>
-  );
-}
-
-function DetailSkeleton() {
-  return (
-    <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6">
-      <div className="card h-56 animate-pulse" aria-hidden="true" />
-    </main>
+    </DetailSuspense>
   );
 }
 
@@ -55,28 +45,11 @@ function WordDetail() {
   const { linkIndex } = useLinkTargets();
 
   return (
-    <>
-      <header className="notebook-page mx-auto w-full max-w-5xl pt-6">
-        <Link href="/vocabulary" className="text-sm font-medium text-link hover:underline">
-          ← Back to Vocabulary
-        </Link>
-      </header>
-
-      <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6">
-        {!loaded ? (
-          <div className="card h-56 animate-pulse" aria-hidden="true" />
-        ) : entry ? (
-          <EntryDetail entry={entry} linkIndex={linkIndex} />
-        ) : (
-          <WordNotFound />
-        )}
-      </main>
-    </>
+    <DetailFrame backHref="/vocabulary" backLabel="Vocabulary" loaded={loaded} notFound={<WordNotFound />}>
+      {entry && <EntryDetail entry={entry} linkIndex={linkIndex} />}
+    </DetailFrame>
   );
 }
-
-/** The small capitals above each part of the card. */
-const LABEL = "text-xs font-semibold tracking-wide text-ink-soft uppercase";
 
 function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex }) {
   const router = useRouter();
@@ -143,12 +116,7 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
             <div>
               <dt className={LABEL}>Date added</dt>
               <dd className="mt-1 text-sm text-ink">
-                <span title={formatDateTime(entry.dateAdded)}>{formatDate(entry.dateAdded)}</span>
-                {entry.dateUpdated && (
-                  <span className="block text-xs text-ink-soft" title={formatDateTime(entry.dateUpdated)}>
-                    Edited {formatDate(entry.dateUpdated)}
-                  </span>
-                )}
+                <DateAdded added={entry.dateAdded} updated={entry.dateUpdated} />
               </dd>
             </div>
           </dl>
@@ -170,22 +138,10 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
 
 function WordNotFound() {
   return (
-    <div
-      className="paste tape tape-centre mx-auto max-w-lg rounded-[10px_3px_12px_4px] border-2 border-ink bg-card p-8 text-center shadow-[3px_4px_0_var(--color-shadow)]"
-      style={{ "--r": "0.8deg" } as CSSProperties}
-    >
-      <div aria-hidden="true" className="mb-3 text-4xl">
-        🔍
-      </div>
-      <h1 className="hand-title text-xl">Word not found</h1>
-      <p className="mt-2 text-sm text-ink-soft">
-        There is no entry with that ID in your word list. It may have been deleted, or the
-        link may point to a word in a different account, since your list follows the account you
-        are signed in to.
-      </p>
-      <Link href="/vocabulary" className="btn btn-primary mt-5">
-        Back to Vocabulary
-      </Link>
-    </div>
+    <NotFoundCard title="Word not found" href="/vocabulary" label="Vocabulary" tilt="0.8deg">
+      There is no entry with that ID in your word list. It may have been deleted, or the
+      link may point to a word in a different account, since your list follows the account you
+      are signed in to.
+    </NotFoundCard>
   );
 }
