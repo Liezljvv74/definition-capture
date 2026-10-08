@@ -19,18 +19,14 @@
  */
 
 import { NextResponse } from "next/server";
-import { languageName } from "@/lib/languages";
-import { reserveMessage } from "@/lib/reserveMessage";
-import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
+import { shownLanguage } from "@/lib/languages";
 import {
   allowance,
   answerText,
   asQuery,
   buildRequest,
-  CONVERSATION_LIMIT,
   conversationName,
   EMBED_TEXT_MAX,
-  EXCHANGE_LIMIT,
   exchangeTurns,
   followUp,
   HISTORY_LIMIT,
@@ -38,15 +34,15 @@ import {
   pickMemory,
   QUESTION_MAX,
   readConversationId,
-  readReply,
   REFERENCE_DOMAINS,
+  storageFull,
   tutorInstructions,
   type SearchRow,
   type StoredExchange,
   type TutorExchange,
 } from "@/lib/tutor";
+import { ask, fail, openRequest, reserve, unconfigured } from "@/lib/tutorRoute";
 import {
-  askOpenRouter,
   countHeld,
   createConversation,
   embedOrNull,
@@ -57,7 +53,6 @@ import {
   saveTutorExchange,
   searchExchanges,
   trustedExchanges,
-  tutorConfigured,
   tutorModel,
 } from "@/lib/tutorServer";
 
@@ -71,24 +66,13 @@ const SAVE_MS = 6_000;
 /** The least time worth giving the answer's embedding. */
 const EMBED_MIN_MS = 3_000;
 
-/** `remaining` is sent only by failures after the reservation, which spent a message the client should see gone. */
-const fail = (status: number, error: string, remaining?: number) =>
-  NextResponse.json(remaining === undefined ? { error } : { error, remaining }, { status });
-
 export async function POST(request: Request) {
   const started = Date.now();
   const timeLeft = () => BUDGET_MS - (Date.now() - started);
 
-  const userId = await serverUserId();
-  const supabase = userId ? await createSupabaseServerClient() : null;
-  if (!userId || !supabase) return fail(401, "signed_out");
-
-  let body: { question?: unknown; conversationId?: unknown; answerIn?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return fail(400, "bad_request");
-  }
+  const opened = await openRequest<{ question?: unknown; conversationId?: unknown; answerIn?: unknown }>(request);
+  if (opened instanceof Response) return opened;
+  const { userId, supabase, body } = opened;
   const question = typeof body?.question === "string" ? body.question.trim() : "";
   if (question.length < 1 || question.length > QUESTION_MAX) return fail(400, "bad_request");
   const given = body.conversationId ?? null;
@@ -96,10 +80,8 @@ export async function POST(request: Request) {
   if (given !== null && !conversationId) return fail(400, "bad_request");
   const answerIn = body.answerIn === "native" ? "native" : "studied";
 
-  if (!tutorConfigured()) {
-    console.error("tutor: OPENROUTER_API_KEY or TUTOR_SIGNING_SECRET is not configured");
-    return fail(502, "tutor_failed");
-  }
+  const missing = unconfigured("tutor");
+  if (missing) return missing;
 
   // Started now and awaited after the reservation, so they run beside the
   // reads. Neither is needed for an answer: without rule titles the tutor
@@ -134,26 +116,18 @@ export async function POST(request: Request) {
   if (conversationId && !meta) return fail(404, "not_found");
 
   const { settings } = state;
-  const studied = settings.language ? languageName(settings.language) : settings.languageOther.trim();
+  const studied = shownLanguage(settings.language, settings.languageOther);
   // Every refusal comes before the reservation, so a refusal never spends a message.
   if (!studied) return fail(403, "noLanguage");
   const before = allowance(state);
   if (before.reason !== "ok") return fail(403, before.reason);
   // An answer that could not be saved would still cost a message, so a full account is refused first.
-  if (held.exchanges >= EXCHANGE_LIMIT || (!conversationId && held.conversations >= CONVERSATION_LIMIT)) {
-    return fail(403, "storageFull");
-  }
+  if (storageFull(held, Boolean(conversationId))) return fail(403, "storageFull");
 
-  let left, reason;
-  try {
-    ({ left, reason } = await reserveMessage(supabase, userId, state.plan));
-  } catch {
-    console.error("tutor: could not reserve the question");
-    return fail(502, "tutor_failed");
-  }
-  if (reason !== "ok") return fail(403, reason, left);
+  const left = await reserve(supabase, userId, state.plan, "tutor: could not reserve the question");
+  if (left instanceof Response) return left;
 
-  const native = settings.nativeLanguage ? languageName(settings.nativeLanguage) : settings.nativeLanguageOther.trim();
+  const native = shownLanguage(settings.nativeLanguage, settings.nativeLanguageOther);
   const answerName = answerIn === "native" && native ? native : studied;
   // A typed language has no code, so no reference sites and no search.
   const domains = REFERENCE_DOMAINS[settings.language] ?? [];
@@ -163,30 +137,21 @@ export async function POST(request: Request) {
   const memory = pickMemory(trustedExchanges(userId, found), new Set(recent.map((e) => e.id))).sort((a, b) => a.id - b.id);
   const history = trustedExchanges(userId, recent);
 
-  let reply;
-  try {
-    reply = readReply(
-      await askOpenRouter(
-        buildRequest({
-          model: tutorModel(),
-          instructions: tutorInstructions({ studied, answerIn: answerName, level: settings.level, grounded: domains.length > 0, rules }),
-          history: [...exchangeTurns(memory), ...exchangeTurns(history)],
-          question: followUp(question, history.at(-1)?.reply.title),
-          domains,
-        }),
-        Math.max(timeLeft() - SAVE_MS, 5_000),
-      ),
-      rules,
+  const reply = await ask(
+    "tutor",
+    left,
+    buildRequest({
+      model: tutorModel(),
+      instructions: tutorInstructions({ studied, answerIn: answerName, level: settings.level, grounded: domains.length > 0, rules }),
+      history: [...exchangeTurns(memory), ...exchangeTurns(history)],
+      question: followUp(question, history.at(-1)?.reply.title),
       domains,
-    );
-  } catch (error) {
-    console.error(`tutor: ${error instanceof Error ? error.message : "the OpenRouter call threw"}`);
-    return fail(502, "tutor_failed", left);
-  }
-  if (!reply) {
-    console.error("tutor: the reply was unreadable");
-    return fail(502, "tutor_failed", left);
-  }
+    }),
+    Math.max(timeLeft() - SAVE_MS, 5_000),
+    rules,
+    domains,
+  );
+  if (reply instanceof Response) return reply;
 
   // A reply that could not be saved is still returned: it was paid for, and
   // the page says it will not survive a reload. A conversation made for a

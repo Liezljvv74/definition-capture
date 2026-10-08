@@ -63,6 +63,12 @@ export const MEMORY_CHARS = 12000;
  */
 export const EXCHANGE_LIMIT = 2000;
 export const CONVERSATION_LIMIT = 500;
+
+/** Whether one more exchange would pass the limits; a new conversation also needs room for itself. */
+export function storageFull(held: { exchanges: number; conversations: number }, hasConversation: boolean): boolean {
+  return held.exchanges >= EXCHANGE_LIMIT || (!hasConversation && held.conversations >= CONVERSATION_LIMIT);
+}
+
 /** Sidebar searches per account per hour; each one embeds its query with the shared key. */
 export const SEARCHES_PER_HOUR = 100;
 /** The latest exchanges a conversation opens with; older ones are still found by search. */

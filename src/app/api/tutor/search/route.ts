@@ -8,8 +8,8 @@
  */
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
 import { asQuery, SEARCH_MAX, SEARCH_MIN, searchResults } from "@/lib/tutor";
+import { fail, openRequest } from "@/lib/tutorRoute";
 import { embedOrNull, reserveSearch, searchExchanges } from "@/lib/tutorServer";
 
 export const runtime = "nodejs";
@@ -17,19 +17,10 @@ export const runtime = "nodejs";
 /** Rows asked for, enough to fill the list after grouping by conversation. */
 const SEARCH_ROWS = 30;
 
-const fail = (status: number, error: string) => NextResponse.json({ error }, { status });
-
 export async function POST(request: Request) {
-  const userId = await serverUserId();
-  const supabase = userId ? await createSupabaseServerClient() : null;
-  if (!userId || !supabase) return fail(401, "signed_out");
-
-  let body: { query?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return fail(400, "bad_request");
-  }
+  const opened = await openRequest<{ query?: unknown }>(request);
+  if (opened instanceof Response) return opened;
+  const { userId, supabase, body } = opened;
   const query = typeof body?.query === "string" ? body.query.trim() : "";
   if (query.length < SEARCH_MIN || query.length > SEARCH_MAX) return fail(400, "bad_request");
 
