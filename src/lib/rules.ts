@@ -145,6 +145,18 @@ export function titleProblem(title: string): string | null {
   return LINK_CHARS.test(title) ? "A title cannot contain |, [ or ], because links are written with them." : null;
 }
 
+/**
+ * Why a rule cannot be saved under `title` and `topic`, else null: a clash
+ * with another rule (other than `exceptId`, the one being edited), then a
+ * title that cannot be linked to, then an empty topic. One chain, so the
+ * dialogs that create and the editor that renames say the same thing.
+ */
+export function ruleProblem(title: string, topic: string, exceptId?: string): string | null {
+  const clash = findByTitle(title, exceptId);
+  if (clash) return `There is already a rule called “${clash.title}”.`;
+  return titleProblem(title) ?? (topic.trim() === "" ? "A rule needs a topic." : null);
+}
+
 /* --------------------------------------------------------------- mutations */
 
 /**
