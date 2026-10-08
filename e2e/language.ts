@@ -9,7 +9,7 @@ import { expect } from "./fixtures";
 export const language = (page: Page) => page.getByLabel("Language you are learning");
 
 // The Language section is folded away until its pencil is pressed.
-export async function openLanguage(page: Page) {
+async function openLanguage(page: Page) {
   await page.goto("/settings?section=glossary");
   await page.getByRole("button", { name: "Edit Language" }).click();
   await expect(language(page)).toBeEnabled();
@@ -18,7 +18,7 @@ export async function openLanguage(page: Page) {
 // Picks a language and waits until Settings shows it saved: the write is
 // optimistic, so navigating at once could leave the page that follows reading
 // the old value. The section summary renders the saved name, or "Not chosen".
-export async function choose(page: Page, name: string) {
+async function choose(page: Page, name: string) {
   await language(page).selectOption({ label: name });
   const summary = page.getByRole("heading", { name: "Language", exact: true }).locator("xpath=following-sibling::p");
   await expect(summary).toHaveText(name);

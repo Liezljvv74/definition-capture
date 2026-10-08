@@ -1,14 +1,13 @@
 // spec: e2e/specs/tutor.plan.md
 // seed: e2e/tutor/seed.ts
 import { test, expect } from "../fixtures";
-import { choose, openLanguage, study } from "../language";
+import { study } from "../language";
 import { removeSeeded, seedConversation } from "./seed";
 
 // No question is sent: the conversations are written straight into the local
 // database. The search step embeds its query, a fraction of a cent.
 test.beforeEach(async ({ page }) => {
-  await openLanguage(page);
-  await choose(page, "German");
+  await study(page, "German");
 });
 test.afterEach(async ({ page }) => {
   await removeSeeded();
