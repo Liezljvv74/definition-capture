@@ -20,7 +20,7 @@ as a rule beside your words and phrases instead of being lost in a chat window.
 The tutor is a real model, called through OpenRouter from the server only;
 which one is named on the Tutor page.
 
-![The Tutor page: the saved conversations on the left; under the Tutor heading "Model: Claude Sonnet 5.5 by Anthropic" and the Answer in choice of English or German; the question "When do I use the dative after a preposition?" and the answer "When a preposition takes the dative", written as plain text, a table of prepositions with meanings and examples, and highlighted example sentences with their translations](assets/tutor-answer.png)
+![The Tutor page: the saved conversations on the left, "Common B2 Mistakes and How to Fix Them" and "Adjectives in German"; under the Tutor heading "Model: Claude Sonnet 5.5 by Anthropic" and the Answer in choice of English or German; the question "teach me about the adjektive and everything related to it" and the start of the answer "Adjectives in German", in plain sentences with an example, "Das neue Kleid ist sehr schön", and its translation](assets/tutor-answer.png)
 
 The public landing page, for visitors who are not signed in:
 
