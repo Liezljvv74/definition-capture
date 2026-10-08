@@ -17,38 +17,8 @@
  * URL can be rendered as this app's own message.
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { exchangeLink } from "@/lib/authLink";
 
-/** `reason` is a code from the small set `authLinkError.ts` knows. */
-function backToSignIn(origin: string, reason: string): NextResponse {
-  return NextResponse.redirect(
-    `${origin}/sign-in/?error_code=${encodeURIComponent(reason)}`,
-  );
-}
-
-export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-
-  // Supabase reports a refused link in the query string rather than by failing
-  // the redirect, so this arrives looking like an ordinary visit. Its own
-  // `error_code` is passed along; its prose is not.
-  const failed = searchParams.has("error") || searchParams.has("error_description");
-  if (failed) {
-    return backToSignIn(origin, searchParams.get("error_code") ?? "refused");
-  }
-
-  const code = searchParams.get("code");
-  if (!code) return backToSignIn(origin, "incomplete");
-
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) return backToSignIn(origin, "unconfigured");
-
-  // The message is deliberately dropped rather than forwarded: it can carry
-  // whatever the request provoked, and this screen says its own sentences.
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) return backToSignIn(origin, "exchange_failed");
-
-  return NextResponse.redirect(`${origin}/home`);
-}
+export const GET = (request: NextRequest) => exchangeLink(request, "/home");

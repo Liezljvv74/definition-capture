@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Suspense, useId, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 
 import { NameListEditor } from "@/components/NameListEditor";
 import { MAX_COLLECTIONS, MAX_NAME, MAX_SKIP_WORD, SEPARATOR_CHOICES } from "@/lib/constants";
@@ -14,6 +14,7 @@ import {
   MAX_LANGUAGE_NAME,
   presetFor,
   readLanguageName,
+  shownLanguage,
   type LanguageMenu,
 } from "@/lib/languages";
 import { SETTINGS_SECTIONS, readSection } from "@/lib/settingsSections";
@@ -24,7 +25,8 @@ import {
   supportsExportFolder,
 } from "@/lib/exportFolder";
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
-import { MIN_PASSWORD, changePassword, sendPasswordReset, signOut } from "@/lib/session";
+import { MIN_PASSWORD, changePassword, passwordProblem, sendPasswordReset, signOut } from "@/lib/session";
+import { PencilIcon } from "@/components/RowEditButton";
 import { renameCollection, renameInList, renameSource, renameTopic } from "@/lib/renames";
 import { LEVELS, saveSettings, type Level } from "@/lib/settings";
 import { countUses, inUseReason } from "@/lib/inUse";
@@ -69,32 +71,28 @@ function CollectionsAndSources() {
        * section after the tab those two share says so without spelling out
        * both.
        */}
-      <SettingSection title="Glossary Collections">
-        <NameListEditor
-          legend="Glossary Collections"
-          description={`The groups the word and phrase forms offer. A word or phrase can be in up to ${MAX_COLLECTIONS} of them. Renaming one renames it everywhere it is used, and renaming it to the name of another merges the two. One that is in use cannot be removed.`}
-          names={settings.collections}
-          onChange={(collections) => saveSettings({ collections })}
-          onRename={renameCollection}
-          removeBlockedBy={blocked(collectionUses)}
-          maxLength={MAX_NAME}
-          placeholder="e.g. Travel"
-        />
-      </SettingSection>
+      <ListSetting
+        title="Glossary Collections"
+        description={`The groups the word and phrase forms offer. A word or phrase can be in up to ${MAX_COLLECTIONS} of them. Renaming one renames it everywhere it is used, and renaming it to the name of another merges the two. One that is in use cannot be removed.`}
+        names={settings.collections}
+        onChange={(collections) => saveSettings({ collections })}
+        onRename={renameCollection}
+        removeBlockedBy={blocked(collectionUses)}
+        maxLength={MAX_NAME}
+        placeholder="e.g. Travel"
+      />
 
-      <SettingSection title="Sources">
-        <NameListEditor
-          legend="Sources"
-          description="Where a definition came from. Shown on a word or phrase when you open it. Renaming one renames it on everything that came from it. One that is in use cannot be removed."
-          names={settings.sources}
-          onChange={(sources) => saveSettings({ sources })}
-          onRename={renameSource}
-          removeBlockedBy={blocked(sourceUses)}
-          maxLength={MAX_NAME}
-          minimum={1}
-          placeholder="e.g. Textbook"
-        />
-      </SettingSection>
+      <ListSetting
+        title="Sources"
+        description="Where a definition came from. Shown on a word or phrase when you open it. Renaming one renames it on everything that came from it. One that is in use cannot be removed."
+        names={settings.sources}
+        onChange={(sources) => saveSettings({ sources })}
+        onRename={renameSource}
+        removeBlockedBy={blocked(sourceUses)}
+        maxLength={MAX_NAME}
+        minimum={1}
+        placeholder="e.g. Textbook"
+      />
     </>
   );
 }
@@ -110,19 +108,29 @@ function Topics() {
   const uses = countUses(rules.map((rule) => [rule.topic]));
 
   return (
-    <SettingSection title="Topics">
-      <NameListEditor
-        legend="Topics"
-        description="What a grammar rule is filed under: Cases, Word order, Tenses. Every rule has one. Renaming one renames it on every rule, and renaming it to the name of another merges the two. One that is in use cannot be removed."
-        names={settings.topics}
-        onChange={(topics) => saveSettings({ topics })}
-        onRename={renameTopic}
-        removeBlockedBy={(name) =>
-          loaded ? inUseReason(uses, name, "rule", "rules") : "Checking whether anything uses it"
-        }
-        maxLength={MAX_NAME}
-        placeholder="e.g. Cases"
-      />
+    <ListSetting
+      title="Topics"
+      description="What a grammar rule is filed under: Cases, Word order, Tenses. Every rule has one. Renaming one renames it on every rule, and renaming it to the name of another merges the two. One that is in use cannot be removed."
+      names={settings.topics}
+      onChange={(topics) => saveSettings({ topics })}
+      onRename={renameTopic}
+      removeBlockedBy={(name) =>
+        loaded ? inUseReason(uses, name, "rule", "rules") : "Checking whether anything uses it"
+      }
+      maxLength={MAX_NAME}
+      placeholder="e.g. Cases"
+    />
+  );
+}
+
+/** A list setting, whose editor's legend is the section's own title. */
+function ListSetting({
+  title,
+  ...editor
+}: { title: string } & Omit<ComponentProps<typeof NameListEditor>, "legend">) {
+  return (
+    <SettingSection title={title}>
+      <NameListEditor legend={title} {...editor} />
     </SettingSection>
   );
 }
@@ -185,41 +193,35 @@ function Settings() {
           <>
             <LanguageSection />
 
-            <SettingSection title="Words to skip when sorting">
-              <NameListEditor
-                legend="Words to skip when sorting"
-                description="Leading words Vocabulary sorts past, usually articles. With der on the list, der Tisch sorts under T. A word ending in an apostrophe, such as l', needs no space after it."
-                names={settings.sortSkipWords}
-                onChange={(sortSkipWords) => saveSettings({ sortSkipWords })}
-                onRename={(from, to) => renameInList("sortSkipWords", from, to)}
-                placeholder="e.g. der"
-                maxLength={MAX_SKIP_WORD}
-              />
-            </SettingSection>
+            <ListSetting
+              title="Words to skip when sorting"
+              description="Leading words Vocabulary sorts past, usually articles. With der on the list, der Tisch sorts under T. A word ending in an apostrophe, such as l', needs no space after it."
+              names={settings.sortSkipWords}
+              onChange={(sortSkipWords) => saveSettings({ sortSkipWords })}
+              onRename={(from, to) => renameInList("sortSkipWords", from, to)}
+              placeholder="e.g. der"
+              maxLength={MAX_SKIP_WORD}
+            />
 
             <CollectionsAndSources />
 
-            <SettingSection title="Verb persons">
-              <NameListEditor
-                legend="Verb persons"
-                description="The people a conjugation table is built from, in the order the rows should appear: a person added here goes to the end. Changing this shapes the next table you make; tables you already have keep the rows they were made with."
-                names={settings.verbPersons}
-                onChange={(verbPersons) => saveSettings({ verbPersons })}
-                onRename={(from, to) => renameInList("verbPersons", from, to)}
-                placeholder="e.g. ich"
-              />
-            </SettingSection>
+            <ListSetting
+              title="Verb persons"
+              description="The people a conjugation table is built from, in the order the rows should appear: a person added here goes to the end. Changing this shapes the next table you make; tables you already have keep the rows they were made with."
+              names={settings.verbPersons}
+              onChange={(verbPersons) => saveSettings({ verbPersons })}
+              onRename={(from, to) => renameInList("verbPersons", from, to)}
+              placeholder="e.g. ich"
+            />
 
-            <SettingSection title="Verb tenses">
-              <NameListEditor
-                legend="Verb tenses"
-                description="Offered when a conjugation table is made. A tense typed there is added here automatically. Renaming one here leaves tables you already have as they are."
-                names={settings.verbTenses}
-                onChange={(verbTenses) => saveSettings({ verbTenses })}
-                onRename={(from, to) => renameInList("verbTenses", from, to)}
-                placeholder="e.g. Present"
-              />
-            </SettingSection>
+            <ListSetting
+              title="Verb tenses"
+              description="Offered when a conjugation table is made. A tense typed there is added here automatically. Renaming one here leaves tables you already have as they are."
+              names={settings.verbTenses}
+              onChange={(verbTenses) => saveSettings({ verbTenses })}
+              onRename={(from, to) => renameInList("verbTenses", from, to)}
+              placeholder="e.g. Present"
+            />
           </>
         )}
 
@@ -326,28 +328,16 @@ type ListOffer = {
  * reasonable thing to want for someone learning two languages at once.
  */
 function LanguageSection() {
-  const { settings, loaded } = useSettings();
+  const { settings } = useSettings();
   const menu = useLanguageMenu();
-  const selectId = useId();
   const { language, languageOther, sortSkipWords, verbPersons } = settings;
 
-  const [typingOther, setTypingOther] = useState(false);
   /** Lists waiting on the reader, for the language just chosen. */
   const [offer, setOffer] = useState<{ name: string; lists: ListOffer[] } | null>(null);
 
-  const chosenName = language ? languageName(language) : languageOther;
-  // Typing a name wins over a saved code: the code stays saved until the
-  // name is, and the field has to show in the meantime.
-  const value =
-    typingOther || (!language && languageOther) ? OTHER_LANGUAGE : language;
+  const chosenName = shownLanguage(language, languageOther);
   // Asked only once the menu exists, which is only ever in the browser.
   const cannotSort = menu !== null && language !== "" && !canSortIn(language);
-  // A code chosen on another browser that this one cannot sort in is still
-  // the account's choice, and the menu has to be able to show it.
-  const missingFromMenu =
-    menu !== null &&
-    language !== "" &&
-    ![...menu.presets, ...menu.others].some((entry) => entry.code === language);
 
   function apply(code: string, other: string) {
     // Picking the language already chosen, after backing out of typing
@@ -415,51 +405,18 @@ function LanguageSection() {
     setOffer(left.length > 0 ? { ...offer, lists: left } : null);
   }
 
-  function choose(next: string) {
-    if (next === OTHER_LANGUAGE) {
-      // The language is saved once it has a name; until then the menu just
-      // shows the field for it.
-      setTypingOther(true);
-      setOffer(null);
-      return;
-    }
-    setTypingOther(false);
-    apply(next, "");
-  }
-
   return (
     <SettingSection title="Language" summary={chosenName || "Not chosen"}>
-      <label htmlFor={selectId} className="mb-1 block text-sm font-medium">
-        Language you are learning
-      </label>
-      <select
-        id={selectId}
-        className="field"
-        value={value}
-        disabled={!loaded || menu === null}
-        onChange={(event) => choose(event.target.value)}
-      >
-        <option value="">Not chosen</option>
-        {missingFromMenu && <option value={language}>{chosenName}</option>}
-        <LanguageOptions menu={menu} />
-        <option value={OTHER_LANGUAGE}>Another language</option>
-      </select>
-      <p className="mt-1 text-xs text-ink-soft">
-        Sets the alphabetical order of every list.
-      </p>
-
-      {value === OTHER_LANGUAGE && (
-        // Keyed on the saved name so a save, or a change in another tab,
-        // starts the field again from what is stored.
-        <OtherLanguageField
-          key={languageOther}
-          saved={languageOther}
-          onSave={(name) => {
-            setTypingOther(false);
-            apply("", name);
-          }}
-        />
-      )}
+      <LanguagePicker
+        label="Language you are learning"
+        empty="Not chosen"
+        code={language}
+        other={languageOther}
+        sorts
+        onPick={(code) => apply(code, "")}
+        onTypeOther={() => setOffer(null)}
+        onSaveOther={(name) => apply("", name)}
+      />
 
       {cannotSort && (
         <p role="status" className="mt-3 text-sm text-amber-700 dark:text-amber-300">
@@ -510,7 +467,94 @@ function LanguageSection() {
   );
 }
 
-/** The two groups of languages both pickers offer. */
+/**
+ * The menu both language settings use, with the field for a language it does
+ * not have. Only the language being learned `sorts`, so only it explains
+ * sorting.
+ */
+function LanguagePicker({
+  label,
+  empty,
+  code,
+  other,
+  sorts = false,
+  onPick,
+  onTypeOther,
+  onSaveOther,
+}: {
+  label: string;
+  /** The option for no language at all. */
+  empty: string;
+  code: string;
+  other: string;
+  sorts?: boolean;
+  onPick: (code: string) => void;
+  onTypeOther?: () => void;
+  onSaveOther: (name: string) => void;
+}) {
+  const { loaded } = useSettings();
+  const menu = useLanguageMenu();
+  const selectId = useId();
+  const [typingOther, setTypingOther] = useState(false);
+
+  // Typing a name wins over a saved code: the code stays saved until the
+  // name is, and the field has to show in the meantime.
+  const value = typingOther || (!code && other) ? OTHER_LANGUAGE : code;
+  // A code chosen on another browser that this one cannot sort in is still
+  // the account's choice, and the menu has to be able to show it.
+  const missingFromMenu =
+    menu !== null &&
+    code !== "" &&
+    ![...menu.presets, ...menu.others].some((entry) => entry.code === code);
+
+  return (
+    <>
+      <label htmlFor={selectId} className="mb-1 block text-sm font-medium">
+        {label}
+      </label>
+      <select
+        id={selectId}
+        className="field"
+        value={value}
+        disabled={!loaded || menu === null}
+        onChange={(event) => {
+          const next = event.target.value;
+          setTypingOther(next === OTHER_LANGUAGE);
+          // The language is saved once it has a name; until then the menu
+          // just shows the field for it.
+          if (next === OTHER_LANGUAGE) onTypeOther?.();
+          else onPick(next);
+        }}
+      >
+        <option value="">{empty}</option>
+        {missingFromMenu && <option value={code}>{languageName(code)}</option>}
+        <LanguageOptions menu={menu} />
+        <option value={OTHER_LANGUAGE}>Another language</option>
+      </select>
+      {sorts && (
+        <p className="mt-1 text-xs text-ink-soft">
+          Sets the alphabetical order of every list.
+        </p>
+      )}
+
+      {value === OTHER_LANGUAGE && (
+        // Keyed on the saved name so a save, or a change in another tab,
+        // starts the field again from what is stored.
+        <OtherLanguageField
+          key={other}
+          saved={other}
+          hint={sorts}
+          onSave={(name) => {
+            setTypingOther(false);
+            onSaveOther(name);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+/** The two groups of languages the picker offers. */
 function LanguageOptions({ menu }: { menu: LanguageMenu | null }) {
   if (!menu) return null;
   return (
@@ -541,56 +585,23 @@ function LanguageOptions({ menu }: { menu: LanguageMenu | null }) {
  * list, so each change is saved as it is made.
  */
 function NativeLanguageSection() {
-  const menu = useLanguageMenu();
   const { settings, loaded } = useSettings();
   const { nativeLanguage, nativeLanguageOther, level } = settings;
-  const nativeId = useId();
   const levelId = useId();
-  const [typingOther, setTypingOther] = useState(false);
 
-  const value =
-    typingOther || (!nativeLanguage && nativeLanguageOther) ? OTHER_LANGUAGE : nativeLanguage;
-  // A code chosen on another browser that this menu lacks must still show.
-  const missingFromMenu =
-    menu !== null &&
-    nativeLanguage !== "" &&
-    ![...menu.presets, ...menu.others].some((entry) => entry.code === nativeLanguage);
-
-  const nativeName = nativeLanguage ? languageName(nativeLanguage) : nativeLanguageOther;
+  const nativeName = shownLanguage(nativeLanguage, nativeLanguageOther);
   const summary = [nativeName, level].filter(Boolean).join(" · ") || "Not set";
 
   return (
     <SettingSection title="Native language and level" summary={summary}>
-      <label htmlFor={nativeId} className="mb-1 block text-sm font-medium">
-        Native language
-      </label>
-      <select
-        id={nativeId}
-        className="field"
-        value={value}
-        disabled={!loaded || menu === null}
-        onChange={(event) => {
-          const next = event.target.value;
-          setTypingOther(next === OTHER_LANGUAGE);
-          if (next !== OTHER_LANGUAGE) saveSettings({ nativeLanguage: next });
-        }}
-      >
-        <option value="">Not set</option>
-        {missingFromMenu && <option value={nativeLanguage}>{languageName(nativeLanguage)}</option>}
-        <LanguageOptions menu={menu} />
-        <option value={OTHER_LANGUAGE}>Another language</option>
-      </select>
-      {value === OTHER_LANGUAGE && (
-        <OtherLanguageField
-          key={nativeLanguageOther}
-          saved={nativeLanguageOther}
-          hint={false}
-          onSave={(name) => {
-            setTypingOther(false);
-            saveSettings({ nativeLanguage: "", nativeLanguageOther: name });
-          }}
-        />
-      )}
+      <LanguagePicker
+        label="Native language"
+        empty="Not set"
+        code={nativeLanguage}
+        other={nativeLanguageOther}
+        onPick={(code) => saveSettings({ nativeLanguage: code })}
+        onSaveOther={(name) => saveSettings({ nativeLanguage: "", nativeLanguageOther: name })}
+      />
 
       <label htmlFor={levelId} className="mb-1 mt-4 block text-sm font-medium">
         Level
@@ -764,23 +775,6 @@ function ReadingSpeedSection() {
 
 /* ------------------------------------------------------------ the roll-up */
 
-function PencilIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-4"
-    >
-      <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 1 1-3 7.5-7.5Z" />
-    </svg>
-  );
-}
-
 /** The caret on a setting's phone line, pointing down while it is open. */
 function Caret({ open }: { open: boolean }) {
   return (
@@ -948,18 +942,6 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
 /* ------------------------------------------------------------ password */
 
 /**
- * Gives this account a password, or replaces the one it has.
- *
- * The point of it is the email sender: an account signed into by link alone
- * can only get in as often as the sender will send, which is one link a minute
- * and a few an hour, and signing out a few times in an afternoon is enough to
- * be locked out for a while. A password has no such limit.
- *
- * There is no "current password" field. Supabase accepts the change on the
- * strength of the session alone, and requiring one here would shut out exactly
- * the people this section is for: the accounts that have no password yet.
- */
-/**
  * Changing the password of the account you are signed in to.
  *
  * It asks for the current one first, which `updateUser` does not. A session is
@@ -1000,12 +982,9 @@ function PasswordSection() {
 
   async function save() {
     if (!user) return;
-    if (password.length < MIN_PASSWORD) {
-      setError(`A password needs at least ${MIN_PASSWORD} characters.`);
-      return;
-    }
-    if (password !== confirm) {
-      setError("The two passwords do not match.");
+    const problem = passwordProblem(password, confirm);
+    if (problem) {
+      setError(problem);
       return;
     }
     if (password === current) {

@@ -19,11 +19,6 @@ function setCurrent(next: typeof current) {
   listeners.forEach((listener) => listener());
 }
 
-/** The button whose reading is playing, or null. */
-export function readingKey(): string | null {
-  return current?.key ?? null;
-}
-
 /** A reading starts for `key`; whatever was reading is stopped first. */
 export function beginReading(key: string, stop: () => void): void {
   current?.stop();

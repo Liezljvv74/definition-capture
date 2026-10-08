@@ -1,18 +1,16 @@
 "use client";
 
-import { useId, useMemo, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 
+import { CollectionPicker, FormFooter, SourceSelect } from "@/components/ItemFields";
 import { RefField } from "@/components/RefField";
-import { MAX_COLLECTIONS } from "@/lib/constants";
 import { EMPTY_PHRASE_INPUT, type PhraseInput } from "@/lib/types";
-import { useSettings } from "@/lib/useSettings";
 
 type PhraseFormProps = {
   initialValue?: PhraseInput;
   submitLabel: string;
   onSubmit: (input: PhraseInput) => void;
   onCancel: () => void;
-  autoFocus?: boolean;
 };
 
 export function PhraseForm({
@@ -20,46 +18,10 @@ export function PhraseForm({
   submitLabel,
   onSubmit,
   onCancel,
-  autoFocus = false,
 }: PhraseFormProps) {
-  const { settings } = useSettings();
   const [value, setValue] = useState<PhraseInput>(initialValue);
   const [error, setError] = useState<string | null>(null);
   const ids = useId();
-
-  /**
-   * The standing list, plus anything this phrase already carries that is no
-   * longer offered. Editing a phrase must not quietly strip a collection that
-   * has since been removed from Settings, which is the same guard the word
-   * form makes for its own.
-   */
-  const collectionOptions = useMemo(() => {
-    const standing = settings.collections;
-    const extras = initialValue.collections.filter((name) => !standing.includes(name));
-    return [...standing, ...extras];
-  }, [initialValue, settings.collections]);
-
-  /**
-   * Same rule as the collections: the configured list, plus this phrase's own
-   * source if it has since been taken off. Saving must not quietly relabel
-   * where it came from.
-   */
-  const sourceOptions = useMemo(() => {
-    const standing = settings.sources;
-    return standing.includes(initialValue.source)
-      ? standing
-      : [...standing, initialValue.source];
-  }, [initialValue.source, settings.sources]);
-
-  function toggleCollection(name: string) {
-    setValue((current) => {
-      if (current.collections.includes(name)) {
-        return { ...current, collections: current.collections.filter((c) => c !== name) };
-      }
-      if (current.collections.length >= MAX_COLLECTIONS) return current;
-      return { ...current, collections: [...current.collections, name] };
-    });
-  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,7 +51,7 @@ export function PhraseForm({
           id={`${ids}-phrase`}
           className="field"
           value={value.phrase}
-          autoFocus={autoFocus}
+          autoFocus
           autoComplete="off"
           placeholder="e.g. Boil the ocean"
           onChange={(event) =>
@@ -128,64 +90,21 @@ export function PhraseForm({
         />
       </div>
 
-      <fieldset>
-        <legend className="mb-1.5 block text-sm font-medium">Collection</legend>
-        <div className="flex flex-wrap gap-1.5">
-          {collectionOptions.map((name) => {
-            const checked = value.collections.includes(name);
-            // At the cap the unchosen ones go quiet rather than vanishing, so
-            // the list does not jump about while you are picking.
-            const blocked = !checked && value.collections.length >= MAX_COLLECTIONS;
-            return (
-              <label
-                key={name}
-                className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium transition select-none ${
-                  checked
-                    ? "border-ink bg-marker/30 text-ink"
-                    : "border-rule bg-card text-ink-soft"
-                } ${
-                  blocked
-                    ? "cursor-not-allowed opacity-40"
-                    : "cursor-pointer hover:border-ink"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={checked}
-                  disabled={blocked}
-                  onChange={() => toggleCollection(name)}
-                />
-                {name}
-              </label>
-            );
-          })}
-        </div>
-        <p className="mt-1 text-xs text-ink-soft">
-          The same groups the words use. Up to {MAX_COLLECTIONS}
-          {value.collections.length > 0 && `, ${value.collections.length} chosen`}.
-        </p>
-      </fieldset>
+      <CollectionPicker
+        initial={initialValue.collections}
+        chosen={value.collections}
+        onChange={(collections) => setValue((current) => ({ ...current, collections }))}
+        hint="The same groups the words use."
+      />
 
       <div>
-        <label htmlFor={`${ids}-source`} className="mb-1 block text-sm font-medium">
-          Source
-        </label>
-        <select
+        <SourceSelect
           id={`${ids}-source`}
           className="field sm:w-56"
+          initial={initialValue.source}
           value={value.source}
-          onChange={(event) => {
-            const next = event.target.value;
-            if (next) setValue((current) => ({ ...current, source: next }));
-          }}
-        >
-          {sourceOptions.map((source) => (
-            <option key={source} value={source}>
-              {source}
-            </option>
-          ))}
-        </select>
+          onChange={(source) => setValue((current) => ({ ...current, source }))}
+        />
       </div>
 
       <div>
@@ -203,20 +122,7 @@ export function PhraseForm({
         />
       </div>
 
-      {error && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-          {error}
-        </p>
-      )}
-
-      <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
-        <button type="button" className="btn btn-secondary" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary">
-          {submitLabel}
-        </button>
-      </div>
+      <FormFooter error={error} submitLabel={submitLabel} onCancel={onCancel} />
     </form>
   );
 }

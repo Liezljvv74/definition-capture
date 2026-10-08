@@ -7,9 +7,11 @@ import { useMemo, useState } from "react";
 import { TopicBadge } from "@/components/Badges";
 import { ConfirmDeleteDialog, RowDeleteButton } from "@/components/DeleteControls";
 import { AddRuleDialog } from "@/components/grammar/AddRuleDialog";
+import { ListShell } from "@/components/ListPage";
 import { RowEditButton } from "@/components/RowEditButton";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { foldName } from "@/lib/foldName";
+import { plural } from "@/lib/home";
 import { linkWarning } from "@/lib/links";
 import { deleteRules } from "@/lib/rules";
 import { useLinkTargets } from "@/lib/useLinkTargets";
@@ -59,20 +61,13 @@ export default function GrammarPage() {
     return [...names.values()].sort(sorting.compareText);
   }, [settings.topics, rules, sorting]);
 
-  const subtitle = !loaded
-    ? "Loading your rules…"
-    : `${rules.length} ${rules.length === 1 ? "rule" : "rules"}`;
-
   return (
     <>
-      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
-        <h1 className="hand-title text-2xl sm:text-3xl">
-          <span className="marker section-sage">Grammar</span>
-        </h1>
-        <p className="mt-1 text-sm text-ink-soft">{subtitle}</p>
-      </header>
-
-      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
+      <ListShell
+        title="Grammar"
+        marker="section-sage"
+        subtitle={!loaded ? "Loading your rules…" : plural(rules.length, "rule", "rules")}
+      >
         {loaded && rules.length === 0 ? (
           <div className="card mx-auto max-w-xl p-8 text-center">
             <h2 className="hand-title text-xl">No rules yet</h2>
@@ -139,7 +134,7 @@ export default function GrammarPage() {
                   </Link>
                   <TopicBadge name={rule.topic} onSelect={setTopic} />
                   <span className="text-xs text-ink-soft">
-                    {rule.blocks.length === 0 ? "Nothing written yet" : `${rule.blocks.length} ${rule.blocks.length === 1 ? "block" : "blocks"}`}
+                    {rule.blocks.length === 0 ? "Nothing written yet" : plural(rule.blocks.length, "block", "blocks")}
                   </span>
                   <span className="ml-auto flex items-center gap-1">
                     <RowEditButton label={rule.title} onClick={() => router.push(`/rule?id=${rule.id}&edit=1`)} />
@@ -159,7 +154,7 @@ export default function GrammarPage() {
             )}
           </>
         )}
-      </main>
+      </ListShell>
 
       {adding && <AddRuleDialog topics={settings.topics} onClose={() => setAdding(false)} />}
 
@@ -167,7 +162,6 @@ export default function GrammarPage() {
         <ConfirmDeleteDialog
           names={pendingNames}
           noun="rule"
-          nounPlural="rules"
           warning={linkWarning(targets, linkIndex, targets.filter((t) => t.kind === "rule" && pendingDelete.includes(t.id)))}
           onConfirm={() => {
             deleteRules(pendingDelete);

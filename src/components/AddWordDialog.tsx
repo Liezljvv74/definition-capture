@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 
+import { EditWordDialog } from "@/components/EditWordDialog";
 import { EntryForm } from "@/components/EntryForm";
 import { SourceBadge } from "@/components/Badges";
 import { Modal } from "@/components/Modal";
 import { formatDate } from "@/lib/format";
-import { createEntry, findByWord, updateEntry } from "@/lib/storage";
+import { createEntry, findByWord } from "@/lib/storage";
 import { EMPTY_ENTRY_INPUT, type Entry, type EntryInput } from "@/lib/types";
 
 export function AddWordDialog({ onClose }: { onClose: () => void }) {
@@ -34,39 +35,27 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
 
   if (editing) {
     return (
-      <Modal title={`Edit ${editing.word}`} onClose={onClose}>
-        {/* What was typed on the add form is shown rather than applied.
-            Updating used to mean overwriting this entry with it sight
-            unseen, which is not a decision the reader had made; they had
-            only said “yes, that one”. Here it is theirs to copy across, or
-            ignore. */}
-        {draft.definition.trim() && draft.definition.trim() !== editing.definition && (
-          <div className="mb-4 rounded-lg border border-rule bg-marker/25 p-3 text-sm">
-            <p className="mb-1 text-xs font-semibold tracking-wide text-ink-soft uppercase">
-              What you just typed
-            </p>
-            <p className="whitespace-pre-wrap text-ink-soft">
-              {draft.definition.trim()}
-            </p>
-          </div>
-        )}
-        <EntryForm
-          initialValue={{
-            word: editing.word,
-            definition: editing.definition,
-            ref: editing.ref,
-            collections: editing.collections,
-            source: editing.source,
-          }}
-          submitLabel="Save changes"
-          onSubmit={(input) => {
-            updateEntry(editing.id, input);
-            onClose();
-          }}
-          onCancel={onClose}
-          autoFocus
-        />
-      </Modal>
+      <EditWordDialog
+        entry={editing}
+        onClose={onClose}
+        note={
+          /* What was typed on the add form is shown rather than applied.
+             Updating used to mean overwriting this entry with it sight
+             unseen, which is not a decision the reader had made; they had
+             only said “yes, that one”. Here it is theirs to copy across, or
+             ignore. */
+          draft.definition.trim() && draft.definition.trim() !== editing.definition && (
+            <div className="mb-4 rounded-lg border border-rule bg-marker/25 p-3 text-sm">
+              <p className="mb-1 text-xs font-semibold tracking-wide text-ink-soft uppercase">
+                What you just typed
+              </p>
+              <p className="whitespace-pre-wrap text-ink-soft">
+                {draft.definition.trim()}
+              </p>
+            </div>
+          )
+        }
+      />
     );
   }
 
@@ -128,7 +117,6 @@ export function AddWordDialog({ onClose }: { onClose: () => void }) {
         onSubmit={handleSubmit}
         onCancel={onClose}
         autoSplit
-        autoFocus
       />
     </Modal>
   );

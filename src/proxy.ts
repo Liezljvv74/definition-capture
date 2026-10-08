@@ -63,7 +63,7 @@ function isPublic(pathname: string): boolean {
 }
 
 /**
- * A redirect that keeps whatever the session refresh just wrote.
+ * Copies whatever the session refresh just wrote onto another response.
  *
  * `setAll` below rebuilds `response` so the browser is told to keep the
  * rotated cookies, but a redirect is a different response and starts out with
@@ -74,10 +74,17 @@ function isPublic(pathname: string): boolean {
  * reason they could see. That is the same failure the note above `getClaims`
  * warns about, arriving through a different door.
  */
-function redirectKeeping(response: NextResponse, target: URL): NextResponse {
-  const redirect = NextResponse.redirect(target);
-  for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
-  return redirect;
+function keepCookies(from: NextResponse, to: NextResponse): NextResponse {
+  for (const cookie of from.cookies.getAll()) to.cookies.set(cookie);
+  return to;
+}
+
+/** A redirect to `pathname`, keeping the refreshed cookies; `dropSearch` clears the query. */
+function redirectTo(request: NextRequest, response: NextResponse, pathname: string, dropSearch: boolean): NextResponse {
+  const target = request.nextUrl.clone();
+  target.pathname = pathname;
+  if (dropSearch) target.search = "";
+  return keepCookies(response, NextResponse.redirect(target));
 }
 
 /**
@@ -85,19 +92,15 @@ function redirectKeeping(response: NextResponse, target: URL): NextResponse {
  * that follows a redirect lands on the sign-in page's HTML and fails to parse
  * it, so the caller cannot tell "signed out" from "broken"; a 401 with a body
  * it can read is the answer a script needs. Keeps the refreshed cookies for
- * the same reason `redirectKeeping` does.
+ * the same reason a redirect does, through `keepCookies`.
  */
 function unauthorisedKeeping(response: NextResponse): NextResponse {
-  const denied = NextResponse.json({ error: "signed_out" }, { status: 401 });
-  for (const cookie of response.cookies.getAll()) denied.cookies.set(cookie);
-  return denied;
+  return keepCookies(response, NextResponse.json({ error: "signed_out" }, { status: 401 }));
 }
 
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const publishableKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   // A build with no credentials has nothing to check against. Let the request
   // through so the sign-in screen can explain itself, rather than bouncing
@@ -141,29 +144,17 @@ export async function proxy(request: NextRequest) {
   // whoever is asking. A signed-out reader still loses the `?id=` at the
   // sign-in bounce below, exactly as they did before the rename.
   const moved = MOVED[normalise(pathname)];
-  if (moved) {
-    const target = request.nextUrl.clone();
-    target.pathname = moved;
-    return redirectKeeping(response, target);
-  }
+  if (moved) return redirectTo(request, response, moved, false);
 
   if (!signedIn && !isPublic(pathname)) {
     if (normalise(pathname).startsWith("/api/")) return unauthorisedKeeping(response);
-    const target = request.nextUrl.clone();
-    target.pathname = "/";
-    target.search = "";
-    return redirectKeeping(response, target);
+    return redirectTo(request, response, "/", true);
   }
 
   // The landing page is for visitors; somebody signed in wants their
   // dashboard. Sign-in and sign-up make no sense to them either.
   const path = normalise(pathname);
-  if (signedIn && (path === "/" || SIGNED_OUT_ONLY.includes(path))) {
-    const target = request.nextUrl.clone();
-    target.pathname = "/home";
-    target.search = "";
-    return redirectKeeping(response, target);
-  }
+  if (signedIn && (path === "/" || SIGNED_OUT_ONLY.includes(path))) return redirectTo(request, response, "/home", true);
 
   return response;
 }

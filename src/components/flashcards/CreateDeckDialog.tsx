@@ -1,14 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 
 import { Modal } from "@/components/Modal";
 import {
-  buildDeck,
   countMatching,
   DEFAULT_DECK_SIZE,
-  FlashcardError,
   listCollections,
   SOURCE_LABELS,
   SOURCE_ORDER,
@@ -16,6 +13,7 @@ import {
   type Collection,
   type DeckRequest,
 } from "@/lib/flashcards";
+import { useBuildDeck } from "@/lib/useBuildDeck";
 
 /**
  * Choose what a deck is drawn from, narrow it, say how many, and go.
@@ -39,7 +37,6 @@ import {
 const COUNT_DELAY_MS = 250;
 
 export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
-  const router = useRouter();
   const ids = useId();
 
   const [sources, setSources] = useState<CardSource[]>(["all"]);
@@ -49,8 +46,7 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
 
   const [collections, setCollections] = useState<Collection[] | null>(null);
   const [available, setAvailable] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { busy, error, build } = useBuildDeck();
 
   const request: DeckRequest = {
     sources,
@@ -121,22 +117,6 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
     setCollectionIds((current) =>
       current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
     );
-  }
-
-  async function generate() {
-    setBusy(true);
-    setError(null);
-    try {
-      const deckId = await buildDeck(request);
-      router.push(`/flashcards/?deck=${deckId}`);
-    } catch (cause) {
-      setBusy(false);
-      setError(
-        cause instanceof FlashcardError
-          ? cause.message
-          : "The deck could not be built. Please try again.",
-      );
-    }
   }
 
   const nothingToDrawFrom = available === 0;
@@ -260,7 +240,7 @@ export function CreateDeckDialog({ onClose }: { onClose: () => void }) {
             type="button"
             className="btn btn-primary"
             disabled={busy || nothingToDrawFrom}
-            onClick={() => void generate()}
+            onClick={() => void build(request)}
           >
             {busy ? "Building…" : "Generate deck"}
           </button>

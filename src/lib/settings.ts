@@ -197,15 +197,13 @@ function publish(next: SettingsSnapshot): void {
 }
 
 /**
- * The collection and source names the database holds, exactly as spelled
+ * The collection, source and topic names the database holds, exactly as spelled
  * there. Kept apart from `snapshot`, which shows the defaults to an account
  * with none of its own: a save compares against these to know which rows to
  * add and which to delete, and comparing against defaults nobody stored
  * would try to delete rows that do not exist.
  */
-let storedCollections: string[] = [];
-let storedSources: string[] = [];
-let storedTopics: string[] = [];
+let storedLists: Record<NameList, string[]> = { collections: [], sources: [], topics: [] };
 
 /** For the three lists that are rows rather than a capped array; see `fromRow`. */
 const NO_LIMIT = Number.MAX_SAFE_INTEGER;
@@ -305,17 +303,19 @@ async function load(userId: string): Promise<void> {
       return;
     }
 
-    storedCollections = namesOf(collections.data);
-    storedSources = namesOf(sources.data);
-    storedTopics = namesOf(topics.data);
+    storedLists = {
+      collections: namesOf(collections.data),
+      sources: namesOf(sources.data),
+      topics: namesOf(topics.data),
+    };
     lastLoadedAt = Date.now();
     seedDefaults(supabase, userId);
     publish({
       settings: fromRowSorted(
         (row.data as Record<string, unknown> | null) ?? null,
-        storedCollections,
-        storedSources,
-        storedTopics,
+        storedLists.collections,
+        storedLists.sources,
+        storedLists.topics,
       ),
       loaded: true,
       // A failed save stays on screen until it is dismissed; a later read
@@ -343,11 +343,10 @@ function seedDefaults(
   const seed = (list: "collections" | "sources", names: readonly string[]) =>
     saveNames(supabase, userId, list, [...names]).then(({ error, stored }) => {
       if (error || currentUserId() !== userId) return;
-      if (list === "collections") storedCollections = stored;
-      else storedSources = stored;
+      storedLists[list] = stored;
     });
-  if (storedCollections.length === 0) void seed("collections", DEFAULT_COLLECTIONS);
-  if (storedSources.length === 0) void seed("sources", DEFAULT_SOURCES);
+  if (storedLists.collections.length === 0) void seed("collections", DEFAULT_COLLECTIONS);
+  if (storedLists.sources.length === 0) void seed("sources", DEFAULT_SOURCES);
   // No topics seeded: there is no default set, and an empty list here is the
   // correct starting state rather than one waiting to be filled in.
 }
@@ -377,9 +376,7 @@ function syncToSession(): void {
   if (userId === cachedFor) return;
   cachedFor = userId;
 
-  storedCollections = [];
-  storedSources = [];
-  storedTopics = [];
+  storedLists = { collections: [], sources: [], topics: [] };
   if (!userId) {
     publish(EMPTY);
     return;
@@ -610,30 +607,13 @@ export function saveSettings(change: Partial<Settings>): void {
       if (error) failed(error);
     });
 
-  if (change.collections) {
-    void saveNames(supabase, userId, "collections", next.collections).then(
-      ({ error, stored, kept }) => {
-        if (error) return failed(error);
-        storedCollections = stored;
-        // A name still in use was kept rather than removed; read the list
-        // again so it shows.
-        if (kept) reload();
-      },
-    );
-  }
-  if (change.sources) {
-    void saveNames(supabase, userId, "sources", next.sources).then(
-      ({ error, stored, kept }) => {
-        if (error) return failed(error);
-        storedSources = stored;
-        if (kept) reload();
-      },
-    );
-  }
-  if (change.topics) {
-    void saveNames(supabase, userId, "topics", next.topics).then(({ error, stored, kept }) => {
+  for (const list of ["collections", "sources", "topics"] as const) {
+    if (!change[list]) continue;
+    void saveNames(supabase, userId, list, next[list]).then(({ error, stored, kept }) => {
       if (error) return failed(error);
-      storedTopics = stored;
+      storedLists[list] = stored;
+      // A name still in use was kept rather than removed; read the list
+      // again so it shows.
       if (kept) reload();
     });
   }
@@ -769,9 +749,7 @@ export function noteRenamed(list: NameList, from: string, to: string): void {
     // A rename onto a name already there was a merge, so the two become one.
     return readNameList(renamed, NO_LIMIT);
   };
-  if (list === "collections") storedCollections = swap(storedCollections);
-  else if (list === "sources") storedSources = swap(storedSources);
-  else storedTopics = swap(storedTopics);
+  storedLists[list] = swap(storedLists[list]);
 
   const settings = snapshot.settings;
   publish({

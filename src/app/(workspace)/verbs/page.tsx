@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useId, useMemo, useState, type CSSProperties } from "react";
+import { Suspense, useEffect, useId, useMemo, useState } from "react";
 
+import { EmptyState, ListShell } from "@/components/ListPage";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { VerbTableCard } from "@/components/VerbTableCard";
 import { PracticeDialog } from "@/components/verbs/PracticeDialog";
@@ -14,6 +15,7 @@ import { EMPTY_ENTRY_INPUT, readNameList } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
 import { useSorting } from "@/lib/useSorting";
 import { foldName } from "@/lib/foldName";
+import { plural } from "@/lib/home";
 import { ANOTHER, chosenTense, TenseChoice } from "@/components/TenseChoice";
 import { useTenseRecords } from "@/lib/useTenseRecords";
 import { useVerbTables } from "@/lib/useVerbTables";
@@ -39,32 +41,21 @@ export default function VerbsPage() {
 }
 
 /**
- * Title, count and the Add button, laid out the way Vocabulary and Phrases lay
- * theirs out. The action is a prop rather than fixed here because the shell
- * is also what the loading and Suspense states render, and there is nothing
- * to add to a page that has not arrived yet.
+ * The list page's header and column, with what goes in it left to the caller
+ * because the shell is also what the loading and Suspense states render, and
+ * there is nothing to add to a page that has not arrived yet.
  */
 function VerbsShell({
-  subtitle,
+  subtitle = "Loading your verbs…",
   children,
 }: {
   subtitle?: string;
   children?: React.ReactNode;
 }) {
   return (
-    <>
-      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
-        <div>
-          <h1 className="hand-title text-2xl sm:text-3xl">
-            <span className="marker section-purple">Verbs</span>
-          </h1>
-          <p className="mt-1 text-sm text-ink-soft">
-              {subtitle ?? "Loading your verbs…"}
-            </p>
-        </div>
-      </header>
-      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">{children}</main>
-    </>
+    <ListShell title="Verbs" marker="section-purple" subtitle={subtitle}>
+      {children}
+    </ListShell>
   );
 }
 
@@ -210,37 +201,26 @@ function VerbList() {
   if (tables.length === 0) {
     return (
       <VerbsShell subtitle="Your conjugation tables">
-        <div
-      data-doodle="spiral"
-      className="paste tape tape-centre mx-auto max-w-xl rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-8 text-center shadow-[4px_5px_0_var(--color-shadow)]"
-      style={{ "--r": "-0.6deg" } as CSSProperties}
-    >
-          <div aria-hidden="true" className="mb-3 text-4xl">
-            🧩
-          </div>
-          <h2 className="hand-title text-xl">No conjugation tables yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-            Tables are made from a word you have already saved. Open a verb on{" "}
-            <Link
-              href="/vocabulary"
-              className="text-link underline underline-offset-2"
-            >
-              Vocabulary
-            </Link>
-            , choose Edit, and use <strong className="font-semibold">Conjugation table</strong>.
-          </p>
-          <button type="button" className="btn btn-primary mt-5" onClick={() => setAdding(true)}>
-            + Add a verb
-          </button>
-        </div>
+        <EmptyState
+          doodle="spiral"
+          tilt="-0.6deg"
+          icon="🧩"
+          title="No conjugation tables yet"
+          action="+ Add a verb"
+          onAction={() => setAdding(true)}
+        >
+          Tables are made from a word you have already saved. Open a verb on{" "}
+          <Link href="/vocabulary" className="text-link underline underline-offset-2">
+            Vocabulary
+          </Link>
+          , choose Edit, and use <strong className="font-semibold">Conjugation table</strong>.
+        </EmptyState>
       </VerbsShell>
     );
   }
 
   return (
-    <VerbsShell
-      subtitle={`${tables.length} ${tables.length === 1 ? "verb" : "verbs"}`}
-    >
+    <VerbsShell subtitle={plural(tables.length, "verb", "verbs")}>
       <div className={`${STICKY_FILTERS} mb-3 flex flex-wrap items-center gap-2`}>
         <div className="w-full sm:w-1/2 lg:w-[12.5%] lg:min-w-44">
           <label htmlFor="verb-search" className="sr-only">

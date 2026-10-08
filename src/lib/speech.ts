@@ -17,7 +17,7 @@ export function readSpeechRate(value: unknown): SpeechRate {
 }
 
 /** Which of the reader's two languages a part is in. */
-export type SpeechLang = "studied" | "native";
+type SpeechLang = "studied" | "native";
 
 /**
  * One thing to say. `blockId` names the rule block it came from, for the
@@ -176,7 +176,7 @@ export type Utterance = {
   onerror: ((event: { error?: string }) => void) | null;
 };
 
-export type PlayOptions = {
+type PlayOptions = {
   /** Language codes; "" leaves `lang` unset, so the browser's default voice reads. */
   studied: string;
   native: string;

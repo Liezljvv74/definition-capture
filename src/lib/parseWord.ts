@@ -5,7 +5,7 @@
  * splits into the two fields. Anything else is left exactly as entered.
  */
 
-export type SplitWord = { word: string; definition: string };
+type SplitWord = { word: string; definition: string };
 
 /** A colon, or a dash (hyphen, en dash, em dash) with whitespace around it. */
 const SEPARATOR = /:|\s[-–—]\s/;

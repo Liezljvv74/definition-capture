@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { MIN_PASSWORD, setPassword } from "@/lib/session";
+import { MIN_PASSWORD, passwordProblem, setPassword } from "@/lib/session";
 
 /**
  * Where a reset link ends up: choose a new password, having proved the mailbox.
@@ -33,12 +33,9 @@ export default function ChoosePasswordPage() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (password.length < MIN_PASSWORD) {
-      setError(`A password needs at least ${MIN_PASSWORD} characters.`);
-      return;
-    }
-    if (password !== confirm) {
-      setError("The two passwords do not match.");
+    const problem = passwordProblem(password, confirm);
+    if (problem) {
+      setError(problem);
       return;
     }
 

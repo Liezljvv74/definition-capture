@@ -6,6 +6,7 @@ import {
   MODE_OPTIONS,
   ReplaceLine,
   ResultBlock,
+  ScopeChoice,
   WaitingForLists,
 } from "@/components/backup/parts";
 import { Modal } from "@/components/Modal";
@@ -15,23 +16,41 @@ import {
   parseBackup,
   restoresSettings,
   type BackupContents,
+  type BackupList,
   type ImportResult,
 } from "@/lib/backup";
-import { readFileAsText } from "@/lib/backupFile";
 import { foldName } from "@/lib/foldName";
+import { plural } from "@/lib/home";
 import type { ImportMode } from "@/lib/types";
 import { useRules } from "@/lib/useRules";
 import { useWords } from "@/lib/useWords";
 import { usePhrases } from "@/lib/usePhrases";
 import { useVerbTables } from "@/lib/useVerbTables";
 
+type Lists = Pick<BackupContents, BackupList>;
+
+/**
+ * The four lists, in the order every screen here shows them. `names` reads
+ * the saved lists and the file's alike, since they share a shape, so the two
+ * sides of a match cannot read different fields.
+ */
+const LISTS: {
+  key: BackupList;
+  label: string;
+  one: string;
+  many: string;
+  names: (lists: Lists) => string[];
+}[] = [
+  { key: "words", label: "Words", one: "word", many: "words", names: (l) => l.words.map((w) => w.word) },
+  { key: "phrases", label: "Phrases", one: "phrase", many: "phrases", names: (l) => l.phrases.map((p) => p.phrase) },
+  { key: "verbTables", label: "Verb tables", one: "verb table", many: "verb tables", names: (l) => l.verbTables.map((t) => t.verb) },
+  { key: "rules", label: "Grammar rules", one: "grammar rule", many: "grammar rules", names: (l) => l.rules.map((r) => r.title) },
+];
+
 type Preview = {
   contents: BackupContents;
   /** How many of the file's items already exist here, by name. */
-  matchingWords: number;
-  matchingPhrases: number;
-  matchingVerbTables: number;
-  matchingRules: number;
+  matching: Record<BackupList, number>;
 };
 
 type State =
@@ -59,6 +78,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
   const [mode, setMode] = useState<ImportMode>("skip");
 
   const ready = wordsLoaded && phrasesLoaded && tablesLoaded && rulesLoaded;
+  const saved: Lists = { words: entries, phrases, verbTables: tables, rules };
 
   useEffect(() => {
     if (!ready) return;
@@ -67,7 +87,7 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
     void (async () => {
       let text: string;
       try {
-        text = await readFileAsText(file);
+        text = await file.text();
       } catch {
         if (current) setState({ step: "error", message: "That file could not be read." });
         return;
@@ -80,11 +100,6 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
         return;
       }
 
-      const savedWords = new Set(entries.map((entry) => foldName(entry.word)));
-      const savedPhrases = new Set(phrases.map((phrase) => foldName(phrase.phrase)));
-      const savedVerbs = new Set(tables.map((table) => foldName(table.verb)));
-      const savedRules = new Set(rules.map((rule) => foldName(rule.title)));
-
       setState({
         step: "preview",
         preview: {
@@ -96,18 +111,12 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
             settings: parsed.settings,
             unreadable: parsed.unreadable,
           },
-          matchingWords: parsed.words.filter((entry) =>
-            savedWords.has(foldName(entry.word)),
-          ).length,
-          matchingPhrases: parsed.phrases.filter((phrase) =>
-            savedPhrases.has(foldName(phrase.phrase)),
-          ).length,
-          matchingVerbTables: parsed.verbTables.filter((table) =>
-            savedVerbs.has(foldName(table.verb)),
-          ).length,
-          matchingRules: parsed.rules.filter((rule) =>
-            savedRules.has(foldName(rule.title)),
-          ).length,
+          matching: Object.fromEntries(
+            LISTS.map(({ key, names }) => {
+              const savedNames = new Set(names(saved).map(foldName));
+              return [key, names(parsed).filter((name) => savedNames.has(foldName(name))).length];
+            }),
+          ) as Record<BackupList, number>,
         },
       });
     })();
@@ -153,14 +162,9 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
     return (
       <Modal title="Import finished" onClose={onClose}>
         <div className="space-y-4 text-sm text-ink-soft">
-          <ResultBlock label="Words" counts={state.result.words} mode={state.mode} />
-          <ResultBlock label="Phrases" counts={state.result.phrases} mode={state.mode} />
-          <ResultBlock
-            label="Verb tables"
-            counts={state.result.verbTables}
-            mode={state.mode}
-          />
-          <ResultBlock label="Grammar rules" counts={state.result.rules} mode={state.mode} />
+          {LISTS.map(({ key, label }) => (
+            <ResultBlock key={key} label={label} counts={state.result[key]} mode={state.mode} />
+          ))}
           <div>
             <p className="text-xs font-semibold tracking-wide text-ink-soft uppercase">
               Settings
@@ -189,34 +193,16 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
       <Modal title="Replace what you have saved?" onClose={onClose}>
         <p className="text-sm text-ink-soft">This cannot be undone.</p>
         <ul className="mt-3 space-y-2 text-sm">
-          <ReplaceLine
-            label="Words"
-            saved={entries.length}
-            incoming={contents.words.length}
-            matching={preview.matchingWords}
-            untouched={leavesListAlone(contents, "words", "replace")}
-          />
-          <ReplaceLine
-            label="Phrases"
-            saved={phrases.length}
-            incoming={contents.phrases.length}
-            matching={preview.matchingPhrases}
-            untouched={leavesListAlone(contents, "phrases", "replace")}
-          />
-          <ReplaceLine
-            label="Verb tables"
-            saved={tables.length}
-            incoming={contents.verbTables.length}
-            matching={preview.matchingVerbTables}
-            untouched={leavesListAlone(contents, "verbTables", "replace")}
-          />
-          <ReplaceLine
-            label="Grammar rules"
-            saved={rules.length}
-            incoming={contents.rules.length}
-            matching={preview.matchingRules}
-            untouched={leavesListAlone(contents, "rules", "replace")}
-          />
+          {LISTS.map(({ key, label }) => (
+            <ReplaceLine
+              key={key}
+              label={label}
+              saved={saved[key].length}
+              incoming={contents[key].length}
+              matching={preview.matching[key]}
+              untouched={leavesListAlone(contents, key, "replace")}
+            />
+          ))}
           <li className="flex flex-wrap gap-x-1.5">
             <span className="font-medium">Settings:</span>
             {restoresSettings(contents, "replace") ? (
@@ -257,37 +243,19 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
     );
   }
 
-  const wordCount = contents.words.length;
-  const phraseCount = contents.phrases.length;
-  const verbTableCount = contents.verbTables.length;
-  const ruleCount = contents.rules.length;
-
   return (
     <Modal title="Import a backup" onClose={onClose}>
       <div className="space-y-4">
         <div className="rounded-lg border border-rule bg-marker/25 p-3 text-sm">
           <p className="font-medium break-all">{file.name}</p>
           <ul className="mt-1 space-y-0.5 text-ink-soft">
-            <li>
-              {wordCount} {wordCount === 1 ? "word" : "words"}:{" "}
-              {wordCount - preview.matchingWords} new to you,{" "}
-              {preview.matchingWords} of your {entries.length} already saved.
-            </li>
-            <li>
-              {phraseCount} {phraseCount === 1 ? "phrase" : "phrases"}:{" "}
-              {phraseCount - preview.matchingPhrases} new to you,{" "}
-              {preview.matchingPhrases} of your {phrases.length} already saved.
-            </li>
-            <li>
-              {verbTableCount} {verbTableCount === 1 ? "verb table" : "verb tables"}:{" "}
-              {verbTableCount - preview.matchingVerbTables} new to you,{" "}
-              {preview.matchingVerbTables} of your {tables.length} already saved.
-            </li>
-            <li>
-              {ruleCount} {ruleCount === 1 ? "grammar rule" : "grammar rules"}:{" "}
-              {ruleCount - preview.matchingRules} new to you,{" "}
-              {preview.matchingRules} of your {rules.length} already saved.
-            </li>
+            {LISTS.map(({ key, one, many }) => (
+              <li key={key}>
+                {plural(contents[key].length, one, many)}:{" "}
+                {contents[key].length - preview.matching[key]} new to you,{" "}
+                {preview.matching[key]} of your {saved[key].length} already saved.
+              </li>
+            ))}
             <li>
               {!contents.settings
                 ? "No settings in this file; yours will be left alone."
@@ -307,29 +275,15 @@ export function ImportDialog({ file, onClose }: { file: File; onClose: () => voi
         <fieldset className="space-y-2">
           <legend className="mb-1 text-sm font-medium">What should happen?</legend>
           {MODE_OPTIONS.map((option) => (
-            <label
+            <ScopeChoice
               key={option.value}
-              className={`flex cursor-pointer gap-3 rounded-lg border p-3 transition ${
-                mode === option.value
-                  ? "border-ink bg-marker/30"
-                  : "border-rule hover:bg-marker/30"
-              }`}
-            >
-              <input
-                type="radio"
-                name="import-mode"
-                className="mt-0.5 size-4 accent-accent"
-                value={option.value}
-                checked={mode === option.value}
-                onChange={() => setMode(option.value)}
-              />
-              <span>
-                <span className="block text-sm font-medium">{option.label}</span>
-                <span className="block text-xs text-ink-soft">
-                  {option.hint}
-                </span>
-              </span>
-            </label>
+              name="import-mode"
+              label={option.label}
+              detail={option.hint}
+              checked={mode === option.value}
+              disabled={false}
+              onSelect={() => setMode(option.value)}
+            />
           ))}
         </fieldset>
 

@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { BlockEditor } from "@/components/grammar/BlockEditor";
 import { TopicSelect } from "@/components/grammar/TopicSelect";
 import { moveBlock, newExampleBlock, newTableBlock, newTextBlock } from "@/lib/blocks";
-import { findByTitle, titleProblem } from "@/lib/rules";
+import { ruleProblem } from "@/lib/rules";
 import type { Block, Rule, RuleInput } from "@/lib/types";
 
 /**
@@ -32,24 +32,15 @@ export function RuleEditor({
   /** The block being dragged, by index, while a drag is in progress. */
   const [dragging, setDragging] = useState<number | null>(null);
 
-  const clash = findByTitle(title, rule.id);
-  // `titleProblem` catches a rename to a title holding `|`, `[` or `]`: the
+  // `ruleProblem`'s title check catches a rename to a title holding `|`, `[` or `]`: the
   // save below rewrites every link that already points here (`rewriteLinks`),
   // and a bar in the new title would make that rewrite write `[[a|b]]`, which
   // reads back as the name "a" shown as "b" rather than a link to "a|b".
   // Renaming away from such a title would not repair the links it broke, so
   // the title is refused up front, the same way the new-rule dialog refuses it.
-  const badTitle = titleProblem(title);
-  const problem =
-    title.trim() === ""
-      ? "A rule needs a title."
-      : clash
-        ? `There is already a rule called “${clash.title}”.`
-        : badTitle
-          ? badTitle
-          : topic.trim() === ""
-            ? "A rule needs a topic."
-            : null;
+  // Unlike the dialogs, whose button just stays off, the editor names an
+  // empty title, ahead of everything else.
+  const problem = title.trim() === "" ? "A rule needs a title." : ruleProblem(title, topic, rule.id);
 
   const replace = (index: number, block: Block) =>
     setBlocks((current) => current.map((existing, at) => (at === index ? block : existing)));

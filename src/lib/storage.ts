@@ -11,9 +11,8 @@
  */
 
 import { rewriteLinks } from "@/lib/linkRenames";
-import { foldName } from "@/lib/foldName";
-import { planImport } from "@/lib/planImport";
-import { createId, createRemoteStore } from "@/lib/remoteStore";
+import { importInto } from "@/lib/planImport";
+import { createRemoteStore } from "@/lib/remoteStore";
 import type { Source } from "@/lib/constants";
 import {
   needsDefinition,
@@ -157,15 +156,17 @@ const store = createRemoteStore<Entry>({
   toPayload: toWordPayload,
 });
 
-export const subscribe = store.subscribe;
-export const getSnapshot = store.getSnapshot;
-export const getServerSnapshot = store.getServerSnapshot;
-export const clearError = store.clearError;
-export const subscribeToError = store.subscribeToError;
-export const getError = store.getError;
-export const settled = store.settled;
-export const reload = store.reload;
-export const updateEntries = store.updateMany;
+export const {
+  subscribe,
+  getSnapshot,
+  getServerSnapshot,
+  clearError,
+  subscribeToError,
+  getError,
+  reload,
+  items: getEntries,
+  updateMany: updateEntries,
+} = store;
 
 /* --------------------------------------------------------------- mutations */
 
@@ -185,7 +186,7 @@ function clean(input: EntryInput) {
 
 export function createEntry(input: EntryInput): Entry {
   const entry: Entry = {
-    id: createId(),
+    id: crypto.randomUUID(),
     ...clean(input),
     dateAdded: new Date().toISOString(),
     dateUpdated: null,
@@ -224,21 +225,10 @@ export function deleteEntries(ids: readonly string[]): number {
 
 /* ----------------------------------------------------------------- queries */
 
-export function getEntries(): Entry[] {
-  return store.items();
-}
-
 /** Case-insensitive word lookup, used for the duplicate check before saving. */
 export const findByWord = store.findByName;
 
 /* ------------------------------------------------------------------ import */
-
-export function parseEntryList(list: unknown[]): { entries: Entry[]; unreadable: number } {
-  const entries = list
-    .map((item) => parseEntry(item, true))
-    .filter((entry): entry is Entry => entry !== null);
-  return { entries, unreadable: list.length - entries.length };
-}
 
 function newestFirst(entries: Entry[]): Entry[] {
   return [...entries].sort((a, b) => b.dateAdded.localeCompare(a.dateAdded));
@@ -251,16 +241,15 @@ function newestFirst(entries: Entry[]): Entry[] {
  * backup.
  *
  * What it *means* to merge lives in `planImport`, which is pure and tested;
- * this decides what that plan is worth writing and how.
+ * `importInto` writes the plan.
  */
 export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts {
   const now = new Date().toISOString();
-
-  const plan = planImport(store.items(), incoming, mode, {
-    keyOf: (entry) => foldName(entry.word),
-    idOf: (entry) => entry.id,
-    withId: (entry, id) => ({ ...entry, id }),
-    merge: (existing, candidate) => ({
+  return importInto(
+    store,
+    incoming,
+    mode,
+    (existing, candidate) => ({
       ...existing,
       word: candidate.word,
       definition: candidate.definition,
@@ -273,16 +262,6 @@ export function importEntries(incoming: Entry[], mode: ImportMode): ImportCounts
       needsDefinition: candidate.needsDefinition,
       dateUpdated: now,
     }),
-  });
-
-  if (plan.toReplace) {
-    store.replaceAll(newestFirst(plan.toReplace));
-    return plan.counts;
-  }
-
-  // Two writes for the whole import, whatever its size: one for the rows that
-  // already existed and one for the rows that did not.
-  store.updateMany(plan.toUpdate);
-  store.insertMany(newestFirst(plan.toInsert));
-  return plan.counts;
+    newestFirst,
+  );
 }

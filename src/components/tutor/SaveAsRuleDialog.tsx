@@ -6,7 +6,7 @@ import { useId, useState } from "react";
 import { Modal } from "@/components/Modal";
 import { MAX_NAME } from "@/lib/constants";
 import { searchRules } from "@/lib/ruleSearch";
-import { createRule, findByTitle, titleProblem } from "@/lib/rules";
+import { createRule, findByTitle, ruleProblem } from "@/lib/rules";
 import { freeTitle, withSeeAlso, type TutorReply } from "@/lib/tutor";
 import type { Rule } from "@/lib/types";
 import { useRules } from "@/lib/useRules";
@@ -52,10 +52,7 @@ export function SaveAsRuleDialog({
   const related = [...new Set([...reply.relatedRules, ...found])].filter((name) => findByTitle(name) !== undefined && !linkTo.includes(name));
   const matches = search.trim() ? searchRules(rules, search, title).filter((m) => !linkTo.includes(m.title) && !related.includes(m.title)) : [];
 
-  const clash = findByTitle(title);
-  const problem =
-    clash ? `There is already a rule called “${clash.title}”.`
-    : titleProblem(title) ?? (topic.trim() === "" ? "A rule needs a topic." : null);
+  const problem = ruleProblem(title, topic);
   const ready = loaded && title.trim() !== "" && problem === null;
 
   return (

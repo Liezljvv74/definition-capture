@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useMemo, useState, type CSSProperties } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddWordDialog } from "@/components/AddWordDialog";
 import { CollectionBadge, NeedsDefinitionBadge } from "@/components/Badges";
@@ -15,6 +15,15 @@ import {
 import { EditWordDialog } from "@/components/EditWordDialog";
 import { RefText } from "@/components/RefText";
 import { EmptyCell } from "@/components/EmptyCell";
+import {
+  CollectionFilter,
+  EmptyState,
+  ListShell,
+  NoMatches,
+  ROW_CONTROL,
+  ROW_TEXT,
+  SortHeader,
+} from "@/components/ListPage";
 import { STICKY_FILTERS } from "@/components/StickyFilters";
 import { RowEditButton } from "@/components/RowEditButton";
 import { SpeakButton } from "@/components/SpeakButton";
@@ -23,6 +32,7 @@ import type { LinkIndex } from "@/lib/links";
 import type { Entry } from "@/lib/types";
 import { collectionOptions } from "@/lib/collectionOptions";
 import { foldName } from "@/lib/foldName";
+import { plural } from "@/lib/home";
 import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useWords } from "@/lib/useWords";
 import { useWideScreen } from "@/lib/useWideScreen";
@@ -35,14 +45,6 @@ import { studiedParts } from "@/lib/speech";
 type SortKey = "word" | "definition" | "dateAdded";
 type SortDirection = "asc" | "desc";
 type Sort = { key: SortKey; direction: SortDirection };
-
-/*
- * A row is one line of the paper's ruling, 32px. Text sits low in it, on the
- * line; checkboxes and buttons are centred. Nothing in a row may be taller,
- * or every row below it slips off its line.
- */
-const ROW_TEXT = "h-8 px-3 pt-1 pb-0 leading-7 align-top";
-const ROW_CONTROL = "h-8 px-2 py-0 align-middle";
 
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
   { key: "word", label: "Word", className: "w-[22%]" },
@@ -166,32 +168,36 @@ export default function VocabularyPage() {
 
   return (
     <>
-      <header className="notebook-page mx-auto w-full max-w-6xl pt-6 sm:pt-8">
-        <div>
-          <h1 className="hand-title text-2xl sm:text-3xl">
-            <span className="marker section-blue">Vocabulary</span>
-          </h1>
-          <p className="mt-1 text-sm text-ink-soft">
-              {!loaded
-                ? "Loading your vocabulary…"
-                : entries.length === 0
-                  ? "Your personal word list"
-                  : `${entries.length} ${entries.length === 1 ? "word" : "words"}${
-                      missingCount > 0
-                        ? ` · ${missingCount} still ${
-                            missingCount === 1 ? "needs" : "need"
-                          } a definition`
-                        : ""
-                    }`}
-            </p>
-        </div>
-      </header>
-
-      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 py-6">
+      <ListShell
+        title="Vocabulary"
+        marker="section-blue"
+        subtitle={
+          !loaded
+            ? "Loading your vocabulary…"
+            : entries.length === 0
+              ? "Your personal word list"
+              : `${plural(entries.length, "word", "words")}${
+                  missingCount > 0
+                    ? ` · ${missingCount} still ${missingCount === 1 ? "needs" : "need"} a definition`
+                    : ""
+                }`
+        }
+      >
         {!loaded ? (
           <div className="card h-64 animate-pulse" aria-hidden="true" />
         ) : entries.length === 0 ? (
-          <EmptyVocabulary onAdd={() => setIsAdding(true)} />
+          <EmptyState
+            doodle="star"
+            tilt="-0.8deg"
+            icon="📖"
+            title="No words yet"
+            action={<><span aria-hidden="true">+</span> Add your first word</>}
+            onAction={() => setIsAdding(true)}
+          >
+            Captured is a place to park the words and concepts you meet while studying, so
+            you can search and review them later. Save a word now and write the definition whenever
+            you like. Blank ones get flagged so they are easy to find again.
+          </EmptyState>
         ) : (
           <>
             <div
@@ -217,28 +223,12 @@ export default function VocabularyPage() {
                 />
               </div>
 
-              {/* Width sits on the wrapper, not the select: `field` already sets
-                  w-full, and two utilities of equal weight would be a coin toss. */}
-              {collections.length > 0 && (
-                <div className="w-full sm:w-44">
-                  <label htmlFor="collection" className="sr-only">
-                    Filter by collection
-                  </label>
-                  <select
-                    id="collection"
-                    className="field"
-                    value={collection}
-                    onChange={(event) => setCollection(event.target.value)}
-                  >
-                    <option value="">All collections</option>
-                    {collections.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <CollectionFilter
+                id="collection"
+                collections={collections}
+                value={collection}
+                onChange={setCollection}
+              />
 
               <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
                 <input
@@ -264,6 +254,8 @@ export default function VocabularyPage() {
 
             {visible.length === 0 ? (
               <NoMatches
+                noun="word"
+                hint="Try a different search, or clear the filters below."
                 onClear={() => {
                   setQuery("");
                   setOnlyNeedsDefinition(false);
@@ -275,15 +267,7 @@ export default function VocabularyPage() {
                 <p className="sr-only" aria-live="polite">
                   {visible.length} of {entries.length} words shown
                 </p>
-                {selection.count > 0 && (
-                  <SelectionBar
-                    count={selection.count}
-                    noun="word"
-                    nounPlural="words"
-                    onDelete={() => setPendingDelete(selection.selectedIds)}
-                    onClear={selection.clear}
-                  />
-                )}
+                <SelectionBar selection={selection} noun="word" onDelete={setPendingDelete} />
                 {/* One of the two, once the viewport is known; both, with CSS
                     choosing, until then. See `useWideScreen`. */}
                 {wide !== false && (
@@ -315,7 +299,7 @@ export default function VocabularyPage() {
             )}
           </>
         )}
-      </main>
+      </ListShell>
 
       {isAdding && <AddWordDialog onClose={() => setIsAdding(false)} />}
 
@@ -325,7 +309,6 @@ export default function VocabularyPage() {
         <ConfirmDeleteDialog
           names={pendingNames}
           noun="word"
-          nounPlural="words"
           onCancel={() => setPendingDelete(null)}
           onConfirm={() => {
             deleteEntries(pendingDelete);
@@ -372,41 +355,17 @@ function EntryTable({
         <thead className="text-ink">
           <tr>
             <th scope="col" className={`w-10 ${ROW_CONTROL}`}>
-              <SelectAllCheckbox
-                checked={selection.allSelected}
-                indeterminate={selection.partiallySelected}
-                onChange={selection.toggleAll}
-                label="Select all words shown"
-              />
+              <SelectAllCheckbox selection={selection} noun="word" />
             </th>
-            {COLUMNS.map((column) => {
-              const active = column.key !== null && sort.key === column.key;
-              return (
-                <th
-                  key={column.label}
-                  scope="col"
-                  className={`hand-title ${ROW_TEXT} ${column.className ?? ""}`}
-                  aria-sort={
-                    active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"
-                  }
-                >
-                  {column.key === null ? (
-                    column.label
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onSort(column.key as SortKey)}
-                      className="inline-flex cursor-pointer items-center gap-1 hover:underline"
-                    >
-                      {column.label}
-                      <span aria-hidden="true" className={active ? "" : "opacity-30"}>
-                        {active && sort.direction === "asc" ? "▲" : "▼"}
-                      </span>
-                    </button>
-                  )}
-                </th>
-              );
-            })}
+            {COLUMNS.map(({ key, label, className }) => (
+              <SortHeader
+                key={label}
+                label={label}
+                className={className}
+                direction={key !== null && sort.key === key ? sort.direction : null}
+                onSort={key === null ? undefined : () => onSort(key)}
+              />
+            ))}
             <th scope="col" className={`w-32 ${ROW_CONTROL}`}>
               <span className="sr-only">Actions</span>
             </th>
@@ -507,12 +466,7 @@ function EntryCards({
     // including the Ref and collections this narrow line leaves out.
     <div data-ruled-snap className="leading-8 md:hidden">
       <label className="flex h-8 w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
-        <SelectAllCheckbox
-          checked={selection.allSelected}
-          indeterminate={selection.partiallySelected}
-          onChange={selection.toggleAll}
-          label="Select all words shown"
-        />
+        <SelectAllCheckbox selection={selection} noun="word" />
         Select all
       </label>
 
@@ -548,45 +502,6 @@ function EntryCards({
           );
         })}
       </ul>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------- empty states */
-
-function EmptyVocabulary({ onAdd }: { onAdd: () => void }) {
-  return (
-    <div
-      data-doodle="star"
-      className="paste tape tape-centre mx-auto max-w-xl rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-card p-8 text-center shadow-[4px_5px_0_var(--color-shadow)]"
-      style={{ "--r": "-0.8deg" } as CSSProperties}
-    >
-      <div aria-hidden="true" className="mb-3 text-4xl">
-        📖
-      </div>
-      <h2 className="hand-title text-xl">No words yet</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-        Captured is a place to park the words and concepts you meet while studying, so
-        you can search and review them later. Save a word now and write the definition whenever
-        you like. Blank ones get flagged so they are easy to find again.
-      </p>
-      <button type="button" className="btn btn-primary mt-5" onClick={onAdd}>
-        <span aria-hidden="true">+</span> Add your first word
-      </button>
-    </div>
-  );
-}
-
-function NoMatches({ onClear }: { onClear: () => void }) {
-  return (
-    <div className="card p-8 text-center">
-      <h2 className="hand-title text-lg">No words match those filters</h2>
-      <p className="mt-1 text-sm text-ink-soft">
-        Try a different search, or clear the filters below.
-      </p>
-      <button type="button" className="btn btn-secondary mt-4" onClick={onClear}>
-        Clear filters
-      </button>
     </div>
   );
 }

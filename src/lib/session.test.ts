@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   changePassword,
+  passwordProblem,
   sendMagicLink,
   sendPasswordReset,
   signInWithPassword,
@@ -69,5 +70,13 @@ describe("a refused captcha", () => {
     const message = "Please complete the check and try again.";
     expect((await signInWithPassword("a@b.c", "x")).error).toBe(message);
     expect((await changePassword("a@b.c", "x", "y")).error).toBe(message);
+  });
+});
+
+describe("passwordProblem", () => {
+  it("names a short password before a mismatch, and nothing when both are fine", () => {
+    expect(passwordProblem("abc", "xyz")).toBe("A password needs at least 6 characters.");
+    expect(passwordProblem("abcdef", "abcdeg")).toBe("The two passwords do not match.");
+    expect(passwordProblem("abcdef", "abcdef")).toBeNull();
   });
 });

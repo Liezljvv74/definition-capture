@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createRule, deleteRules, findByTitle, getRules, fromRuleRow, parseRule, titleProblem, toRulePayload, toWireRule } from "@/lib/rules";
+import { createRule, deleteRules, findByTitle, getRules, fromRuleRow, parseRule, ruleProblem, titleProblem, toRulePayload, toWireRule } from "@/lib/rules";
 import type { Rule } from "@/lib/types";
 
 vi.mock("@/lib/supabaseClient", () => ({ getSupabase: () => null }));
@@ -98,6 +98,17 @@ describe("titleProblem", () => {
     expect(titleProblem("a|b")).toBe(message);
     expect(titleProblem("a[b")).toBe(message);
     expect(titleProblem("a]b")).toBe(message);
+  });
+});
+
+describe("ruleProblem", () => {
+  it("names a clash first, then a bad title, then an empty topic, and lets a rule keep its own title", () => {
+    const created = createRule({ title: "Clashing", topic: "Cases" });
+    expect(ruleProblem("clashing", "")).toBe("There is already a rule called “Clashing”.");
+    expect(ruleProblem("Clashing", "Cases", created.id)).toBeNull();
+    expect(ruleProblem("a|b", "")).toBe(titleProblem("a|b"));
+    expect(ruleProblem("Fresh", " ")).toBe("A rule needs a topic.");
+    expect(ruleProblem("Fresh", "Cases")).toBeNull();
   });
 });
 

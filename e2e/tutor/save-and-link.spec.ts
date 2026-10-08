@@ -1,14 +1,13 @@
 // spec: e2e/specs/tutor.plan.md
 // seed: e2e/tutor/seed.ts
 import { test, expect } from "../fixtures";
-import { choose, openLanguage, study } from "../language";
+import { study } from "../language";
 import { removeSeeded, seedConversation } from "./seed";
 
 const RULES = ["E2E rule one", "E2E rule two", "E2E rule three"];
 
 test.beforeEach(async ({ page }) => {
-  await openLanguage(page);
-  await choose(page, "German");
+  await study(page, "German");
 });
 test.afterEach(async ({ page }) => {
   await removeSeeded(RULES);

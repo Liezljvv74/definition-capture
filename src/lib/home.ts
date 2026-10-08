@@ -120,7 +120,7 @@ export function relativeDay(iso: string, now: Date): string {
   return relative.format(days, "day");
 }
 
-export type ProgressPart = {
+type ProgressPart = {
   label: "New" | "Learning" | "Learned";
   count: number;
   percent: number;
@@ -158,17 +158,22 @@ export type RecentItem = {
 };
 
 /**
- * A recently captured item, from the same embed the lists use
- * (`item_tags(position, context, tags(name))`). Only the first collection is
- * shown, and a grammar rule's topic is a tag too, so the context matters.
+ * The collection names in a row's `item_tags(position, context, tags(name))`
+ * embed, in the order they were given. A grammar rule's topic is a tag too,
+ * so the context matters. The lists read it as well, in `remoteStore`.
  */
-export function readRecent(row: Record<string, unknown>): RecentItem {
+export function collectionNames(row: Record<string, unknown>): string[] {
   const links = Array.isArray(row.item_tags) ? (row.item_tags as Record<string, unknown>[]) : [];
-  const first = links
+  return links
     .filter((link) => link.context === "collection")
     .sort((a, b) => Number(a.position) - Number(b.position))
     .map((link) => (link.tags as { name?: unknown } | null)?.name)
-    .find((name): name is string => typeof name === "string");
+    .filter((name): name is string => typeof name === "string");
+}
+
+/** A recently captured item, from the same embed the lists use. Only the first collection is shown. */
+export function readRecent(row: Record<string, unknown>): RecentItem {
+  const first = collectionNames(row)[0];
   return {
     id: String(row.id),
     itemType: String(row.item_type),

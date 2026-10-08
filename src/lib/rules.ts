@@ -10,9 +10,8 @@
 import { MAX_NAME } from "@/lib/constants";
 import { rewriteLinks } from "@/lib/linkRenames";
 import { readBlocks } from "@/lib/blocks";
-import { foldName } from "@/lib/foldName";
-import { planImport } from "@/lib/planImport";
-import { createId, createRemoteStore } from "@/lib/remoteStore";
+import { importInto } from "@/lib/planImport";
+import { createRemoteStore } from "@/lib/remoteStore";
 import {
   readString,
   type Block,
@@ -111,21 +110,20 @@ const store = createRemoteStore<Rule>({
   toPayload: toRulePayload,
 });
 
-export const subscribe = store.subscribe;
-export const getSnapshot = store.getSnapshot;
-export const getServerSnapshot = store.getServerSnapshot;
-export const clearError = store.clearError;
-export const subscribeToError = store.subscribeToError;
-export const getError = store.getError;
-export const settled = store.settled;
-export const reload = store.reload;
-export const updateRules = store.updateMany;
+export const {
+  subscribe,
+  getSnapshot,
+  getServerSnapshot,
+  clearError,
+  subscribeToError,
+  getError,
+  settled,
+  reload,
+  items: getRules,
+  updateMany: updateRules,
+} = store;
 
 /* ----------------------------------------------------------------- queries */
-
-export function getRules(): Rule[] {
-  return store.items();
-}
 
 /** Case-insensitive, and blind to how an accent is encoded, the way every name in the app is matched. */
 export const findByTitle = store.findByName;
@@ -147,6 +145,18 @@ export function titleProblem(title: string): string | null {
   return LINK_CHARS.test(title) ? "A title cannot contain |, [ or ], because links are written with them." : null;
 }
 
+/**
+ * Why a rule cannot be saved under `title` and `topic`, else null: a clash
+ * with another rule (other than `exceptId`, the one being edited), then a
+ * title that cannot be linked to, then an empty topic. One chain, so the
+ * dialogs that create and the editor that renames say the same thing.
+ */
+export function ruleProblem(title: string, topic: string, exceptId?: string): string | null {
+  const clash = findByTitle(title, exceptId);
+  if (clash) return `There is already a rule called “${clash.title}”.`;
+  return titleProblem(title) ?? (topic.trim() === "" ? "A rule needs a topic." : null);
+}
+
 /* --------------------------------------------------------------- mutations */
 
 /**
@@ -155,7 +165,7 @@ export function titleProblem(title: string): string | null {
  * (`tags_name_check`); a longer one, such as a whole sentence the tutor wrote
  * as a topic (7 October 2026), made the save fail after the page had moved on.
  */
-export const cleanNames = (input: { title: string; topic: string }) => ({
+const cleanNames = (input: { title: string; topic: string }) => ({
   title: input.title.trim(),
   topic: input.topic.trim().slice(0, MAX_NAME).trim(),
 });
@@ -163,7 +173,7 @@ export const cleanNames = (input: { title: string; topic: string }) => ({
 /** A new rule, empty unless `blocks` is given; one insert either way, so a caller never needs a second save that could race it. */
 export function createRule(input: { title: string; topic: string; blocks?: Block[] }): Rule {
   const rule: Rule = {
-    id: createId(),
+    id: crypto.randomUUID(),
     ...cleanNames(input),
     blocks: input.blocks ?? [],
     dateAdded: new Date().toISOString(),
@@ -202,27 +212,7 @@ export function deleteRules(ids: readonly string[]): number {
 
 /* ------------------------------------------------------------------ import */
 
-export function parseRuleList(list: unknown[]): { rules: Rule[]; unreadable: number } {
-  const rules = list
-    .map((item) => parseRule(item, true))
-    .filter((rule): rule is Rule => rule !== null);
-  return { rules, unreadable: list.length - rules.length };
-}
-
 /** Matched by title, the rule the unique index and links already use. */
 export function importRules(incoming: Rule[], mode: ImportMode): ImportCounts {
-  const plan = planImport(store.items(), incoming, mode, {
-    keyOf: (rule) => foldName(rule.title),
-    idOf: (rule) => rule.id,
-    withId: (rule, id) => ({ ...rule, id }),
-    merge: (existing, candidate) => ({ ...candidate, id: existing.id }),
-  });
-
-  if (plan.toReplace) {
-    store.replaceAll(plan.toReplace);
-    return plan.counts;
-  }
-  store.updateMany(plan.toUpdate);
-  store.insertMany(plan.toInsert);
-  return plan.counts;
+  return importInto(store, incoming, mode, (existing, candidate) => ({ ...candidate, id: existing.id }));
 }

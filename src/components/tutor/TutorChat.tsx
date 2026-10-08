@@ -256,7 +256,7 @@ export function TutorChat(props: {
               {props.plan === "paid" ? `${remaining} left today` : `${remaining} trial message${remaining === 1 ? "" : "s"} left`}
             </p>
             {failed && (
-              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              <p role="alert" className={ERROR}>
                 The tutor could not answer. Try again.
               </p>
             )}

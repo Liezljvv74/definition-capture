@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
+
+import { useDismiss } from "@/lib/useDismiss";
 
 /** Shared by the plain tabs and the dropdown triggers, so they sit level. */
 // The notebook's tabs: handwriting, and the current one marked with the
@@ -62,27 +64,12 @@ export function NavMenu({
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const onPointerDown = (event: MouseEvent) => {
-      if (!container.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setOpen(false);
-      // Back to the trigger, so Escape does not strand the keyboard at the
-      // top of the document.
-      container.current?.querySelector("button")?.focus();
-    };
-
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
+  useDismiss(container, open, (event) => {
+    setOpen(false);
+    // Back to the trigger after Escape, so it does not strand the keyboard at
+    // the top of the document. A press elsewhere moves focus itself.
+    if (event instanceof KeyboardEvent) container.current?.querySelector("button")?.focus();
+  });
 
   // The root differs, the rest does not, so the contents are built once and
   // the wrapper chosen around them.

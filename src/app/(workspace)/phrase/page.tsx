@@ -1,15 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, type CSSProperties } from "react";
+import { useState } from "react";
 
 import { CollectionBadge, SourceBadge } from "@/components/Badges";
+import { DateAdded, DETAIL_LABEL, DetailFrame, DetailSuspense, NotFoundCard } from "@/components/DetailShell";
 import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { LinkedFrom } from "@/components/LinkedFrom";
 import { SpeakButton } from "@/components/SpeakButton";
 import { RefText } from "@/components/RefText";
-import { formatDate, formatDateTime } from "@/lib/format";
 import type { LinkIndex } from "@/lib/links";
 import type { Phrase } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
@@ -30,19 +29,10 @@ import { studiedParts } from "@/lib/speech";
  * text to three lines and leaves the other two out of the table altogether.
  */
 export default function PhraseDetailPage() {
-  // `useSearchParams` needs a boundary to suspend against during prerender.
   return (
-    <Suspense fallback={<DetailSkeleton />}>
+    <DetailSuspense>
       <PhraseDetail />
-    </Suspense>
-  );
-}
-
-function DetailSkeleton() {
-  return (
-    <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6">
-      <div className="card h-56 animate-pulse" aria-hidden="true" />
-    </main>
+    </DetailSuspense>
   );
 }
 
@@ -54,23 +44,9 @@ function PhraseDetail() {
   const { linkIndex } = useLinkTargets();
 
   return (
-    <>
-      <header className="notebook-page mx-auto w-full max-w-5xl pt-6">
-        <Link href="/phrases" className="text-sm font-medium text-link hover:underline">
-          ← Back to phrases
-        </Link>
-      </header>
-
-      <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6">
-        {!loaded ? (
-          <div className="card h-56 animate-pulse" aria-hidden="true" />
-        ) : phrase ? (
-          <PhraseDetailCard phrase={phrase} linkIndex={linkIndex} />
-        ) : (
-          <PhraseNotFound />
-        )}
-      </main>
-    </>
+    <DetailFrame backHref="/phrases" backLabel="phrases" loaded={loaded} notFound={<PhraseNotFound />}>
+      {phrase && <PhraseDetailCard phrase={phrase} linkIndex={linkIndex} />}
+    </DetailFrame>
   );
 }
 
@@ -152,7 +128,7 @@ function PhraseDetailCard({
             <Field label="Date added" empty="Unknown">
               {phrase.dateAdded && (
                 <p className="text-sm text-ink">
-                  <span title={formatDateTime(phrase.dateAdded)}>{formatDate(phrase.dateAdded)}</span>
+                  <DateAdded added={phrase.dateAdded} />
                 </p>
               )}
             </Field>
@@ -184,9 +160,7 @@ function Field({
 }) {
   return (
     <div>
-      <h2 className="text-xs font-semibold tracking-wide text-ink-soft uppercase">
-        {label}
-      </h2>
+      <h2 className={DETAIL_LABEL}>{label}</h2>
       <div className="mt-1">
         {children || <p className="text-ink-soft italic">{empty}</p>}
       </div>
@@ -196,22 +170,10 @@ function Field({
 
 function PhraseNotFound() {
   return (
-    <div
-      className="paste tape tape-centre mx-auto max-w-lg rounded-[10px_3px_12px_4px] border-2 border-ink bg-card p-8 text-center shadow-[3px_4px_0_var(--color-shadow)]"
-      style={{ "--r": "-0.8deg" } as CSSProperties}
-    >
-      <div aria-hidden="true" className="mb-3 text-4xl">
-        🔍
-      </div>
-      <h1 className="hand-title text-xl">Phrase not found</h1>
-      <p className="mt-2 text-sm text-ink-soft">
-        There is no phrase with that ID in your list. It may have been deleted, or the link
-        may point to a phrase in a different account, since your list follows the account you are
-        signed in to.
-      </p>
-      <Link href="/phrases" className="btn btn-primary mt-5">
-        Back to phrases
-      </Link>
-    </div>
+    <NotFoundCard title="Phrase not found" href="/phrases" label="phrases" tilt="-0.8deg">
+      There is no phrase with that ID in your list. It may have been deleted, or the link
+      may point to a phrase in a different account, since your list follows the account you are
+      signed in to.
+    </NotFoundCard>
   );
 }

@@ -6,10 +6,9 @@ import { shownLanguage as shown } from "@/lib/languages";
 import { createSupabaseServerClient, serverUserId } from "@/lib/supabaseServer";
 import {
   allowance,
-  CONVERSATION_LIMIT,
   CONVERSATION_PAGE,
-  EXCHANGE_LIMIT,
   readConversationId,
+  storageFull,
   type TutorExchange,
 } from "@/lib/tutor";
 import {
@@ -57,7 +56,7 @@ export default async function TutorPage({ searchParams }: { searchParams: Promis
 
   const allowed = allowance({ plan, usedTotal, usedToday });
   // Full is checked after the allowance, so a used-up trial still says so.
-  const full = held.exchanges >= EXCHANGE_LIMIT || (!meta && held.conversations >= CONVERSATION_LIMIT);
+  const full = storageFull(held, Boolean(meta));
   const reason = allowed.reason === "ok" && full ? "storageFull" : allowed.reason;
 
   return (

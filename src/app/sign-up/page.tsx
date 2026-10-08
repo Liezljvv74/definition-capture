@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
-import { MIN_PASSWORD, signUpWithPassword } from "@/lib/session";
+import { MIN_PASSWORD, passwordProblem, signUpWithPassword } from "@/lib/session";
 import { Brand } from "@/components/notebook/Brand";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
@@ -37,12 +37,9 @@ export default function SignUpPage() {
     event.preventDefault();
     if (busy || blocked) return;
 
-    if (password.length < MIN_PASSWORD) {
-      setError(`A password needs at least ${MIN_PASSWORD} characters.`);
-      return;
-    }
-    if (password !== confirm) {
-      setError("The two passwords do not match.");
+    const problem = passwordProblem(password, confirm);
+    if (problem) {
+      setError(problem);
       return;
     }
 

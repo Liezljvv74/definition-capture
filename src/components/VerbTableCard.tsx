@@ -132,13 +132,6 @@ export function VerbTableCard({
     if (!known) saveSettings({ verbTenses: [...settings.verbTenses, name] });
   }
 
-  function cancel() {
-    // The draft is dropped by the remount on the way back in, so this
-    // only has to put the card away, and the page stops it on the way
-    // out if there is anything to lose.
-    onToggle();
-  }
-
   function save() {
     saveVerbTable(table.id, tenses, rows, ref);
     onFinish();
@@ -380,7 +373,10 @@ export function VerbTableCard({
             <button
               type="button"
               className="btn btn-secondary !px-2 !py-0.5 text-xs"
-              onClick={cancel}
+              // The draft is dropped by the remount on the way back in, so
+              // Cancel only has to put the card away, and the page stops it
+              // on the way out if there is anything to lose.
+              onClick={onToggle}
             >
               Cancel
             </button>

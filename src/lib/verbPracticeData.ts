@@ -2,8 +2,8 @@
 // client under RLS, results through `record_tense_review`, the way flashcards
 // use `record_review`. See Docs/verb-practice.md.
 
+import { requireSupabase } from "@/lib/flashcards";
 import { readError } from "@/lib/remoteStore";
-import { getSupabase } from "@/lib/supabaseClient";
 import type { TenseRecord } from "@/lib/verbPractice";
 
 export function readTenseRecord(row: unknown): TenseRecord | null {
@@ -19,11 +19,7 @@ export function readTenseRecord(row: unknown): TenseRecord | null {
   };
 }
 
-function client() {
-  const supabase = getSupabase();
-  if (!supabase) throw new Error("Supabase is not configured.");
-  return supabase;
-}
+const client = () => requireSupabase(new Error("Supabase is not configured."));
 
 export async function loadTenseRecords(): Promise<TenseRecord[]> {
   const { data, error } = await client()
@@ -34,7 +30,7 @@ export async function loadTenseRecords(): Promise<TenseRecord[]> {
 }
 
 /** One tense's result: right when every box in it was right. */
-export async function recordTense(itemId: string, tense: string, right: boolean, tookMs: number | null): Promise<void> {
+async function recordTense(itemId: string, tense: string, right: boolean, tookMs: number | null): Promise<void> {
   const { error } = await client().rpc("record_tense_review", {
     target_item: itemId,
     target_tense: tense,
@@ -55,8 +51,7 @@ export async function recordTenses(
   itemId: string,
   results: readonly TenseResult[],
   tookMs: number | null,
-  record: (itemId: string, tense: string, right: boolean, tookMs: number | null) => Promise<void> = recordTense,
 ): Promise<TenseResult[]> {
-  const outcomes = await Promise.allSettled(results.map((r) => record(itemId, r.tense, r.right, tookMs)));
+  const outcomes = await Promise.allSettled(results.map((r) => recordTense(itemId, r.tense, r.right, tookMs)));
   return results.filter((_, at) => outcomes[at].status === "rejected");
 }

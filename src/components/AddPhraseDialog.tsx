@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 
+import { EditPhraseDialog } from "@/components/EditPhraseDialog";
 import { Modal } from "@/components/Modal";
 import { PhraseForm } from "@/components/PhraseForm";
-import { createPhrase, findByPhrase, updatePhrase } from "@/lib/phraseStorage";
+import { createPhrase, findByPhrase } from "@/lib/phraseStorage";
 import { EMPTY_PHRASE_INPUT, type Phrase, type PhraseInput } from "@/lib/types";
 
 export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
@@ -32,10 +33,13 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
 
   if (editing) {
     return (
-      <Modal title={`Edit ${editing.phrase}`} onClose={onClose}>
-        {/* Shown rather than applied: updating used to overwrite this
-            phrase with what was typed, sight unseen. */}
-        {draft.literalMeaning.trim() &&
+      <EditPhraseDialog
+        phrase={editing}
+        onClose={onClose}
+        note={
+          /* Shown rather than applied: updating used to overwrite this
+             phrase with what was typed, sight unseen. */
+          draft.literalMeaning.trim() &&
           draft.literalMeaning.trim() !== editing.literalMeaning && (
             <div className="mb-4 rounded-lg border border-rule bg-marker/25 p-3 text-sm">
               <p className="mb-1 text-xs font-semibold tracking-wide text-ink-soft uppercase">
@@ -45,25 +49,9 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
                 {draft.literalMeaning.trim()}
               </p>
             </div>
-          )}
-        <PhraseForm
-          initialValue={{
-            phrase: editing.phrase,
-            literalMeaning: editing.literalMeaning,
-            usageExample: editing.usageExample,
-            collections: editing.collections,
-            source: editing.source,
-            ref: editing.ref,
-          }}
-          submitLabel="Save changes"
-          onSubmit={(input) => {
-            updatePhrase(editing.id, input);
-            onClose();
-          }}
-          onCancel={onClose}
-          autoFocus
-        />
-      </Modal>
+          )
+        }
+      />
     );
   }
 
@@ -120,7 +108,6 @@ export function AddPhraseDialog({ onClose }: { onClose: () => void }) {
         submitLabel="Save phrase"
         onSubmit={handleSubmit}
         onCancel={onClose}
-        autoFocus
       />
     </Modal>
   );

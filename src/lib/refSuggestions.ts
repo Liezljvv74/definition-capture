@@ -11,7 +11,7 @@
 import { foldName } from "@/lib/foldName";
 import type { LinkKind, LinkTarget } from "@/lib/links";
 
-export type RefSuggestion = {
+type RefSuggestion = {
   name: string;
   kind: LinkKind;
 };
