@@ -107,6 +107,17 @@ export function currentUserId(): string | null {
 export const MIN_PASSWORD = 6;
 
 /**
+ * What is wrong with a new password and its confirmation, or null when
+ * nothing is. Sign-up, choose-password and Settings all ask the same two
+ * questions in the same order, so a reader sees the same message on each.
+ */
+export function passwordProblem(password: string, confirm: string): string | null {
+  if (password.length < MIN_PASSWORD) return `A password needs at least ${MIN_PASSWORD} characters.`;
+  if (password !== confirm) return "The two passwords do not match.";
+  return null;
+}
+
+/**
  * Supabase verifies a Turnstile token only once captcha is switched on in the
  * dashboard, and ignores one it did not ask for, so the same code works before
  * and after the switch. The key is left out entirely when there is no token
