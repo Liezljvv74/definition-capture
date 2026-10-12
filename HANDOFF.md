@@ -66,6 +66,13 @@ running log beside them.
   copies (no longer junctions); `.claude/skills/` is git-ignored. The tracked
   copy in `.agents/skills/supabase` and `skills-lock.json` were brought up to
   that newer version in PR #19 (merged 2 October).
+- Two more skills were added on 12 October with `npx skills add`, tracked in
+  `.agents/skills/` and `skills-lock.json` and symlinked into the ignored
+  `.claude/skills/`: `design-doc-mermaid` (Mermaid diagrams; its scripts
+  render images with `mmdc`, installed globally as
+  `@mermaid-js/mermaid-cli` 12) and `slidev` (Slidev slide decks, Markdown
+  only). Run `npx skills add` from the repository root: run from a
+  subfolder, it installs there instead.
 - All checks pass at `fb18bf4` (462 tests): `npx tsc --noEmit`, `npx eslint src/`,
   `npx vitest run`, `npm run build`.
 - PR #18 (merged 2 October, branch deleted, deployed) added the first
