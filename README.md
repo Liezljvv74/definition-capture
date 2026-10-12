@@ -735,6 +735,18 @@ navigating away.
   selection on its own, so "Delete selected" can only ever delete rows you can
   actually see.
 
+Saving goes from the browser straight to Supabase, with no app server in
+between. The screen changes first, and the database has the final say:
+
+```mermaid
+flowchart TD
+    A([You save a word in the dialog]) --> B[The list shows it straight away]
+    B --> C[The browser sends it to Supabase<br/>through save_items]
+    C --> D{Does the database accept it?<br/>Your account, valid fields}
+    D -->|Yes| E([Saved: the list stays as it is])
+    D -->|No| F([The list reloads from the database<br/>and a banner says what failed])
+```
+
 ## Backup: export and import
 
 **Export** and **Import** live under **Backup** in the nav bar, so there is always

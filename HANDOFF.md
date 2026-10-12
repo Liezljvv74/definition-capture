@@ -72,7 +72,12 @@ running log beside them.
   render images with `mmdc`, installed globally as
   `@mermaid-js/mermaid-cli` 12) and `slidev` (Slidev slide decks, Markdown
   only). Run `npx skills add` from the repository root: run from a
-  subfolder, it installs there instead.
+  subfolder, it installs there instead. Install the CLI with
+  `--allow-scripts=puppeteer`, or it cannot find a browser to render with.
+- README, "Adding, editing and deleting", has a Mermaid flowchart of a save:
+  the list updates first, the browser calls `save_items` in Supabase directly,
+  and a refusal reloads the list and shows the banner. There is no app server
+  in that path, so the chart deliberately has no "server validates" step.
 - All checks pass at `fb18bf4` (462 tests): `npx tsc --noEmit`, `npx eslint src/`,
   `npx vitest run`, `npm run build`.
 - PR #18 (merged 2 October, branch deleted, deployed) added the first
