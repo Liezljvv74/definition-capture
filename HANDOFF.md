@@ -78,6 +78,21 @@ running log beside them.
   the list updates first, the browser calls `save_items` in Supabase directly,
   and a refusal reloads the list and shows the banner. There is no app server
   in that path, so the chart deliberately has no "server validates" step.
+- `slides/` (12 October) is a 10-slide Slidev deck introducing the app to
+  non-technical stakeholders, with speaker notes on every slide. It has its
+  own `package.json` so Slidev stays out of the app's dependencies and the
+  Vercel build; `npm install` and `npm run dev` inside it serve it on port
+  3030 (presenter view with notes at `/presenter/`). `style.css` copies the
+  notebook look from `src/app/notebook.css`. The pictures in `slides/public/`
+  are the README's tutor and landing screenshots, the logo, and three crops of
+  the live landing page; signed-in pages are not shown, for want of
+  screenshots with data in them. The owner had "626 of 626 checks passed"
+  taken off slide 8; its speaker note still says it.
+- `@playwright/test` and `playwright-chromium` are both pinned to exactly
+  1.64.0 (12 October), sharing one `playwright-core`; Chromium build 1248 is
+  the browser that version uses. `playwright-chromium@1.64.0` is approved in
+  `allowScripts`, and that approval names the version, so bump all three
+  together.
 - All checks pass at `fb18bf4` (462 tests): `npx tsc --noEmit`, `npx eslint src/`,
   `npx vitest run`, `npm run build`.
 - PR #18 (merged 2 October, branch deleted, deployed) added the first

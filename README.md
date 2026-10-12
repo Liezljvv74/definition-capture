@@ -836,6 +836,9 @@ npm run build        # when routing or rendering changed
 npm run e2e          # Playwright end-to-end tests
 ```
 
+`@playwright/test` and `playwright-chromium` are both pinned to the same exact
+version, so they share one `playwright-core`; upgrade them together.
+
 The build is worth running for its route table rather than for the bundle: it
 prints which routes are static and which are server-rendered, which is how a
 protected page is confirmed to still be dynamic. `/`, `/sign-in`, `/sign-up` and
@@ -964,6 +967,9 @@ Docs/
   history/                the course brief and the original prompt
 public/                   the logo images and llms.txt
 assets/                   source art that is not served
+slides/                   a Slidev deck introducing the app, with its own
+                          package.json; `npm install` then `npm run dev`
+                          inside it serves it on port 3030
 ```
 
 The modules worth knowing first, all in `src/lib/`:
