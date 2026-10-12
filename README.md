@@ -735,6 +735,18 @@ navigating away.
   selection on its own, so "Delete selected" can only ever delete rows you can
   actually see.
 
+Saving goes from the browser straight to Supabase, with no app server in
+between. The screen changes first, and the database has the final say:
+
+```mermaid
+flowchart TD
+    A([You save a word in the dialog]) --> B[The list shows it straight away]
+    B --> C[The browser sends it to Supabase<br/>through save_items]
+    C --> D{Does the database accept it?<br/>Your account, valid fields}
+    D -->|Yes| E([Saved: the list stays as it is])
+    D -->|No| F([The list reloads from the database<br/>and a banner says what failed])
+```
+
 ## Backup: export and import
 
 **Export** and **Import** live under **Backup** in the nav bar, so there is always
@@ -823,6 +835,9 @@ npx vitest run       # 62 test files, node environment, no jsdom and no browser
 npm run build        # when routing or rendering changed
 npm run e2e          # Playwright end-to-end tests
 ```
+
+`@playwright/test` and `playwright-chromium` are both pinned to the same exact
+version, so they share one `playwright-core`; upgrade them together.
 
 The build is worth running for its route table rather than for the bundle: it
 prints which routes are static and which are server-rendered, which is how a
@@ -952,6 +967,9 @@ Docs/
   history/                the course brief and the original prompt
 public/                   the logo images and llms.txt
 assets/                   source art that is not served
+slides/                   a Slidev deck introducing the app, with its own
+                          package.json; `npm install` then `npm run dev`
+                          inside it serves it on port 3030
 ```
 
 The modules worth knowing first, all in `src/lib/`:

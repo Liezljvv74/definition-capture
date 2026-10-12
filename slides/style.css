@@ -1,0 +1,112 @@
+/*
+ * The app's notebook look, after src/app/notebook.css: cream paper ruled
+ * every 32px, the double margin line, punch holes, ink-bordered pastel cards
+ * and strips of tape. The colours are the app's light palette.
+ */
+:root {
+  --paper: #fdfcf4;
+  --rule: #cfdcee;
+  --margin: #e8868b;
+  --ink: #1d2742;
+  --ink-soft: #4a5573;
+  --marker: #ffe34d;
+  --hole: #e9e6da;
+  --tile-blue: #b3c5e6;
+  --tile-green: #a9d6bb;
+  --tile-purple: #c8b9e4;
+  --tile-sage: #cfd5c1;
+  --tile-sky: #d9e8f7;
+}
+
+.slidev-layout {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(circle at 22px 110px, var(--hole) 11px, transparent 12px),
+    radial-gradient(circle at 22px 442px, var(--hole) 11px, transparent 12px),
+    linear-gradient(to right, transparent 46px, var(--margin) 46px 48px, transparent 48px 52px, var(--margin) 52px 53px, transparent 53px),
+    repeating-linear-gradient(to bottom, transparent 0 31px, var(--rule) 31px 32px);
+  color: var(--ink);
+  font-family: "Patrick Hand", "Segoe Print", cursive;
+  font-size: 1.2rem;
+  padding-left: 5rem !important;
+}
+
+.slidev-layout h1,
+.slidev-layout h2,
+.slidev-layout h3 {
+  font-family: "Kalam", "Segoe Print", cursive;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* The default theme fades the line after a heading; the app's ink never fades. */
+.slidev-layout h1 + p,
+.slidev-layout p {
+  opacity: 1;
+  color: var(--ink);
+}
+
+.slidev-layout h1 {
+  display: inline-block;
+  font-size: 2.6rem;
+  line-height: 1.2;
+  transform: rotate(-1deg);
+}
+
+/* The highlighter band the app draws behind its section headings. */
+.marker {
+  background: linear-gradient(transparent 12%, var(--marker) 12% 90%, transparent 90%);
+  padding: 0 0.3em;
+}
+
+.slidev-layout li {
+  line-height: 1.6;
+}
+
+.slidev-layout li::marker {
+  color: var(--ink-soft);
+}
+
+/* A piece of paper pasted onto the page, as on the landing page. */
+.card {
+  position: relative;
+  border: 2px solid var(--ink);
+  border-radius: 5px 12px 6px 10px;
+  box-shadow: 3px 4px 0 var(--ink);
+  padding: 0.9rem 1.1rem;
+  transform: rotate(var(--r, 0deg));
+}
+
+.card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1.3rem;
+}
+
+.blue { background: var(--tile-blue); }
+.green { background: var(--tile-green); }
+.purple { background: var(--tile-purple); }
+.sage { background: var(--tile-sage); }
+.sky { background: var(--tile-sky); }
+
+/* A strip of tape over the top edge. */
+.tape::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 18px;
+  width: 64px;
+  height: 22px;
+  background: rgb(255 227 77 / 0.72);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+  transform: rotate(-5deg);
+}
+
+/* A screenshot of the app, pasted in. */
+.shot {
+  max-width: 100%;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 4px 5px 0 var(--ink);
+  transform: rotate(var(--r, 1deg));
+  background: #fff;
+}
