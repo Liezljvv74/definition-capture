@@ -75,6 +75,13 @@ running log beside them.
   only). Run `npx skills add` from the repository root: run from a
   subfolder, it installs there instead. Install the CLI with
   `--allow-scripts=puppeteer`, or it cannot find a browser to render with.
+- The 21 HyperFrames video skills (`hyperframes`, the entry point, plus
+  `hyperframes-*`, `faceless-explainer`, `product-launch-video`, `pr-to-video`,
+  `embedded-captions`, `slideshow` and others) were added on 12 October with
+  `npx skills add heygen-com/hyperframes`, tracked the same way. They render
+  with the FFmpeg 9.0.2 installed that day. Not yet used for anything. Run in a
+  shell with no terminal, the installer hangs at its prompts; let it run in the
+  background (it takes over two minutes) or pass `-y`.
 - README, "Adding, editing and deleting", has a Mermaid flowchart of a save:
   the list updates first, the browser calls `save_items` in Supabase directly,
   and a refusal reloads the list and shows the banner. There is no app server
