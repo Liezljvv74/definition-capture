@@ -11,6 +11,7 @@ running log beside them.
 
 ## Where things stand
 
+- **Built, PR open (13 October 2026): branch `ai-act-transparency`.** An `eu-ai-act-compliance` audit found the app limited risk (no prohibited or high-risk use; the tutor neither grades nor places learners) and two Article 50 failures, both fixed at the owner's request, kept small and out of the way: the Tutor page's model line now reads "Answers are written by an AI model, Claude Sonnet 5.5 by Anthropic." (`TutorChat.tsx`); every answer card and merged draft says "AI-generated" under its title with `data-ai-generated="true"` (`AnswerCard.tsx`); a rule saved from the tutor shows "Written by: AI, saved from the tutor" on its page, read from the existing `tutor_conversation_rules` link by `isFromTutor` (`tutorConversations.ts`), no migration. Known ceiling: the rule's label goes when its conversation is deleted and backups do not carry it; an `items` column would fix both if ever needed. Audit suggestions not done: mention the tutor on the landing page (overlaps SEO item 2 below), an "AI can make mistakes" note (the owner had ", and can be wrong" taken off the Tutor line after seeing it), a system-prompt line to admit being an AI, labelling the demo video's synthetic voice. Re-classify if the tutor ever grades or places learners. A `gdpr-compliance` audit the same day found two critical gaps, neither fixed: no privacy policy, and no way for a user to delete their account (both already item 6 of "When more people use the app" below); warnings: no processor list or transfer basis, an export missing tutor conversations and review history, no retention periods, no breach process. Both audits are in `Reports/2026-10-13-compliance-audit.pdf`, with a suggested order: merge this PR, privacy page, account deletion, wider export, processor terms and breach runbook. Also on this branch: the SEO recommendations ("Being found on the internet" below). Checked: tsc, eslint, 861 unit tests; the owner looked at it in a browser on localhost.
 - **Merged and deployed (13 October 2026): PR #66, main at `027ed41`, branch `feedback-name-only` deleted.** Vercel reported success. Owner's requests after trying the live form: Name and Email are optional (the account's address and user id, from the verified token, are in every email anyway; the owner chose to keep the id); Reply goes to the address given, else the account's; an email typed must still look like one. The star has eight points instead of twelve and looks raised: a darker copy offset underneath as its side, a radial gradient, each point's clockwise half shaded along its ridge, a shine, and a soft drop shadow. Its colours are fixed hex rather than palette tokens, so it stays bright yellow with dark ink in dark mode (the dark palette's marker is a muted amber, and `.hand-title` sets its own colour, so the label carries `text-[#1d2742]` itself). Checked: 860 unit tests (9 for the route), tsc, eslint, and the star in light and dark mode in a browser (placed on the landing page for the look, then put back).
 - **Merged and deployed (13 October 2026): PR #65, main at `5abc501`, branch `feedback-button` deleted.** Vercel reported success; signed out, `POST /api/feedback/` answers 401. The owner added `RESEND_API_KEY` (Secret) and `FEEDBACK_TO` (Config, lowercase) to Vercel Production before merging. The owner confirmed the test email arrived. Owner's request: a floating yellow star marked Feedback at the top right of every page, in line with the bottom-right logo, opening a form with Suggestion or Error, Name, Email (added at the owner's request mid-build) and a details box, emailed to the owner. Built signed-in only (in `(workspace)/layout.tsx`): the owner was offered both and had not answered, and a signed-out sender could only be checked with the Turnstile secret, which lives in the Supabase dashboard alone. `src/components/FeedbackButton.tsx` (a twelve-point starburst SVG, `fixed top-16 right-2 z-40`, the shared `Modal`), `src/app/api/feedback/route.ts` (getClaims, kind and 1 to 5,000 characters checked, Resend's REST API by `fetch`, no new dependency, the given email as `reply_to` and the account's address in the body, no rate limit). Needs `RESEND_API_KEY` and `FEEDBACK_TO` in `.env.local` and in Vercel (key Sensitive) before it can send; `FEEDBACK_FROM` optional (unset, `onboarding@resend.dev`, which Resend delivers only to the Resend account's own address). The owner has a Resend account. Checked: 6 new route tests, tsc, eslint, and the button and form looked at in a browser (placed on the landing page for the look, then put back). Real send checked 13 October 2026 (Resend id `01a134de-66db-7a87-964b-565dd59bf2bd`), straight to Resend's API with the route's payload, not through a signed-in form. `FEEDBACK_TO` must be lowercase: Resend matches the account's own address case-sensitively and refused the capitalised one with a 403.
 - **Merged and deployed (13 October 2026): PR #64, main at `c6975f4`, branch `demo-video` deleted.** Vercel reported success. Owner's request: the German demo video is on the landing page and on Home. Landing (owner's layout, settled over three rounds): heading and buttons on the left with Structured Notes top right, **See it in use** under both, then How you remember it, Your work stays private and Questions; in one column (a phone) the video comes straight after the buttons, then Structured Notes (`order-*` classes; owner not yet asked about the phone order). Home: the four list tiles at the bottom are gone and the same video block is there instead (`src/components/DemoVideo.tsx`, shared). The file is a 5.9 MB web copy of `videos/captured-demo-german/renders/captured-demo-german.mp4` (crf 27, 1080p), with a poster frame and an English WebVTT captions track built from the narration's word timings, off by default (added unasked, the owner can drop it); `preload="none"`. The three files are in `public/` and named in the proxy matcher and its test, so signed-out visitors can load them. The Home e2e test now opens Vocabulary from the Glossary menu and checks the video heading. README and its landing screenshot updated. Checked: tsc, eslint, 851 unit tests, build (route table unchanged), the Home and landing e2e tests on localhost, and both pages at desktop and phone width.
@@ -696,6 +697,51 @@ Not worth changing yet: the search (`search_tutor` only ever scans one
 account's rows, at most 2,000, about 40 ms measured), the per-route time
 budget (55 seconds, inside Vercel's 60), and Supabase's 50,000 monthly active
 users on the free plan. Each of those is far away.
+
+## Being found on the internet (thinking, 13 October 2026)
+
+Nothing here is built; it is a list to come back to. The technical basics
+are already in place: titles and descriptions in `src/app/layout.tsx`, the
+share image (`opengraph-image.tsx`), `robots.ts`, `sitemap.ts`,
+`public/llms.txt`, WebApplication and FAQ structured data on the landing
+page (`src/app/page.tsx`), a canonical URL, and `noindex` on the whole
+workspace. What is left is mostly content and telling search engines the
+site exists. In order of value:
+
+1. **Google Search Console and Bing Webmaster Tools.** The step that matters
+   most: without it Google may take weeks to find the site, and nobody can
+   see what it indexed or what people searched to arrive. Each gives a
+   verification code, which goes in `metadata.verification` in
+   `src/app/layout.tsx` (one line, needs the codes from the owner); then
+   submit `/sitemap.xml` in both dashboards.
+2. **Say the grammar tutor exists.** `DESCRIPTION` in `src/lib/site.ts`, the
+   FAQ, `public/llms.txt` and the landing page never mention the AI grammar
+   tutor, which `CLAUDE.md` calls the reason the app is worth using, so the
+   site reads as a vocabulary list. A sentence or two in each, in plain words
+   rather than selling (the no-demo-speak rule applies).
+3. **Titles for sign-in and sign-up.** Both pages are client components, so
+   they cannot export metadata and inherit the landing page's title, which
+   Google treats as duplicates. A two-line `layout.tsx` beside each sets one.
+   Sign-in should also be `noindex` and leave the sitemap; nobody searches
+   for a login page.
+4. **VideoObject structured data** for `captured-demo.mp4` (with its poster
+   and captions), beside the existing graph in `page.tsx`, so the landing
+   page can show a video thumbnail in results. About ten lines.
+
+Items 2 to 4 fit in one PR; item 1 waits on the codes.
+
+Bigger decisions, not urgent:
+
+- **A custom domain.** `.vercel.app` ranks, but an own domain reads as more
+  trustworthy and keeps its reputation through a change of host. The steps
+  are under "Retiring the old name" above.
+- **Public content pages** (grammar explainers anyone can read). This is how
+  language apps actually earn search traffic; one landing page ranks for
+  only a few phrases. A real project, worth it only if growth from search is
+  wanted. Such pages go outside `(workspace)` and into the proxy's public
+  handling, the sitemap and `robots.ts`.
+- **Links from elsewhere**: Product Hunt, language-learning communities.
+  Rankings lean heavily on these, and none of it is code.
 
 ## Checks and commands
 

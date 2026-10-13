@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { TopicBadge } from "@/components/Badges";
 import { DateAdded, DETAIL_LABEL, DetailFrame, DetailSuspense } from "@/components/DetailShell";
@@ -13,6 +13,7 @@ import { RuleEditor } from "@/components/grammar/RuleEditor";
 import { RuleReader } from "@/components/grammar/RuleReader";
 import type { LinkIndex } from "@/lib/links";
 import { updateRule } from "@/lib/rules";
+import { isFromTutor } from "@/lib/tutorConversations";
 import type { Rule } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useRules } from "@/lib/useRules";
@@ -50,6 +51,15 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
   const router = useRouter();
   const { settings } = useSettings();
   const [editing, setEditing] = useState(startEditing);
+  const [fromTutor, setFromTutor] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void isFromTutor(rule.id).then((yes) => live && setFromTutor(yes));
+    return () => {
+      live = false;
+    };
+  }, [rule.id]);
 
   if (editing) {
     return (
@@ -110,6 +120,12 @@ function RuleBody({ rule, linkIndex, startEditing }: { rule: Rule; linkIndex: Li
             <DateAdded added={rule.dateAdded} updated={rule.dateUpdated} />
           </dd>
         </div>
+        {fromTutor && (
+          <div data-ai-generated="true">
+            <dt className={DETAIL_LABEL}>Written by</dt>
+            <dd className="mt-1.5 text-sm text-ink">AI, saved from the tutor</dd>
+          </div>
+        )}
       </dl>
 
       <LinkedFrom href={`/rule?id=${rule.id}`} />
