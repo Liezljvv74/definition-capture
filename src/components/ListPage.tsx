@@ -14,6 +14,15 @@ import type { CSSProperties, ReactNode } from "react";
  */
 export const ROW_TEXT = "h-8 px-3 pt-1 pb-0 leading-7 align-top";
 export const ROW_CONTROL = "h-8 px-2 py-0 align-middle";
+/*
+ * The Ref column holds links, often several, and a single truncated line hid
+ * all but the first. Two lines of small type at 16px leading fill exactly one
+ * 32px ruling, so the links wrap without the row growing. The cell sits on
+ * the line, like the rest of the row, when there is only one. A third line is
+ * clipped, and the word's own page shows the rest.
+ */
+export const ROW_REF = "h-8 px-3 py-0 align-bottom";
+export const REF_LINES = "line-clamp-2 break-words text-xs leading-4";
 
 /**
  * The page's title, with its section colour as a marker stroke, the count

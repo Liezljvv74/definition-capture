@@ -21,6 +21,8 @@ import {
   ListShell,
   NoMatches,
   ROW_CONTROL,
+  REF_LINES,
+  ROW_REF,
   ROW_TEXT,
   SortHeader,
 } from "@/components/ListPage";
@@ -387,11 +389,11 @@ function PhraseTable({
                     <EmptyCell />
                   )}
                 </td>
-                <td className={`${ROW_TEXT} truncate text-ink-soft`}>
+                <td className={`${ROW_REF} text-ink-soft`}>
                   {phrase.ref ? (
-                    <span>
+                    <div className={REF_LINES}>
                       <RefText value={phrase.ref} linkIndex={linkIndex} />
-                    </span>
+                    </div>
                   ) : (
                     <EmptyCell />
                   )}
@@ -477,7 +479,7 @@ function PhraseCards({
                 <p className="line-clamp-2 text-sm leading-8 text-ink-soft italic">“{phrase.usageExample}”</p>
               )}
               {phrase.ref && (
-                <p className="truncate text-xs leading-8 text-ink-soft">
+                <p className="line-clamp-2 text-xs leading-8 text-ink-soft">
                   <span className="font-medium">Ref: </span>
                   <RefText value={phrase.ref} linkIndex={linkIndex} />
                 </p>
