@@ -97,7 +97,7 @@ fail; it was then switched back on.
 
 **2. Model display.** The Tutor page names the model answering, from its
 OpenRouter slug made readable: "Answers are written by an AI model, Claude
-Sonnet 5.5 by Anthropic, and can be wrong." (the screenshot shows the older
+Sonnet 5.5 by Anthropic." (the screenshot shows the older
 "Model: ..." wording), with the slug itself (`anthropic/claude-sonnet-5.5`) on hover, visible in the
 screenshot above. The slug is read on the server (`tutorModel()`), and
 `modelLabel` in `src/lib/tutor.ts` formats it; the browser is given only the
@@ -633,7 +633,7 @@ to and survives a reload, and anything unrecognised falls back to Profile.
 `/tutor` is a grammar tutor for the language set under Settings → Glossary
 settings. Under the heading the page says plainly that an AI model answers and
 names it, from its OpenRouter slug ("Answers are written by an AI model, Claude
-Sonnet 5.5 by Anthropic, and can be wrong.", the slug itself on hover). Every
+Sonnet 5.5 by Anthropic.", the slug itself on hover). Every
 answer and merged draft is labelled "AI-generated", and a rule saved from the
 tutor says "Written by: AI, saved from the tutor" on its page, for as long as
 the conversation it came from is kept; both carry `data-ai-generated="true"`

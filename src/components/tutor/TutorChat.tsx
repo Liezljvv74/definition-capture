@@ -154,7 +154,7 @@ export function TutorChat(props: {
             Act, Article 50(1)): "Tutor" alone reads as a person. */}
         {studiedName && reason === "ok" && (
           <p className="mt-1 text-sm text-ink-soft" title={props.model.slug}>
-            Answers are written by an AI model, {props.model.label}, and can be wrong.
+            Answers are written by an AI model, {props.model.label}.
           </p>
         )}
       </div>

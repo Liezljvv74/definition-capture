@@ -18,7 +18,7 @@ const html = (props: Partial<Parameters<typeof TutorChat>[0]> = {}) =>
 describe("TutorChat", () => {
   it("says an AI model answers, naming it, with its slug on hover", () => {
     const out = html();
-    expect(out).toContain("Answers are written by an AI model, Claude Sonnet 5.5 by Anthropic, and can be wrong.");
+    expect(out).toContain("Answers are written by an AI model, Claude Sonnet 5.5 by Anthropic.");
     expect(out).toContain('title="anthropic/claude-sonnet-5.5"');
   });
 
