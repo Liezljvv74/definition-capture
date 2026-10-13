@@ -10,8 +10,12 @@ test.describe("Home", () => {
     await expect(page.getByRole("heading", { level: 1, name: /^Welcome back/ })).toBeVisible();
     await expect(page.getByText("Ready for review")).toBeVisible();
 
-    // 2. Click the Vocabulary card
-    await page.getByRole("navigation", { name: "Your lists" }).getByRole("link", { name: /Vocabulary/ }).click();
+    // 2. The demo video is on the page
+    await expect(page.getByRole("heading", { name: "See it in use" })).toBeVisible();
+
+    // 3. Open Vocabulary from the main menu
+    await page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "Glossary" }).click();
+    await page.getByRole("menuitem", { name: "Vocabulary" }).click();
     await expect(page.getByRole("heading", { name: "Vocabulary", level: 1 })).toBeVisible();
   });
 });

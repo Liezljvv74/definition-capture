@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
+import { DemoVideo } from "@/components/DemoVideo";
 import { Scribble } from "@/components/notebook/Scribble";
 
 import { RememberCard } from "@/components/home/RememberCard";
 import { ReviewCard } from "@/components/home/ReviewCard";
-import { itemHref, plural, progressParts, progressTotal, quoteFor, relativeDay, reviewState, typeLabel } from "@/lib/home";
+import { itemHref, progressParts, progressTotal, quoteFor, relativeDay, reviewState, typeLabel } from "@/lib/home";
 import { loadHome } from "@/lib/homeData";
 
 /** A paste block's tilt, which notebook.css reads from `--r`. */
@@ -46,23 +47,6 @@ export default async function HomePage() {
   const parts = progressParts(summary);
   const totalCards = progressTotal(summary);
 
-  const lists = [
-    {
-      href: "/vocabulary",
-      label: "Vocabulary",
-      look: "bg-tile-blue border-[3px] rounded-[4px_12px_3px_10px] shadow-[4px_5px_0_var(--color-shadow)] tape tape-right",
-      deg: -1.2,
-      doodle: "star",
-      detail:
-        plural(summary.words, "word", "words") +
-        (summary.wordsWithoutDefinition > 0
-          ? ` · ${plural(summary.wordsWithoutDefinition, "needs", "need")} a definition`
-          : ""),
-    },
-    { href: "/phrases", label: "Phrases", look: "bg-tile-green border-[1.5px] rounded-[10px_3px_12px_4px] shadow-[2px_3px_0_var(--color-shadow)]", deg: 1, doodle: "heart", detail: plural(summary.phrases, "phrase", "phrases") },
-    { href: "/verbs", label: "Verbs", look: "bg-tile-purple border-2 rounded-[3px_10px_4px_12px] shadow-[3px_4px_0_var(--color-shadow)] tape tape-centre", deg: 0.9, doodle: "spiral", detail: plural(summary.verbTables, "conjugation table", "conjugation tables") },
-    { href: "/grammar", label: "Grammar", look: "bg-tile-sage border-[3.5px] rounded-[12px_4px_10px_3px] shadow-[5px_5px_0_var(--color-shadow)]", deg: -0.8, doodle: "sparkle", detail: plural(summary.grammarRules, "rule", "rules") },
-  ];
 
   return (
     <main className="notebook-page mx-auto w-full max-w-5xl flex-1 py-6 sm:py-8">
@@ -145,20 +129,9 @@ export default async function HomePage() {
           </section>
         )}
 
-        <nav aria-label="Your lists" className="grid gap-x-6 gap-y-6 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-4">
-          {lists.map((list) => (
-            <Link
-              key={list.href}
-              href={list.href}
-              data-doodle={list.doodle}
-              className={`paste border-ink p-3 ${list.look}`}
-              style={tilt(list.deg)}
-            >
-              <span className="hand-title block text-lg">{list.label}</span>
-              <span className="block text-sm">{list.detail}</span>
-            </Link>
-          ))}
-        </nav>
+        <div className="lg:col-span-3">
+          <DemoVideo headingId="demo-heading" tilt={0.4} />
+        </div>
       </div>
     </main>
   );

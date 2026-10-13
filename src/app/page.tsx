@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
+import { DemoVideo } from "@/components/DemoVideo";
 import { Scribble } from "@/components/notebook/Scribble";
 import { TryOneNow } from "@/components/notebook/TryOneNow";
 import { DESCRIPTION, FAQ, SITE_NAME, SITE_URL } from "@/lib/site";
@@ -112,25 +113,53 @@ export default function LandingPage() {
       </header>
 
       <main className="notebook-page mx-auto grid w-full max-w-6xl flex-1 gap-x-14 gap-y-9 pt-8 pb-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-start">
-        <div className="flex min-w-0 flex-col gap-8">
-          <section>
-            <h1 className="hand-title rotate-[-1.2deg] text-[clamp(2.1rem,4.6vw,3.2rem)] leading-[1.12] text-balance">
-              Your personal <Scribble>repository</Scribble> for learning any language
-            </h1>
-            <p className="mt-4 max-w-[34ch] text-[1.12rem] leading-8 text-ink-soft">
-              Save words, phrases, verb conjugations and grammar rules, and review them with{" "}
-              <mark className="marker-low">flashcards</mark> until they stick.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3.5">
-              <Link href="/sign-up" className="btn-hand btn-hand-primary" style={tilt(-1.5)}>
-                Create an account
-              </Link>
-              <Link href="/sign-in" className="btn-hand btn-hand-ghost" style={tilt(1.2)}>
-                Sign in
-              </Link>
-            </div>
-          </section>
+        {/*
+          Heading and Structured Notes side by side, the video under both, then
+          the rest. In one column (a phone) the video comes straight after the
+          buttons instead, so four tall cards do not push it out of sight.
+        */}
+        <section>
+          <h1 className="hand-title rotate-[-1.2deg] text-[clamp(2.1rem,4.6vw,3.2rem)] leading-[1.12] text-balance">
+            Your personal <Scribble>repository</Scribble> for learning any language
+          </h1>
+          <p className="mt-4 max-w-[34ch] text-[1.12rem] leading-8 text-ink-soft">
+            Save words, phrases, verb conjugations and grammar rules, and review them with{" "}
+            <mark className="marker-low">flashcards</mark> until they stick.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3.5">
+            <Link href="/sign-up" className="btn-hand btn-hand-primary" style={tilt(-1.5)}>
+              Create an account
+            </Link>
+            <Link href="/sign-in" className="btn-hand btn-hand-ghost" style={tilt(1.2)}>
+              Sign in
+            </Link>
+          </div>
+        </section>
 
+        <section aria-labelledby="keep-heading" className="order-1 lg:order-none">
+          <h2 id="keep-heading" className="hand-title mb-4 inline-block rotate-[-1.5deg] text-[1.45rem] leading-9">
+            <span className="marker">Structured Notes</span>
+          </h2>
+          <ul className="grid grid-cols-1 gap-x-[18px] gap-y-5 sm:grid-cols-2">
+            {KEEP.map((item) => (
+              <li
+                key={item.title}
+                data-doodle={item.doodle}
+                className={`paste min-h-[132px] cursor-default border-ink px-4 pt-4 pb-[18px] ${item.look}`}
+                style={tilt(item.deg)}
+              >
+                <h3 className="hand-title text-[1.3rem] leading-8">{item.title}</h3>
+                <p className="mt-1 text-[0.98rem] leading-6">{item.text}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="max-w-4xl lg:col-span-2">
+          <DemoVideo headingId="demo-heading" />
+        </div>
+
+        <div className="order-2 flex min-w-0 flex-col gap-8 lg:order-none">
           <section
             aria-labelledby="remember-heading"
             className="paste tape tape-two rounded-[6px_14px_8px_12px] border-[3px] border-ink bg-tile-sky px-6 pt-5 pb-5 shadow-[5px_6px_0_var(--color-shadow)]"
@@ -169,26 +198,7 @@ export default function LandingPage() {
           </section>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-8">
-          <section aria-labelledby="keep-heading">
-            <h2 id="keep-heading" className="hand-title mb-4 inline-block rotate-[-1.5deg] text-[1.45rem] leading-9">
-              <span className="marker">Structured Notes</span>
-            </h2>
-            <ul className="grid grid-cols-1 gap-x-[18px] gap-y-5 sm:grid-cols-2">
-              {KEEP.map((item) => (
-                <li
-                  key={item.title}
-                  data-doodle={item.doodle}
-                  className={`paste min-h-[132px] cursor-default border-ink px-4 pt-4 pb-[18px] ${item.look}`}
-                  style={tilt(item.deg)}
-                >
-                  <h3 className="hand-title text-[1.3rem] leading-8">{item.title}</h3>
-                  <p className="mt-1 text-[0.98rem] leading-6">{item.text}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-
+        <div className="order-2 flex min-w-0 flex-col gap-8 lg:order-none">
           <section aria-labelledby="faq-heading">
             <h2 id="faq-heading" className="hand-title mt-2 mb-2 text-2xl leading-9">
               <Scribble colour="var(--color-margin)" shape="wiggle">
