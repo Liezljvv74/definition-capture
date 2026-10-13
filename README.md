@@ -96,8 +96,9 @@ check, switching off row level security on one table locally made 18 checks
 fail; it was then switched back on.
 
 **2. Model display.** The Tutor page names the model answering, from its
-OpenRouter slug made readable: "Model: Claude Sonnet 5.5 by Anthropic", with
-the slug itself (`anthropic/claude-sonnet-5.5`) on hover, visible in the
+OpenRouter slug made readable: "Answers are written by an AI model, Claude
+Sonnet 5.5 by Anthropic." (the screenshot shows the older
+"Model: ..." wording), with the slug itself (`anthropic/claude-sonnet-5.5`) on hover, visible in the
 screenshot above. The slug is read on the server (`tutorModel()`), and
 `modelLabel` in `src/lib/tutor.ts` formats it; the browser is given only the
 name. It shows only where a question can be asked. The `ai-code-reviewer` run
@@ -636,9 +637,13 @@ to and survives a reload, and anything unrecognised falls back to Profile.
 ### Tutor
 
 `/tutor` is a grammar tutor for the language set under Settings → Glossary
-settings. Under the heading the page names the model answering, from its
-OpenRouter slug ("Model: Claude Sonnet 5.5 by Anthropic", the slug itself on
-hover). Ask about a concept you find confusing and the answer comes back whole,
+settings. Under the heading the page says plainly that an AI model answers and
+names it, from its OpenRouter slug ("Answers are written by an AI model, Claude
+Sonnet 5.5 by Anthropic.", the slug itself on hover). Every
+answer and merged draft is labelled "AI-generated", and a rule saved from the
+tutor says "Written by: AI, saved from the tutor" on its page, for as long as
+the conversation it came from is kept; both carry `data-ai-generated="true"`
+for software. These are the EU AI Act's Article 50 transparency duties. Ask about a concept you find confusing and the answer comes back whole,
 after a short "Thinking…", as the same text, table and example blocks a grammar
 rule is made of. The explanation is always plain, as if for a ten-year-old,
 whatever your level; the Level under Settings (about B1 when it is not set) only

@@ -46,3 +46,22 @@ export async function recordSavedRule(conversationId: string, itemId: string, ex
     .insert({ conversation_id: conversationId, item_id: itemId, exchange_id: exchangeId });
   if (error && error.code !== "23503" && error.code !== "23505") console.error("tutor: could not record the saved rule");
 }
+
+/**
+ * Whether a rule was saved from the tutor, so its page can say the text is
+ * AI-generated (EU AI Act, Article 50(2)). The link above is the record, so
+ * no new column was needed. A failed read answers false: the label is a
+ * notice, and the rule reads the same without it.
+ */
+// ponytail: the link goes when its conversation is deleted, and backups do not
+// carry it; an `items` column saved through `save_items` and `toWireRule`
+// would survive both, if the mark ever has to.
+export async function isFromTutor(itemId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+  const { count, error } = await supabase
+    .from("tutor_conversation_rules")
+    .select("item_id", { count: "exact", head: true })
+    .eq("item_id", itemId);
+  return !error && (count ?? 0) > 0;
+}
