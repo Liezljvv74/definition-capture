@@ -112,7 +112,7 @@ A few things follow from that:
 - **The environment variables live in Vercel too.** The build reads
   `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from
   the project's Environment Variables in the Vercel dashboard, not from
-  `.env.local`, which is never committed. The same no-service-role rule
+  `.env.local`, which is never committed. The same secret-key rule
   applies there.
 - **Emailed links need the production origin registered.** Supabase only
   returns a sign-in or reset link to a URL listed under Authentication, URL
@@ -203,11 +203,16 @@ one outside it, at the top level, leaves it unprotected, and a new public route
 must be added to the proxy's public handling (`PUBLIC_PATHS`, or the matcher for
 a file) as well as placed outside the group.
 
-**No service-role key in client-accessible env vars.** Anything named
-`NEXT_PUBLIC_*` is compiled into the browser bundle. Only the project URL and the
-publishable key belong there. The project currently holds no service-role key at
-all: legacy JWT-based API keys are disabled, and the one Edge Function that used
-to need the service role has been deleted.
+**One secret key, in one route, never in client-accessible env vars.** Anything
+named `NEXT_PUBLIC_*` is compiled into the browser bundle. Only the project URL and
+the publishable key belong there. Legacy JWT-based API keys are disabled. The one
+admin key is `SUPABASE_SECRET_KEY` (an `sb_secret_` key, Sensitive in Vercel),
+read only in `src/app/api/account/route.ts`, which deletes the signed-in account
+with `auth.admin.deleteUser` (the owner's choice, 13 October 2026, over a
+`security definer` function writing into `auth.users`). It bypasses row level
+security, so it is never imported anywhere else, never used to read or write list
+data, and the user it deletes comes only from the verified token. A second use
+needs the owner's yes.
 
 **`OPENROUTER_API_KEY` is server-only.** It is read in `src/lib/tutorServer.ts`
 and nowhere else, for `POST /api/tutor`, `/api/tutor/merge` and `/api/tutor/search`, and

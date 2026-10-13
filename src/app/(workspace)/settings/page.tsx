@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useId, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 
+import { Modal } from "@/components/Modal";
 import { NameListEditor } from "@/components/NameListEditor";
 import { MAX_COLLECTIONS, MAX_NAME, MAX_SKIP_WORD, SEPARATOR_CHOICES } from "@/lib/constants";
 import { foldName } from "@/lib/foldName";
@@ -935,7 +936,89 @@ function ProfileSection({ displayName, loaded }: { displayName: string; loaded: 
           Sign out
         </button>
       </div>
+
+      <DeleteAccount email={user?.email ?? ""} />
     </SettingSection>
+  );
+}
+
+/**
+ * Deleting the account, for good. The reader types their email address to
+ * confirm, which the route checks again: a dialog with only a button is one
+ * stray click from losing everything. A password would be the stronger proof,
+ * but an account made through an emailed link has none.
+ */
+function DeleteAccount({ email }: { email: string }) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const matches = email !== "" && typed.trim().toLowerCase() === email.toLowerCase();
+
+  function close() {
+    if (busy) return;
+    setOpen(false);
+    setTyped("");
+    setError(null);
+  }
+
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    const response = await fetch("/api/account/", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: typed }),
+    }).catch(() => null);
+    if (!response?.ok) {
+      setBusy(false);
+      setError("Your account could not be deleted. Nothing was removed; try again later.");
+      return;
+    }
+    // The route has cleared the cookies; this clears the browser's copy of the
+    // session, and the lists with it. A full load, so nothing of the account
+    // is left in memory.
+    await signOut();
+    window.location.replace("/");
+  }
+
+  return (
+    <div className="mt-5 border-t border-rule pt-4">
+      <button type="button" className="btn btn-secondary" onClick={() => setOpen(true)}>
+        Delete my account
+      </button>
+
+      {open && (
+        <Modal title="Delete your account?" onClose={close}>
+          <p className="text-sm text-ink-soft">
+            Your account and everything in it are removed permanently: words, phrases, verb
+            tables, grammar rules, flashcards and their history, tutor conversations and
+            settings. This cannot be undone. Save a backup first if you want to keep a copy.
+          </p>
+          <label htmlFor="delete-confirm" className="mt-4 mb-1.5 block text-sm font-medium">
+            Type your email address, {email}, to confirm
+          </label>
+          <input
+            id="delete-confirm"
+            type="email"
+            autoComplete="off"
+            className="field"
+            value={typed}
+            disabled={busy}
+            onChange={(event) => setTyped(event.target.value)}
+          />
+          {error && <p className="mt-3 text-sm text-red-700 dark:text-red-400" role="alert">{error}</p>}
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button type="button" className="btn btn-secondary" disabled={busy} onClick={close}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-danger" disabled={!matches || busy} onClick={() => void remove()}>
+              {busy ? "Deleting…" : "Delete my account"}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }
 
