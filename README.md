@@ -953,6 +953,28 @@ components actually execute. A deployed copy is the same list: sign in there and
 your words are the ones you saved, because local development and production use
 the same Supabase project.
 
+### Dashboard checklist after moving or renaming the domain
+
+These settings live in dashboards, not in the code, so no commit can change
+them and no test notices when they are wrong. After the move from GitHub
+Pages to Vercel the Supabase Site URL was left at `liezljvv74.github.io/definition-capture`, and
+nothing showed it until the owner tried a password reset on 13 October 2026
+and landed on GitHub's 404 page. Password sign-in never touches these
+settings, so only emailed links (reset, sign-in by link, sign-up
+confirmation) find the gap. Tick every box whenever the live address
+changes, and once now:
+
+- [ ] Supabase, Authentication, URL Configuration, **Site URL** is the live
+      origin (today `https://definition-capture.vercel.app`).
+- [ ] **Redirect URLs** list `/auth/callback` and `/auth/reset` on the live
+      origin and on `http://localhost:3000`, and nothing on an old address.
+- [ ] Cloudflare Turnstile: the widget's hostnames include the live one and
+      `localhost`.
+- [ ] Vercel: the environment variables listed above are set for
+      Production.
+- [ ] Try it: request a password reset on the live site, click the new
+      email's link once, and land on Choose a password.
+
 ## Layout of the code
 
 ```
