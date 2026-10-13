@@ -143,6 +143,9 @@ Where each value comes from:
 | `OPENROUTER_API_KEY` | <https://openrouter.ai/settings/keys> → Create Key (set a credit limit on it) |
 | `TUTOR_SIGNING_SECRET` | Made by you: `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` |
 | `OPENROUTER_MODEL` | Optional; an OpenRouter model slug, from <https://openrouter.ai/models> |
+| `RESEND_API_KEY` | <https://resend.com/api-keys> → Create API Key (Sending access) |
+| `FEEDBACK_TO` | The address the Feedback form emails. With the shared sender it must match the Resend account's address exactly, in lowercase: Resend refused `Liezl.Fourie@…` for `liezl.fourie@…` |
+| `FEEDBACK_FROM` | Optional; a sender on a domain verified in Resend. Unset, mail comes from `onboarding@resend.dev`, which Resend delivers only to the address the Resend account was opened with |
 
 
 ```bash
@@ -152,6 +155,9 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 OPENROUTER_API_KEY=
 TUTOR_SIGNING_SECRET=
 OPENROUTER_MODEL=
+RESEND_API_KEY=
+FEEDBACK_TO=
+FEEDBACK_FROM=
 ```
 
 The first three are compiled into the browser bundle and are meant to be public; row
@@ -291,7 +297,8 @@ anything in its own voice.
 The only keys in the browser bundle are public ones. `NEXT_PUBLIC_*` holds the
 project URL, the publishable key and the Turnstile site key. The project holds no
 service-role key at all, and the Turnstile secret lives only in the Supabase
-dashboard. The other secrets are `OPENROUTER_API_KEY` and `TUTOR_SIGNING_SECRET`, both
+dashboard. The other secrets are `OPENROUTER_API_KEY`, `TUTOR_SIGNING_SECRET` and
+`RESEND_API_KEY`, all
 read only in server code and never given a `NEXT_PUBLIC_` name. The signing
 secret keys the signatures on the tutor's answers, so that a made-up earlier
 answer cannot reach the model; changing it leaves older answers shown and
@@ -402,6 +409,14 @@ Vocabulary and Phrases), **Verbs**, **Grammar** and **Backup**, and at the right
 the display name and the gear that opens Settings. Below the `sm` breakpoint the
 four destinations move into a menu button; Backup and Settings stay in the bar.
 The menu closes on a link, on Escape, on a tap outside it, or on back and forward.
+
+A yellow star marked **Feedback** floats at the top right of every signed-in
+page, under the bar and in line with the logo in the bottom right corner. It
+opens a form: choose **Suggestion** or **Error**, give a name and an email
+address to reply to, write the details, and
+**Send** emails them to the owner through Resend (`POST /api/feedback`), with
+that address to reply to and the account's own beside it. It is for signed-in readers only, which is
+what keeps bots from filling the inbox.
 
 ### Home
 
