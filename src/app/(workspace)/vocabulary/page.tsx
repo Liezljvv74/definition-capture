@@ -21,6 +21,8 @@ import {
   ListShell,
   NoMatches,
   ROW_CONTROL,
+  REF_LINES,
+  ROW_REF,
   ROW_TEXT,
   SortHeader,
 } from "@/components/ListPage";
@@ -421,11 +423,11 @@ function EntryTable({
                     <EmptyCell />
                   )}
                 </td>
-                <td className={`${ROW_TEXT} truncate text-ink-soft`}>
+                <td className={`${ROW_REF} text-ink-soft`}>
                   {entry.ref ? (
-                    <span>
+                    <div className={REF_LINES}>
                       <RefText value={entry.ref} linkIndex={linkIndex} />
-                    </span>
+                    </div>
                   ) : (
                     <EmptyCell />
                   )}

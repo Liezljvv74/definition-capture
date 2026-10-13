@@ -717,6 +717,9 @@ table's notes and in a grammar rule's text.
 Wrapping punctuation is handled, so `(https://example.com).` links only the URL.
 Renaming a rule, word or phrase rewrites every `[[Old name]]` that points at it.
 Ref is searchable along with the other fields, and it is included in backups.
+In the Vocabulary and Phrases lists the Ref column uses smaller type and wraps
+to a second line within the row, so several links show without opening the
+item; anything past two lines is on the item's own page.
 
 ## Adding, editing and deleting
 
