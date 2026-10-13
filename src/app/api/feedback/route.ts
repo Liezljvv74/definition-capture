@@ -6,10 +6,11 @@
  * check a signed-out sender lives only in the Supabase dashboard.
  *
  * The address it goes to is `FEEDBACK_TO`, not written here, so the owner's
- * address is not in a public repository for anyone to collect. The reader's
- * name and the address they give go in the email, the address as `reply_to`
- * so the owner can answer with Reply; the account's own address goes in too,
- * in case the one given was mistyped.
+ * address is not in a public repository for anyone to collect. Name and email
+ * are optional (the owner's decision, 13 October 2026): the account's own
+ * address and user id, from the verified token, go in every email anyway, so
+ * the owner can always find the account in the Supabase dashboard. Reply goes
+ * to the address given, else to the account's.
  */
 
 import { NextResponse } from "next/server";
@@ -20,7 +21,7 @@ export const runtime = "nodejs";
 const FEEDBACK_KINDS = ["Suggestion", "Error"] as const;
 const FEEDBACK_MAX = 5000;
 const NAME_MAX = 100;
-/** Loose on purpose: a typo is the reader's loss, and Resend refuses what it cannot send to. */
+/** Loose on purpose: it only has to be worth replying to, and Resend refuses what it cannot send to. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const fail = (status: number, error: string) => NextResponse.json({ error }, { status });
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
   const { data } = (await supabase?.auth.getClaims()) ?? {};
   const userId = data?.claims?.sub;
   if (typeof userId !== "string") return fail(401, "signed_out");
-  const account = typeof data?.claims?.email === "string" ? data.claims.email : "no email on the account";
+  const account = typeof data?.claims?.email === "string" ? data.claims.email : undefined;
 
   let body: { kind?: unknown; name?: unknown; email?: unknown; details?: unknown };
   try {
@@ -44,7 +45,8 @@ export async function POST(request: Request) {
   const email = text(body?.email);
   const details = text(body?.details);
   if (!kind || !details || details.length > FEEDBACK_MAX) return fail(400, "bad_request");
-  if (!name || name.length > NAME_MAX || email.length > 254 || !EMAIL.test(email)) return fail(400, "bad_request");
+  if (name.length > NAME_MAX || (email && (email.length > 254 || !EMAIL.test(email)))) return fail(400, "bad_request");
+  const from = [name, email && `<${email}>`].filter(Boolean).join(" ") || "a reader who gave no name";
 
   const key = process.env.RESEND_API_KEY;
   const to = process.env.FEEDBACK_TO;
@@ -63,9 +65,9 @@ export async function POST(request: Request) {
       // to the address the Resend account was opened with.
       from: process.env.FEEDBACK_FROM || "Captured feedback <onboarding@resend.dev>",
       to,
-      reply_to: email,
+      reply_to: email || account,
       subject: `Captured feedback: ${kind}`,
-      text: `${kind} from ${name} <${email}>\nAccount: ${account} (user ${userId})\n\n${details}`,
+      text: `${kind} from ${from}\nAccount: ${account ?? "no email on the account"} (user ${userId})\n\n${details}`,
     }),
     signal: AbortSignal.timeout(10_000),
   }).catch(() => null);

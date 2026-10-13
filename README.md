@@ -410,13 +410,15 @@ the display name and the gear that opens Settings. Below the `sm` breakpoint the
 four destinations move into a menu button; Backup and Settings stay in the bar.
 The menu closes on a link, on Escape, on a tap outside it, or on back and forward.
 
-A yellow star marked **Feedback** floats at the top right of every signed-in
-page, under the bar and in line with the logo in the bottom right corner. It
-opens a form: choose **Suggestion** or **Error**, give a name and an email
-address to reply to, write the details, and
-**Send** emails them to the owner through Resend (`POST /api/feedback`), with
-that address to reply to and the account's own beside it. It is for signed-in readers only, which is
-what keeps bots from filling the inbox.
+A raised yellow star marked **Feedback** floats at the top right of every
+signed-in page, under the bar and in line with the logo in the bottom right
+corner. It opens a form: choose **Suggestion** or **Error**, write the details,
+and optionally give a name and an email address. **Send** emails it to the
+owner through Resend (`POST /api/feedback`). The account's own address and
+user id are always in the email, so the owner can find the account in the
+Supabase dashboard; Reply goes to the address given, else to the account's.
+It is for signed-in readers only, which is what keeps bots from filling the
+inbox.
 
 ### Home
 
