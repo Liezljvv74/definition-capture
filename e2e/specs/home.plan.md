@@ -18,7 +18,9 @@ The landing page at / is the app's only public page; the dashboard at /home is w
   1. Sign in and land on the dashboard
     - expect: the URL is /home and the heading starts "Welcome back"
     - expect: the "Ready for review" card is visible
-  2. Click the Vocabulary card
+  2. Look for the demo video
+    - expect: the "See it in use" heading is visible
+  3. Open Vocabulary from the Glossary menu
     - expect: the Vocabulary page opens
 
 #### 1.2. landing-is-public

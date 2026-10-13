@@ -353,6 +353,9 @@ describe("the matcher", () => {
       "/favicon.ico",
       "/captured-logo.png",
       "/captured-logo-bg.png",
+      "/captured-demo.mp4",
+      "/captured-demo.vtt",
+      "/captured-demo-poster.jpg",
     ]) {
       expect(matches(path)).toBe(false);
     }

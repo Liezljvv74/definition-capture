@@ -24,7 +24,7 @@ which one is named on the Tutor page.
 
 The public landing page, for visitors who are not signed in:
 
-![The public landing page drawn as lined notebook paper: the heading "Your personal repository for learning any language", Create an account and Sign in buttons, a "How you remember it" card with a Try one now flashcard, pasted-on cards for words, phrases, verb tables and grammar rules under Structured Notes, and the questions as dropdowns](assets/landing-page.png)
+![The public landing page drawn as lined notebook paper: the heading "Your personal repository for learning any language", Create an account and Sign in buttons, pasted-on cards for words, phrases, verb tables and grammar rules under Structured Notes, a "See it in use" video player, a "How you remember it" card with a Try one now flashcard, and the questions as dropdowns](assets/landing-page.png)
 
 ## Features
 
@@ -264,8 +264,8 @@ Being signed in is decided on the server, before a page exists.
 anyone without a session to the landing page, `/`, and sends anyone with one from `/`,
 `/sign-in` or `/sign-up` to `/home`. Only `/`, `/sign-in`, `/sign-up` and
 `/auth/*` are reachable signed out, plus the files the matcher skips: Next's
-static output, the logo images, `robots.txt`, `sitemap.xml`, `llms.txt` and the
-Open Graph image. `src/app/(workspace)/layout.tsx` then asks again, on the
+static output, the logo images, the demo video with its captions and poster,
+`robots.txt`, `sitemap.xml`, `llms.txt` and the Open Graph image. `src/app/(workspace)/layout.tsx` then asks again, on the
 server, before any page inside the group renders. Two checks, because one of them
 lives in a file whose matcher is easy to narrow by accident.
 
@@ -373,7 +373,11 @@ The dashboard runs as an administrator, which is the only way a plan changes.
 is, what it keeps, how the flashcards work (with a sample card to try, **Try one
 now**, which saves nothing) and that the lists are private, **Create an
 account** and **Sign in**, and a few questions
-as collapsible `<details>` dropdowns whose answers are still in the HTML. It reads
+as collapsible `<details>` dropdowns whose answers are still in the HTML. Under the
+heading, its buttons and Structured Notes, before everything else, **See it in
+use** plays a narrated two-minute tour of the app
+(`public/captured-demo.mp4`, with a poster image and an optional captions
+track), which loads only when someone presses play. It reads
 no session and is prerendered, and carries `WebApplication` and `FAQPage`
 structured data built from the same questions. `robots.ts` lets crawlers read the
 public pages and keeps them out of the workspace, `sitemap.ts` lists the three
@@ -425,8 +429,9 @@ and one query for recent items, and sized to fit one laptop window. From the top
   before, right under 80% of the time, or not yet learned, and longer than four
   letters). Pressing the word reveals its meaning in place.
 - **Recently captured**: the four newest items of any kind, each linked, one line each.
-- A card for each of the four lists with its count, and for Vocabulary how many
-  still need a definition.
+- **See it in use**: the narrated two-minute tour of the app, the same video as on
+  the landing page (`src/components/DemoVideo.tsx`). The four lists are reached
+  from the menu at the top.
 
 ### Vocabulary and Phrases
 
