@@ -66,8 +66,13 @@ export function AnswerCard({
       >
         {question}
       </p>
-      <div className="card space-y-3 p-4 [overflow-wrap:anywhere]">
-        <h2 className="hand-title text-lg">{reply.title}</h2>
+      {/* Labelled for people and, through the attribute, for software (EU AI
+          Act, Article 50(2)). A merged draft is this card too. */}
+      <div className="card space-y-3 p-4 [overflow-wrap:anywhere]" data-ai-generated="true">
+        <div>
+          <h2 className="hand-title text-lg">{reply.title}</h2>
+          <p className="text-xs text-ink-soft">AI-generated</p>
+        </div>
         {reply.blocks.map((block) => (
           <BlockView key={block.id} block={block} linkIndex={new Map()} />
         ))}

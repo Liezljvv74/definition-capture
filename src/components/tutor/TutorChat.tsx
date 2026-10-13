@@ -150,9 +150,12 @@ export function TutorChat(props: {
       <div>
         <h1 className="hand-title text-2xl sm:text-3xl"><span className="marker">Tutor</span></h1>
         {/* Only where a question can be asked: without a language, or past a
-            limit, no model is going to answer. */}
+            limit, no model is going to answer. It says "AI" plainly (EU AI
+            Act, Article 50(1)): "Tutor" alone reads as a person. */}
         {studiedName && reason === "ok" && (
-          <p className="mt-1 text-xs text-ink-soft" title={props.model.slug}>Model: {props.model.label}</p>
+          <p className="mt-1 text-sm text-ink-soft" title={props.model.slug}>
+            Answers are written by an AI model, {props.model.label}, and can be wrong.
+          </p>
         )}
       </div>
 

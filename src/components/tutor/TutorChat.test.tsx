@@ -16,15 +16,15 @@ const html = (props: Partial<Parameters<typeof TutorChat>[0]> = {}) =>
   renderToStaticMarkup(<TutorChat {...base} {...more} {...props} />);
 
 describe("TutorChat", () => {
-  it("names the model answering, with its slug on hover", () => {
+  it("says an AI model answers, naming it, with its slug on hover", () => {
     const out = html();
-    expect(out).toContain("Model: Claude Sonnet 5.5 by Anthropic");
+    expect(out).toContain("Answers are written by an AI model, Claude Sonnet 5.5 by Anthropic, and can be wrong.");
     expect(out).toContain('title="anthropic/claude-sonnet-5.5"');
   });
 
   it("does not name a model where no question can be asked", () => {
-    expect(html({ studiedName: null })).not.toContain("Model:");
-    expect(html({ reason: "dailyLimit" })).not.toContain("Model:");
+    expect(html({ studiedName: null })).not.toContain("AI model");
+    expect(html({ reason: "dailyLimit" })).not.toContain("AI model");
   });
 
   it("asks for a studied language, with a link to Settings and no question box", () => {
@@ -88,6 +88,7 @@ describe("TutorChat", () => {
     expect(out).toContain('href="https://www.duden.de/x"');
     expect(out.match(/Include in a rule/g)).toHaveLength(2);
     expect(out).toContain('id="e-1"');
+    expect(out.match(/data-ai-generated="true"/g)).toHaveLength(2);
   });
 
   it("disables an unticked box once the most a merge takes are ticked, and only then", () => {
@@ -143,6 +144,12 @@ describe("AnswerCard for a merged rule's draft", () => {
     expect(out).toContain("Save as rule");
     expect(out).toContain("Discard");
     expect(out).not.toContain("Include in a rule");
+  });
+
+  it("labels the draft as AI-generated, for people and in markup", () => {
+    const out = html();
+    expect(out).toContain("AI-generated");
+    expect(out).toContain('data-ai-generated="true"');
   });
 
   it("offers no Discard on an ordinary answer", () => {
