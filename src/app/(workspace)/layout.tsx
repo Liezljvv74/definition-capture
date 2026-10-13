@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { FeedbackButton } from "@/components/FeedbackButton";
 import { MainNav } from "@/components/MainNav";
 import { StoreErrorBanner } from "@/components/StoreErrorBanner";
 import { serverUserId } from "@/lib/supabaseServer";
@@ -42,6 +43,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
           on the sign-in page. */}
       <MainNav />
       <StoreErrorBanner />
+      <FeedbackButton />
       {children}
     </>
   );
