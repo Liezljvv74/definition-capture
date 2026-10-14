@@ -356,22 +356,3 @@ export function flagAfterAnswer({
   return flagged ? null : true;
 }
 
-/**
- * Marks an item as wanting another look, or clears the mark.
- *
- * Written straight to `items` rather than through a store. The list stores do
- * not hold the flag, and their saves leave it alone (`save_items` keeps it
- * when the key is absent), so a stale list cannot undo a mark made here. The
- * review screen is the honest place to set this, because it is where you find
- * out.
- */
-export async function setNeedsReview(itemId: string, value: boolean): Promise<void> {
-  const { error } = await client()
-    .from("items")
-    .update({ needs_review: value })
-    .eq("id", itemId);
-
-  if (error) {
-    throw new FlashcardError(`Could not mark that item: ${readError(error)}.`);
-  }
-}

@@ -24,6 +24,7 @@ const phrase: Phrase = {
   source: "Textbook",
   ref: "see [[der Mann]]",
   dateAdded: "2026-02-03T09:15:00.000Z",
+  needsReview: false,
 };
 
 /** An `items` row as `remoteStore` hands it over, source and collections flattened. */
@@ -73,5 +74,21 @@ describe("toPhrasePayload", () => {
 
   it("reads a phrase with no source as the default, as it always has", () => {
     expect(fromPhraseRow({ ...row, source: "" })?.source).toBe("Manual");
+  });
+});
+
+describe("the needs-review mark", () => {
+  it("is read off the row", () => {
+    expect(fromPhraseRow({ ...row, needs_review: true })?.needsReview).toBe(true);
+    expect(fromPhraseRow(row)?.needsReview).toBe(false);
+  });
+
+  it("is never sent with the phrase, so a save cannot clear a mark set elsewhere", () => {
+    // `save_items` keeps the stored mark only while the key is absent. A list
+    // loaded before Flashcards marked the phrase would otherwise unmark it on
+    // the next edit.
+    const payload = toPhrasePayload({ ...phrase, needsReview: true });
+    expect(payload).not.toHaveProperty("needs_review");
+    expect(payload).not.toHaveProperty("needsReview");
   });
 });

@@ -472,6 +472,12 @@ and a leading word from that language's skip list, usually an article such as
 that still need a definition are flagged in amber. A word or phrase can be in up
 to five collections.
 
+A **Needs review** checkbox narrows either list to the items marked for another
+look, and a marked item carries a small indigo **Review** tag after its name. It
+is the same mark Flashcards sets on a missed card, and it can also be set or
+cleared on the item's own page, so a mark made in one place shows in the others.
+It is not in a backup, any more than review history is.
+
 Both lists are written straight onto the notebook's lines: no box, one ruled line
 per row on a laptop, and on a phone each part of an entry on a line of its own.
 So that every row stays one line tall, long text is cut off at the end of its
@@ -480,7 +486,11 @@ filter bar sticks under the nav while scrolling and carries the ruling with it.
 Phrases is wider than the other pages, so its Phrase column has more room.
 
 Phrases mirrors that shape for multi-word expressions, with Phrase, Literal
-Meaning, Usage Example, Collection and Ref, and only Phrase required.
+Meaning, Usage Example, Collection and Ref, and only Phrase required. A blank
+meaning or example shows an amber **Needs meaning** or **Needs example** tag where
+it would be, and a **Needs meaning or example** checkbox narrows the list to those
+phrases. A phrase with only one of the two still makes a flashcard, so this finds
+unfinished phrases, not ones missing from the deck.
 
 Clicking a name opens that item's own page rather than the edit form. Editing has
 the pencil at the end of the row and the **Edit** button on the page itself; the
@@ -497,6 +507,7 @@ screen: the definition, or the literal meaning and usage example, on the left;
 Source and Collection, then Ref and Date added, as pairs on the right; and
 **Edit** beside the title. A speaker beside the title reads the word or phrase,
 and on a phrase's page another beside the usage example reads that sentence.
+A **Needs review** box beside the title sets or clears the item's review mark.
 Deleting is not offered; the lists own that. An unknown id shows a readable "not found" message rather than an
 error page. The old addresses `/terms` and `/term?id=…` redirect to `/vocabulary`
 and `/word?id=…`.

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddWordDialog } from "@/components/AddWordDialog";
-import { CollectionBadge, NeedsDefinitionBadge } from "@/components/Badges";
+import { CollectionBadge, NeedsDefinitionBadge, ReviewBadge } from "@/components/Badges";
 import {
   ConfirmDeleteDialog,
   RowDeleteButton,
@@ -81,6 +81,7 @@ export default function VocabularyPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [onlyNeedsDefinition, setOnlyNeedsDefinition] = useState(false);
+  const [onlyNeedsReview, setOnlyNeedsReview] = useState(false);
   /** Empty means every collection; otherwise the one being shown. */
   const [collection, setCollection] = useState("");
   // Alphabetical by word, looking past a leading word from the skip list in
@@ -132,6 +133,7 @@ export default function VocabularyPage() {
     const wanted = foldName(collection);
     return sorted.filter((entry) => {
       if (onlyNeedsDefinition && !entry.needsDefinition) return false;
+      if (onlyNeedsReview && !entry.needsReview) return false;
       if (wanted && !entry.collections.some((name) => foldName(name) === wanted)) {
         return false;
       }
@@ -142,7 +144,7 @@ export default function VocabularyPage() {
         foldName(entry.ref).includes(needle)
       );
     });
-  }, [sorted, deferredQuery, onlyNeedsDefinition, collection]);
+  }, [sorted, deferredQuery, onlyNeedsDefinition, onlyNeedsReview, collection]);
 
   // Selection, the row being edited, and the names the delete dialog lists,
   // the four pieces the phrase page also needs, and the ones where the two
@@ -158,7 +160,8 @@ export default function VocabularyPage() {
 
   const { linkIndex } = useLinkTargets();
   const missingCount = entries.filter((entry) => entry.needsDefinition).length;
-  const isFiltered = query.trim() !== "" || onlyNeedsDefinition || collection !== "";
+  const isFiltered =
+    query.trim() !== "" || onlyNeedsDefinition || onlyNeedsReview || collection !== "";
 
   function toggleSort(key: SortKey) {
     setSort((current) =>
@@ -242,6 +245,16 @@ export default function VocabularyPage() {
                 Needs definition
               </label>
 
+              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-accent"
+                  checked={onlyNeedsReview}
+                  onChange={(event) => setOnlyNeedsReview(event.target.checked)}
+                />
+                Needs review
+              </label>
+
               {/* Last in the row and pushed to the end, so the controls that
                   narrow the list read left to right and the one that adds to
                   it sits apart from them. */}
@@ -261,6 +274,7 @@ export default function VocabularyPage() {
                 onClear={() => {
                   setQuery("");
                   setOnlyNeedsDefinition(false);
+                  setOnlyNeedsReview(false);
                   setCollection("");
                 }}
               />
@@ -408,6 +422,7 @@ function EntryTable({
                   >
                     {entry.word}
                   </Link>
+                  {entry.needsReview && <> <ReviewBadge /></>}
                 </td>
                 <td className={`${ROW_TEXT} truncate text-ink`} title={entry.definition || undefined}>
                   {entry.needsDefinition ? <NeedsDefinitionBadge /> : entry.definition}
@@ -492,6 +507,7 @@ function EntryCards({
                   {entry.word}
                 </Link>
               </h2>
+              {entry.needsReview && <ReviewBadge />}
               <span className="min-w-0 flex-1 truncate text-ink-soft">
                 {entry.needsDefinition ? <NeedsDefinitionBadge /> : entry.definition}
               </span>

@@ -66,6 +66,18 @@ export type RemoteStore<T> = {
   insertMany: (items: T[]) => void;
   /** Replace many existing items in one write: the merge half of an import. */
   updateMany: (items: T[]) => void;
+  /**
+   * Marks an item as wanting another look, or clears the mark, writing that
+   * one column and nothing else. Resolves to whether the write landed, for
+   * the flashcard that has to put its tick back if it did not.
+   *
+   * Only the word and phrase stores hand this out: they are the lists whose
+   * items carry `needsReview`. It lives here rather than in each of them so
+   * the mark goes through the same optimistic write and the same banner as
+   * every other change to a list, and so Flashcards, which sets it too,
+   * updates the list on screen instead of writing behind its back.
+   */
+  setNeedsReview: (id: string, value: boolean) => Promise<boolean>;
   /** Clear the error banner. */
   clearError: () => void;
   /**
@@ -457,9 +469,9 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
    * Optimistic write: the cache is already updated by the caller, so this only
    * has to report a failure and put the truth back.
    */
-  function send(work: PromiseLike<{ error: unknown }>): void {
+  function send(work: PromiseLike<{ error: unknown }>): Promise<boolean> {
     const settling = Promise.resolve(work).then(({ error }) => {
-      if (!error) return;
+      if (!error) return true;
       // The whole sentence is built here rather than half of it in the banner,
       // because a read failure and a write failure need different second
       // halves: only this one undoes something the reader just did.
@@ -468,10 +480,12 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
           "reloaded from the database, so anything you just changed may need doing again.",
       );
       reload();
+      return false;
     });
 
     inFlight.add(settling);
     void settling.finally(() => inFlight.delete(settling));
+    return settling;
   }
 
   /**
@@ -632,11 +646,17 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
       const supabase = getSupabase();
       if (!supabase) return;
 
-      send(
+      // Read back once it has landed. The file never carries a needs-review
+      // mark, and `save_items` keeps the one already stored, so without the
+      // read a restored word would show unmarked while the database, and the
+      // next deck, still had it marked.
+      void send(
         saveItems(supabase, items).then(({ error }) =>
           error || doomed.length === 0 ? { error } : deleteIds(supabase, doomed),
         ),
-      );
+      ).then((landed) => {
+        if (landed) reload();
+      });
     },
 
     insertMany(items) {
@@ -665,6 +685,28 @@ export function createRemoteStore<T>(config: RemoteStoreConfig<T>): RemoteStore<
 
       const supabase = getSupabase();
       if (supabase) send(saveItems(supabase, items));
+    },
+
+    setNeedsReview(id, value) {
+      if (!currentUserId()) return Promise.resolve(false);
+      setItems(
+        snapshot.items.map((item) =>
+          config.idOf(item) === id ? { ...item, needsReview: value } : item,
+        ),
+      );
+
+      const supabase = getSupabase();
+      if (!supabase) return Promise.resolve(false);
+      // A plain update rather than `save_items`, which would want the whole
+      // item. `set_updated_at` ignores this column, so marking a word does not
+      // count as editing it.
+      return send(
+        supabase
+          .from("items")
+          .update({ needs_review: value })
+          .eq("item_type", config.itemType)
+          .eq("id", id),
+      );
     },
 
     clearError() {

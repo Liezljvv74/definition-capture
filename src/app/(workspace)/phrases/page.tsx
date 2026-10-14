@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import { AddPhraseDialog } from "@/components/AddPhraseDialog";
-import { CollectionBadge } from "@/components/Badges";
+import { CollectionBadge, NeedsDefinitionBadge, ReviewBadge } from "@/components/Badges";
 import {
   ConfirmDeleteDialog,
   RowDeleteButton,
@@ -34,7 +34,7 @@ import { collectionOptions } from "@/lib/collectionOptions";
 import { foldName } from "@/lib/foldName";
 import { plural } from "@/lib/home";
 import type { LinkIndex } from "@/lib/links";
-import type { Phrase } from "@/lib/types";
+import { needsDefinition, type Phrase } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
 import { useListPage } from "@/lib/useListPage";
 import { type ListSelection } from "@/lib/useListSelection";
@@ -47,6 +47,14 @@ import { studiedParts } from "@/lib/speech";
  *  memoises against them. */
 const idOfPhrase = (phrase: Phrase) => phrase.id;
 const nameOfPhrase = (phrase: Phrase) => phrase.phrase;
+
+/**
+ * A phrase missing its meaning or its example, by the blank test a word's
+ * definition uses. Either one alone still makes a flashcard, so this means
+ * unfinished, not "no card".
+ */
+const isIncomplete = (phrase: Phrase) =>
+  needsDefinition(phrase.literalMeaning) || needsDefinition(phrase.usageExample);
 
 type PhraseSortKey = "phrase" | "literalMeaning";
 /** null keeps the order phrases were added in, newest first. */
@@ -75,6 +83,8 @@ export default function PhrasesPage() {
   const [query, setQuery] = useState("");
   /** Empty means every collection; otherwise the one being shown. */
   const [collection, setCollection] = useState("");
+  const [onlyIncomplete, setOnlyIncomplete] = useState(false);
+  const [onlyNeedsReview, setOnlyNeedsReview] = useState(false);
   const [sort, setSort] = useState<PhraseSort>(null);
 
   /** The same rule the vocabulary page uses; see `collectionOptions`. */
@@ -114,6 +124,8 @@ export default function PhrasesPage() {
     const needle = foldName(deferredQuery);
     const wanted = foldName(collection);
     return sorted.filter((phrase) => {
+      if (onlyIncomplete && !isIncomplete(phrase)) return false;
+      if (onlyNeedsReview && !phrase.needsReview) return false;
       if (wanted && !phrase.collections.some((name) => foldName(name) === wanted)) {
         return false;
       }
@@ -122,7 +134,7 @@ export default function PhrasesPage() {
         (field) => foldName(field).includes(needle),
       );
     });
-  }, [sorted, deferredQuery, collection]);
+  }, [sorted, deferredQuery, collection, onlyIncomplete, onlyNeedsReview]);
 
   // The same four pieces the word page uses; see `useListPage`.
   const {
@@ -133,6 +145,8 @@ export default function PhrasesPage() {
     setPendingDelete,
     pendingNames,
   } = useListPage(visible, idOfPhrase, nameOfPhrase);
+
+  const isFiltered = query.trim() !== "" || onlyIncomplete || onlyNeedsReview || collection !== "";
 
   return (
     <>
@@ -188,6 +202,26 @@ export default function PhrasesPage() {
                 onChange={setCollection}
               />
 
+              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-accent"
+                  checked={onlyIncomplete}
+                  onChange={(event) => setOnlyIncomplete(event.target.checked)}
+                />
+                Needs meaning or example
+              </label>
+
+              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-accent"
+                  checked={onlyNeedsReview}
+                  onChange={(event) => setOnlyNeedsReview(event.target.checked)}
+                />
+                Needs review
+              </label>
+
               <button
                 type="button"
                 className="btn btn-primary shrink-0 sm:ml-auto"
@@ -200,10 +234,12 @@ export default function PhrasesPage() {
             {visible.length === 0 ? (
               <NoMatches
                 noun="phrase"
-                hint="Try different wording, or another collection."
+                hint="Try different wording, or clear the filters below."
                 onClear={() => {
                   setQuery("");
                   setCollection("");
+                  setOnlyIncomplete(false);
+                  setOnlyNeedsReview(false);
                 }}
               />
             ) : (
@@ -242,7 +278,7 @@ export default function PhrasesPage() {
                     onDelete={(id) => setPendingDelete([id])}
                   />
                 )}
-                {query.trim() !== "" && (
+                {isFiltered && (
                   <p className="mt-3 text-xs text-ink-soft">
                     Showing {visible.length} of {phrases.length} phrases.
                   </p>
@@ -363,19 +399,20 @@ function PhraseTable({
                   >
                     {phrase.phrase}
                   </Link>
+                  {phrase.needsReview && <> <ReviewBadge /></>}
                 </td>
                 <td className={`${ROW_TEXT} truncate text-ink`} title={phrase.literalMeaning || undefined}>
-                  {phrase.literalMeaning ? (
-                    phrase.literalMeaning
+                  {needsDefinition(phrase.literalMeaning) ? (
+                    <NeedsDefinitionBadge label="Needs meaning" />
                   ) : (
-                    <EmptyCell />
+                    phrase.literalMeaning
                   )}
                 </td>
                 <td className={`${ROW_TEXT} truncate text-ink`} title={phrase.usageExample || undefined}>
-                  {phrase.usageExample ? (
-                    <span className="italic">{phrase.usageExample}</span>
+                  {needsDefinition(phrase.usageExample) ? (
+                    <NeedsDefinitionBadge label="Needs example" />
                   ) : (
-                    <EmptyCell />
+                    <span className="italic">{phrase.usageExample}</span>
                   )}
                 </td>
                 <td className={ROW_TEXT}>
@@ -459,6 +496,7 @@ function PhraseCards({
                     {phrase.phrase}
                   </Link>
                 </h2>
+                {phrase.needsReview && <ReviewBadge />}
                 <div className="-mr-1 flex shrink-0 items-center gap-0.5">
                   <SpeakButton speechKey={`phrase:${phrase.id}`} label={phrase.phrase} parts={() => studiedParts(phrase.phrase)} />
                   <RowEditButton label={phrase.phrase} onClick={() => onEdit(phrase.id)} />
@@ -470,6 +508,12 @@ function PhraseCards({
                   {phrase.collections.map((name) => (
                     <CollectionBadge key={name} name={name} />
                   ))}
+                </div>
+              )}
+              {isIncomplete(phrase) && (
+                <div className="flex h-8 items-center gap-1">
+                  {needsDefinition(phrase.literalMeaning) && <NeedsDefinitionBadge label="Needs meaning" />}
+                  {needsDefinition(phrase.usageExample) && <NeedsDefinitionBadge label="Needs example" />}
                 </div>
               )}
               {phrase.literalMeaning && (

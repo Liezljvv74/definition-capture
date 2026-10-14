@@ -10,6 +10,7 @@ import { LinkedFrom } from "@/components/LinkedFrom";
 import { SpeakButton } from "@/components/SpeakButton";
 import { RefText } from "@/components/RefText";
 import type { LinkIndex } from "@/lib/links";
+import { setPhraseNeedsReview } from "@/lib/phraseStorage";
 import type { Phrase } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
 import { usePhrases } from "@/lib/usePhrases";
@@ -71,6 +72,17 @@ function PhraseDetailCard({
             <span className="marker section-green">{phrase.phrase}</span>
           </h1>
           <SpeakButton speechKey={`phrase-page:${phrase.id}`} label={phrase.phrase} parts={() => studiedParts(phrase.phrase)} className="mt-1" />
+          {/* The same mark Flashcards sets when a card is missed, so it can be
+              set or cleared here too, without starting a deck. */}
+          <label className="mt-2 flex shrink-0 cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
+            <input
+              type="checkbox"
+              className="size-4 accent-accent"
+              checked={phrase.needsReview}
+              onChange={(event) => void setPhraseNeedsReview(phrase.id, event.target.checked)}
+            />
+            Needs review
+          </label>
           {/* Editing is offered here so a cross-link that lands on a typo can
               fix it on the spot. Deleting is not: the list owns that. */}
           <button type="button" className="btn btn-primary ml-auto" onClick={() => setIsEditing(true)}>

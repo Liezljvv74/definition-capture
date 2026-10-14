@@ -12,6 +12,7 @@ import { RefText } from "@/components/RefText";
 import type { LinkIndex } from "@/lib/links";
 import type { Entry } from "@/lib/types";
 import { useLinkTargets } from "@/lib/useLinkTargets";
+import { setWordNeedsReview } from "@/lib/storage";
 import { useWords } from "@/lib/useWords";
 import { studiedParts } from "@/lib/speech";
 
@@ -68,6 +69,17 @@ function EntryDetail({ entry, linkIndex }: { entry: Entry; linkIndex: LinkIndex 
           </h1>
           <SpeakButton speechKey={`word-page:${entry.id}`} label={entry.word} parts={() => studiedParts(entry.word)} className="mt-1" />
           {entry.needsDefinition && <NeedsDefinitionBadge />}
+          {/* The same mark Flashcards sets when a card is missed, so it can be
+              set or cleared here too, without starting a deck. */}
+          <label className="mt-2 flex shrink-0 cursor-pointer items-center gap-2 text-sm text-ink-soft select-none">
+            <input
+              type="checkbox"
+              className="size-4 accent-accent"
+              checked={entry.needsReview}
+              onChange={(event) => void setWordNeedsReview(entry.id, event.target.checked)}
+            />
+            Needs review
+          </label>
           {/* Editing is offered here so a cross-link that lands on a typo can
               fix it on the spot. Deleting is not: the word list owns that. */}
           <button type="button" className="btn btn-primary ml-auto" onClick={() => setIsEditing(true)}>

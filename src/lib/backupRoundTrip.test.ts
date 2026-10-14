@@ -27,7 +27,7 @@ const entry: Entry = {
   source: "Manual",
   dateAdded: "2026-01-01T00:00:00.000Z",
   dateUpdated: "2026-02-02T00:00:00.000Z",
-  needsDefinition: false,
+  needsDefinition: false, needsReview: false,
 };
 
 const phrase: Phrase = {
@@ -39,6 +39,7 @@ const phrase: Phrase = {
   source: "Textbook",
   ref: "",
   dateAdded: "2026-02-03T09:15:00.000Z",
+  needsReview: false,
 };
 
 const table: VerbTable = {
