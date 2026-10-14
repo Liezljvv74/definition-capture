@@ -75,6 +75,8 @@ export function parsePhrase(raw: unknown, allowMissingId = false): Phrase | null
     // the import stands in today's, exactly as the word list does. The
     // alternative, an empty string, would show as a blank field forever.
     dateAdded: readString(value.dateAdded) || new Date().toISOString(),
+    // Not in a backup; see `parseEntry`.
+    needsReview: false,
   };
 }
 
@@ -103,6 +105,7 @@ export function fromPhraseRow(row: Record<string, unknown>): Phrase | null {
     // blank Date added forever if it did, the same stand-in `parsePhrase`
     // makes for a file that predates the field.
     dateAdded: readString(row.created_at) || new Date().toISOString(),
+    needsReview: row.needs_review === true,
   };
 }
 
@@ -120,6 +123,7 @@ export function toPhrasePayload(phrase: Phrase): Record<string, unknown> {
     // date it was restored, and an edit cannot move a date the form never
     // showed.
     created_at: phrase.dateAdded,
+    // No `needsReview`, for the reason `toWordPayload` gives.
   };
 }
 
@@ -141,6 +145,7 @@ export const {
   reload,
   items: getPhrases,
   updateMany: updatePhrases,
+  setNeedsReview: setPhraseNeedsReview,
 } = store;
 
 /* --------------------------------------------------------------- mutations */
@@ -163,6 +168,7 @@ export function createPhrase(input: PhraseInput): Phrase {
     id: crypto.randomUUID(),
     ...clean(input),
     dateAdded: new Date().toISOString(),
+    needsReview: false,
   };
   store.insert(phrase);
   return phrase;
@@ -196,5 +202,11 @@ export const findByPhrase = store.findByName;
 
 /** Matches on the phrase text, mirroring how the word list matches on words. */
 export function importPhrases(incoming: Phrase[], mode: ImportMode): ImportCounts {
-  return importInto(store, incoming, mode, (existing, candidate) => ({ ...candidate, id: existing.id }));
+  // The mark is the existing phrase's: the file has none, and the database
+  // keeps the stored one, so taking the file's would show it cleared.
+  return importInto(store, incoming, mode, (existing, candidate) => ({
+    ...candidate,
+    id: existing.id,
+    needsReview: existing.needsReview,
+  }));
 }

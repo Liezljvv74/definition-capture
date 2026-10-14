@@ -59,6 +59,9 @@ export function parseEntry(raw: unknown, allowMissingId = false): Entry | null {
     dateAdded: readString(value.dateAdded) || new Date().toISOString(),
     dateUpdated: typeof value.dateUpdated === "string" ? value.dateUpdated : null,
     needsDefinition: needsDefinition(definition),
+    // A backup does not carry the mark, as it does not carry review history:
+    // it records how the learning is going, not the notes themselves.
+    needsReview: false,
   };
 }
 
@@ -130,6 +133,7 @@ export function fromWordRow(row: Record<string, unknown>): Entry | null {
     dateUpdated: updatedAt && updatedAt !== dateAdded ? updatedAt : null,
     // Never trusted from storage, recomputed from the text, same as before.
     needsDefinition: needsDefinition(definition),
+    needsReview: row.needs_review === true,
   };
 }
 
@@ -145,6 +149,10 @@ export function toWordPayload(entry: Entry): Record<string, unknown> {
     // existing one the database keeps `created_at` and sets `updated_at`.
     created_at: entry.dateAdded,
     updated_at: entry.dateUpdated ?? undefined,
+    // `needsReview` is left out on purpose. `save_items` keeps the stored
+    // mark when the key is absent, so an edit made from a list loaded before
+    // Flashcards marked the word, or an import, cannot clear it. The mark is
+    // written only by `setNeedsReview`.
   };
 }
 
@@ -166,6 +174,7 @@ export const {
   reload,
   items: getEntries,
   updateMany: updateEntries,
+  setNeedsReview: setWordNeedsReview,
 } = store;
 
 /* --------------------------------------------------------------- mutations */
@@ -190,6 +199,7 @@ export function createEntry(input: EntryInput): Entry {
     ...clean(input),
     dateAdded: new Date().toISOString(),
     dateUpdated: null,
+    needsReview: false,
   };
   store.insert(entry);
   return entry;

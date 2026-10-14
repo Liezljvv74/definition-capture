@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { buildLinkIndex, linkTargets } from "@/lib/links";
 
 const targets = linkTargets(
-  [{ id: "w1", word: "geben", definition: "", ref: "[[Dativ]]", collections: [], source: "Manual", dateAdded: "", dateUpdated: null, needsDefinition: false }],
+  [{ id: "w1", word: "geben", definition: "", ref: "[[Dativ]]", collections: [], source: "Manual", dateAdded: "", dateUpdated: null, needsDefinition: false, needsReview: false }],
   [],
   [],
   [{ id: "r1", title: "Dativ", topic: "Cases", blocks: [], dateAdded: "", dateUpdated: null }],

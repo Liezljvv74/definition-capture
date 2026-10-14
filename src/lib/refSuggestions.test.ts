@@ -25,7 +25,7 @@ describe("suggestRefs", () => {
 describe("suggestRefs, leaving out the item being edited", () => {
   const word = {
     id: "w", word: "arbeiten", definition: "", ref: "", collections: [], source: "Manual",
-    dateAdded: "", dateUpdated: null, needsDefinition: false,
+    dateAdded: "", dateUpdated: null, needsDefinition: false, needsReview: false,
   };
   const arbeiten: VerbTable = { ...table, id: "t2", verb: "arbeiten" };
 

@@ -37,10 +37,25 @@ export function CollectionBadge({
   );
 }
 
-export function NeedsDefinitionBadge() {
+/** A field left blank: a word's definition, a phrase's meaning or example. */
+export function NeedsDefinitionBadge({ label = "Needs definition" }: { label?: string }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-md border border-amber-400 bg-amber-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">
-      <span aria-hidden="true">!</span> Needs definition
+      <span aria-hidden="true">!</span> {label}
+    </span>
+  );
+}
+
+/**
+ * Marked for another look. The accent, not amber, so it does not read as
+ * one more blank field, and not red, which the app keeps for warnings. The
+ * link colour rather than the accent itself, which is too dark to read on
+ * the dark notebook.
+ */
+export function ReviewBadge() {
+  return (
+    <span className="inline-flex items-center rounded-md border border-link bg-accent/10 px-1.5 py-0.5 align-middle font-sans text-xs leading-none font-medium whitespace-nowrap text-link">
+      Review
     </span>
   );
 }

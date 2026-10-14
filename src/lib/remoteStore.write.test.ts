@@ -349,6 +349,9 @@ describe("replaceAll, which a restore uses", () => {
    * under the same id. It now saves the file over the top first, and then
    * deletes only what the file does not have.
    */
+  /** What the restore wrote, leaving out the read that follows it. */
+  const writes = () => fake.calls.filter((call) => call.verb !== "select");
+
   const seed = async (store: ReturnType<typeof make>, ids: string[]) => {
     store.insertMany(ids.map((id) => ({ id, name: id.toUpperCase() })));
     await store.settled();
@@ -365,7 +368,7 @@ describe("replaceAll, which a restore uses", () => {
     ]);
     await store.settled();
 
-    expect(fake.calls.map((call) => call.verb)).toEqual(["rpc", "delete"]);
+    expect(writes().map((call) => call.verb)).toEqual(["rpc", "delete"]);
     expect(fake.of("rpc")[0].table).toBe("save_items");
     expect(fake.of("rpc")[0].rows?.map((row) => row.id)).toEqual(["a", "d"]);
     // "a" stays, so it is saved over rather than deleted: its history survives.
@@ -380,7 +383,20 @@ describe("replaceAll, which a restore uses", () => {
     store.replaceAll([{ id: "a", name: "A" }]);
     await store.settled();
 
-    expect(fake.calls.map((call) => call.verb)).toEqual(["rpc"]);
+    expect(writes().map((call) => call.verb)).toEqual(["rpc"]);
+  });
+
+  it("reads the list back once the file has landed", async () => {
+    // The file carries no needs-review mark and the database keeps the one it
+    // has, so only a read shows a restored word as still marked.
+    const store = make();
+    await seed(store, ["a"]);
+    fake.answers.select = [ok([{ id: "a", name: "A", created_at: "2026-01-01T00:00:00Z" }])];
+
+    store.replaceAll([{ id: "a", name: "A" }]);
+    await store.settled();
+    await until(() => fake.of("select").length === 1, "the read back");
+    expect(fake.calls.map((call) => call.verb)).toEqual(["rpc", "select"]);
   });
 
   it("deletes the whole list, and nothing else, for an empty file", async () => {
@@ -406,6 +422,44 @@ describe("replaceAll, which a restore uses", () => {
 
     expect(fake.of("delete")).toHaveLength(0);
     expect(store.getError()).toContain("denied");
+  });
+});
+
+describe("setNeedsReview", () => {
+  const marked = (store: ReturnType<typeof make>, id: string) =>
+    (store.items().find((item) => item.id === id) as { needsReview?: boolean } | undefined)
+      ?.needsReview;
+
+  it("shows the mark at once and writes that one column of that one item", async () => {
+    const store = make();
+    store.insertMany([{ id: "a", name: "A" }, { id: "b", name: "B" }]);
+    await store.settled();
+    fake.calls.length = 0;
+
+    const landed = store.setNeedsReview("a", true);
+    expect(marked(store, "a")).toBe(true);
+    expect(marked(store, "b")).toBeUndefined();
+    expect(await landed).toBe(true);
+
+    // An update, not `save_items`: nothing else about the word is sent, so a
+    // mark cannot carry a stale copy of the rest of it back to the database.
+    expect(fake.calls).toHaveLength(1);
+    expect(fake.calls[0]).toMatchObject({
+      verb: "update",
+      table: "items",
+      rows: [{ needs_review: true }],
+      eq: { item_type: "word", id: "a" },
+    });
+  });
+
+  it("says when it did not land, and reloads", async () => {
+    const store = make();
+    fake.answers.update = [fails("denied")];
+    fake.answers.select = [ok([])];
+
+    expect(await store.setNeedsReview("a", true)).toBe(false);
+    expect(store.getError()).toContain("denied");
+    await until(() => fake.of("select").length > 0, "the reload");
   });
 });
 

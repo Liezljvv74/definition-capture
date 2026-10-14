@@ -19,6 +19,11 @@ export type Entry = {
   dateUpdated: string | null;
   /** Always derived from `definition`, true when there is nothing written yet. */
   needsDefinition: boolean;
+  /**
+   * Marked for another look, in Flashcards or on the word's page. Read from
+   * the row and never sent back with the word: see `toWordPayload`.
+   */
+  needsReview: boolean;
 };
 
 /** The editable fields a form hands back; everything else is managed for you. */
@@ -61,6 +66,8 @@ export type Phrase = {
    * from a reader who has asked for one phrase.
    */
   dateAdded: string;
+  /** Marked for another look; the same mark, kept the same way, as a word's. */
+  needsReview: boolean;
 };
 
 export type PhraseInput = {

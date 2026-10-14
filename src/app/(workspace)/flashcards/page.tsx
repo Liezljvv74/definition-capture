@@ -11,11 +11,12 @@ import {
   flagAfterAnswer,
   FlashcardError,
   loadDeck,
-  setNeedsReview,
   type Card,
   type Outcome,
 } from "@/lib/flashcards";
 import { judgeAnswer } from "@/lib/judgeAnswer";
+import { setPhraseNeedsReview } from "@/lib/phraseStorage";
+import { setWordNeedsReview } from "@/lib/storage";
 import { useSettings } from "@/lib/useSettings";
 
 export default function FlashcardsPage() {
@@ -233,15 +234,18 @@ function CardFace({
     onFinished("wrong");
   }
 
+  /**
+   * Through the item's own list, so Vocabulary or Phrases shows the mark
+   * without waiting for a reload; a failure there puts up the banner. Only
+   * words and phrases make cards, which is why there are two stores to pick
+   * from.
+   */
   async function mark(next: boolean) {
     setMarked(next);
-    try {
-      await setNeedsReview(card.id, next);
-    } catch {
-      // Put the tick back where it was rather than claiming a mark that did
-      // not land.
-      setMarked(!next);
-    }
+    const write = card.itemType === "phrase" ? setPhraseNeedsReview : setWordNeedsReview;
+    // Put the tick back where it was rather than claiming a mark that did
+    // not land.
+    if (!(await write(card.id, next))) setMarked(!next);
   }
 
   const face =

@@ -15,11 +15,11 @@ import type { Entry, Phrase, Rule, VerbTable } from "@/lib/types";
 
 const word = (id: string, name: string, ref = ""): Entry => ({
   id, word: name, definition: "", ref, collections: [], source: "Manual",
-  dateAdded: "2026-01-01T00:00:00.000Z", dateUpdated: null, needsDefinition: false,
+  dateAdded: "2026-01-01T00:00:00.000Z", dateUpdated: null, needsDefinition: false, needsReview: false,
 });
 const phrase = (id: string, name: string, ref = ""): Phrase => ({
   id, phrase: name, literalMeaning: "", usageExample: "", collections: [], source: "Manual",
-  dateAdded: "2026-01-01T00:00:00.000Z", ref,
+  dateAdded: "2026-01-01T00:00:00.000Z", ref, needsReview: false,
 });
 const table = (id: string, verb: string, ref = ""): VerbTable => ({
   id, verb, tenses: [""], rows: [], createdAt: "2026-01-01T00:00:00.000Z", ref,

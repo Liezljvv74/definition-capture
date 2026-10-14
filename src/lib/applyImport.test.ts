@@ -77,7 +77,7 @@ const word = (text: string): Entry => ({
   source: "Manual",
   dateAdded: "2026-01-01T00:00:00.000Z",
   dateUpdated: null,
-  needsDefinition: false,
+  needsDefinition: false, needsReview: false,
 });
 
 const phrase = (text: string): Phrase => ({
@@ -89,6 +89,7 @@ const phrase = (text: string): Phrase => ({
   source: "Manual",
   dateAdded: "2026-01-01T00:00:00.000Z",
   ref: "",
+  needsReview: false,
 });
 
 const rule = (title: string): Rule => ({
