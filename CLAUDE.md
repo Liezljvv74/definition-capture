@@ -194,7 +194,7 @@ public JWKS, since this project signs with an asymmetric ECC key. `serverUserId(
 in `src/lib/supabaseServer.ts` is the wrapper to use.
 
 **Workspace routes require a signed-in user.** Everything except the public
-landing page `/`, `/sign-in`, `/sign-up`, `/auth/*` and the crawler files
+landing page `/`, `/sign-in`, `/sign-up`, `/auth/*`, `/privacy` and the crawler files
 (`robots.txt`, `sitemap.xml`, `llms.txt`, `opengraph-image`) lives under
 `src/app/(workspace)/`. `/` is matched exactly in `isPublic` in `src/proxy.ts`,
 since as a prefix it would make every path public, and the crawler files are

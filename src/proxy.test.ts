@@ -222,6 +222,8 @@ describe("signed out", () => {
     "/sign-up/",
     "/auth/callback",
     "/auth/callback/",
+    "/privacy",
+    "/privacy/",
   ]) {
     it(`lets ${path} through`, async () => {
       const response = await ask(path);
@@ -248,6 +250,7 @@ describe("signed out: a public prefix is not a public page", () => {
     "/sign-inx",
     "/authx/",
     "/authentication/",
+    "/privacy-secret/",
     "/vocabulary/sign-in/",
     "/vocabulary//",
   ]) {

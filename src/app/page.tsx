@@ -224,6 +224,12 @@ export default function LandingPage() {
         </div>
       </main>
 
+      <footer className="notebook-page mx-auto w-full max-w-6xl pb-8 text-sm">
+        <Link href="/privacy" className="text-link underline">
+          Privacy
+        </Link>
+      </footer>
+
       <script
         type="application/ld+json"
         // Escaped so no answer text can close the script element early.

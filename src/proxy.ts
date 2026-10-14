@@ -26,7 +26,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Reachable without a session. Everything else is the workspace. */
-const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/auth"];
+const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/auth", "/privacy"];
 
 /** The two that make no sense to somebody who is already signed in. */
 const SIGNED_OUT_ONLY = ["/sign-in", "/sign-up"];
