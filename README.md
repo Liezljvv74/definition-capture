@@ -393,8 +393,8 @@ public pages and keeps them out of the workspace, `sitemap.ts` lists the four
 public pages, `opengraph-image.tsx` draws the preview image, and `public/llms.txt`
 describes the app in plain text. Every workspace page is marked `noindex`.
 
-**Privacy** at the foot of the landing page, and beside Delete my account in
-Settings, opens `/privacy` (`src/app/privacy/page.tsx`): who is responsible for
+**Privacy**, a link fixed in the bottom left corner of every page (set in the
+root layout, opposite the logo), opens `/privacy` (`src/app/privacy/page.tsx`): who is responsible for
 the data under the GDPR and how to reach them, what is stored, why, which services
 handle it (Supabase, Vercel, OpenRouter with Anthropic, Qwen and Exa, Cloudflare
 Turnstile, Resend), how long it is kept, and the reader's rights. It is written

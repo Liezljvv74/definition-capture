@@ -987,9 +987,6 @@ function DeleteAccount({ email }: { email: string }) {
       <button type="button" className="btn btn-secondary" onClick={() => setOpen(true)}>
         Delete my account
       </button>
-      <Link href="/privacy" className="ml-4 text-sm text-link underline">
-        Privacy
-      </Link>
 
       {open && (
         <Modal title="Delete your account?" onClose={close}>
