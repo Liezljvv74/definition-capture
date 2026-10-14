@@ -678,6 +678,11 @@ to it, and the save dialog offers them as boxes to tick, none ticked: each one
 ticked is added to the "See also" line, and saving with none ticked makes a
 rule linked to nothing.
 
+When an answer suggests keeping or practising something, it names the page
+that does it rather than a notebook or a list of your own: Vocabulary, Phrases,
+Verbs, Grammar or Flashcards, each a link to that page. Those five are the only
+links an answer can hold, and a rule saved from it keeps their names as plain words.
+
 A free account gets 5 tutor messages in total. A paid account gets 30 a day,
 counted from midnight UTC. Failed answers count, and a refused question is not
 recorded. With no studied language chosen, the page links to Settings instead of
