@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 
 import { BlockView } from "@/components/grammar/BlockView";
 import { findByTitle, getRules } from "@/lib/rules";
-import type { TutorExchange } from "@/lib/tutor";
+import { APP_PAGE_LINKS, type TutorExchange } from "@/lib/tutor";
 
 /** The source's title, or its host when it has none. */
 function sourceLabel(source: { url: string; title: string }): string {
@@ -74,7 +74,7 @@ export function AnswerCard({
           <p className="text-xs text-ink-soft">AI-generated</p>
         </div>
         {reply.blocks.map((block) => (
-          <BlockView key={block.id} block={block} linkIndex={new Map()} />
+          <BlockView key={block.id} block={block} linkIndex={APP_PAGE_LINKS} />
         ))}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t-[1.5px] border-dashed border-rule pt-2 text-xs">
           {reply.sources.length > 0 ? (

@@ -6,7 +6,7 @@ import {
   allowance, buildRequest, conversationName, DEFAULT_TUTOR_MODEL, exchangeTurns, FREE_TRIAL_MESSAGES, freeTitle,
   mergeLabel, mergeQuestion, modelLabel, PAID_DAILY_MESSAGES, pickMemory, readConversationId,
   asQuery, followUp, mergeSearch, onReferenceSite, SOURCES_MAX, readExchangeIds, readReply, readStoredReply, REFERENCE_DOMAINS, searchResults, startOfUtcDay,
-  tutorInstructions, withSeeAlso,
+  APP_PAGE_LINKS, tutorInstructions, withSeeAlso,
 } from "@/lib/tutor";
 
 describe("modelLabel", () => {
@@ -265,10 +265,10 @@ describe("saving answers from one conversation", () => {
 
   it("links a new rule to the rules saved before it, and leaves it alone when there are none", () => {
     const blocks: TextBlock[] = [{ kind: "text", id: "a", text: "Body" }];
-    expect(withSeeAlso(blocks, [])).toBe(blocks);
+    expect(withSeeAlso(blocks, [])).toEqual(blocks);
     const linked = withSeeAlso(blocks, ["The dative case", "Word order"]);
     expect(linked).toHaveLength(2);
-    expect(linked[0]).toBe(blocks[0]);
+    expect(linked[0]).toEqual(blocks[0]);
     expect(linked[1]).toMatchObject({ kind: "text", text: "See also [[The dative case]], [[Word order]]." });
     expect(linked[1].id).not.toBe("a");
   });
@@ -454,5 +454,41 @@ describe("at most three sources", () => {
     const saved = { title: "t", topic: "c", blocks: [{ kind: "text", text: "a" }],
       sources: [1, 2, 3, 4, 5].map((n) => ({ url: `https://www.duden.de/${n}`, title: `D${n}` })) };
     expect(readStoredReply(saved)!.sources).toHaveLength(3);
+  });
+});
+
+describe("links to the app's own pages", () => {
+  const wrap = (text: string) => ({
+    choices: [{ message: { content: JSON.stringify({ title: "t", topic: "c", blocks: [{ kind: "text", text }] }) } }],
+  });
+  const textOf = (text: string) => (readReply(wrap(text))!.blocks[0] as TextBlock).text;
+
+  it("tells the tutor to send the learner to the app's pages, not a notebook", () => {
+    const text = tutorInstructions({ studied: "German", answerIn: "English", level: "", grounded: true });
+    expect(text).toMatch(/never a notebook/);
+    for (const page of ["[[Vocabulary]]", "[[Phrases]]", "[[Verbs]]", "[[Grammar]]", "[[Flashcards]]"]) expect(text).toContain(page);
+  });
+
+  it("keeps a page link in an answer and makes any other bracketed name plain words", () => {
+    expect(textOf("Add them to [[Vocabulary]] and practise in [[flashcards]].")).toBe("Add them to [[Vocabulary]] and practise in [[flashcards]].");
+    expect(textOf("See [[Der Dativ]] and [[Notebook|your notebook]].")).toBe("See Der Dativ and your notebook.");
+  });
+
+  it("links each page name to its page", () => {
+    expect(APP_PAGE_LINKS.get("vocabulary")).toBe("/vocabulary");
+    expect(APP_PAGE_LINKS.get("flashcards")).toBe("/flashcards");
+    expect(APP_PAGE_LINKS.size).toBe(5);
+  });
+
+  it("saves a rule with the page names as plain words, and keeps its See also links", () => {
+    const blocks = [
+      { kind: "text", id: "a", text: "Add them to [[Vocabulary]]." } as TextBlock,
+      { kind: "table", id: "b", headerRow: true, headerColumn: false, cells: [["Keep in [[Phrases]]"]] } as TableBlock,
+    ];
+    const [text, table, seeAlso] = withSeeAlso(blocks, ["Word order"]) as [TextBlock, TableBlock, TextBlock];
+    expect(text.text).toBe("Add them to Vocabulary.");
+    expect(table.cells[0][0]).toBe("Keep in Phrases");
+    expect(seeAlso.text).toBe("See also [[Word order]].");
+    expect((withSeeAlso(blocks, [])[0] as TextBlock).text).toBe("Add them to Vocabulary.");
   });
 });

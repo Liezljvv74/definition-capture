@@ -187,6 +187,37 @@ function scopeRule(studied: string, answerIn: string): string {
  */
 export const SOURCES_MAX = 3;
 
+/**
+ * The app's own pages an answer may link to, by the name the menu shows them
+ * under. The owner's rule (8 October 2026): an answer that suggests keeping
+ * words or sentences names the page that keeps them, never a notebook or a
+ * separate list. The tutor writes them as `[[Vocabulary]]`, the answer shows
+ * them as links, and any other name in brackets is made plain words by
+ * `cleanText`, so the model can never invent a link.
+ */
+const APP_PAGES: Record<string, string> = {
+  Vocabulary: "/vocabulary",
+  Phrases: "/phrases",
+  Verbs: "/verbs",
+  Grammar: "/grammar",
+  Flashcards: "/flashcards",
+};
+
+/** `APP_PAGES` as the link index an answer is drawn with, keyed like every other (`foldName`). */
+export const APP_PAGE_LINKS: Map<string, string> = new Map(
+  Object.entries(APP_PAGES).map(([name, href]) => [foldName(name), href]),
+);
+
+/** `[[Name]]` or `[[Name|words]]`, as `LINK` in links.ts. */
+const BRACKET_LINK = /\[\[([^[\]\n|]+)(?:\|([^[\]\n]+))?\]\]/g;
+
+/** Every `[[...]]` in `text` that `keep` refuses, as the words it shows. */
+function unlink(text: string, keep: (name: string) => boolean): string {
+  return text.replace(BRACKET_LINK, (whole, name: string, words?: string) => (keep(name) ? whole : (words ?? name)));
+}
+
+const isAppPage = (name: string) => APP_PAGE_LINKS.has(foldName(name));
+
 /** How many related rules an answer may suggest linking to. */
 const RELATED_MAX = 3;
 
@@ -226,6 +257,12 @@ export function tutorInstructions(input: {
     // list under the answer; cleanText removes any that still slip in.
     "Never name, quote or cite a source, website or dictionary anywhere in the title, topic or blocks, " +
       "not even as a short \"Source:\" note: the references are listed after the explanation for you.",
+    // The owner's rule (8 October 2026): an answer about common misspellings
+    // told the learner to keep a list and write sentences in a notebook.
+    "The learner keeps their notes in this app, so when you suggest keeping or practising something, name the page that does it, never a notebook, a list or flashcards of their own: " +
+      "words to remember go in [[Vocabulary]], sentences and expressions in [[Phrases]], conjugations in [[Verbs]], " +
+      "the explanation itself can be saved as a rule in [[Grammar]], and everything saved is reviewed in [[Flashcards]], where the ones the learner gets wrong are marked for review. " +
+      "Write a page name in double square brackets exactly as here, in English whatever language you answer in, and use double square brackets for nothing else.",
     // The owner's rules (5 October 2026): a question a saved rule already
     // answers is met with that rule and a question back, not a second copy of
     // it; and every answer names the saved rules it could be linked to when
@@ -393,6 +430,7 @@ function cleanText(text: string): string {
     // After the links, so a linked note is removed whole rather than left as its words.
     .replace(SOURCE_NOTE, "")
     .replace(SITE_BRACKET, "")
+    .replace(BRACKET_LINK, (whole) => unlink(whole, isAppPage))
     .replace(/[{}]/g, "")
     // The owner wants no em dashes in anything the app shows.
     .replace(/\s*—\s*/g, ", ")
@@ -485,10 +523,21 @@ export function freeTitle(title: string, isTaken: (title: string) => boolean): s
   return `${base} (${n})`;
 }
 
-/** The blocks with a closing "See also" line linking to `titles`; the same blocks when there are none. */
+/**
+ * An answer's blocks as a rule keeps them: the links to the app's pages made
+ * plain words, since in a rule `[[Vocabulary]]` would point at a saved item of
+ * that name, or show as one not saved yet; then a closing "See also" line
+ * linking to `titles`, when there are any.
+ */
 export function withSeeAlso(blocks: Block[], titles: string[]): Block[] {
-  if (titles.length === 0) return blocks;
-  return [...blocks, { ...newTextBlock(), text: `See also ${titles.map((t) => `[[${t}]]`).join(", ")}.` }];
+  const plain = (text: string) => unlink(text, (name) => !isAppPage(name));
+  const kept = blocks.map((block): Block => {
+    if (block.kind === "text") return { ...block, text: plain(block.text) };
+    if (block.kind === "table") return { ...block, cells: block.cells.map((row) => row.map(plain)) };
+    return block;
+  });
+  if (titles.length === 0) return kept;
+  return [...kept, { ...newTextBlock(), text: `See also ${titles.map((t) => `[[${t}]]`).join(", ")}.` }];
 }
 
 /*
