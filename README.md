@@ -271,7 +271,7 @@ Being signed in is decided on the server, before a page exists.
 `src/proxy.ts` runs ahead of every request. It refreshes the session cookies
 (tokens expire hourly and a Server Component cannot write cookies), redirects
 anyone without a session to the landing page, `/`, and sends anyone with one from `/`,
-`/sign-in` or `/sign-up` to `/home`. Only `/`, `/sign-in`, `/sign-up` and
+`/sign-in` or `/sign-up` to `/home`. Only `/`, `/sign-in`, `/sign-up`, `/privacy` and
 `/auth/*` are reachable signed out, plus the files the matcher skips: Next's
 static output, the logo images, the demo video with its captions and poster,
 `robots.txt`, `sitemap.xml`, `llms.txt` and the Open Graph image. `src/app/(workspace)/layout.tsx` then asks again, on the
@@ -389,9 +389,16 @@ use** plays a narrated two-minute tour of the app
 track), which loads only when someone presses play. It reads
 no session and is prerendered, and carries `WebApplication` and `FAQPage`
 structured data built from the same questions. `robots.ts` lets crawlers read the
-public pages and keeps them out of the workspace, `sitemap.ts` lists the three
+public pages and keeps them out of the workspace, `sitemap.ts` lists the four
 public pages, `opengraph-image.tsx` draws the preview image, and `public/llms.txt`
 describes the app in plain text. Every workspace page is marked `noindex`.
+
+**Privacy** at the foot of the landing page, and beside Delete my account in
+Settings, opens `/privacy` (`src/app/privacy/page.tsx`): who is responsible for
+the data under the GDPR and how to reach them, what is stored, why, which services
+handle it (Supabase, Vercel, OpenRouter with Anthropic, Qwen and Exa, Cloudflare
+Turnstile, Resend), how long it is kept, and the reader's rights. It is written
+from the code, so a call to a new service belongs in its list in the same change.
 
 ### The look
 
