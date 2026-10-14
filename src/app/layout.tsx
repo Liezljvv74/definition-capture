@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Kalam, Patrick_Hand } from "next/font/google";
 import localFont from "next/font/local";
-import Link from "next/link";
 
 import { EnterMovesDown } from "@/components/EnterMovesDown";
 import { NotebookDoodles } from "@/components/notebook/NotebookDoodles";
 import { NotebookPaper } from "@/components/notebook/NotebookPaper";
+import { PrivacyLink } from "@/components/PrivacyLink";
 import { RuledLines } from "@/components/notebook/RuledLines";
 
 import { DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
@@ -70,15 +70,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <RuledLines />
           {children}
         </NotebookPaper>
-        {/* The privacy notice, in the corner opposite the logo so every page,
-            signed in or out, reaches it in one click. Under the modal overlay
-            (z-50) like the logo, so a dialog still covers it. */}
-        <Link
-          href="/privacy"
-          className="fixed bottom-2 left-2 z-40 rounded-sm bg-card/90 px-1.5 text-sm text-link underline"
-        >
-          Privacy
-        </Link>
+        <PrivacyLink />
       </body>
     </html>
   );
