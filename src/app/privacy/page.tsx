@@ -42,14 +42,14 @@ const PROCESSORS = [
 export default function PrivacyPage() {
   return (
     <>
-      <header className="notebook-page mx-auto flex w-full max-w-3xl items-center justify-between pt-4">
+      <header className="notebook-page mx-auto flex w-full max-w-6xl items-center justify-between pt-4">
         <Link href="/" className="hand-title flex items-center gap-2 text-xl">
           <Image src="/captured-logo.png" alt="" width={32} height={32} priority />
           {SITE_NAME}
         </Link>
       </header>
 
-      <main className="notebook-page mx-auto w-full max-w-3xl flex-1 space-y-7 pt-8 pb-20 leading-7">
+      <main className="notebook-page mx-auto w-full max-w-6xl flex-1 space-y-7 pt-8 pb-20 leading-7">
         <div>
           <h1 className="hand-title text-[clamp(2rem,4vw,2.6rem)] leading-tight">Privacy</h1>
           <p className="mt-1 text-sm text-ink-soft">Last updated {UPDATED}</p>
