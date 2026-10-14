@@ -146,6 +146,7 @@ Where each value comes from:
 | `OPENROUTER_MODEL` | Optional; an OpenRouter model slug, from <https://openrouter.ai/models> |
 | `RESEND_API_KEY` | <https://resend.com/api-keys> → Create API Key (Sending access) |
 | `FEEDBACK_TO` | The address the Feedback form emails. With the shared sender it must match the Resend account's address exactly, in lowercase: Resend refused `Liezl.Fourie@…` for `liezl.fourie@…` |
+| `SUPABASE_SECRET_KEY` | Supabase dashboard, Project Settings → API Keys → Secret keys → New secret key (`sb_secret_…`). Used only to delete an account; keep it Sensitive in Vercel |
 | `FEEDBACK_FROM` | Optional; a sender on a domain verified in Resend. Unset, mail comes from `onboarding@resend.dev`, which Resend delivers only to the address the Resend account was opened with |
 
 
@@ -159,6 +160,7 @@ OPENROUTER_MODEL=
 RESEND_API_KEY=
 FEEDBACK_TO=
 FEEDBACK_FROM=
+SUPABASE_SECRET_KEY=
 ```
 
 The first three are compiled into the browser bundle and are meant to be public; row
@@ -296,10 +298,9 @@ repeating back whatever the URL carried would have let any link make this app sa
 anything in its own voice.
 
 The only keys in the browser bundle are public ones. `NEXT_PUBLIC_*` holds the
-project URL, the publishable key and the Turnstile site key. The project holds no
-service-role key at all, and the Turnstile secret lives only in the Supabase
-dashboard. The other secrets are `OPENROUTER_API_KEY`, `TUTOR_SIGNING_SECRET` and
-`RESEND_API_KEY`, all
+project URL, the publishable key and the Turnstile site key. The Turnstile secret
+lives only in the Supabase dashboard. The other secrets are `OPENROUTER_API_KEY`,
+`TUTOR_SIGNING_SECRET`, `RESEND_API_KEY` and `SUPABASE_SECRET_KEY`, all
 read only in server code and never given a `NEXT_PUBLIC_` name. The signing
 secret keys the signatures on the tutor's answers, so that a made-up earlier
 answer cannot reach the model; changing it leaves older answers shown and
@@ -601,7 +602,12 @@ menu, below a rule, so signing out is two clicks from anywhere:
 - **Profile**: the address you signed in with, an optional display name shown in
   the nav in its place, **Native language and level** (what the tutor answers
   with), **Reading speed** (Slow, Normal or Fast, for every speaker), Sign out,
-  **Password** (see above), and **Export folder**. The reading speed is not
+  **Delete my account**, **Password** (see above), and **Export folder**.
+  Delete my account asks you to type your email address, then removes the
+  account and everything in it for good (`DELETE /api/account`, the one place
+  the app uses Supabase's secret key; every table cascades from the user).
+  Copies already sent to OpenRouter, the model provider or Resend are not
+  reached by it. The reading speed is not
   written into backup files, being a preference rather than data.
 - **Glossary settings**: the **Language** you are learning, which sets the
   alphabetical order of every list, and the **Words to skip when sorting** that
@@ -946,6 +952,28 @@ Any host for this app has to run Node, so that `src/proxy.ts` and the server
 components actually execute. A deployed copy is the same list: sign in there and
 your words are the ones you saved, because local development and production use
 the same Supabase project.
+
+### Dashboard checklist after moving or renaming the domain
+
+These settings live in dashboards, not in the code, so no commit can change
+them and no test notices when they are wrong. After the move from GitHub
+Pages to Vercel the Supabase Site URL was left at `liezljvv74.github.io/definition-capture`, and
+nothing showed it until the owner tried a password reset on 13 October 2026
+and landed on GitHub's 404 page. Password sign-in never touches these
+settings, so only emailed links (reset, sign-in by link, sign-up
+confirmation) find the gap. Tick every box whenever the live address
+changes, and once now:
+
+- [ ] Supabase, Authentication, URL Configuration, **Site URL** is the live
+      origin (today `https://definition-capture.vercel.app`).
+- [ ] **Redirect URLs** list `/auth/callback` and `/auth/reset` on the live
+      origin and on `http://localhost:3000`, and nothing on an old address.
+- [ ] Cloudflare Turnstile: the widget's hostnames include the live one and
+      `localhost`.
+- [ ] Vercel: the environment variables listed above are set for
+      Production.
+- [ ] Try it: request a password reset on the live site, click the new
+      email's link once, and land on Choose a password.
 
 ## Layout of the code
 
