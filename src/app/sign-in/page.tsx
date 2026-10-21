@@ -8,7 +8,7 @@ import { signInLinkError } from "@/lib/authLinkError";
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { sendMagicLink, sendPasswordReset, signInWithPassword } from "@/lib/session";
 import { Brand } from "@/components/notebook/Brand";
-import { MAINTENANCE, MaintenanceNotice } from "@/components/MaintenanceNotice";
+import { MaintenanceNotice, useSupabaseDown } from "@/components/MaintenanceNotice";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
 /**
@@ -46,6 +46,7 @@ type Captcha = {
 };
 
 export default function SignInPage() {
+  const down = useSupabaseDown();
   const [route, setRoute] = useState<Route>("password");
   // Seeded from the URL: arriving here from a link that failed should say so,
   // rather than looking like an ordinary first visit. It belongs to the visit
@@ -71,7 +72,7 @@ export default function SignInPage() {
       <Brand />
       <main className="notebook-page mx-auto w-full max-w-md flex-1 py-8">
       <div className="card relative tape tape-right p-6">
-        <h1 className="hand-title text-2xl"><span className="marker">{MAINTENANCE ? "Back soon" : "Sign in to start"}</span></h1>
+        <h1 className="hand-title text-2xl"><span className="marker">{down ? "Back soon" : "Sign in to start"}</span></h1>
 
         {!isSupabaseConfigured ? (
           // A build with no credentials would otherwise show a sign-in form
@@ -81,7 +82,7 @@ export default function SignInPage() {
             to sign in to. Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
             <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> and build again.
           </p>
-        ) : MAINTENANCE ? (
+        ) : down === null ? null : down ? (
           <MaintenanceNotice />
         ) : (
           <>

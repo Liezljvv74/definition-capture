@@ -218,10 +218,11 @@ Then, in the dashboard:
 
 ### Accounts, sign-in and passwords
 
-**Maintenance.** While the Supabase project is paused, `MAINTENANCE` in
-`src/components/MaintenanceNotice.tsx` is `true`, and `/sign-in` and `/sign-up` say
-the website is undergoing maintenance instead of showing their forms. Set it back
-to `false` and push once the project is restored.
+**Maintenance.** Each time `/sign-in` or `/sign-up` opens, it asks Supabase's
+Auth health endpoint whether the project is answering (`useSupabaseDown` in
+`src/components/MaintenanceNotice.tsx`). If it is paused or unreachable, the page
+says the website is undergoing maintenance instead of showing its form, and goes
+back to the form by itself once the project is restored.
 
 Anyone without an account can make one at **`/sign-up`** with an email and a
 password. If the project requires email confirmation the account waits until the

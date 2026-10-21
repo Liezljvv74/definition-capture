@@ -1,14 +1,34 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 /**
- * Whether the Supabase project is paused, which takes sign-in and sign-up down
- * with it. While it is, both pages show `MaintenanceNotice` in place of their
- * forms, so a visitor reads why instead of a form that fails on submit.
+ * Whether Supabase is answering, asked once when the sign-in or sign-up page
+ * opens: `null` while the answer is awaited, then `true` when it is down. A
+ * paused project takes sign-in and sign-up down with it, and this lets both
+ * pages show `MaintenanceNotice` in place of forms that would fail on submit.
  *
- * A constant rather than an environment variable: a `NEXT_PUBLIC_` value is
- * compiled in at build time, so switching it in Vercel needs a redeploy anyway,
- * and a push to `main` is one step where the dashboard and a redeploy are two.
- * Set it back to `false` in the same push that follows restoring the project.
+ * Asked rather than switched: a constant had to be flipped and pushed after
+ * the project came back, and until then the site said it was down when it was
+ * not. Auth's health endpoint is the cheapest thing to ask, and any failure,
+ * including no answer in five seconds, counts as down.
  */
-export const MAINTENANCE = true;
+export function useSupabaseDown(): boolean | null {
+  const [down, setDown] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    // Unconfigured, the pages say so before they look at this.
+    if (!url || !key) return;
+    fetch(`${url}/auth/v1/health`, { headers: { apikey: key }, signal: AbortSignal.timeout(5000) }).then(
+      (response) => setDown(!response.ok),
+      () => setDown(true),
+    );
+  }, []);
+
+  return down;
+}
 
 /** Ink, not red: red is kept for errors, and this is a notice. */
 export function MaintenanceNotice() {
