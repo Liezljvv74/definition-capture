@@ -750,6 +750,15 @@ Bigger decisions, not urgent:
 - **Links from elsewhere**: Product Hunt, language-learning communities.
   Rankings lean heavily on these, and none of it is code.
 
+## Tutor: read the learner's own documents (reminder, 21 October 2026)
+
+The owner wants to look into importing documents into the app, saved as part of
+the tutor, so the tutor can read from them as well as from saved answers. Nothing
+is designed or decided yet; raise it with the owner before starting. Points to
+weigh when it comes up: the free plan's 500 MB (see the row limits in CLAUDE.md),
+the fixed embedding model and 1024-dimension column (CLAUDE.md, Embeddings), and
+any new table's RLS and grants (read `Docs/schema.md` first).
+
 ## Checks and commands
 
 ```
