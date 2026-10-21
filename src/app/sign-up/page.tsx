@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { MIN_PASSWORD, passwordProblem, signUpWithPassword } from "@/lib/session";
 import { Brand } from "@/components/notebook/Brand";
+import { MAINTENANCE, MaintenanceNotice } from "@/components/MaintenanceNotice";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
 /**
@@ -75,7 +76,7 @@ export default function SignUpPage() {
       <Brand />
       <main className="notebook-page mx-auto w-full max-w-md flex-1 py-8">
       <div className="card relative tape tape-right p-6">
-        <h1 className="hand-title text-2xl"><span className="marker">Create an account</span></h1>
+        <h1 className="hand-title text-2xl"><span className="marker">{MAINTENANCE ? "Back soon" : "Create an account"}</span></h1>
 
         {!isSupabaseConfigured ? (
           <p className="mt-3 text-sm text-red-700 dark:text-red-400">
@@ -83,6 +84,8 @@ export default function SignUpPage() {
             to sign up to. Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
             <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> and build again.
           </p>
+        ) : MAINTENANCE ? (
+          <MaintenanceNotice />
         ) : checkEmail ? (
           // Carefully worded. Supabase answers an address that already has an
           // account exactly as it answers a new one, so that this form cannot
