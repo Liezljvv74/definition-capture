@@ -245,7 +245,9 @@ that crossing is long finished.
 publishable key, so RLS is what separates one account's rows from another's. Every
 table has RLS enabled and policies checking `(select auth.uid()) = user_id`,
 including `with check` on insert and update. A new table gets the same treatment
-in the same migration that creates it.
+in the same migration that creates it, and its grants to `authenticated`, since
+Supabase no longer grants them by default (from 30 October 2026). Grant only the
+commands and columns the app uses, never anything to `anon`.
 
 **`src/lib/remoteStore.ts` is the only thing that talks to Supabase for list
 data.** All four list stores are built from that one factory, so they cannot drift
